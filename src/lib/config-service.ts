@@ -1,4 +1,5 @@
 import { prisma } from './db'
+import { defaultConfigValues } from './system-config-defaults'
 
 // 配置缓存
 let configCache: Record<string, any> = {}
@@ -92,16 +93,7 @@ export async function getAllConfigsWithMeta() {
   })
 }
 
-// 配置默认值
-const defaultValues: Record<string, any> = {
-  allowedIPs: ['127.0.0.1', '::1'],
-  jwtSecret: '72a99ef4352d55f8c6c5bdbe8a54e0d58df60740e229318cbc2dea4154ef48dd',
-  jwtExpiresIn: '24h',
-  bcryptRounds: 12,
-  systemName: '激活码管理系统'
-}
-
 export async function getConfigWithDefault(key: string): Promise<any> {
   const value = await getConfig(key)
-  return value !== null ? value : defaultValues[key]
-} 
+  return value !== null ? value : defaultConfigValues[key]
+}

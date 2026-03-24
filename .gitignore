@@ -131,4 +131,5 @@ temp/
 *.sw?
 
 # Cursor
-.cursor/ 
+.cursor/
+.ace-tool/

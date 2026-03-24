@@ -10,18 +10,53 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-model ActivationCode {
-  id        Int       @id @default(autoincrement())
-  code      String    @unique
-  isUsed    Boolean   @default(false)
-  usedAt    DateTime?
-  usedBy    String?   // 机器ID
-  createdAt DateTime  @default(now())
-  expiresAt DateTime?
-  validDays Int?      // 激活码有效天数，从激活时开始计算
-  cardType  String?   // 套餐类型：如"周卡"、"月卡"、"季卡"、"年卡"等
+model Project {
+  id          Int              @id @default(autoincrement())
+  name        String
+  projectKey  String           @unique
+  description String?
+  isEnabled   Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  codes       ActivationCode[]
 
+  @@map("projects")
+}
+
+model ActivationCode {
+  id             Int         @id @default(autoincrement())
+  code           String      @unique
+  isUsed         Boolean     @default(false)
+  usedAt         DateTime?
+  usedBy         String?     // 机器ID
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  expiresAt      DateTime?
+  validDays      Int?        // 时间型激活码有效天数，从激活时开始计算
+  cardType       String?     // 套餐类型：如"周卡"、"月卡"、"季卡"、"年卡"等
+  projectId      Int
+  project        Project     @relation(fields: [projectId], references: [id])
+  licenseMode    String      @default("TIME") // TIME | COUNT
+  totalCount     Int?        // 次数型激活码总次数
+  remainingCount Int?        // 次数型激活码剩余次数
+  consumedCount  Int         @default(0)
+  consumptions   LicenseConsumption[]
+
+  @@index([projectId])
   @@map("activation_codes")
+}
+
+model LicenseConsumption {
+  id                  Int            @id @default(autoincrement())
+  requestId           String         @unique
+  activationCodeId    Int
+  activationCode      ActivationCode @relation(fields: [activationCodeId], references: [id])
+  machineId           String
+  remainingCountAfter Int
+  createdAt           DateTime       @default(now())
+
+  @@index([activationCodeId])
+  @@map("license_consumptions")
 }
 
 model Admin {
@@ -43,4 +78,4 @@ model SystemConfig {
   updatedAt   DateTime @updatedAt
 
   @@map("system_configs")
-} 
+}

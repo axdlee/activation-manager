@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "predev": "npm run bootstrap:dev",
     "dev": "next dev",
+    "bootstrap:dev": "tsx scripts/bootstrap-dev.ts",
+    "smoke:license-api": "bash ./scripts/smoke-license-api.sh",
     "build": "next build",
     "start": "next start",
+    "test": "node --import tsx --test \"tests/**/*.test.ts\"",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -39,4 +43,4 @@
     "eslint": "^8",
     "eslint-config-next": "14.0.0"
   }
-} 
+}

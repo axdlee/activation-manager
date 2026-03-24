@@ -12,6 +12,15 @@ export async function GET(request: NextRequest) {
 
     // 获取所有激活码，按创建时间倒序排列
     const codes = await prisma.activationCode.findMany({
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            projectKey: true,
+          }
+        }
+      },
       orderBy: {
         createdAt: 'desc'
       }
@@ -29,4 +38,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}
