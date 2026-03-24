@@ -55,6 +55,7 @@ import {
   buildSystemConfigPageModel,
   type SystemConfigItem as DashboardSystemConfigItem,
 } from '@/lib/system-config-ui'
+import { prepareSystemConfigUpdates } from '@/lib/system-config-updates'
 import { buildChangePasswordPageModel } from '@/lib/change-password-ui'
 import { ApiDocsWorkspace } from '@/components/api-docs-workspace'
 
@@ -719,17 +720,19 @@ export default function DashboardPage() {
     setMessage('')
 
     try {
+      const configs = prepareSystemConfigUpdates(systemConfigs)
       const response = await fetch('/api/admin/system-config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ configs: systemConfigs }),
+        body: JSON.stringify({ configs }),
       })
 
       const data = await response.json()
       if (data.success) {
         showMessage(data.message)
+        await fetchSystemConfigs()
       } else {
         showMessage(data.message || '系统配置更新失败', 'error')
       }

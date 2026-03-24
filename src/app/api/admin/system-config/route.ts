@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
-import { getAllConfigsWithMeta, setConfig } from '@/lib/config-service'
+import { getAllConfigsWithMeta, sanitizeSystemConfigsForAdmin, setConfig } from '@/lib/config-service'
+import { prepareSystemConfigUpdates } from '@/lib/system-config-updates'
 
 // 获取所有系统配置
 export async function GET(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
       return createAuthResponse(authResult.error || '认证失败', 401)
     }
 
-    const configs = await getAllConfigsWithMeta()
+    const configs = sanitizeSystemConfigsForAdmin(await getAllConfigsWithMeta())
     
     return NextResponse.json({
       success: true,
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 批量更新配置
-    for (const config of configs) {
+    for (const config of prepareSystemConfigUpdates(configs)) {
       await setConfig(config.key, config.value, config.description)
     }
 

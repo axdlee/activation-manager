@@ -4,6 +4,9 @@ export type SystemConfigItem = {
   key: string
   value: SystemConfigValue
   description?: string | null
+  sensitive?: boolean
+  masked?: boolean
+  hasValue?: boolean
 }
 
 type SystemConfigInputKind = 'text' | 'password' | 'number' | 'select' | 'textarea'
@@ -30,6 +33,8 @@ type SystemConfigDisplayItem = {
   options?: SystemConfigOption[]
   placeholder?: string
   sensitive?: boolean
+  masked?: boolean
+  hasValue?: boolean
   layout: SystemConfigCardLayout
   badges?: SystemConfigBadge[]
   previewTokens?: string[]
@@ -159,6 +164,21 @@ function resolveBcryptRoundsBadges(value: SystemConfigValue): SystemConfigBadge[
   return [{ label: '高强度', tone: 'info' }]
 }
 
+function resolveSensitiveConfigBadges(config: SystemConfigItem): SystemConfigBadge[] {
+  const badges: SystemConfigBadge[] = [{ label: '敏感配置', tone: 'danger' }]
+
+  if (!config.masked) {
+    return badges
+  }
+
+  badges.push({
+    label: config.hasValue ? '已配置' : '未配置',
+    tone: config.hasValue ? 'success' : 'warning',
+  })
+
+  return badges
+}
+
 function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
   switch (config.key) {
     case 'allowedIPs':
@@ -179,13 +199,19 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
         key: config.key,
         label: 'JWT 密钥',
         description: '用于签发和校验登录态，修改后现有会话会失效。',
-        hint: '建议使用足够长的随机字符串，并妥善保管。',
+        hint: config.masked
+          ? config.hasValue
+            ? '当前密钥已配置，留空可保持不变；输入新值后会立即覆盖旧密钥。'
+            : '当前尚未配置 JWT 密钥，请尽快设置一个足够长的随机字符串。'
+          : '建议使用足够长的随机字符串，并妥善保管。',
         value: config.value,
         inputKind: 'password',
         sensitive: true,
-        placeholder: '请输入新的 JWT 密钥',
+        masked: config.masked,
+        hasValue: config.hasValue,
+        placeholder: config.hasValue ? '如需更新，请输入新的 JWT 密钥' : '请输入新的 JWT 密钥',
         layout: 'full',
-        badges: [{ label: '敏感配置', tone: 'danger' }],
+        badges: resolveSensitiveConfigBadges(config),
       }
     case 'jwtExpiresIn':
       return {

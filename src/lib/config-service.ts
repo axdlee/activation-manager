@@ -1,5 +1,7 @@
 import { prisma } from './db'
 import { defaultConfigValues } from './system-config-defaults'
+import { type SystemConfigItem, type SystemConfigValue } from './system-config-ui'
+import { isSensitiveSystemConfigKey } from './system-config-rules'
 
 // 配置缓存
 let configCache: Record<string, any> = {}
@@ -73,24 +75,48 @@ export async function getAllConfigs(): Promise<Record<string, any>> {
   return result
 }
 
-export async function getAllConfigsWithMeta() {
-  const configs = await prisma.systemConfig.findMany({
-    orderBy: { key: 'asc' }
-  })
+function parseConfigValue(rawValue: string): SystemConfigValue {
+  try {
+    return JSON.parse(rawValue)
+  } catch {
+    return rawValue
+  }
+}
 
-  return configs.map((config: any) => {
-    let value: any
-    try {
-      value = JSON.parse(config.value)
-    } catch {
-      value = config.value
+function hasConfigValue(value: SystemConfigValue) {
+  if (Array.isArray(value)) {
+    return value.length > 0
+  }
+
+  return value !== ''
+}
+
+export function sanitizeSystemConfigsForAdmin(configs: SystemConfigItem[]): SystemConfigItem[] {
+  return configs.map((config) => {
+    if (!isSensitiveSystemConfigKey(config.key)) {
+      return config
     }
 
     return {
       ...config,
-      value
+      value: '',
+      sensitive: true,
+      masked: true,
+      hasValue: hasConfigValue(config.value),
     }
   })
+}
+
+export async function getAllConfigsWithMeta(): Promise<SystemConfigItem[]> {
+  const configs = await prisma.systemConfig.findMany({
+    orderBy: { key: 'asc' }
+  })
+
+  return configs.map((config) => ({
+    key: config.key,
+    description: config.description,
+    value: parseConfigValue(config.value),
+  }))
 }
 
 export async function getConfigWithDefault(key: string): Promise<any> {
