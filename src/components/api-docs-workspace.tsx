@@ -59,16 +59,20 @@ const methodBadgeClassNameMap = {
 } as const
 
 const tableContainerClassName =
-  'overflow-x-auto rounded-[24px] border border-slate-200/80 bg-white/95 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]'
+  'overflow-x-auto rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_56px_-42px_rgba(15,23,42,0.16)]'
 
 const inlineActionButtonClassName =
   'inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
+
+const publicCodeBlockClassName =
+  'overflow-x-auto rounded-[22px] border border-sky-100 bg-slate-50 px-4 py-4 font-mono text-[12px] leading-6 text-slate-800 shadow-inner shadow-sky-100/50'
 
 export function ApiDocsWorkspace({
   mode = 'dashboard',
   initialTab = 'overview',
   onFeedback,
 }: ApiDocsWorkspaceProps) {
+  const isPublicMode = mode === 'public'
   const [activeTab, setActiveTab] = useState<ApiDocsWorkspaceTab>(initialTab)
   const [localFeedback, setLocalFeedback] = useState<{
     text: string
@@ -140,7 +144,13 @@ export function ApiDocsWorkspace({
   return (
     <div className="space-y-6">
       <div className={`${publicPanelClassName} relative overflow-hidden p-6 sm:p-7`}>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.1),transparent_30%)]" />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at top left, rgba(14,165,233,0.12), transparent 28%), radial-gradient(circle at bottom right, rgba(139,92,246,0.08), transparent 30%)',
+          }}
+        />
         <div className="relative">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
@@ -156,7 +166,7 @@ export function ApiDocsWorkspace({
               </p>
             </div>
 
-            <div className="rounded-[22px] border border-white/80 bg-white/82 px-4 py-4 text-sm leading-6 text-slate-600 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]">
+            <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-600 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.16)]">
               <div className="font-semibold text-slate-900">{heroContent.asideTitle}</div>
               <div className="mt-1 text-slate-500">{heroContent.asideDescription}</div>
             </div>
@@ -204,7 +214,7 @@ export function ApiDocsWorkspace({
                   className={`rounded-[24px] border p-4 text-left transition ${
                     isActive
                       ? 'border-sky-200 bg-sky-50/85 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.35)]'
-                      : 'border-white/70 bg-white/75 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white/90'
+                      : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-sky-100 hover:bg-sky-50/60'
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -212,7 +222,9 @@ export function ApiDocsWorkspace({
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold ${
                         isActive
                           ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
-                          : 'bg-slate-900 text-white/90'
+                          : isPublicMode
+                            ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100'
+                            : 'bg-slate-900 text-white/90'
                       }`}
                     >
                       {tab.shortLabel}
@@ -469,6 +481,7 @@ export function ApiDocsWorkspace({
                       </button>
                     }
                     code={endpoint.requestExample}
+                    codeClassName={isPublicMode ? publicCodeBlockClassName : undefined}
                   />
 
                   <DashboardCodePanel
@@ -494,6 +507,7 @@ export function ApiDocsWorkspace({
                       </button>
                     }
                     code={endpoint.responseExample}
+                    codeClassName={isPublicMode ? publicCodeBlockClassName : undefined}
                   />
                 </div>
               </div>
@@ -534,6 +548,7 @@ export function ApiDocsWorkspace({
                 </button>
               }
               code={snippet.code}
+              codeClassName={isPublicMode ? publicCodeBlockClassName : undefined}
             />
           ))}
         </div>
@@ -583,6 +598,7 @@ export function ApiDocsWorkspace({
                   command={item.command}
                   onCopy={() => void copyToClipboard(item.command, `${item.title} 已复制`)}
                   buttonClassName={publicSecondaryButtonClassName}
+                  codeClassName={isPublicMode ? publicCodeBlockClassName : undefined}
                 />
               ))}
             </div>

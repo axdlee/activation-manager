@@ -41,7 +41,13 @@ export default function ApiDocsPage() {
     <main className={publicPageClassName}>
       <div className={publicContainerClassName}>
         <section className={`${publicShellClassName} relative overflow-hidden p-6 sm:p-8`}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.12),transparent_30%)]" />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at top right, rgba(14,165,233,0.14), transparent 28%), radial-gradient(circle at bottom left, rgba(99,102,241,0.12), transparent 30%)',
+            }}
+          />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <div className={publicPillClassName}>
@@ -68,7 +74,7 @@ export default function ApiDocsPage() {
               {docsHighlights.map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-[24px] border border-white/80 bg-white/82 px-5 py-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]"
+                  className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.16)]"
                 >
                   <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
                     {item.label}
