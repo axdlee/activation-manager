@@ -451,6 +451,11 @@ tests/
 - 统一 API 文档页后台接口分组卡与本地联调命令卡结构
 - 统一 API 文档工作区的初始 tab 测试入口与高层组合回归
 - 统一系统配置页的总览 / 分区导航 / 分区编辑工作区结构
+- 统一改密页的摘要 / 提示 / 表单工作区结构
+- 统一项目管理页的 create / manage 双工作区结构
+- 统一激活码管理页的 filters / results 双工作区结构
+- 统一消费日志页的 filters / logs 双工作区结构
+- 统一项目筛选区与创建区的卡片式输入样式
 - 为后续继续拆分 workspace 内容块打基础
 
 ## 测试策略
@@ -465,6 +470,10 @@ tests/
 - api docs admin group card 组件渲染与后台接口组样式回归
 - api docs debug command card 组件渲染与联调命令卡样式回归
 - api docs workspace 的 endpoints / examples / admin 初始 tab 组合回归
+- change password workspace 的摘要、行为提示、字段可见性与 loading 态回归
+- project workspace 的 create / manage 高层结构与空状态回归
+- activation code workspace 的 filters / results 高层结构、结果列表与空状态回归
+- consumption workspace 的 filters / logs 高层结构、快捷时间范围、结果列表与空状态回归
 - system config workspace 的 tabs 构建、overview 初始态与 security 初始态回归
 - dashboard action panel 组件渲染、背景插槽与样式覆盖回归
 - dashboard code panel 组件渲染与代码块结构回归
@@ -517,12 +526,13 @@ npm run quality:gate
 最近一次提交级门禁结果：
 
 - `git diff --check` ✅
+- `npm run lint` ✅
 - `npm run quality:gate` ✅
-- 全量测试：`273 / 273` ✅
+- 全量测试：`283 / 283` ✅
 - 覆盖率：
-  - 行覆盖率 `94.85%`
-  - 分支覆盖率 `87.34%`
-  - 函数覆盖率 `93.83%`
+  - 行覆盖率 `95.34%`
+  - 分支覆盖率 `87.02%`
+  - 函数覆盖率 `92.75%`
 
 ## 本地联调
 

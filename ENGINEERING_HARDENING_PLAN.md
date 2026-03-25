@@ -3251,3 +3251,190 @@
 3. 继续清点 dashboard 主页剩余可下沉的重复块
 
 ---
+
+### 2026-03-25 / Iteration 55
+
+**目标**：继续瘦身 `src/app/admin/dashboard/page.tsx`，把改密页与项目管理页进一步收敛为独立工作区组件，并确保提交视角门禁可完整通过。
+
+**已完成**：
+
+- [x] 新增 `ChangePasswordWorkspace`，承接改密页高层 UI 结构
+- [x] 新增 `ProjectWorkspace`，承接项目管理页的 create / manage 工作区
+- [x] dashboard 已切换为复用上述工作区组件
+- [x] 补齐改密页与项目工作区高层回归测试
+- [x] 修复构建阶段发现的 `ChangePasswordWorkspace` 字段类型问题
+- [x] 完成提交视角门禁验证
+
+**本轮落地内容**：
+
+1. `src/components/change-password-workspace.tsx`
+   - 抽离改密页 Hero / 摘要 / 实时校验 / 表单提交工作区
+   - 新增 `ChangePasswordField` 显式类型，消除 `field.minLength` 在 build 阶段的联合类型报错
+2. `src/lib/change-password-ui.ts`
+   - 导出 `ChangePasswordPageModel` 及相关摘要 / 检查项类型，供工作区组件复用
+3. `src/components/project-workspace.tsx`
+   - 抽离项目管理 Hero、create 表单、manage 列表、分页与空状态
+   - 项目筛选区统一切换为 `DashboardFilterFieldCard` 卡片式样式
+   - 单页 / 空结果场景下补充分页摘要，避免只剩空白列表
+4. `src/app/admin/dashboard/page.tsx`
+   - 改密页接入 `ChangePasswordWorkspace`
+   - 项目管理页接入 `ProjectWorkspace`
+   - `dashboard/page.tsx` 从 **3134 行** 收敛到 **2964 行**
+5. 新增测试：
+   - `tests/change-password-workspace.test.ts`
+   - `tests/project-workspace.test.ts`
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/change-password-workspace.test.ts"` ❌（`MODULE_NOT_FOUND`）
+   - `node --import tsx --test "tests/project-workspace.test.ts"` ❌（`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/change-password-workspace.test.ts" "tests/change-password-ui.test.ts" "tests/project-workspace.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run lint` ✅（无 warnings / errors）
+   - `npm run quality:gate` ✅
+   - 全量测试：**277 / 277** ✅
+   - 覆盖率：
+     - 行覆盖率：**95.04%**
+     - 分支覆盖率：**87.20%**
+     - 函数覆盖率：**93.60%**
+
+**备注**：
+
+- 本轮继续遵循 **KISS / DRY / YAGNI**：
+  - 没有引入额外路由或全局状态，只把已有页面块收口为职责清晰的工作区组件
+  - 项目筛选区直接复用已有卡片式字段组件，避免再维护一套样式分支
+  - 构建错误通过最小类型补充解决，没有绕开类型系统，也没有引入多余抽象
+- 页面收益：
+  - dashboard 主页继续瘦身，项目管理与改密的边界更清晰
+  - 项目筛选区与创建区视觉更统一，空结果页的信息密度更合理
+  - 提交前已验证 lint / test / build 全链路通过，可继续在此基础上演进
+
+**下一步**：
+
+1. 继续检查 `activation code workspace` 与 `consumption workspace` 是否还能继续下沉为独立工作区组件
+2. 继续为 `ProjectWorkspace` 补更高层交互覆盖，尤其是多页分页与列表态组合回归
+3. 继续清点 `dashboard/page.tsx` 中剩余重复块，优先处理仍然较长的列表 / 筛选区域
+
+---
+
+### 2026-03-25 / Iteration 56
+
+**目标**：继续瘦身 `src/app/admin/dashboard/page.tsx`，把激活码管理页的 `filters / results` 双工作区抽离为独立组件，并补高层回归。
+
+**已完成**：
+
+- [x] 新增 `ActivationCodeWorkspace`
+- [x] dashboard 激活码管理页切换为复用工作区组件
+- [x] 补齐激活码工作区的 filters / results 高层测试
+- [x] 修复门禁中暴露的工作区结果视图类型兼容问题
+- [x] 完成提交视角门禁验证
+
+**本轮落地内容**：
+
+1. `src/components/activation-code-workspace.tsx`
+   - 抽离激活码工作区头部、筛选表单、当前条件摘要、结果表格、空状态与分页
+   - 内部统一复用 `WorkspaceHeroPanel / DashboardFilterFieldCard / DashboardDataTable / DashboardPaginationBar`
+   - 将结果视图设计为泛型，兼容 dashboard 内部更完整的 `ActivationCode` 类型
+2. `src/app/admin/dashboard/page.tsx`
+   - 激活码页改为接入 `ActivationCodeWorkspace`
+   - 通过 `activationCodeFiltersView / activationCodeResultsView` 收口页面级状态与回调
+   - `dashboard/page.tsx` 从 **2964 行** 继续收敛到 **2728 行**
+3. 新增测试：
+   - `tests/activation-code-workspace.test.ts`
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/activation-code-workspace.test.ts"` ❌（`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/activation-code-workspace.test.ts" "tests/dashboard-workspace-tabs.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run lint` ✅（无 warnings / errors）
+   - `npm run quality:gate` ✅
+   - 全量测试：**280 / 280** ✅
+   - 覆盖率：
+     - 行覆盖率：**95.22%**
+     - 分支覆盖率：**87.09%**
+     - 函数覆盖率：**93.10%**
+
+**备注**：
+
+- 本轮继续遵循 **KISS / DRY / YAGNI**：
+  - 没有新增筛选能力，只把已有激活码页拆成职责更清晰的工作区组件
+  - 继续复用已有表格、分页、筛选卡片和 Hero 组件，避免新的 UI 分叉
+  - 构建中暴露的类型问题通过泛型边界收敛，保持类型安全，而不是使用宽松断言绕过
+- 页面收益：
+  - 激活码页的 filters / results 边界更清晰，后续继续细化列表操作会更容易
+  - dashboard 主页继续减重，主文件复杂度进一步下降
+  - 激活码工作区已具备独立高层回归，后续重构成本更低
+
+**下一步**：
+
+1. 继续抽离 `ConsumptionWorkspace`，把消费日志页的 filters / logs 结构独立出来
+2. 为 `ActivationCodeWorkspace` 补更高层列表交互覆盖，尤其是多页分页场景
+3. 继续检查 `dashboard/page.tsx` 中剩余的生成页和消费页局部重复块
+
+---
+
+### 2026-03-25 / Iteration 57
+
+**目标**：继续瘦身 `src/app/admin/dashboard/page.tsx`，把消费日志页的 `filters / logs` 双工作区抽离为独立组件，并补高层回归。
+
+**已完成**：
+
+- [x] 新增 `ConsumptionWorkspace`
+- [x] dashboard 消费日志页切换为复用工作区组件
+- [x] 补齐消费日志工作区的 filters / logs 高层测试
+- [x] 完成提交视角门禁验证
+
+**本轮落地内容**：
+
+1. `src/components/consumption-workspace.tsx`
+   - 抽离消费日志工作区头部、筛选表单、快捷时间范围、刷新状态、日志表格、空状态与分页
+   - 统一复用 `WorkspaceHeroPanel / DashboardFilterFieldCard / DashboardSummaryStrip / DashboardDataTable / DashboardPaginationBar`
+   - 使用泛型结果视图兼容 dashboard 内部完整的 `LicenseConsumptionLog` 结构
+2. `src/app/admin/dashboard/page.tsx`
+   - 消费日志页改为接入 `ConsumptionWorkspace`
+   - 通过 `consumptionFiltersView / consumptionLogsView` 收口筛选与日志视图的页面级状态和回调
+   - `dashboard/page.tsx` 从 **2728 行** 继续收敛到 **2468 行**
+3. 新增测试：
+   - `tests/consumption-workspace.test.ts`
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/consumption-workspace.test.ts"` ❌（`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/consumption-workspace.test.ts" "tests/activation-code-workspace.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run lint` ✅（无 warnings / errors）
+   - `npm run quality:gate` ✅
+   - 全量测试：**283 / 283** ✅
+   - 覆盖率：
+     - 行覆盖率：**95.34%**
+     - 分支覆盖率：**87.02%**
+     - 函数覆盖率：**92.75%**
+
+**备注**：
+
+- 本轮继续遵循 **KISS / DRY / YAGNI**：
+  - 没有新增筛选能力或新业务状态，只把已有消费日志页结构独立出来
+  - 快捷时间范围、自动刷新提示、导出与分页继续复用现有能力，不引入额外抽象层
+  - 组件边界聚焦于 UI 编排，业务数据获取与刷新仍由页面维持，降低回归风险
+- 页面收益：
+  - 消费日志页的 filters / logs 边界更清晰，后续补趋势、导出或对比相关增强时更容易局部演进
+  - dashboard 主页继续减重，主文件复杂度进一步下降
+  - 消费日志工作区已纳入高层组合回归，重构安全性更高
+
+**下一步**：
+
+1. 继续处理 `generate` 页和 `stats` 页中仍然偏大的表单/图表/导出块
+2. 为 `ActivationCodeWorkspace / ConsumptionWorkspace / ProjectWorkspace` 补更多组合交互回归
+3. 继续清理 `dashboard/page.tsx` 剩余重复样板与局部逻辑耦合
+
+---

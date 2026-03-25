@@ -63,7 +63,16 @@ const passwordTips = [
   '如在多人环境共用后台，建议定期轮换管理员密码并缩短会话时长。',
 ]
 
-const changePasswordFields = [
+type ChangePasswordField = {
+  key: 'currentPassword' | 'newPassword' | 'confirmPassword'
+  label: string
+  description: string
+  placeholder: string
+  autoComplete: string
+  minLength?: number
+}
+
+const changePasswordFields: ChangePasswordField[] = [
   {
     key: 'currentPassword',
     label: '当前密码',
@@ -87,7 +96,7 @@ const changePasswordFields = [
     autoComplete: 'new-password',
     minLength: 6,
   },
-] as const
+]
 
 export function ChangePasswordWorkspace({
   pageModel,
