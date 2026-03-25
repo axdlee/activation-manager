@@ -1462,6 +1462,106 @@
 
 ---
 
+### 2026-03-25 / Iteration 29
+
+**目标**：继续推进 `P3-02`，把 `activateLicense / consumeLicense` 中重复的“事务前置准备（旧绑定收敛 + 查码 + helper 装配）”抽成共享服务，进一步压缩 façade 样板代码。
+
+**已完成**：
+
+- [x] 新增 `src/lib/license-transaction-preparation-service.ts`
+- [x] `license-service` 进一步瘦身到 **194 行**
+- [x] 新增 `tests/license-transaction-preparation-service.test.ts`
+
+**本轮落地内容**：
+
+1. `src/lib/license-transaction-preparation-service.ts`
+   - 新增 `prepareLicenseTransactionAction`
+   - 统一收敛：
+     - 旧绑定预检查与可复用释放
+     - 授权事务内共享 helper 装配
+     - 目标激活码加载与结果分流
+   - 返回稳定联合类型：
+     - `{ result }`
+     - 或 `{ activationCode, txHelpers }`
+2. `src/lib/license-service.ts`
+   - `activateLicense / consumeLicense` 不再重复内联：
+     - `prepareMachineBindingForLicenseAction`
+     - `createLicenseTransactionHelpers`
+     - `loadLicenseActionCodeForMachine`
+   - 主文件继续向“参数校验 + 项目解析 + 分支编排”收缩
+3. 测试边界补强
+   - 新增 `tests/license-transaction-preparation-service.test.ts`
+   - 锁定三类核心场景：
+     - 旧绑定不可复用
+     - 目标激活码被其他设备占用
+     - 前置通过并返回 `activationCode + txHelpers`
+
+**验证结果**：
+
+1. RED：`node --import tsx --test "tests/license-transaction-preparation-service.test.ts"` 在模块未创建时因 `Cannot find module '../src/lib/license-transaction-preparation-service'` 失败 ✅
+2. GREEN：`node --import tsx --test "tests/license-transaction-preparation-service.test.ts" "tests/license-service.test.ts"` ✅
+
+**备注**：
+
+- `license-service` 已从 **1192 行** → **980 行** → **848 行** → **609 行** → **458 行** → **276 行** → **268 行** → **254 行** → **221 行** → **217 行** → **194 行**
+- 本轮遵循 KISS / DRY：把重复事务样板移入独立服务，但仍保留 façade 对外语义与调用方式不变
+
+**下一步**：
+
+1. 继续推进 `P3-02`：评估是否把 `getLicenseStatus` 的查码编排也纳入统一 preparation / access 层
+2. P2-04：登录限流状态外置化，支撑多实例部署
+3. P4-03：继续减少 `any` 与弱类型返回，提升类型安全
+
+---
+
+### 2026-03-25 / Iteration 28
+
+**目标**：继续推进 `P3-02`，把 `license-service` 中重复的“查码 + 当前设备可用性判断”抽成共享 helper，进一步收缩主文件样板逻辑。
+
+**已完成**：
+
+- [x] 新增 `src/lib/license-code-access-service.ts`
+- [x] `license-service` 进一步瘦身到 **217 行**
+- [x] 新增 `tests/license-code-access-service.test.ts`
+
+**本轮落地内容**：
+
+1. `src/lib/license-code-access-service.ts`
+   - 新增 `loadLicenseActionCodeForMachine`
+   - 统一处理：
+     - 激活码不存在
+     - 激活码已被其他设备占用
+     - 当前设备可继续使用
+2. `src/lib/license-service.ts`
+   - `getLicenseStatus / activateLicense / consumeLicense` 不再重复内联：
+     - `reloadActivationCode`
+     - `createLicenseNotFoundResult`
+     - `createUsedByOtherDeviceResult`
+   - 主文件继续向纯 orchestration 收敛
+3. 测试边界补强
+   - 新增 `tests/license-code-access-service.test.ts`
+   - 直接锁定共享查码 helper 的三类返回路径
+
+**验证结果**：
+
+1. RED：临时执行 `node --import tsx --test /tmp/license-code-access-service.test.ts`，在模块未创建时因 `Cannot find module '../src/lib/license-code-access-service'` 失败 ✅
+2. GREEN：`node --import tsx --test "tests/license-code-access-service.test.ts"` ✅
+3. 聚焦回归：`node --import tsx --test "tests/license-code-access-service.test.ts" "tests/license-service.test.ts"` ✅
+4. 领域回归：`node --import tsx --test "tests/license-code-access-service.test.ts" "tests/license-action-context.test.ts" "tests/license-binding-preflight-service.test.ts" "tests/license-activation-flow-service.test.ts" "tests/license-consume-flow-service.test.ts" "tests/license-binding-service.test.ts" "tests/license-consumption-idempotency-service.test.ts" "tests/license-transaction-helpers.test.ts" "tests/license-binding-constraint.test.ts" "tests/license-consume-concurrency.test.ts" "tests/license-service.test.ts"` ✅
+
+**备注**：
+
+- `license-service` 已从 **1192 行** → **980 行** → **848 行** → **609 行** → **458 行** → **276 行** → **268 行** → **254 行** → **221 行** → **217 行**
+- 本轮优化收益不在“行数骤减”，而在进一步消除重复业务判断，让 façade 更聚焦事务编排
+
+**下一步**：
+
+1. 继续推进 `P3-02`：评估是否把 `activateLicense / consumeLicense` 的事务外壳进一步抽成共享 runner
+2. P2-04：登录限流状态外置化，支撑多实例部署
+3. P4-03：继续减少 `any` 与弱类型返回，提升类型安全
+
+---
+
 ### 2026-03-25 / Iteration 27
 
 **目标**：解决本地开发服务与生产构建共享 `.next` 目录导致的产物互相污染问题，保证“边开发边验收 / 边跑质量门禁”场景稳定可用。

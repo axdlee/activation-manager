@@ -28,13 +28,13 @@ import {
   normalizeLicenseActionInput,
 } from './license-action-context'
 import { resolveProject } from './license-project-service'
-import { prepareMachineBindingForLicenseAction } from './license-binding-preflight-service'
 import {
   claimConsumptionRequestId,
   resolveExistingConsumptionResult,
 } from './license-consumption-idempotency-service'
 import { loadLicenseActionCodeForMachine } from './license-code-access-service'
 import { createLicenseTransactionHelpers } from './license-transaction-helpers'
+import { prepareLicenseTransactionAction } from './license-transaction-preparation-service'
 import {
   activateCountLicense,
   activateTimeLicense,
@@ -82,34 +82,22 @@ export async function activateLicense(client: PrismaClient, input: LicenseAction
   const project = await resolveProject(client, projectKey)
 
   return client.$transaction(async (tx) => {
-    const txHelpers = createLicenseTransactionHelpers(tx, {
+    const preparationResult = await prepareLicenseTransactionAction(tx, {
       projectId: project.id,
       code,
       machineId,
     })
-    const preflightResult = await prepareMachineBindingForLicenseAction(tx, {
-      projectId: project.id,
-      machineId,
-      targetCode: code,
-    })
 
-    if (preflightResult) {
-      return preflightResult
+    if (preparationResult.result) {
+      return preparationResult.result
     }
 
-    const codeLoadResult = await loadLicenseActionCodeForMachine({
-      machineId,
-      reloadActivationCode: txHelpers.reloadActivationCode,
-    })
+    const { activationCode, txHelpers } = preparationResult
 
-    if (codeLoadResult.result) {
-      return codeLoadResult.result
-    }
-
-    if (codeLoadResult.activationCode.licenseMode === 'COUNT') {
+    if (activationCode.licenseMode === 'COUNT') {
       return activateCountLicense({
         tx,
-        activationCode: codeLoadResult.activationCode,
+        activationCode,
         machineId,
         resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
       })
@@ -117,7 +105,7 @@ export async function activateLicense(client: PrismaClient, input: LicenseAction
 
     return activateTimeLicense({
       tx,
-      activationCode: codeLoadResult.activationCode,
+      activationCode,
       machineId,
       resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
     })
@@ -144,11 +132,6 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
   })
 
   return client.$transaction(async (tx) => {
-    const txHelpers = createLicenseTransactionHelpers(tx, {
-      projectId: project.id,
-      code,
-      machineId,
-    })
     if (requestId) {
       const existingResult = await resolveExistingConsumptionResult(tx, requestId, requestContext)
       if (existingResult) {
@@ -156,28 +139,22 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
       }
     }
 
-    const preflightResult = await prepareMachineBindingForLicenseAction(tx, {
+    const preparationResult = await prepareLicenseTransactionAction(tx, {
       projectId: project.id,
+      code,
       machineId,
-      targetCode: code,
     })
 
-    if (preflightResult) {
-      return preflightResult
+    if (preparationResult.result) {
+      return preparationResult.result
     }
 
-    const codeLoadResult = await loadLicenseActionCodeForMachine({
-      machineId,
-      reloadActivationCode: txHelpers.reloadActivationCode,
-    })
-    if (codeLoadResult.result) {
-      return codeLoadResult.result
-    }
+    const { activationCode, txHelpers } = preparationResult
 
-    if (codeLoadResult.activationCode.licenseMode === 'TIME') {
+    if (activationCode.licenseMode === 'TIME') {
       return consumeTimeLicense({
         tx,
-        activationCode: codeLoadResult.activationCode,
+        activationCode,
         projectId: project.id,
         code,
         machineId,
@@ -188,7 +165,7 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
 
     return consumeCountLicense({
       tx,
-      activationCode: codeLoadResult.activationCode,
+      activationCode,
       projectId: project.id,
       code,
       machineId,
@@ -198,7 +175,7 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
           tx,
           {
             requestId,
-            activationCodeId: codeLoadResult.activationCode.id,
+            activationCodeId: activationCode.id,
             machineId,
           },
           requestContext,

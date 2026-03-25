@@ -83,6 +83,12 @@
   - 授权事务前置收敛
   - 旧绑定可复用判定与释放
   - 前置绑定冲突结果收口
+- `src/lib/license-code-access-service.ts`
+  - 授权主链路共享查码 helper
+  - 统一“不存在 / 被其他设备占用”结果
+- `src/lib/license-transaction-preparation-service.ts`
+  - 授权事务前置准备编排
+  - 收敛“旧绑定预检查 + 查码 + helper 装配”
 - `src/lib/license-action-context.ts`
   - 授权共享输入模型
   - `code / machineId / requestId` 规范化
@@ -177,6 +183,8 @@ src/
 │   ├── license-activation-flow-service.ts
 │   ├── license-binding-preflight-service.ts
 │   ├── license-binding-service.ts
+│   ├── license-code-access-service.ts
+│   ├── license-transaction-preparation-service.ts
 │   ├── license-consume-flow-service.ts
 │   ├── license-consumption-service.ts
 │   ├── license-consumption-idempotency-service.ts
@@ -199,6 +207,8 @@ tests/
 ├── license-action-context.test.ts
 ├── license-activation-flow-service.test.ts
 ├── license-binding-preflight-service.test.ts
+├── license-code-access-service.test.ts
+├── license-transaction-preparation-service.test.ts
 ├── license-consume-flow-service.test.ts
 ├── license-result-service.test.ts
 ├── license-service.test.ts
