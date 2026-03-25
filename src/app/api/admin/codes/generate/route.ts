@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
-import { generateActivationCodes } from '@/lib/license-service'
+import { generateActivationCodes } from '@/lib/license-generation-service'
 
 export async function POST(request: NextRequest) {
   try {
     // 使用认证中间件验证
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     const { amount, expiryDays, cardType, projectKey, licenseMode, totalCount } = await request.json()

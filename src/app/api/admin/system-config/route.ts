@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
-import { getAllConfigsWithMeta, sanitizeSystemConfigsForAdmin, setConfig } from '@/lib/config-service'
+import { getAllConfigsWithMeta, sanitizeSystemConfigsForAdmin } from '@/lib/config-service'
 import { prepareSystemConfigUpdates } from '@/lib/system-config-updates'
+import { InvalidSystemConfigPayloadError, persistSystemConfigUpdates } from '@/lib/system-config-write'
 
 // 获取所有系统配置
 export async function GET(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
     // 使用认证中间件验证
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     const configs = sanitizeSystemConfigsForAdmin(await getAllConfigsWithMeta())
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     // 使用认证中间件验证
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     const { configs } = await request.json()
@@ -46,10 +47,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // 批量更新配置
-    for (const config of prepareSystemConfigUpdates(configs)) {
-      await setConfig(config.key, config.value, config.description)
-    }
+    await persistSystemConfigUpdates(prepareSystemConfigUpdates(configs))
 
     return NextResponse.json({
       success: true,
@@ -57,7 +55,15 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    if (error instanceof InvalidSystemConfigPayloadError) {
+      return NextResponse.json({
+        success: false,
+        message: error.message,
+      }, { status: 400 })
+    }
+
     console.error('更新系统配置失败:', error)
+
     return NextResponse.json({
       success: false,
       message: '更新系统配置失败'

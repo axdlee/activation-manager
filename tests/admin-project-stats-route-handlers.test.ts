@@ -8,7 +8,8 @@ import { PrismaClient } from '@prisma/client'
 
 import { bootstrapDevelopmentDatabase } from '../src/lib/dev-bootstrap'
 import { handleExportProjectStatsRequest } from '../src/lib/admin-project-stats-route-handlers'
-import { createProject, generateActivationCodes } from '../src/lib/license-service'
+import { generateActivationCodes } from '../src/lib/license-generation-service'
+import { createProject } from '../src/lib/license-project-service'
 
 const silentLogger = {
   log: () => undefined,

@@ -7,7 +7,7 @@ import {
   updateProjectDescription,
   updateProjectName,
   updateProjectStatus,
-} from '@/lib/license-service'
+} from '@/lib/license-project-service'
 
 function parseProjectId(value: string) {
   const id = Number(value)
@@ -26,7 +26,7 @@ export async function PATCH(
   try {
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     const id = parseProjectId(context.params.id)
@@ -104,7 +104,7 @@ export async function DELETE(
   try {
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     const id = parseProjectId(context.params.id)

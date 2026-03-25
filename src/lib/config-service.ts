@@ -8,6 +8,29 @@ let configCache: Record<string, any> = {}
 let cacheExpiry = 0
 const CACHE_DURATION = 5 * 60 * 1000 // 5分钟缓存
 
+export function clearConfigCache(keys?: string[]) {
+  if (!keys || keys.length === 0) {
+    configCache = {}
+    cacheExpiry = 0
+    return
+  }
+
+  keys.forEach((key) => {
+    delete configCache[key]
+  })
+
+  if (Object.keys(configCache).length === 0) {
+    cacheExpiry = 0
+  }
+}
+
+export class MissingRequiredSystemConfigError extends Error {
+  constructor(key: string) {
+    super(`系统配置缺失：${key} 未配置，生产环境禁止回退到仓库默认值`)
+    this.name = 'MissingRequiredSystemConfigError'
+  }
+}
+
 export async function getConfig(key: string): Promise<any> {
   // 检查缓存
   if (Date.now() < cacheExpiry && configCache[key] !== undefined) {
@@ -57,7 +80,7 @@ export async function setConfig(key: string, value: any, description?: string): 
   })
 
   // 清除缓存
-  delete configCache[key]
+  clearConfigCache([key])
 }
 
 export async function getAllConfigs(): Promise<Record<string, any>> {
@@ -88,7 +111,41 @@ function hasConfigValue(value: SystemConfigValue) {
     return value.length > 0
   }
 
-  return value !== ''
+  if (typeof value === 'string') {
+    return value.trim() !== ''
+  }
+
+  return true
+}
+
+type ResolveConfigValueWithFallbackOptions = {
+  nodeEnv?: string
+}
+
+function shouldFailFastForConfigValue(key: string, value: unknown, nodeEnv: string) {
+  return (
+    isSensitiveSystemConfigKey(key) &&
+    nodeEnv === 'production' &&
+    (value === null || (typeof value === 'string' && value.trim() === ''))
+  )
+}
+
+export function resolveConfigValueWithFallback(
+  key: string,
+  value: unknown,
+  options: ResolveConfigValueWithFallbackOptions = {},
+) {
+  const nodeEnv = options.nodeEnv || process.env.NODE_ENV || 'development'
+
+  if (shouldFailFastForConfigValue(key, value, nodeEnv)) {
+    throw new MissingRequiredSystemConfigError(key)
+  }
+
+  if (value !== null) {
+    return value
+  }
+
+  return defaultConfigValues[key]
 }
 
 export function sanitizeSystemConfigsForAdmin(configs: SystemConfigItem[]): SystemConfigItem[] {
@@ -121,5 +178,5 @@ export async function getAllConfigsWithMeta(): Promise<SystemConfigItem[]> {
 
 export async function getConfigWithDefault(key: string): Promise<any> {
   const value = await getConfig(key)
-  return value !== null ? value : defaultConfigValues[key]
+  return resolveConfigValueWithFallback(key, value)
 }

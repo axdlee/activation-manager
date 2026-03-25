@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // 使用认证中间件验证
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     // 清理过期激活码的绑定关系
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     // 使用认证中间件验证
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     const now = new Date()

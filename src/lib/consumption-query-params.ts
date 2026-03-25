@@ -5,7 +5,15 @@ export type ConsumptionQueryFilters = {
   createdTo: string
 }
 
-export function buildConsumptionQueryParams(filters: ConsumptionQueryFilters) {
+export type ConsumptionQueryPagination = {
+  page?: number
+  pageSize?: number
+}
+
+export function buildConsumptionQueryParams(
+  filters: ConsumptionQueryFilters,
+  pagination: ConsumptionQueryPagination = {},
+) {
   const params = new URLSearchParams()
   const keyword = filters.keyword.trim()
 
@@ -23,6 +31,14 @@ export function buildConsumptionQueryParams(filters: ConsumptionQueryFilters) {
 
   if (filters.createdTo) {
     params.set('createdTo', new Date(filters.createdTo).toISOString())
+  }
+
+  if (typeof pagination.page === 'number') {
+    params.set('page', String(pagination.page))
+  }
+
+  if (typeof pagination.pageSize === 'number') {
+    params.set('pageSize', String(pagination.pageSize))
   }
 
   return params

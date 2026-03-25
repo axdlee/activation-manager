@@ -57,6 +57,14 @@ import {
 } from '@/lib/system-config-ui'
 import { prepareSystemConfigUpdates } from '@/lib/system-config-updates'
 import { buildChangePasswordPageModel } from '@/lib/change-password-ui'
+import {
+  getProjectKeyValidationError,
+  normalizeProjectKeyInput,
+  PROJECT_KEY_ALLOWED_PATTERN,
+  PROJECT_KEY_MAX_LENGTH,
+  PROJECT_KEY_MIN_LENGTH,
+  PROJECT_KEY_RULE_HINT,
+} from '@/lib/project-key'
 import { ApiDocsWorkspace } from '@/components/api-docs-workspace'
 
 interface Project {
@@ -109,6 +117,13 @@ interface LicenseConsumptionLog {
       projectKey: string
     }
   }
+}
+
+interface ConsumptionPagination {
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
 }
 
 interface Stats {
@@ -223,6 +238,12 @@ export default function DashboardPage() {
   const [consumptionRefreshSource, setConsumptionRefreshSource] = useState<ConsumptionRefreshSource>('initial')
   const [consumptionLastRefreshedAt, setConsumptionLastRefreshedAt] = useState<string | null>(null)
   const [consumptionRefreshError, setConsumptionRefreshError] = useState<string | null>(null)
+  const [consumptionPagination, setConsumptionPagination] = useState<ConsumptionPagination>({
+    total: 0,
+    page: 1,
+    pageSize: 10,
+    totalPages: 1,
+  })
   const [currentPage, setCurrentPage] = useState(1)
   const [consumptionCurrentPage, setConsumptionCurrentPage] = useState(1)
   const [projectManagementCurrentPage, setProjectManagementCurrentPage] = useState(1)
@@ -254,7 +275,11 @@ export default function DashboardPage() {
   const hasFetchedInitialProjectsRef = useRef(false)
   const lastLoadedDashboardTabRef = useRef<TabType | null>(null)
   const fetchConsumptionLogsRef = useRef<
-    null | ((overrides?: Partial<ConsumptionQueryFilters>, source?: ConsumptionRefreshSource) => Promise<void>)
+    null | ((
+      overrides?: Partial<ConsumptionQueryFilters>,
+      source?: ConsumptionRefreshSource,
+      page?: number,
+    ) => Promise<void>)
   >(null)
 
   const showMessage = useCallback((content: string, type: 'success' | 'error' = 'success') => {
@@ -499,12 +524,16 @@ export default function DashboardPage() {
   const fetchConsumptionLogs = useCallback(async (
     overrides: Partial<ConsumptionQueryFilters> = {},
     source: ConsumptionRefreshSource = 'manual',
+    page: number = consumptionCurrentPage,
   ) => {
     try {
       setConsumptionLoading(true)
       setConsumptionRefreshSource(source)
       setConsumptionRefreshError(null)
-      const params = buildConsumptionQueryParams(buildCurrentConsumptionFilters(overrides))
+      const params = buildConsumptionQueryParams(buildCurrentConsumptionFilters(overrides), {
+        page,
+        pageSize: itemsPerPage,
+      })
       const requestUrl = params.toString()
         ? `/api/admin/consumptions?${params.toString()}`
         : '/api/admin/consumptions'
@@ -512,6 +541,10 @@ export default function DashboardPage() {
       const data = await response.json()
       if (data.success) {
         setConsumptionLogs(data.logs)
+        setConsumptionPagination(data.pagination)
+        if (data.pagination?.page !== page) {
+          setConsumptionCurrentPage(data.pagination.page)
+        }
         setConsumptionLastRefreshedAt(new Date().toISOString())
         setConsumptionRefreshError(null)
       } else {
@@ -530,7 +563,7 @@ export default function DashboardPage() {
     } finally {
       setConsumptionLoading(false)
     }
-  }, [buildCurrentConsumptionFilters, showMessage])
+  }, [buildCurrentConsumptionFilters, consumptionCurrentPage, itemsPerPage, showMessage])
 
   useEffect(() => {
     fetchConsumptionLogsRef.current = fetchConsumptionLogs
@@ -795,8 +828,17 @@ export default function DashboardPage() {
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newProjectName || !newProjectKey) {
+    const normalizedProjectName = newProjectName.trim()
+    const normalizedProjectKey = normalizeProjectKeyInput(newProjectKey)
+
+    if (!normalizedProjectName || !normalizedProjectKey) {
       showMessage('项目名称和项目标识不能为空', 'error')
+      return
+    }
+
+    const projectKeyValidationError = getProjectKeyValidationError(normalizedProjectKey)
+    if (projectKeyValidationError) {
+      showMessage(projectKeyValidationError, 'error')
       return
     }
 
@@ -808,8 +850,8 @@ export default function DashboardPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: newProjectName,
-          projectKey: newProjectKey,
+          name: normalizedProjectName,
+          projectKey: normalizedProjectKey,
           description: newProjectDescription,
         }),
       })
@@ -1295,32 +1337,11 @@ export default function DashboardPage() {
     return Array.from(types).sort()
   }
 
-  const filteredConsumptionLogs = consumptionLogs.filter((log) => {
-    const keyword = consumptionSearchTerm.trim().toLowerCase()
-    const matchesSearch =
-      !keyword ||
-      log.requestId.toLowerCase().includes(keyword) ||
-      log.machineId.toLowerCase().includes(keyword) ||
-      log.activationCode.code.toLowerCase().includes(keyword)
-
-    const matchesProject =
-      consumptionProjectFilter === 'all'
-        ? true
-        : log.activationCode.project.projectKey === consumptionProjectFilter
-
-    const logTimestamp = new Date(log.createdAt).getTime()
-    const createdFromTimestamp = consumptionCreatedFrom ? new Date(consumptionCreatedFrom).getTime() : null
-    const createdToTimestamp = consumptionCreatedTo ? new Date(consumptionCreatedTo).getTime() : null
-    const matchesCreatedFrom = createdFromTimestamp === null || logTimestamp >= createdFromTimestamp
-    const matchesCreatedTo = createdToTimestamp === null || logTimestamp <= createdToTimestamp
-
-    return matchesSearch && matchesProject && matchesCreatedFrom && matchesCreatedTo
-  })
   const consumptionProjectCoverage = new Set(
-    filteredConsumptionLogs.map((log) => log.activationCode.project.projectKey),
+    consumptionLogs.map((log) => log.activationCode.project.projectKey),
   ).size
   const consumptionCodeCoverage = new Set(
-    filteredConsumptionLogs.map((log) => log.activationCode.id),
+    consumptionLogs.map((log) => log.activationCode.id),
   ).size
   const consumptionFilterTokens = [
     consumptionSearchTerm.trim() ? `关键词：${consumptionSearchTerm.trim()}` : null,
@@ -1331,17 +1352,18 @@ export default function DashboardPage() {
     consumptionCreatedTo ? `结束：${new Date(consumptionCreatedTo).toLocaleString()}` : null,
   ].filter((token): token is string => Boolean(token))
 
-  const consumptionTotalPages = Math.ceil(filteredConsumptionLogs.length / itemsPerPage)
+  const consumptionTotalPages = consumptionPagination.totalPages
   const consumptionStartIndex =
-    filteredConsumptionLogs.length === 0 ? 0 : (consumptionCurrentPage - 1) * itemsPerPage + 1
-  const consumptionEndIndex =
-    filteredConsumptionLogs.length === 0
+    consumptionPagination.total === 0
       ? 0
-      : Math.min(consumptionCurrentPage * itemsPerPage, filteredConsumptionLogs.length)
-  const paginatedConsumptionLogs = filteredConsumptionLogs.slice(
-    (consumptionCurrentPage - 1) * itemsPerPage,
-    consumptionCurrentPage * itemsPerPage,
-  )
+      : (consumptionPagination.page - 1) * consumptionPagination.pageSize + 1
+  const consumptionEndIndex =
+    consumptionPagination.total === 0
+      ? 0
+      : Math.min(
+          consumptionPagination.page * consumptionPagination.pageSize,
+          consumptionPagination.total,
+        )
   const consumptionRefreshStatus = getConsumptionRefreshStatus({
     isLoading: consumptionLoading,
     refreshSource: consumptionRefreshSource,
@@ -1537,7 +1559,7 @@ export default function DashboardPage() {
     void fetchConsumptionLogs({
       createdFrom,
       createdTo,
-    }, 'quick')
+    }, 'quick', 1)
   }
 
   const handleApplyConsumptionQuickRange = (rangeKey: 'today' | 'last7Days' | 'last30Days') => {
@@ -1573,7 +1595,17 @@ export default function DashboardPage() {
         createdTo: '',
       },
       'manual',
+      1,
     )
+  }
+
+  const handleChangeConsumptionPage = (nextPage: number) => {
+    if (nextPage < 1 || nextPage > consumptionTotalPages || nextPage === consumptionCurrentPage) {
+      return
+    }
+
+    setConsumptionCurrentPage(nextPage)
+    void fetchConsumptionLogs({}, 'manual', nextPage)
   }
 
   const handleExportProjectStats = () => {
@@ -2240,13 +2272,21 @@ export default function DashboardPage() {
                   </div>
                   <div className="rounded-[24px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]">
                     <label className="text-sm font-semibold text-slate-900">项目标识</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">建议使用稳定的英文 key，例如 browser-plugin。</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                      {PROJECT_KEY_RULE_HINT} 例如 <span className="font-medium text-slate-700">browser-plugin</span>。
+                    </p>
                     <input
                       type="text"
                       value={newProjectKey}
                       onChange={(e) => setNewProjectKey(e.target.value)}
                       className={`${compactInputClassName} mt-4`}
                       placeholder="项目标识，例如 browser-plugin"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      pattern={PROJECT_KEY_ALLOWED_PATTERN.source}
+                      minLength={PROJECT_KEY_MIN_LENGTH}
+                      maxLength={PROJECT_KEY_MAX_LENGTH}
                       required
                     />
                   </div>
@@ -3118,7 +3158,7 @@ export default function DashboardPage() {
                     <div className={workspaceSummaryCardClassName}>
                       <div className="text-xs uppercase tracking-[0.18em] text-slate-500">匹配日志</div>
                       <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {filteredConsumptionLogs.length}
+                        {consumptionPagination.total}
                       </div>
                       <div className="mt-1 text-sm text-slate-500">当前条件下的消费记录数</div>
                     </div>
@@ -3127,14 +3167,14 @@ export default function DashboardPage() {
                       <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
                         {consumptionProjectCoverage}
                       </div>
-                      <div className="mt-1 text-sm text-slate-500">当前结果涉及的项目数</div>
+                      <div className="mt-1 text-sm text-slate-500">当前页涉及的项目数</div>
                     </div>
                     <div className={workspaceSummaryCardClassName}>
                       <div className="text-xs uppercase tracking-[0.18em] text-slate-500">涉及激活码</div>
                       <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
                         {consumptionCodeCoverage}
                       </div>
-                      <div className="mt-1 text-sm text-slate-500">当前结果覆盖的激活码数</div>
+                      <div className="mt-1 text-sm text-slate-500">当前页覆盖的激活码数</div>
                     </div>
                   </div>
                 </div>
@@ -3353,7 +3393,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={handleExportConsumptionLogs}
-                      disabled={consumptionLoading || filteredConsumptionLogs.length === 0}
+                      disabled={consumptionLoading || consumptionPagination.total === 0}
                       className={`mt-4 w-full ${successButtonClassName}`}
                     >
                       导出筛选结果
@@ -3368,7 +3408,7 @@ export default function DashboardPage() {
                 <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
                     <h3 className="text-xl font-semibold text-slate-900">
-                      消费日志 ({filteredConsumptionLogs.length} 条记录)
+                      消费日志 ({consumptionPagination.total} 条记录)
                     </h3>
                     <p className="mt-1 text-sm leading-6 text-slate-500">
                       仅记录次数型激活码的真实扣次请求，适合用于对账与问题回溯；筛选器已独立成工作区，阅读时更聚焦。
@@ -3395,7 +3435,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={handleExportConsumptionLogs}
-                      disabled={consumptionLoading || filteredConsumptionLogs.length === 0}
+                      disabled={consumptionLoading || consumptionPagination.total === 0}
                       className={successButtonClassName}
                     >
                       导出筛选结果
@@ -3428,7 +3468,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div className="text-sm text-slate-500">
-                      当前展示第 {consumptionStartIndex} - {consumptionEndIndex} 条，共 {filteredConsumptionLogs.length} 条记录
+                      当前展示第 {consumptionStartIndex} - {consumptionEndIndex} 条，共 {consumptionPagination.total} 条记录
                     </div>
                   </div>
                 </div>
@@ -3463,7 +3503,7 @@ export default function DashboardPage() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {paginatedConsumptionLogs.map((log) => (
+                          {consumptionLogs.map((log) => (
                             <tr key={log.id} className="transition hover:bg-slate-50/80">
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
                                 {log.activationCode.project.name}
@@ -3490,7 +3530,7 @@ export default function DashboardPage() {
                       </table>
                     </div>
 
-                    {filteredConsumptionLogs.length === 0 && (
+                    {consumptionLogs.length === 0 && (
                       <div className={`mt-5 ${emptyStateClassName}`}>
                         暂无匹配的消费日志，建议切换到“筛选与刷新”调整关键词、项目或时间范围。
                       </div>
@@ -3499,12 +3539,12 @@ export default function DashboardPage() {
                     {consumptionTotalPages > 1 && (
                       <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div className="text-sm text-gray-700">
-                          显示第 {consumptionStartIndex} - {consumptionEndIndex} 条，共 {filteredConsumptionLogs.length} 条记录
+                          显示第 {consumptionStartIndex} - {consumptionEndIndex} 条，共 {consumptionPagination.total} 条记录
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <button
-                            onClick={() => setConsumptionCurrentPage(consumptionCurrentPage - 1)}
-                            disabled={consumptionCurrentPage === 1}
+                            onClick={() => handleChangeConsumptionPage(consumptionPagination.page - 1)}
+                            disabled={consumptionPagination.page === 1}
                             className={paginationButtonClassName}
                           >
                             上一页
@@ -3513,9 +3553,9 @@ export default function DashboardPage() {
                             {Array.from({ length: consumptionTotalPages }, (_, index) => index + 1).map((page) => (
                               <button
                                 key={page}
-                                onClick={() => setConsumptionCurrentPage(page)}
+                                onClick={() => handleChangeConsumptionPage(page)}
                                 className={`${paginationButtonClassName} ${
-                                  consumptionCurrentPage === page ? paginationActiveButtonClassName : ''
+                                  consumptionPagination.page === page ? paginationActiveButtonClassName : ''
                                 }`}
                               >
                                 {page}
@@ -3523,8 +3563,8 @@ export default function DashboardPage() {
                             ))}
                           </div>
                           <button
-                            onClick={() => setConsumptionCurrentPage(consumptionCurrentPage + 1)}
-                            disabled={consumptionCurrentPage === consumptionTotalPages}
+                            onClick={() => handleChangeConsumptionPage(consumptionPagination.page + 1)}
+                            disabled={consumptionPagination.page === consumptionTotalPages}
                             className={paginationButtonClassName}
                           >
                             下一页

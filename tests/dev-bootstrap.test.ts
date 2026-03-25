@@ -13,6 +13,7 @@ import {
   DEFAULT_ADMIN_USERNAME,
   DEFAULT_PROJECT_KEY,
   DEFAULT_PROJECT_NAME,
+  ensureDefaultSystemConfigs,
 } from '../src/lib/dev-bootstrap'
 import { defaultSystemConfigs } from '../src/lib/system-config-defaults'
 
@@ -63,6 +64,20 @@ test('bootstrapDevelopmentDatabase 会创建所需表和默认数据', async () 
   assert.equal(
     querySqlite(dbPath, 'SELECT name FROM projects LIMIT 1;'),
     DEFAULT_PROJECT_NAME,
+  )
+  assert.equal(
+    querySqlite(
+      dbPath,
+      "SELECT \"notnull\" FROM pragma_table_info('activation_codes') WHERE name = 'projectId';",
+    ),
+    '1',
+  )
+  assert.equal(
+    querySqlite(
+      dbPath,
+      "SELECT \"table\" || '|' || \"from\" || '|' || \"to\" FROM pragma_foreign_key_list('activation_codes');",
+    ),
+    'projects|projectId|id',
   )
 })
 
@@ -126,6 +141,20 @@ test('bootstrapDevelopmentDatabase 会补齐旧版激活码表的项目与授权
   assert.equal(
     querySqlite(
       dbPath,
+      "SELECT \"notnull\" FROM pragma_table_info('activation_codes') WHERE name = 'projectId';",
+    ),
+    '1',
+  )
+  assert.equal(
+    querySqlite(
+      dbPath,
+      "SELECT \"table\" || '|' || \"from\" || '|' || \"to\" FROM pragma_foreign_key_list('activation_codes');",
+    ),
+    'projects|projectId|id',
+  )
+  assert.equal(
+    querySqlite(
+      dbPath,
       "SELECT p.projectKey FROM activation_codes ac JOIN projects p ON p.id = ac.projectId WHERE ac.code = 'LEGACY-CODE';",
     ),
     DEFAULT_PROJECT_KEY,
@@ -137,4 +166,33 @@ test('bootstrapDevelopmentDatabase 会补齐旧版激活码表的项目与授权
     ),
     'TIME',
   )
+})
+
+test('ensureDefaultSystemConfigs 在生产环境缺少 JWT_SECRET 且数据库未配置 jwtSecret 时会拒绝初始化', async () => {
+  const previousNodeEnv = process.env.NODE_ENV
+  const previousJwtSecret = process.env.JWT_SECRET
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-bootstrap-'))
+  const dbPath = path.join(tempDir, 'dev.db')
+
+  process.env.NODE_ENV = 'production'
+  delete process.env.JWT_SECRET
+
+  try {
+    await assert.rejects(
+      () => ensureDefaultSystemConfigs(dbPath, silentLogger),
+      /JWT_SECRET|jwtSecret/,
+    )
+  } finally {
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV
+    } else {
+      process.env.NODE_ENV = previousNodeEnv
+    }
+
+    if (previousJwtSecret === undefined) {
+      delete process.env.JWT_SECRET
+    } else {
+      process.env.JWT_SECRET = previousJwtSecret
+    }
+  }
 })

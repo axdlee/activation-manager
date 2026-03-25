@@ -36,6 +36,8 @@
 - 每个项目通过 `projectKey` 区分
 - 激活码归属于某一个项目
 - 同一台设备可在**不同项目**下各自绑定激活码
+- 同一台设备在**同一项目**下同时只能绑定一个有效激活码
+- 当旧的次数卡已耗尽或旧的时间卡已过期后，才允许切换绑定新的激活码
 
 ---
 
@@ -522,6 +524,8 @@ GET /api/admin/consumptions?projectKey=browser-plugin
 - `keyword`：按 `requestId` / `machineId` / 激活码模糊过滤
 - `createdFrom`：按消费时间起始值过滤（ISO 时间）
 - `createdTo`：按消费时间结束值过滤（ISO 时间）
+- `page`：页码，默认 `1`
+- `pageSize`：每页条数，默认 `10`，最大 `100`
 
 ### 消费日志导出示例
 
@@ -542,6 +546,10 @@ GET /api/admin/consumptions/export?projectKey=browser-plugin&keyword=req-001&cre
 - `createdAt`
 - `activationCode.code`
 - `activationCode.project.projectKey`
+- `pagination.total`
+- `pagination.page`
+- `pagination.pageSize`
+- `pagination.totalPages`
 
 ### 消费趋势示例
 

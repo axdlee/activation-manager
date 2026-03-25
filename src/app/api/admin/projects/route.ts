@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
-import { createProject, ensureDefaultProjectRecord, listProjects } from '@/lib/license-service'
+import {
+  createProject,
+  ensureDefaultProjectRecord,
+  listProjects,
+} from '@/lib/license-project-service'
 
 export async function GET(request: NextRequest) {
   try {
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     await ensureDefaultProjectRecord(prisma)
@@ -31,7 +35,7 @@ export async function POST(request: NextRequest) {
   try {
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     const { name, projectKey, description } = await request.json()

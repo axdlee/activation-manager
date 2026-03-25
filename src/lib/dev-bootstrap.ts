@@ -1,12 +1,13 @@
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 
 import bcrypt from 'bcryptjs'
 
 import {
+  buildDefaultSystemConfigs,
   defaultConfigValues,
-  defaultSystemConfigs,
   stringifyConfigValue,
 } from './system-config-defaults'
 
@@ -17,6 +18,8 @@ export const DEFAULT_PROJECT_NAME = '默认项目'
 
 const REQUIRED_TABLES = ['activation_codes', 'admins', 'license_consumptions', 'projects', 'system_configs'] as const
 const DEFAULT_DB_PATH = path.join(process.cwd(), 'prisma', 'dev.db')
+const PRISMA_SCHEMA_PATH = path.join(process.cwd(), 'prisma', 'schema.prisma')
+const PRISMA_SCHEMA_DATASOURCE_PATTERN = /url\s+=\s+"file:\.\/dev\.db"/
 
 type BootstrapLogger = Pick<Console, 'log' | 'error'>
 
@@ -56,85 +59,103 @@ function columnExists(dbPath: string, tableName: string, columnName: string) {
   })
 }
 
-function buildSchemaSql() {
-  return `
-    PRAGMA foreign_keys = ON;
+function prismaSqliteUrl(dbPath: string) {
+  const normalizedPath = path.resolve(dbPath).split(path.sep).join('/')
+  return `file:${normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`}`
+}
 
-    CREATE TABLE IF NOT EXISTS "projects" (
-      "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      "name" TEXT NOT NULL,
-      "projectKey" TEXT NOT NULL,
-      "description" TEXT,
-      "isEnabled" INTEGER NOT NULL DEFAULT 1,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+function buildPrismaSchema(dbPath: string) {
+  const schemaTemplate = fs.readFileSync(PRISMA_SCHEMA_PATH, 'utf8')
 
-    CREATE UNIQUE INDEX IF NOT EXISTS "projects_projectKey_key"
-    ON "projects"("projectKey");
+  if (!PRISMA_SCHEMA_DATASOURCE_PATTERN.test(schemaTemplate)) {
+    throw new Error(`Prisma schema 数据源格式不受支持: ${PRISMA_SCHEMA_PATH}`)
+  }
 
-    CREATE TABLE IF NOT EXISTS "activation_codes" (
-      "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      "code" TEXT NOT NULL,
-      "isUsed" INTEGER NOT NULL DEFAULT 0,
-      "usedAt" DATETIME,
-      "usedBy" TEXT,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "expiresAt" DATETIME,
-      "validDays" INTEGER,
-      "cardType" TEXT,
-      "projectId" INTEGER,
-      "licenseMode" TEXT NOT NULL DEFAULT 'TIME',
-      "totalCount" INTEGER,
-      "remainingCount" INTEGER,
-      "consumedCount" INTEGER NOT NULL DEFAULT 0
-    );
+  return schemaTemplate.replace(
+    PRISMA_SCHEMA_DATASOURCE_PATTERN,
+    `url      = "${prismaSqliteUrl(dbPath)}"`,
+  )
+}
 
-    CREATE UNIQUE INDEX IF NOT EXISTS "activation_codes_code_key"
-    ON "activation_codes"("code");
+function resolvePrismaCommand() {
+  const localPrismaBinary = path.join(
+    process.cwd(),
+    'node_modules',
+    '.bin',
+    process.platform === 'win32' ? 'prisma.cmd' : 'prisma',
+  )
 
-    CREATE INDEX IF NOT EXISTS "activation_codes_projectId_idx"
-    ON "activation_codes"("projectId");
+  if (fs.existsSync(localPrismaBinary)) {
+    return {
+      command: localPrismaBinary,
+      argsPrefix: [] as string[],
+    }
+  }
 
-    CREATE TABLE IF NOT EXISTS "license_consumptions" (
-      "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      "requestId" TEXT NOT NULL,
-      "activationCodeId" INTEGER NOT NULL,
-      "machineId" TEXT NOT NULL,
-      "remainingCountAfter" INTEGER NOT NULL,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+  return {
+    command: process.platform === 'win32' ? 'npx.cmd' : 'npx',
+    argsPrefix: ['prisma'],
+  }
+}
 
-    CREATE UNIQUE INDEX IF NOT EXISTS "license_consumptions_requestId_key"
-    ON "license_consumptions"("requestId");
+function pushPrismaSchema(dbPath: string) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-prisma-'))
+  const tempSchemaPath = path.join(tempDir, 'schema.prisma')
+  const { command, argsPrefix } = resolvePrismaCommand()
 
-    CREATE INDEX IF NOT EXISTS "license_consumptions_activationCodeId_idx"
-    ON "license_consumptions"("activationCodeId");
+  fs.writeFileSync(tempSchemaPath, buildPrismaSchema(dbPath), 'utf8')
 
-    CREATE TABLE IF NOT EXISTS "admins" (
-      "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      "username" TEXT NOT NULL,
-      "password" TEXT NOT NULL,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+  try {
+    execFileSync(
+      command,
+      [...argsPrefix, 'db', 'push', '--skip-generate', '--accept-data-loss', '--schema', tempSchemaPath],
+      {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+        stdio: 'pipe',
+      },
+    )
+  } catch (error) {
+    const stderr =
+      typeof error === 'object' &&
+      error !== null &&
+      'stderr' in error &&
+      typeof error.stderr === 'string'
+        ? error.stderr.trim()
+        : ''
+    const stdout =
+      typeof error === 'object' &&
+      error !== null &&
+      'stdout' in error &&
+      typeof error.stdout === 'string'
+        ? error.stdout.trim()
+        : ''
+    const details = stderr || stdout
 
-    CREATE UNIQUE INDEX IF NOT EXISTS "admins_username_key"
-    ON "admins"("username");
+    throw new Error(details ? `Prisma schema 同步失败: ${details}` : 'Prisma schema 同步失败')
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  }
+}
 
-    CREATE TABLE IF NOT EXISTS "system_configs" (
-      "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-      "key" TEXT NOT NULL,
-      "value" TEXT NOT NULL,
-      "description" TEXT,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+function ensureProjectsTable(dbPath: string) {
+  runSqlite(
+    dbPath,
+    `
+      CREATE TABLE IF NOT EXISTS "projects" (
+        "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        "name" TEXT NOT NULL,
+        "projectKey" TEXT NOT NULL,
+        "description" TEXT,
+        "isEnabled" INTEGER NOT NULL DEFAULT 1,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
 
-    CREATE UNIQUE INDEX IF NOT EXISTS "system_configs_key_key"
-    ON "system_configs"("key");
-  `
+      CREATE UNIQUE INDEX IF NOT EXISTS "projects_projectKey_key"
+      ON "projects"("projectKey");
+    `,
+  )
 }
 
 function ensureActivationCodeCompatibility(dbPath: string) {
@@ -237,11 +258,14 @@ function ensureActivationCodeCompatibility(dbPath: string) {
 
 export function ensureSchema(dbPath: string = DEFAULT_DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true })
-  runSqlite(dbPath, buildSchemaSql())
 
   if (tableExists(dbPath, 'activation_codes')) {
     ensureActivationCodeCompatibility(dbPath)
+    ensureProjectsTable(dbPath)
+    backfillActivationCodesProject(dbPath, ensureDefaultProjectRow(dbPath))
   }
+
+  pushPrismaSchema(dbPath)
 
   const missingTables = REQUIRED_TABLES.filter((tableName) => !tableExists(dbPath, tableName))
   if (missingTables.length > 0) {
@@ -249,20 +273,20 @@ export function ensureSchema(dbPath: string = DEFAULT_DB_PATH) {
   }
 }
 
-export function ensureDefaultProject(
-  dbPath: string = DEFAULT_DB_PATH,
-  logger: BootstrapLogger = console,
-) {
-  ensureSchema(dbPath)
-
-  const existingProjectId = querySingleValue(
+function findDefaultProjectId(dbPath: string) {
+  const projectId = querySingleValue(
     dbPath,
     `SELECT "id" FROM "projects" WHERE "projectKey" = '${DEFAULT_PROJECT_KEY}' LIMIT 1;`,
   )
 
-  if (existingProjectId) {
-    logger.log('默认项目已存在，跳过初始化')
-    return Number(existingProjectId)
+  return projectId ? Number(projectId) : null
+}
+
+function ensureDefaultProjectRow(dbPath: string) {
+  const existingProjectId = findDefaultProjectId(dbPath)
+
+  if (existingProjectId !== null) {
+    return existingProjectId
   }
 
   runSqlite(
@@ -280,14 +304,32 @@ export function ensureDefaultProject(
     `,
   )
 
+  const createdProjectId = findDefaultProjectId(dbPath)
+
+  if (createdProjectId === null) {
+    throw new Error('默认项目创建失败')
+  }
+
+  return createdProjectId
+}
+
+export function ensureDefaultProject(
+  dbPath: string = DEFAULT_DB_PATH,
+  logger: BootstrapLogger = console,
+) {
+  ensureSchema(dbPath)
+  const existingProjectId = findDefaultProjectId(dbPath)
+
+  if (existingProjectId !== null) {
+    logger.log('默认项目已存在，跳过初始化')
+    return existingProjectId
+  }
+
+  const projectId = ensureDefaultProjectRow(dbPath)
+
   logger.log(`✅ 默认项目创建成功: ${DEFAULT_PROJECT_NAME} (${DEFAULT_PROJECT_KEY})`)
 
-  return Number(
-    querySingleValue(
-      dbPath,
-      `SELECT "id" FROM "projects" WHERE "projectKey" = '${DEFAULT_PROJECT_KEY}' LIMIT 1;`,
-    ),
-  )
+  return projectId
 }
 
 function backfillActivationCodesProject(dbPath: string, projectId: number) {
@@ -302,15 +344,25 @@ function backfillActivationCodesProject(dbPath: string, projectId: number) {
   )
 }
 
-export async function ensureDefaultSystemConfigs(
-  dbPath: string = DEFAULT_DB_PATH,
-  logger: BootstrapLogger = console,
+async function ensureDefaultSystemConfigsInternal(
+  dbPath: string,
+  logger: BootstrapLogger,
 ) {
-  const defaultProjectId = ensureDefaultProject(dbPath, logger)
+  const defaultProjectId = ensureDefaultProjectRow(dbPath)
   backfillActivationCodesProject(dbPath, defaultProjectId)
 
   const existingKeys = new Set(queryLines(dbPath, 'SELECT "key" FROM "system_configs";'))
-  const missingConfigs = defaultSystemConfigs.filter(({ key }) => !existingKeys.has(key))
+  const systemConfigsToSeed = buildDefaultSystemConfigs()
+
+  if (
+    process.env.NODE_ENV === 'production' &&
+    !existingKeys.has('jwtSecret') &&
+    !systemConfigsToSeed.some((config) => config.key === 'jwtSecret')
+  ) {
+    throw new Error('生产环境初始化失败：请先提供 JWT_SECRET，或在数据库中显式配置 jwtSecret')
+  }
+
+  const missingConfigs = systemConfigsToSeed.filter(({ key }) => !existingKeys.has(key))
 
   if (missingConfigs.length === 0) {
     logger.log('系统配置已存在，跳过初始化')
@@ -348,11 +400,16 @@ export async function ensureDefaultSystemConfigs(
   })
 }
 
-export async function ensureDefaultAdmin(
+export async function ensureDefaultSystemConfigs(
   dbPath: string = DEFAULT_DB_PATH,
   logger: BootstrapLogger = console,
 ) {
-  const defaultProjectId = ensureDefaultProject(dbPath, logger)
+  ensureSchema(dbPath)
+  await ensureDefaultSystemConfigsInternal(dbPath, logger)
+}
+
+async function ensureDefaultAdminInternal(dbPath: string, logger: BootstrapLogger) {
+  const defaultProjectId = ensureDefaultProjectRow(dbPath)
   backfillActivationCodesProject(dbPath, defaultProjectId)
 
   const adminCount = Number(querySingleValue(dbPath, 'SELECT COUNT(*) FROM "admins";'))
@@ -383,6 +440,14 @@ export async function ensureDefaultAdmin(
   logger.log('请登录后及时修改密码！')
 }
 
+export async function ensureDefaultAdmin(
+  dbPath: string = DEFAULT_DB_PATH,
+  logger: BootstrapLogger = console,
+) {
+  ensureSchema(dbPath)
+  await ensureDefaultAdminInternal(dbPath, logger)
+}
+
 export async function bootstrapDevelopmentDatabase({
   dbPath = DEFAULT_DB_PATH,
   logger = console,
@@ -391,9 +456,9 @@ export async function bootstrapDevelopmentDatabase({
   logger?: BootstrapLogger
 } = {}) {
   ensureSchema(dbPath)
-  const defaultProjectId = ensureDefaultProject(dbPath, logger)
+  const defaultProjectId = ensureDefaultProjectRow(dbPath)
   backfillActivationCodesProject(dbPath, defaultProjectId)
-  await ensureDefaultSystemConfigs(dbPath, logger)
-  await ensureDefaultAdmin(dbPath, logger)
+  await ensureDefaultSystemConfigsInternal(dbPath, logger)
+  await ensureDefaultAdminInternal(dbPath, logger)
   logger.log(`✅ 开发环境初始化完成: ${dbPath}`)
 }

@@ -42,7 +42,9 @@ model ActivationCode {
   consumedCount  Int         @default(0)
   consumptions   LicenseConsumption[]
 
-  @@index([projectId])
+  @@unique([projectId, usedBy], map: "activation_codes_projectId_usedBy_key")
+  @@index([projectId], map: "activation_codes_projectId_idx")
+  @@index([projectId, usedBy, isUsed, usedAt], map: "activation_codes_projectId_usedBy_isUsed_usedAt_idx")
   @@map("activation_codes")
 }
 
@@ -55,7 +57,9 @@ model LicenseConsumption {
   remainingCountAfter Int
   createdAt           DateTime       @default(now())
 
-  @@index([activationCodeId])
+  @@index([activationCodeId], map: "license_consumptions_activationCodeId_idx")
+  @@index([activationCodeId, createdAt], map: "license_consumptions_activationCodeId_createdAt_idx")
+  @@index([createdAt, id], map: "license_consumptions_createdAt_id_idx")
   @@map("license_consumptions")
 }
 

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     return handleExportProjectStatsRequest(request)

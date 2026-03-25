@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     // 使用认证中间件验证
     const authResult = await verifyAuth(request)
     if (!authResult.success) {
-      return createAuthResponse(authResult.error || '认证失败', 401)
+      return createAuthResponse(authResult)
     }
 
     const [stats, projectStats] = await Promise.all([

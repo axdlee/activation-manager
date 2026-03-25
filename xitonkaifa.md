@@ -56,11 +56,61 @@
 
 ### 3. 接口分层
 
+- `src/lib/license-project-service.ts`
+  - 默认项目维护
+  - 项目 CRUD
+  - 项目解析（`resolveProject` / `findProjectByProjectKey`）
+- `src/lib/admin-auth-service.ts`
+  - 后台请求白名单与 JWT 校验
+  - 统一提取客户端 IP
+  - 避免将 Next 构建期 `Dynamic server usage` 哨兵错误误记为认证失败日志
+- `src/lib/license-generation-service.ts`
+  - 激活码批量生成
+  - 批次内唯一 code 生成
+  - 发码结果顺序恢复
+- `src/lib/license-consumption-service.ts`
+  - 消费日志查询
+  - 服务端分页与筛选
+- `src/lib/license-analytics-service.ts`
+  - 消费趋势聚合
+  - 总览统计 / 项目统计聚合
+- `src/lib/license-binding-service.ts`
+  - 项目内激活码查询
+  - 设备绑定查询
+  - 旧绑定释放
+  - 同项目单设备唯一绑定冲突收敛
+- `src/lib/license-binding-preflight-service.ts`
+  - 授权事务前置收敛
+  - 旧绑定可复用判定与释放
+  - 前置绑定冲突结果收口
+- `src/lib/license-action-context.ts`
+  - 授权共享输入模型
+  - `code / machineId / requestId` 规范化
+  - request context 构造
+- `src/lib/license-activation-flow-service.ts`
+  - 激活链路 TIME / COUNT 分支处理
+  - 首次绑定写入与唯一约束冲突收敛
+- `src/lib/license-consume-flow-service.ts`
+  - 校验/消费链路 TIME / COUNT 分支处理
+  - requestId 占位回滚、次数扣减与状态变化收敛
+- `src/lib/license-consumption-idempotency-service.ts`
+  - `requestId` 占位写入
+  - 幂等结果复用
+  - pending 请求轮询收敛
+- `src/lib/license-transaction-helpers.ts`
+  - 授权事务共享 helper
+  - 激活码 reload
+  - 项目内设备冲突收敛
+  - requestId 回滚与剩余次数结算
+- `src/lib/license-result-service.ts`
+  - 授权返回模型 `LicenseResult`
+  - 成功/失败结果构造器收口
+  - 供主链路与幂等链路复用
 - `src/lib/license-service.ts`
-  - 项目管理
-  - 激活码生成
-  - 授权状态计算
-  - 激活 / 扣次 / 校验核心逻辑
+  - 激活 / 扣次 / 校验核心链路
+- `src/lib/prisma-error-utils.ts`
+  - Prisma 唯一约束识别
+  - 为发码链路与授权主链路提供共享错误收敛能力
 - `src/lib/license-route-handlers.ts`
   - 把 route 层与 service 层解耦
   - 便于单测复用
@@ -81,6 +131,12 @@ predev -> bootstrap:dev
 - 默认项目
 - 默认管理员
 - 默认系统配置
+
+### 5. 构建产物隔离
+
+- `npm run dev` 使用默认 `.next`
+- `npm run build` / `npm start` 使用 `.next-build`
+- 目的是避免本地开发服务运行时，再执行生产构建导致 `.next` 互相覆盖
 
 ## 目录结构
 
@@ -116,9 +172,22 @@ src/
 │   ├── db.ts
 │   ├── dev-bootstrap.ts
 │   ├── license-api.ts
+│   ├── license-analytics-service.ts
+│   ├── license-action-context.ts
+│   ├── license-activation-flow-service.ts
+│   ├── license-binding-preflight-service.ts
+│   ├── license-binding-service.ts
+│   ├── license-consume-flow-service.ts
+│   ├── license-consumption-service.ts
+│   ├── license-consumption-idempotency-service.ts
+│   ├── license-transaction-helpers.ts
+│   ├── license-generation-service.ts
+│   ├── license-project-service.ts
+│   ├── license-result-service.ts
 │   ├── license-route-handlers.ts
 │   ├── license-service.ts
 │   ├── license-status.ts
+│   ├── prisma-error-utils.ts
 │   ├── system-config-defaults.ts
 │   ├── config-service.ts
 │   ├── auth-middleware.ts
@@ -127,6 +196,11 @@ src/
 
 tests/
 ├── dev-bootstrap.test.ts
+├── license-action-context.test.ts
+├── license-activation-flow-service.test.ts
+├── license-binding-preflight-service.test.ts
+├── license-consume-flow-service.test.ts
+├── license-result-service.test.ts
 ├── license-service.test.ts
 └── license-api-routes.test.ts
 ```
@@ -236,6 +310,7 @@ tests/
 
 当前已有测试覆盖：
 
+- 后台认证 / 白名单 / JWT 校验
 - 数据库 bootstrap 创建与兼容补齐
 - 多项目隔离
 - 次数型激活码扣次
@@ -247,7 +322,21 @@ tests/
 
 ```bash
 npm test
+npm run test:coverage
+npm run quality:gate
 ```
+
+其中：
+
+- `npm test`：快速回归
+- `npm run test:coverage`：只统计 `src/` 业务代码覆盖率，并校验最低门槛
+- `npm run quality:gate`：执行 `lint + 覆盖率门槛 + build`
+
+当前覆盖率门槛为：
+
+- 行覆盖率 `>= 90%`
+- 分支覆盖率 `>= 85%`
+- 函数覆盖率 `>= 90%`
 
 ## 本地联调
 

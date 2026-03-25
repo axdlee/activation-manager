@@ -9,20 +9,25 @@ import { PrismaClient } from '@prisma/client'
 import { bootstrapDevelopmentDatabase } from '../src/lib/dev-bootstrap'
 import {
   activateLicense,
-  createProject,
-  deleteProject,
   consumeLicense,
   generateActivationCodes,
   getLicenseStatus,
   getActivationCodeStats,
   getLicenseConsumptionTrend,
-  listLicenseConsumptions,
   listProjectStats,
+  verifyActivationCode,
+} from '../src/lib/license-service'
+import {
+  listLicenseConsumptions,
+  listLicenseConsumptionsPage,
+} from '../src/lib/license-consumption-service'
+import {
+  createProject,
+  deleteProject,
   updateProjectDescription,
   updateProjectName,
   updateProjectStatus,
-  verifyActivationCode,
-} from '../src/lib/license-service'
+} from '../src/lib/license-project-service'
 
 const silentLogger = {
   log: () => undefined,
@@ -481,6 +486,104 @@ test('listLicenseConsumptions 可按消费时间范围过滤记录', async () =>
   }
 })
 
+test('listLicenseConsumptionsPage 会在服务端按条件过滤并分页返回记录', async () => {
+  const { prisma } = await createTestPrisma()
+
+  try {
+    await createProject(prisma, {
+      name: '服务端分页项目',
+      projectKey: 'consumption-page-project',
+    })
+    await createProject(prisma, {
+      name: '其他分页项目',
+      projectKey: 'other-consumption-page-project',
+    })
+
+    const [pageCode] = await generateActivationCodes(prisma, {
+      projectKey: 'consumption-page-project',
+      amount: 1,
+      licenseMode: 'COUNT',
+      totalCount: 4,
+      cardType: '4次卡',
+    })
+    const [otherCode] = await generateActivationCodes(prisma, {
+      projectKey: 'other-consumption-page-project',
+      amount: 1,
+      licenseMode: 'COUNT',
+      totalCount: 1,
+      cardType: '单次卡',
+    })
+
+    await consumeLicense(prisma, {
+      projectKey: 'consumption-page-project',
+      code: pageCode.code,
+      machineId: 'machine-page-001',
+      requestId: 'page-req-001',
+    })
+    await consumeLicense(prisma, {
+      projectKey: 'consumption-page-project',
+      code: pageCode.code,
+      machineId: 'machine-page-001',
+      requestId: 'page-req-002',
+    })
+    await consumeLicense(prisma, {
+      projectKey: 'consumption-page-project',
+      code: pageCode.code,
+      machineId: 'machine-page-001',
+      requestId: 'page-req-003',
+    })
+    await consumeLicense(prisma, {
+      projectKey: 'other-consumption-page-project',
+      code: otherCode.code,
+      machineId: 'machine-other-page-001',
+      requestId: 'other-page-req-001',
+    })
+
+    await prisma.licenseConsumption.update({
+      where: {
+        requestId: 'page-req-001',
+      },
+      data: {
+        createdAt: new Date('2026-03-01T00:00:00.000Z'),
+      },
+    })
+    await prisma.licenseConsumption.update({
+      where: {
+        requestId: 'page-req-002',
+      },
+      data: {
+        createdAt: new Date('2026-03-02T00:00:00.000Z'),
+      },
+    })
+    await prisma.licenseConsumption.update({
+      where: {
+        requestId: 'page-req-003',
+      },
+      data: {
+        createdAt: new Date('2026-03-03T00:00:00.000Z'),
+      },
+    })
+
+    const result = await listLicenseConsumptionsPage(prisma, {
+      projectKey: 'consumption-page-project',
+      keyword: 'page-req',
+      createdFrom: '2026-03-01T00:00:00.000Z',
+      createdTo: '2026-03-31T23:59:59.999Z',
+      page: 2,
+      pageSize: 1,
+    })
+
+    assert.equal(result.pagination.total, 3)
+    assert.equal(result.pagination.page, 2)
+    assert.equal(result.pagination.pageSize, 1)
+    assert.equal(result.pagination.totalPages, 3)
+    assert.equal(result.logs.length, 1)
+    assert.equal(result.logs[0]?.requestId, 'page-req-002')
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
 test('getLicenseConsumptionTrend 会按天补齐空桶并支持按项目过滤', async () => {
   const { prisma } = await createTestPrisma()
 
@@ -870,6 +973,161 @@ test('listProjectStats 与 getActivationCodeStats 会返回正确的项目级统
     assert.equal(projectBStats.countConsumedTotal, 1)
 
     assert.equal(countCode.licenseMode, 'TIME')
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+test('createProject 会规范化项目名称描述并接受合法 projectKey', async () => {
+  const { prisma } = await createTestPrisma()
+
+  try {
+    const project = await createProject(prisma, {
+      name: '  浏览器插件项目  ',
+      projectKey: 'browser-plugin-01',
+      description: '  面向浏览器插件的授权空间  ',
+    })
+
+    assert.equal(project.name, '浏览器插件项目')
+    assert.equal(project.projectKey, 'browser-plugin-01')
+    assert.equal(project.description, '面向浏览器插件的授权空间')
+    assert.equal(project.isEnabled, true)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+test('createProject 会拒绝不符合规范的 projectKey', async () => {
+  const { prisma } = await createTestPrisma()
+
+  try {
+    await assert.rejects(
+      () =>
+        createProject(prisma, {
+          name: '空项目标识',
+          projectKey: '   ',
+        }),
+      /项目标识不能为空/,
+    )
+
+    await assert.rejects(
+      () =>
+        createProject(prisma, {
+          name: '大写项目标识',
+          projectKey: 'Browser-Plugin',
+        }),
+      /项目标识仅支持小写字母、数字和短横线/,
+    )
+
+    await assert.rejects(
+      () =>
+        createProject(prisma, {
+          name: '下划线项目标识',
+          projectKey: 'browser_plugin',
+        }),
+      /项目标识仅支持小写字母、数字和短横线/,
+    )
+
+    await assert.rejects(
+      () =>
+        createProject(prisma, {
+          name: '中文项目标识',
+          projectKey: '浏览器插件',
+        }),
+      /项目标识仅支持小写字母、数字和短横线/,
+    )
+
+    await assert.rejects(
+      () =>
+        createProject(prisma, {
+          name: '前缀短横线项目标识',
+          projectKey: '-browser-plugin',
+        }),
+      /项目标识不能以短横线开头或结尾/,
+    )
+
+    await assert.rejects(
+      () =>
+        createProject(prisma, {
+          name: '后缀短横线项目标识',
+          projectKey: 'browser-plugin-',
+        }),
+      /项目标识不能以短横线开头或结尾/,
+    )
+
+    await assert.rejects(
+      () =>
+        createProject(prisma, {
+          name: '连续短横线项目标识',
+          projectKey: 'browser--plugin',
+        }),
+      /项目标识不能包含连续短横线/,
+    )
+
+    await assert.rejects(
+      () =>
+        createProject(prisma, {
+          name: '过短项目标识',
+          projectKey: 'a',
+        }),
+      /项目标识长度必须在 2-50 个字符之间/,
+    )
+
+    await assert.rejects(
+      () =>
+        createProject(prisma, {
+          name: '过长项目标识',
+          projectKey: 'a'.repeat(51),
+        }),
+      /项目标识长度必须在 2-50 个字符之间/,
+    )
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+test('同一项目下绑定新次数卡前会释放已耗尽旧卡的设备绑定', async () => {
+  const { prisma } = await createTestPrisma()
+
+  try {
+    await createProject(prisma, {
+      name: '次数卡复用项目',
+      projectKey: 'count-reuse-project',
+    })
+
+    const [firstCode, secondCode] = await generateActivationCodes(prisma, {
+      projectKey: 'count-reuse-project',
+      amount: 2,
+      licenseMode: 'COUNT',
+      totalCount: 1,
+      cardType: '单次卡',
+    })
+
+    const firstConsumeResult = await consumeLicense(prisma, {
+      projectKey: 'count-reuse-project',
+      code: firstCode.code,
+      machineId: 'machine-reuse-001',
+      requestId: 'reuse-req-001',
+    })
+
+    const secondActivateResult = await activateLicense(prisma, {
+      projectKey: 'count-reuse-project',
+      code: secondCode.code,
+      machineId: 'machine-reuse-001',
+    })
+
+    const refreshedFirstCode = await prisma.activationCode.findUnique({
+      where: { code: firstCode.code },
+    })
+    const refreshedSecondCode = await prisma.activationCode.findUnique({
+      where: { code: secondCode.code },
+    })
+
+    assert.equal(firstConsumeResult.success, true)
+    assert.equal(firstConsumeResult.remainingCount, 0)
+    assert.equal(secondActivateResult.success, true)
+    assert.equal(refreshedFirstCode?.usedBy, null)
+    assert.equal(refreshedSecondCode?.usedBy, 'machine-reuse-001')
   } finally {
     await prisma.$disconnect()
   }

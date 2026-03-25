@@ -3,7 +3,11 @@ import { PrismaClient } from '@prisma/client'
 import { buildConsumptionTrendComparisonSeries } from './consumption-trend-comparison'
 import { getVisibleConsumptionTrendPoints } from './consumption-trend-display'
 import { prisma } from './db'
-import { getLicenseConsumptionTrend, listLicenseConsumptions } from './license-service'
+import { getLicenseConsumptionTrend } from './license-analytics-service'
+import {
+  listLicenseConsumptions,
+  listLicenseConsumptionsPage,
+} from './license-consumption-service'
 
 type LicenseConsumptionCsvLog = {
   requestId: string
@@ -164,6 +168,33 @@ export function readLicenseConsumptionFilters(request: Request) {
     createdFrom: requestUrl.searchParams.get('createdFrom') || undefined,
     createdTo: requestUrl.searchParams.get('createdTo') || undefined,
   }
+}
+
+export function readLicenseConsumptionPagination(request: Request) {
+  const requestUrl = new URL(request.url)
+  const rawPage = requestUrl.searchParams.get('page')
+  const rawPageSize = requestUrl.searchParams.get('pageSize')
+
+  return {
+    page: rawPage ? Number(rawPage) : undefined,
+    pageSize: rawPageSize ? Number(rawPageSize) : undefined,
+  }
+}
+
+export async function handleListLicenseConsumptionsRequest(
+  request: Request,
+  client: PrismaClient = prisma,
+) {
+  const { logs, pagination } = await listLicenseConsumptionsPage(client, {
+    ...readLicenseConsumptionFilters(request),
+    ...readLicenseConsumptionPagination(request),
+  })
+
+  return Response.json({
+    success: true,
+    logs,
+    pagination,
+  })
 }
 
 export function readLicenseConsumptionTrendFilters(request: Request) {

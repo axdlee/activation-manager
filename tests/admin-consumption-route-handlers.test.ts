@@ -10,14 +10,15 @@ import { bootstrapDevelopmentDatabase } from '../src/lib/dev-bootstrap'
 import {
   handleExportLicenseConsumptionsRequest,
   handleExportLicenseConsumptionTrendRequest,
+  handleListLicenseConsumptionsRequest,
   handleListLicenseConsumptionTrendRequest,
 } from '../src/lib/admin-consumption-route-handlers'
+import { generateActivationCodes } from '../src/lib/license-generation-service'
 import {
-  consumeLicense,
   createProject,
-  generateActivationCodes,
   updateProjectStatus,
-} from '../src/lib/license-service'
+} from '../src/lib/license-project-service'
+import { consumeLicense } from '../src/lib/license-service'
 
 const silentLogger = {
   log: () => undefined,
@@ -189,6 +190,95 @@ test('消费日志导出处理器支持消费时间范围过滤', async () => {
 
     assert.match(body, /range-export-req-002/)
     assert.doesNotMatch(body, /range-export-req-001/)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+test('消费日志列表处理器返回服务端分页结果，并保留筛选后的总数', async () => {
+  const { prisma } = await createTestPrisma()
+
+  try {
+    await createProject(prisma, {
+      name: '分页处理器项目',
+      projectKey: 'paged-handler-project',
+    })
+
+    const [countCode] = await generateActivationCodes(prisma, {
+      projectKey: 'paged-handler-project',
+      amount: 1,
+      licenseMode: 'COUNT',
+      totalCount: 3,
+      cardType: '3次卡',
+    })
+
+    await consumeLicense(prisma, {
+      projectKey: 'paged-handler-project',
+      code: countCode.code,
+      machineId: 'machine-paged-handler-001',
+      requestId: 'paged-handler-req-001',
+    })
+    await consumeLicense(prisma, {
+      projectKey: 'paged-handler-project',
+      code: countCode.code,
+      machineId: 'machine-paged-handler-001',
+      requestId: 'paged-handler-req-002',
+    })
+    await consumeLicense(prisma, {
+      projectKey: 'paged-handler-project',
+      code: countCode.code,
+      machineId: 'machine-paged-handler-001',
+      requestId: 'paged-handler-req-003',
+    })
+
+    await prisma.licenseConsumption.update({
+      where: {
+        requestId: 'paged-handler-req-001',
+      },
+      data: {
+        createdAt: new Date('2026-03-11T00:00:00.000Z'),
+      },
+    })
+    await prisma.licenseConsumption.update({
+      where: {
+        requestId: 'paged-handler-req-002',
+      },
+      data: {
+        createdAt: new Date('2026-03-12T00:00:00.000Z'),
+      },
+    })
+    await prisma.licenseConsumption.update({
+      where: {
+        requestId: 'paged-handler-req-003',
+      },
+      data: {
+        createdAt: new Date('2026-03-13T00:00:00.000Z'),
+      },
+    })
+
+    const response = await handleListLicenseConsumptionsRequest(
+      new Request(
+        'http://127.0.0.1:3000/api/admin/consumptions?projectKey=paged-handler-project&page=2&pageSize=1',
+        {
+          method: 'GET',
+        },
+      ),
+      prisma,
+    )
+
+    assert.equal(response.status, 200)
+
+    const payload = await response.json()
+
+    assert.equal(payload.success, true)
+    assert.equal(payload.logs.length, 1)
+    assert.equal(payload.logs[0]?.requestId, 'paged-handler-req-002')
+    assert.deepEqual(payload.pagination, {
+      total: 3,
+      page: 2,
+      pageSize: 1,
+      totalPages: 3,
+    })
   } finally {
     await prisma.$disconnect()
   }

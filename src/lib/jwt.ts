@@ -3,7 +3,7 @@ import { getConfigWithDefault } from './config-service'
 
 async function getSecret() {
   const jwtSecret = await getConfigWithDefault('jwtSecret')
-  return new TextEncoder().encode(jwtSecret)
+  return new TextEncoder().encode(String(jwtSecret))
 }
 
 export async function signToken(payload: any) {
@@ -18,11 +18,12 @@ export async function signToken(payload: any) {
 }
 
 export async function verifyToken(token: string) {
+  const secret = await getSecret()
+
   try {
-    const secret = await getSecret()
     const { payload } = await jwtVerify(token, secret)
     return payload
   } catch (error) {
     return null
   }
-} 
+}

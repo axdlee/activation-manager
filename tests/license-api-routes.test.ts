@@ -12,7 +12,8 @@ import {
   handleConsumeLicenseRequest,
   handleLicenseStatusRequest,
 } from '../src/lib/license-route-handlers'
-import { createProject, generateActivationCodes } from '../src/lib/license-service'
+import { generateActivationCodes } from '../src/lib/license-generation-service'
+import { createProject } from '../src/lib/license-project-service'
 
 const silentLogger = {
   log: () => undefined,
