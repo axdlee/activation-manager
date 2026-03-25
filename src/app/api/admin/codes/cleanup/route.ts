@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
+import { NextResponse, type NextRequest } from 'next/server'
+
+import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { prisma } from '@/lib/db'
 
 // 定义激活码类型
@@ -14,23 +15,13 @@ interface ActivationCodeData {
   validDays: number | null
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    // 使用认证中间件验证
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
-    // 清理过期激活码的绑定关系
-    // 将过期且已使用的激活码重置为未使用状态，以便机器可以使用新激活码
-    
+export const POST = createProtectedAdminRouteHandler(
+  async (_request: NextRequest) => {
     const now = new Date()
-    
-    // 查找所有已使用的激活码
+
     const usedCodes = await prisma.activationCode.findMany({
       where: {
-        isUsed: true
+        isUsed: true,
       },
       select: {
         id: true,
@@ -40,49 +31,45 @@ export async function POST(request: NextRequest) {
         usedBy: true,
         createdAt: true,
         expiresAt: true,
-        validDays: true
-      }
+        validDays: true,
+      },
     })
-    
-    // 筛选出真正过期的激活码
+
     const expiredCodes = usedCodes.filter((code: ActivationCodeData) => {
       if (code.usedAt && code.validDays) {
-        // 从激活时开始计算过期时间
         const actualExpiresAt = new Date(code.usedAt.getTime() + code.validDays * 24 * 60 * 60 * 1000)
         return actualExpiresAt < now
       } else if (code.expiresAt) {
-        // 兼容旧数据
         return code.expiresAt < now
       }
       return false
     })
-    
+
     if (expiredCodes.length === 0) {
       return NextResponse.json({
         success: true,
         message: '没有找到需要清理的过期激活码',
-        cleaned: 0
+        cleaned: 0,
       })
     }
-    
-    // 重置过期激活码的使用状态
+
     const expiredCodeIds = expiredCodes.map((code: ActivationCodeData) => code.id)
     const result = await prisma.activationCode.updateMany({
       where: {
         id: {
-          in: expiredCodeIds
-        }
+          in: expiredCodeIds,
+        },
       },
       data: {
         isUsed: false,
         usedAt: null,
         usedBy: null,
-        expiresAt: null  // 清空过期时间，等待下次激活时重新设置
-      }
+        expiresAt: null,
+      },
     })
-    
+
     console.log(`清理了 ${result.count} 个过期激活码的绑定关系`)
-    
+
     return NextResponse.json({
       success: true,
       message: `成功清理了 ${result.count} 个过期激活码的绑定关系`,
@@ -90,34 +77,25 @@ export async function POST(request: NextRequest) {
       expiredCodes: expiredCodes.map((code: ActivationCodeData) => ({
         code: code.code,
         usedBy: code.usedBy,
-        expiresAt: code.expiresAt
-      }))
+        expiresAt: code.expiresAt,
+      })),
     })
-
-  } catch (error) {
-    console.error('清理过期激活码时发生错误:', error)
-    return NextResponse.json(
-      { success: false, message: '服务器内部错误' },
-      { status: 500 }
-    )
-  }
-}
+  },
+  {
+    logLabel: '清理过期激活码时发生错误',
+    errorStatus: 500,
+    errorMessage: '服务器内部错误',
+  },
+)
 
 // 获取过期激活码统计
-export async function GET(request: NextRequest) {
-  try {
-    // 使用认证中间件验证
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
+export const GET = createProtectedAdminRouteHandler(
+  async (_request: NextRequest) => {
     const now = new Date()
-    
-    // 查找所有已使用的激活码
+
     const usedCodes = await prisma.activationCode.findMany({
       where: {
-        isUsed: true
+        isUsed: true,
       },
       select: {
         id: true,
@@ -127,34 +105,29 @@ export async function GET(request: NextRequest) {
         usedBy: true,
         createdAt: true,
         expiresAt: true,
-        validDays: true
-      }
+        validDays: true,
+      },
     })
-    
-    // 筛选出真正过期的激活码
+
     const expiredCodes = usedCodes.filter((code: ActivationCodeData) => {
       if (code.usedAt && code.validDays) {
-        // 从激活时开始计算过期时间
         const actualExpiresAt = new Date(code.usedAt.getTime() + code.validDays * 24 * 60 * 60 * 1000)
         return actualExpiresAt < now
       } else if (code.expiresAt) {
-        // 兼容旧数据
         return code.expiresAt < now
       }
       return false
     })
-    
+
     return NextResponse.json({
       success: true,
       count: expiredCodes.length,
-      expiredCodes
+      expiredCodes,
     })
-
-  } catch (error) {
-    console.error('获取过期激活码时发生错误:', error)
-    return NextResponse.json(
-      { success: false, message: '服务器内部错误' },
-      { status: 500 }
-    )
-  }
-} 
+  },
+  {
+    logLabel: '获取过期激活码时发生错误',
+    errorStatus: 500,
+    errorMessage: '服务器内部错误',
+  },
+)

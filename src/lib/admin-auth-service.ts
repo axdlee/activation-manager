@@ -2,6 +2,7 @@ import { getConfigWithDefault, MissingRequiredSystemConfigError } from './config
 import { verifyToken } from './jwt'
 import {
   type AdminAuthFailureCode,
+  type AdminJwtPayload,
   type AdminAuthMode,
   type AdminAuthResult,
 } from './admin-auth-shared'
@@ -23,7 +24,7 @@ type AuthorizeAdminRequestOptions = {
 
 type AuthorizeAdminRequestDependencies = {
   getAllowedIPs: () => Promise<unknown>
-  verifyToken: (token: string) => Promise<any>
+  verifyToken: (token: string) => Promise<AdminJwtPayload | null>
 }
 
 function buildAuthFailure(

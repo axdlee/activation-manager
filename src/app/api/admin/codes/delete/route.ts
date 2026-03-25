@@ -1,15 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
+import { NextResponse, type NextRequest } from 'next/server'
+
+import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { prisma } from '@/lib/db'
 
-export async function DELETE(request: NextRequest) {
-  try {
-    // 使用认证中间件验证
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
+export const DELETE = createProtectedAdminRouteHandler(
+  async (request: NextRequest) => {
     const { id } = await request.json()
 
     if (!id) {
@@ -38,14 +33,12 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: '激活码删除成功'
+      message: '激活码删除成功',
     })
-
-  } catch (error) {
-    console.error('删除激活码时发生错误:', error)
-    return NextResponse.json(
-      { success: false, message: '服务器内部错误' },
-      { status: 500 }
-    )
-  }
-} 
+  },
+  {
+    logLabel: '删除激活码时发生错误',
+    errorStatus: 500,
+    errorMessage: '服务器内部错误',
+  },
+)

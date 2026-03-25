@@ -32,22 +32,43 @@ export async function readLicenseRequest(request: Request) {
   }
 }
 
+function buildLicenseResponsePayload(
+  result: LicenseApiResult,
+  options: {
+    legacyOnly?: boolean
+  } = {},
+) {
+  const sharedPayload = {
+    success: result.success,
+    message: result.message,
+    expires_at: result.expiresAt ?? null,
+    remaining_count: result.remainingCount ?? null,
+    license_mode: result.licenseMode ?? null,
+  }
+
+  if (options.legacyOnly) {
+    return sharedPayload
+  }
+
+  return {
+    ...sharedPayload,
+    licenseMode: result.licenseMode ?? null,
+    expiresAt: result.expiresAt ?? null,
+    remainingCount: result.remainingCount ?? null,
+    isActivated: result.isActivated ?? null,
+    is_activated: result.isActivated ?? null,
+    valid: result.valid ?? null,
+    idempotent: result.idempotent ?? null,
+  }
+}
+
 export function createLicenseResponse(result: LicenseApiResult) {
+  return NextResponse.json(buildLicenseResponsePayload(result), { status: result.status })
+}
+
+export function createLegacyLicenseResponse(result: LicenseApiResult) {
   return NextResponse.json(
-    {
-      success: result.success,
-      message: result.message,
-      licenseMode: result.licenseMode ?? null,
-      license_mode: result.licenseMode ?? null,
-      expiresAt: result.expiresAt ?? null,
-      expires_at: result.expiresAt ?? null,
-      remainingCount: result.remainingCount ?? null,
-      remaining_count: result.remainingCount ?? null,
-      isActivated: result.isActivated ?? null,
-      is_activated: result.isActivated ?? null,
-      valid: result.valid ?? null,
-      idempotent: result.idempotent ?? null,
-    },
+    buildLicenseResponsePayload(result, { legacyOnly: true }),
     { status: result.status },
   )
 }

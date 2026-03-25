@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
+import { NextResponse } from 'next/server'
+
+import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { prisma } from '@/lib/db'
 
-export async function GET(request: NextRequest) {
-  try {
-    // 使用认证中间件验证
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
-    // 获取所有激活码，按创建时间倒序排列
+export const GET = createProtectedAdminRouteHandler(
+  async () => {
     const codes = await prisma.activationCode.findMany({
       include: {
         project: {
@@ -28,14 +22,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      codes
+      codes,
     })
-
-  } catch (error) {
-    console.error('获取激活码列表时发生错误:', error)
-    return NextResponse.json(
-      { success: false, message: '服务器内部错误' },
-      { status: 500 }
-    )
-  }
-}
+  },
+  {
+    logLabel: '获取激活码列表时发生错误',
+    errorStatus: 500,
+    errorMessage: '服务器内部错误',
+  },
+)

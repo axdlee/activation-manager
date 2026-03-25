@@ -1,23 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest } from 'next/server'
 
-import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
 import { handleListLicenseConsumptionsRequest } from '@/lib/admin-consumption-route-handlers'
+import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 
-export async function GET(request: NextRequest) {
-  try {
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
-    return handleListLicenseConsumptionsRequest(request)
-  } catch (error) {
-    console.error('获取消费日志失败:', error)
-    const message = error instanceof Error ? error.message : '获取消费日志失败'
-
-    return NextResponse.json(
-      { success: false, message },
-      { status: 400 },
-    )
-  }
-}
+export const GET = createProtectedAdminRouteHandler(
+  (request: NextRequest) => handleListLicenseConsumptionsRequest(request),
+  {
+    logLabel: '获取消费日志失败',
+    errorStatus: 400,
+    errorMessage: '获取消费日志失败',
+    exposeErrorMessage: true,
+  },
+)

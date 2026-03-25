@@ -32,8 +32,7 @@ import {
   claimConsumptionRequestId,
   resolveExistingConsumptionResult,
 } from './license-consumption-idempotency-service'
-import { loadLicenseActionCodeForMachine } from './license-code-access-service'
-import { createLicenseTransactionHelpers } from './license-transaction-helpers'
+import { resolveLicenseStatusForMachine } from './license-status-query-service'
 import { prepareLicenseTransactionAction } from './license-transaction-preparation-service'
 import {
   activateCountLicense,
@@ -44,7 +43,6 @@ import {
   consumeTimeLicense,
 } from './license-consume-flow-service'
 import {
-  createLicenseStatusSuccessResult,
   createMissingParamsResult,
   type LicenseResult,
 } from './license-result-service'
@@ -56,21 +54,11 @@ export async function getLicenseStatus(client: PrismaClient, input: LicenseStatu
   }
 
   const project = await resolveProject(client, projectKey)
-  const txHelpers = createLicenseTransactionHelpers(client, {
+  return resolveLicenseStatusForMachine(client, {
     projectId: project.id,
     code,
     machineId,
   })
-  const codeLoadResult = await loadLicenseActionCodeForMachine({
-    machineId,
-    reloadActivationCode: txHelpers.reloadActivationCode,
-  })
-
-  if (codeLoadResult.result) {
-    return codeLoadResult.result
-  }
-
-  return createLicenseStatusSuccessResult(codeLoadResult.activationCode)
 }
 
 export async function activateLicense(client: PrismaClient, input: LicenseActionInput): Promise<LicenseResult> {

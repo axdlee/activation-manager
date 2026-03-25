@@ -64,6 +64,15 @@
   - 后台请求白名单与 JWT 校验
   - 统一提取客户端 IP
   - 避免将 Next 构建期 `Dynamic server usage` 哨兵错误误记为认证失败日志
+- `src/lib/admin-login-rate-limit.ts`
+  - 登录限流规则与共享限流器编排
+  - 支持进程内 limiter 与数据库共享 limiter
+- `src/lib/admin-login-rate-limit-store.ts`
+  - 登录限流状态 Prisma store
+  - 用数据库表在多实例间共享失败计数与锁定窗口
+- `src/lib/admin-login-route-handler.ts`
+  - 登录 API handler 编排
+  - 便于注入限流器并保持 route 文件纯导出
 - `src/lib/license-generation-service.ts`
   - 激活码批量生成
   - 批次内唯一 code 生成
@@ -86,6 +95,9 @@
 - `src/lib/license-code-access-service.ts`
   - 授权主链路共享查码 helper
   - 统一“不存在 / 被其他设备占用”结果
+- `src/lib/license-status-query-service.ts`
+  - 状态查询共享服务
+  - 收敛 `getLicenseStatus` 的查码与状态结果装配
 - `src/lib/license-transaction-preparation-service.ts`
   - 授权事务前置准备编排
   - 收敛“旧绑定预检查 + 查码 + helper 装配”
@@ -119,9 +131,11 @@
   - 为发码链路与授权主链路提供共享错误收敛能力
 - `src/lib/license-route-handlers.ts`
   - 把 route 层与 service 层解耦
+  - 统一正式接口与兼容接口的请求读取、错误收敛与响应编排
   - 便于单测复用
 - `src/lib/license-api.ts`
   - 统一处理请求字段兼容与响应字段格式
+  - 支持正式接口响应与 legacy `/api/verify` 响应收口
 
 ### 4. 开发环境自动初始化
 
@@ -134,6 +148,7 @@ predev -> bootstrap:dev
 自动补齐：
 
 - 数据库表
+- 登录限流共享状态表
 - 默认项目
 - 默认管理员
 - 默认系统配置
@@ -177,6 +192,9 @@ src/
 ├── lib/
 │   ├── db.ts
 │   ├── dev-bootstrap.ts
+│   ├── admin-login-rate-limit.ts
+│   ├── admin-login-rate-limit-store.ts
+│   ├── admin-login-route-handler.ts
 │   ├── license-api.ts
 │   ├── license-analytics-service.ts
 │   ├── license-action-context.ts
@@ -184,6 +202,7 @@ src/
 │   ├── license-binding-preflight-service.ts
 │   ├── license-binding-service.ts
 │   ├── license-code-access-service.ts
+│   ├── license-status-query-service.ts
 │   ├── license-transaction-preparation-service.ts
 │   ├── license-consume-flow-service.ts
 │   ├── license-consumption-service.ts
@@ -204,10 +223,12 @@ src/
 
 tests/
 ├── dev-bootstrap.test.ts
+├── admin-login-rate-limit-store.test.ts
 ├── license-action-context.test.ts
 ├── license-activation-flow-service.test.ts
 ├── license-binding-preflight-service.test.ts
 ├── license-code-access-service.test.ts
+├── license-status-query-service.test.ts
 ├── license-transaction-preparation-service.test.ts
 ├── license-consume-flow-service.test.ts
 ├── license-result-service.test.ts
@@ -252,6 +273,16 @@ tests/
 | `activationCodeId` | 关联激活码 |
 | `machineId` | 调用设备 |
 | `remainingCountAfter` | 本次处理后的剩余次数 |
+
+### AdminLoginRateLimitState
+
+用于后台登录失败限流共享状态。
+
+| 字段 | 说明 |
+|---|---|
+| `key` | 限流维度键，当前为客户端 IP |
+| `failuresJson` | 当前窗口内失败时间戳列表 |
+| `lockedUntil` | 锁定截止时间 |
 
 ## API 设计
 
@@ -316,11 +347,82 @@ tests/
 
 因此新客户端不要再把它当正式扣次接口。
 
+## 后台路由治理
+
+当前后台大部分受保护 API 已统一收口到：
+
+- `src/lib/admin-route-handler.ts`
+
+统一能力包括：
+
+1. 后台 JWT 鉴权失败时直接返回标准鉴权响应
+2. 业务 handler 只关注自身逻辑，不再重复手写 `verifyAuth + try/catch`
+3. 支持透传路由上下文参数（例如 `projects/[id]`）
+4. 支持把已验证的管理员 payload 透出给业务层
+5. 支持自定义错误映射
+
+当前已迁移的后台路由类别包括：
+
+- 消费日志 / 趋势 / 导出
+- 项目统计
+- 系统配置
+- 修改密码
+- 项目管理
+- 激活码列表 / 生成 / 删除 / 过期清理
+
+约定：
+
+- 预期业务错误（例如非法配置、校验失败）优先走自定义错误映射，避免记录误导性的 error 栈
+- 非预期异常仍统一记录 `console.error` 并返回兜底错误响应
+
+## Dashboard 结构治理
+
+后台 dashboard 仍是大页面，但已经开始分阶段拆分。
+
+当前新增：
+
+- `src/components/dashboard-empty-state.tsx`
+- `src/components/dashboard-pagination-bar.tsx`
+- `src/components/dashboard-section-header.tsx`
+- `src/components/dashboard-summary-strip.tsx`
+- `src/components/dashboard-token-list.tsx`
+- `src/components/workspace-hero-panel.tsx`
+- `src/components/workspace-tab-nav.tsx`
+- `src/components/workspace-metric-card.tsx`
+
+已先收口的重复区域：
+
+1. 项目 / 激活码 / 消费工作区内容区块头部
+2. 项目 / 激活码 / 消费工作区 hero 头部
+3. 项目工作区 tab 导航
+4. 激活码工作区 tab 导航
+5. 消费日志工作区 tab 导航
+6. 项目 / 激活码 / 消费工作区 summary metric card
+7. 激活码 / 消费工作区筛选 token 与空状态胶囊列表
+8. 激活码结果页 / 消费日志结果页顶部摘要条
+9. 项目列表 / 激活码结果 / 消费日志结果分页条
+10. 激活码结果页 / 消费日志结果页空状态提示
+
+这样做的目标：
+
+- 降低 `src/app/admin/dashboard/page.tsx` 的重复 UI 样板
+- 统一 tab 卡片视觉与交互
+- 为后续继续拆分 workspace 内容块打基础
+
 ## 测试策略
 
 当前已有测试覆盖：
 
 - 后台认证 / 白名单 / JWT 校验
+- 后台项目管理 route 回归（列表 / 创建 / 更新 / 删除）
+- dashboard section header 组件渲染与布局回归
+- dashboard empty state 组件渲染与空状态文案回归
+- dashboard pagination bar 组件渲染与分页状态回归
+- dashboard summary strip 组件渲染与布局回归
+- dashboard token list 组件渲染与空状态回归
+- dashboard workspace hero 组件渲染与结构回归
+- dashboard workspace tab 组件渲染与激活态样式
+- dashboard workspace metric card 组件渲染与样式覆盖
 - 数据库 bootstrap 创建与兼容补齐
 - 多项目隔离
 - 次数型激活码扣次
@@ -372,8 +474,9 @@ BASE_URL=http://127.0.0.1:3001 npm run smoke:license-api
 
 1. 管理后台通过 JWT Cookie 做认证
 2. 支持 IP 白名单限制
-3. 管理员账号与系统配置已转为数据库持久化
-4. 默认管理员仅用于本地初始化，生产环境应立即修改
+3. 登录失败限流状态已持久化到数据库，支持多实例共享锁定窗口
+4. 管理员账号与系统配置已转为数据库持久化
+5. 默认管理员仅用于本地初始化，生产环境应立即修改
 
 ## 后续扩展建议
 

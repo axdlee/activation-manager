@@ -40,10 +40,10 @@ test('bootstrapDevelopmentDatabase 会创建所需表和默认数据', async () 
 
   const tables = querySqlite(
     dbPath,
-    "SELECT group_concat(name, ',') FROM (SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('activation_codes', 'admins', 'license_consumptions', 'projects', 'system_configs') ORDER BY name);",
+    "SELECT group_concat(name, ',') FROM (SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('activation_codes', 'admin_login_rate_limits', 'admins', 'license_consumptions', 'projects', 'system_configs') ORDER BY name);",
   )
 
-  assert.equal(tables, 'activation_codes,admins,license_consumptions,projects,system_configs')
+  assert.equal(tables, 'activation_codes,admin_login_rate_limits,admins,license_consumptions,projects,system_configs')
   assert.equal(querySqlite(dbPath, 'SELECT COUNT(*) FROM admins;'), '1')
   assert.equal(querySqlite(dbPath, 'SELECT COUNT(*) FROM projects;'), '1')
   assert.equal(

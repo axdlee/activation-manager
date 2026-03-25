@@ -81,15 +81,15 @@
 | P2-01 | P2 | DONE | 消费日志改为服务端分页 / 过滤 | 支撑高频扣次日志增长 |
 | P2-02 | P2 | DONE | 趋势与统计逐步下推数据库聚合 | 提升大数据量下性能 |
 | P2-03 | P2 | DONE | 发码链路支持后续批量优化 | 为大批量生成预留空间 |
-| P2-04 | P2 | TODO | 登录限流状态外置化以支持多实例 | 避免多实例部署下各节点限流状态不一致 |
-| P3-01 | P3 | TODO | 拆分 dashboard 页面 | 降低页面级复杂度 |
+| P2-04 | P2 | DONE | 登录限流状态外置化以支持多实例 | 避免多实例部署下各节点限流状态不一致 |
+| P3-01 | P3 | IN_PROGRESS | 拆分 dashboard 页面 | 降低页面级复杂度 |
 | P3-02 | P3 | IN_PROGRESS | 拆分 `license-service` 领域职责 | 提升核心服务可维护性 |
-| P3-03 | P3 | TODO | 统一 route wrapper / 输入校验 / 错误模型 | 统一接口风格与错误语义 |
+| P3-03 | P3 | IN_PROGRESS | 统一 route wrapper / 输入校验 / 错误模型 | 统一接口风格与错误语义 |
 | P3-04 | P3 | TODO | 优化 SDK 错误分类与 hook 错误隔离 | 提升接入方可观测性 |
 | P3-05 | P3 | TODO | 补 auth / middleware / config / 并发测试 | 填平关键风险测试缺口 |
 | P4-01 | P4 | DONE | 建立 CI 质量门禁 | 形成稳定交付底线 |
 | P4-02 | P4 | DONE | 增加覆盖率门槛 | 保证核心链路质量 |
-| P4-03 | P4 | TODO | 减少 `any` 与弱类型返回 | 提升类型安全 |
+| P4-03 | P4 | DONE | 减少 `any` 与弱类型返回 | 提升类型安全 |
 | P4-04 | P4 | TODO | 收口 README / 开发文档 / 安全说明 | 保证文档与实现一致 |
 | P4-05 | P4 | TODO | 增加关键操作审计日志 | 提升可追踪性与合规性 |
 
@@ -119,13 +119,13 @@
 - [x] P2-01 消费日志服务端分页 / 过滤
 - [x] P2-02 趋势与统计聚合优化
 - [x] P2-03 发码链路批量优化
-- [ ] P2-04 登录限流状态外置化
+- [x] P2-04 登录限流状态外置化
 
 ### 第四阶段：结构治理包
 
-- [ ] P3-01 拆 dashboard
+- [~] P3-01 拆 dashboard
 - [~] P3-02 拆 `license-service`
-- [ ] P3-03 统一 route wrapper / 输入校验 / 错误模型
+- [~] P3-03 统一 route wrapper / 输入校验 / 错误模型
 - [ ] P3-04 优化 SDK 错误模型
 - [ ] P3-05 测试补齐
 
@@ -133,7 +133,7 @@
 
 - [x] P4-01 CI 质量门禁
 - [x] P4-02 覆盖率门槛
-- [ ] P4-03 减少 `any`
+- [x] P4-03 减少 `any`
 - [ ] P4-04 文档一致性治理
 - [ ] P4-05 审计日志
 
@@ -1462,6 +1462,123 @@
 
 ---
 
+### 2026-03-25 / Iteration 30
+
+**目标**：并行推进 `P2-04 / P4-03 / P3-02`：将登录限流状态外置到共享数据库、清理剩余弱类型热点，并继续压缩 `license-service` 的状态查询编排。
+
+**已完成**：
+
+- [x] `P2-04` 登录限流状态外置化完成
+- [x] `P4-03` 当前代码库 `src/ + tests/` 的 `any` 清零
+- [x] `P3-02` 新增状态查询服务，`license-service` 进一步瘦身到 **182 行**
+
+**本轮落地内容**：
+
+1. 登录限流状态共享化
+   - `prisma/schema.prisma`
+     - 新增 `AdminLoginRateLimitState`
+   - `src/lib/admin-login-rate-limit-store.ts`
+     - 新增 Prisma 持久化 store
+   - `src/lib/admin-login-rate-limit.ts`
+     - 保留进程内 limiter 供快速单测复用
+     - 新增 `createSharedAdminLoginRateLimiter`
+     - 默认 `adminLoginRateLimiter` 改为基于数据库共享状态
+   - `src/lib/admin-login-route-handler.ts`
+     - 抽离登录路由 handler，便于注入 rate limiter 与单测覆盖
+   - `src/app/api/admin/login/route.ts`
+     - route 文件收敛为纯 Next 导出，避免 Route export 违规
+2. 类型安全收口
+   - `src/lib/config-service.ts`
+     - 为已知系统配置键补齐强类型返回
+     - 移除缓存、读取、写入链路中的 `any`
+   - `src/lib/system-config-defaults.ts`
+     - 新增 `KnownSystemConfigMap / KnownSystemConfigKey`
+   - `src/lib/admin-auth-shared.ts`
+   - `src/lib/admin-auth-service.ts`
+   - `src/lib/jwt.ts`
+     - JWT payload / verifyToken / signToken 全链路改为显式类型
+   - `tests/admin-login-route.test.ts`
+   - `tests/system-config-write.test.ts`
+     - 移除测试中的剩余 `any`
+3. 继续推进 `P3-02`
+   - 新增 `src/lib/license-status-query-service.ts`
+   - `src/lib/license-service.ts`
+     - `getLicenseStatus` 改为委托状态查询服务
+     - façade 继续聚焦“参数校验 + 项目解析 + 主链路编排”
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/admin-login-rate-limit-store.test.ts" "tests/license-status-query-service.test.ts"` 在新模块未创建时因 `Cannot find module ...` 失败 ✅
+2. 聚焦回归：
+   - `node --import tsx --test "tests/admin-login-rate-limit.test.ts" "tests/admin-login-rate-limit-store.test.ts" "tests/admin-login-route.test.ts" "tests/dev-bootstrap.test.ts" "tests/license-status-query-service.test.ts" "tests/license-service.test.ts" "tests/admin-auth-service.test.ts" "tests/config-service-fallback.test.ts"` ✅
+3. 生成 Prisma Client：
+   - `npm run db:generate` ✅
+4. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+
+**备注**：
+
+- `P2-04` 已从“单进程内存态限流”升级为“数据库共享限流状态”，更适合多实例 / 多进程部署
+- `P4-03` 本轮后 `rg` 扫描 `src/ tests/` 已不再命中 `any`
+- `license-service` 已从 **1192 行** → **980 行** → **848 行** → **609 行** → **458 行** → **276 行** → **268 行** → **254 行** → **221 行** → **217 行** → **194 行** → **182 行**
+
+**下一步**：
+
+1. 继续推进 `P3-02`：评估是否把 `verifyActivationCode / consumeLicense` 的 façade 入口模型再统一一层
+2. 推进 `P3-03`：统一 route wrapper / 输入校验 / 错误模型
+3. 推进 `P4-04`：收口 README / 开发文档 / 安全说明，确保文档与实现一致
+
+---
+
+### 2026-03-25 / Iteration 31
+
+**目标**：继续推进 `P3-03`，统一正式授权接口与兼容 `/api/verify` 的 route handler 编排和响应模型收口，减少重复路由样板。
+
+**已完成**：
+
+- [x] `/api/verify` 已复用统一 license handler 层
+- [x] `license-route-handlers` 新增共享执行 runner
+- [x] 新增兼容 verify handler 回归测试
+
+**本轮落地内容**：
+
+1. `src/lib/license-api.ts`
+   - 新增 `createLegacyLicenseResponse`
+   - 把响应字段装配收口到共享 payload builder
+   - 正式接口与 legacy 接口复用同一套结果映射逻辑
+2. `src/lib/license-route-handlers.ts`
+   - 新增内部 `executeLicenseRequest`
+   - `activate / consume / status / verify` 全部改为复用共享请求读取、错误收敛与响应分流
+   - 新增 `handleVerifyLicenseRequest`
+3. `src/app/api/verify/route.ts`
+   - route 文件收敛为纯委托调用，不再重复手写 request.json / service / response 编排
+4. `tests/license-api-routes.test.ts`
+   - 新增兼容路由回归：
+     - `/api/verify` 复用统一 handler
+     - 保持 legacy snake_case 返回字段
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/license-api-routes.test.ts"` 在 `handleVerifyLicenseRequest` 未实现时失败，报 `(0 , import_license_route_handlers.handleVerifyLicenseRequest) is not a function` ✅
+2. GREEN：
+   - `node --import tsx --test "tests/license-api-routes.test.ts"` ✅
+
+**备注**：
+
+- 本轮属于 `P3-03` 的第一步，不追求一次性引入大而全 wrapper，而是先把最核心的授权路由族收口
+- 收益点在于：正式接口与兼容接口以后可以共享 request 解析、错误处理和响应映射，不再双轨漂移
+
+**下一步**：
+
+1. 继续推进 `P3-03`：评估是否把 admin route 中重复的 `verifyAuth + try/catch + 500` 模板提取为统一 wrapper
+2. 推进 `P4-04`：收口 README / 开发文档 / 安全说明，确保文档与实现一致
+3. 继续推进 `P3-02`：看是否还能压缩 `license-service` 剩余 façade 样板
+
+---
+
 ### 2026-03-25 / Iteration 29
 
 **目标**：继续推进 `P3-02`，把 `activateLicense / consumeLicense` 中重复的“事务前置准备（旧绑定收敛 + 查码 + helper 装配）”抽成共享服务，进一步压缩 façade 样板代码。
@@ -1605,6 +1722,659 @@
 1. 继续推进 `P3-02`：进一步压缩 `license-service` 剩余 orchestration
 2. P2-04：登录限流状态外置化，支撑多实例部署
 3. P4-03：继续减少 `any` 与弱类型返回，提升类型安全
+
+---
+
+### 2026-03-25 / Iteration 32
+
+**目标**：继续推进 `P3-03`，把后台 admin 路由重复的 `verifyAuth + createAuthResponse + try/catch + 错误响应` 收口为统一 wrapper，并降低可预期 4xx 业务错误的噪音日志。
+
+**已完成**：
+
+- [x] 新增通用 `admin-route-handler`
+- [x] 首批消费 / 统计后台路由迁移到统一 wrapper
+- [x] 进一步覆盖项目、系统配置、改密、激活码管理等后台路由
+- [x] 可预期业务错误支持自定义映射且默认不打印错误日志
+
+**本轮落地内容**：
+
+1. `src/lib/admin-route-handler.ts`
+   - 新增 `createProtectedAdminRouteHandler`
+   - 统一收敛：
+     - admin 鉴权失败直接返回标准鉴权响应
+     - 成功后委托业务 handler
+     - 统一 `try/catch + log + JSON error response`
+   - 支持扩展能力：
+     - 路由上下文参数透传（如 `[id]`）
+     - 向业务 handler 透出已验证的 `authResult`
+     - `resolveErrorResponse` 自定义错误映射
+   - 对已映射的预期业务错误默认不再打印 `console.error`，避免把 400 类错误误报成异常噪音
+2. 后台路由收敛
+   - 已迁移：
+     - `src/app/api/admin/consumptions/route.ts`
+     - `src/app/api/admin/consumptions/export/route.ts`
+     - `src/app/api/admin/consumptions/trend/route.ts`
+     - `src/app/api/admin/consumptions/trend/export/route.ts`
+     - `src/app/api/admin/codes/stats/route.ts`
+     - `src/app/api/admin/codes/stats/export/route.ts`
+     - `src/app/api/admin/system-config/route.ts`
+     - `src/app/api/admin/change-password/route.ts`
+     - `src/app/api/admin/projects/route.ts`
+     - `src/app/api/admin/projects/[id]/route.ts`
+     - `src/app/api/admin/codes/list/route.ts`
+     - `src/app/api/admin/codes/generate/route.ts`
+     - `src/app/api/admin/codes/delete/route.ts`
+     - `src/app/api/admin/codes/cleanup/route.ts`
+3. 测试补强
+   - `tests/admin-route-handler.test.ts`
+     - 鉴权失败直接返回
+     - 鉴权成功委托业务 handler
+     - `exposeErrorMessage` 行为
+     - 路由上下文透传
+     - 自定义错误映射
+     - 已映射错误默认不记 error 日志
+   - `tests/admin-project-routes.test.ts`
+     - 项目列表 route
+     - 项目创建 route
+     - 项目更新 route
+     - 项目删除 route
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/admin-route-handler.test.ts"` 在新增“自定义错误映射默认不打印错误日志”断言后失败 ✅
+2. GREEN：
+   - `node --import tsx --test "tests/admin-route-handler.test.ts"` ✅
+   - `node --import tsx --test "tests/system-config-route.test.ts"` ✅
+   - `node --import tsx --test "tests/admin-project-routes.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+
+**备注**：
+
+- `P3-03` 已从“概念级 TODO”进入可复用基础设施阶段，因此状态更新为 `IN_PROGRESS`
+- 当前 `admin-route-handler` 已覆盖大部分后台受保护路由，后续继续推进时可围绕：
+  - 输入 schema 校验进一步统一
+  - 错误码 / 错误 payload 规范化
+  - route 级集成测试补齐
+
+**下一步**：
+
+1. 继续推进 `P3-03`：把剩余“输入校验 / 错误模型”从零散判断进一步收口
+2. 继续推进 `P3-02`：评估是否继续压缩 `license-service` 剩余 façade 编排
+3. 推进 `P3-05 / P4-04`：补 route 级回归测试并收口 README / 开发文档 / 安全说明
+
+---
+
+### 2026-03-25 / Iteration 33
+
+**目标**：启动 `P3-01`，优先抽离 dashboard 页面中重复的 workspace tab 导航 UI，降低页面文件体量并为后续继续拆分项目/激活码/消费工作区做准备。
+
+**已完成**：
+
+- [x] 新增通用 `WorkspaceTabNav` 组件
+- [x] dashboard 的项目 / 激活码 / 消费三组重复 tab 导航已改为复用组件
+- [x] 新增组件级回归测试
+
+**本轮落地内容**：
+
+1. `src/components/workspace-tab-nav.tsx`
+   - 新增通用 workspace tab 导航组件
+   - 统一收敛：
+     - 卡片式 tab 按钮样式
+     - 激活态 / 非激活态视觉状态
+     - `shortLabel / label / description` 布局
+   - 保留 `badgeTextClassName` 可配置项，兼容项目工作区与其他工作区的细微字重差异
+2. `src/app/admin/dashboard/page.tsx`
+   - 把以下 3 处重复 tab 渲染样板替换为 `WorkspaceTabNav`
+     - 项目工作区
+     - 激活码工作区
+     - 消费日志工作区
+   - 页面文件从 **4193 行** 降到 **4096 行**
+3. `tests/workspace-tab-nav.test.ts`
+   - 新增组件测试，锁定：
+     - 文案渲染
+     - 激活态样式
+     - 非激活态样式
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/workspace-tab-nav.test.ts"` 首次失败，原因是组件文件在当前编译配置下缺少显式 `React` 引入 ✅
+2. GREEN：
+   - `node --import tsx --test "tests/workspace-tab-nav.test.ts"` ✅
+   - `node --import tsx --test "tests/dashboard-workspace-tabs.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+
+**备注**：
+
+- `P3-01` 已正式进入 `IN_PROGRESS`
+- 本轮只抽取“重复 UI 导航样板”，遵循 KISS / YAGNI，不提前引入复杂的 dashboard 上下文状态管理
+- 后续可继续沿同一路线拆：
+  - workspace summary stat card
+  - 项目管理工作区块
+  - 激活码筛选 / 结果工作区块
+  - 消费日志筛选 / 日志 / 趋势工作区块
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆分 dashboard 内重复的 summary/stat card 与工作区块
+2. 继续推进 `P3-03`：把输入校验 / 错误模型再统一一层
+3. 继续推进 `P3-05 / P4-04`：补前端组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 34
+
+**目标**：继续推进 `P3-01`，把 dashboard 工作区里重复的 summary metric card 抽成统一组件，进一步减少页面样板并统一统计卡片的视觉表达。
+
+**已完成**：
+
+- [x] 新增通用 `WorkspaceMetricCard`
+- [x] dashboard 的项目 / 激活码 / 消费工作区 summary card 已统一复用
+- [x] 新增组件级回归测试
+
+**本轮落地内容**：
+
+1. `src/components/workspace-metric-card.tsx`
+   - 新增统一统计卡片组件
+   - 收口字段：
+     - `label`
+     - `value`
+     - `description`
+     - 可选 `className`
+2. `src/app/admin/dashboard/page.tsx`
+   - 替换项目工作区 summary card
+   - 替换激活码工作区 summary card
+   - 替换消费日志工作区 summary card
+   - 页面文件进一步从 **4096 行** 收缩到 **4089 行**
+3. `tests/workspace-metric-card.test.ts`
+   - 锁定：
+     - 标签 / 数值 / 描述渲染
+     - 自定义 `className` 覆盖行为
+
+**验证结果**：
+
+1. GREEN：
+   - `node --import tsx --test "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+2. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+
+**备注**：
+
+- 本轮继续沿着“公共工作区组件库”方向推进，但仍保持 KISS：只抽取已重复出现且边界稳定的视觉单元
+- 当前 dashboard 已具备两个可复用底座：
+  - `WorkspaceTabNav`
+  - `WorkspaceMetricCard`
+
+**下一步**：
+
+1. 继续推进 `P3-01`：抽离 workspace hero / summary block 或具体内容区块
+2. 继续推进 `P3-03`：统一输入校验 / 错误模型
+3. 继续推进 `P3-05 / P4-04`：补前端组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 35
+
+**目标**：继续推进 `P3-01`，把 dashboard 中 3 个 workspace 的头部 hero 区块收口成统一组件，进一步降低重复布局、统一视觉层次，并为后续拆 workspace 内容块做准备。
+
+**已完成**：
+
+- [x] 新增通用 `WorkspaceHeroPanel`
+- [x] 项目 / 激活码 / 消费 3 个 workspace 头部区块已统一复用
+- [x] 新增组件级回归测试
+
+**本轮落地内容**：
+
+1. `src/components/workspace-hero-panel.tsx`
+   - 新增通用 workspace hero 组件
+   - 收口字段：
+     - `badge`
+     - `title`
+     - `description`
+     - `metrics`
+     - `tabs`
+     - `gradientClassName`
+2. `src/app/admin/dashboard/page.tsx`
+   - 项目工作区 hero 改为 `WorkspaceHeroPanel`
+   - 激活码工作区 hero 改为 `WorkspaceHeroPanel`
+   - 消费日志工作区 hero 改为 `WorkspaceHeroPanel`
+   - 页面文件进一步从 **4089 行** 收缩到 **4063 行**
+3. `tests/workspace-hero-panel.test.ts`
+   - 锁定：
+     - 徽标 / 标题 / 描述渲染
+     - 渐变背景透传
+     - metrics / tabs slot 注入
+     - 统一头部视觉结构
+
+**验证结果**：
+
+1. GREEN：
+   - `node --import tsx --test "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+2. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+
+**备注**：
+
+- 当前 dashboard 已形成一组可复用工作区 UI 基础设施：
+  - `WorkspaceHeroPanel`
+  - `WorkspaceMetricCard`
+  - `WorkspaceTabNav`
+- 后续继续拆分时，可以把项目管理 / 激活码管理 / 消费日志三个 workspace 的内容区域进一步拆成独立组件，而不必再复制头部结构
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆 workspace 内容区块（项目管理、激活码过滤/结果、消费日志过滤/趋势）
+2. 继续推进 `P3-03`：统一输入校验 / 错误模型
+3. 继续推进 `P3-05 / P4-04`：补组件回归并继续收口文档
+
+---
+
+### 2026-03-25 / Iteration 36
+
+**目标**：继续推进 `P3-01`，把 dashboard 内容区里重复的区块标题/说明/操作区头部收口成统一组件，进一步减少样板代码并统一内容区视觉节奏。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardSectionHeader`
+- [x] 项目 / 激活码 / 消费工作区的 6 处内容区头部已统一复用
+- [x] 新增组件级回归测试并通过全量门禁
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-section-header.tsx`
+   - 新增 dashboard 内容区通用头部组件
+   - 收口字段：
+     - `title`
+     - `description`
+     - `trailing`
+     - `className`
+2. `src/app/admin/dashboard/page.tsx`
+   - 项目工作区：
+     - “新建项目”头部改为 `DashboardSectionHeader`
+     - “项目列表”头部改为 `DashboardSectionHeader`
+   - 激活码工作区：
+     - “筛选与导出”头部改为 `DashboardSectionHeader`
+     - “激活码列表”头部改为 `DashboardSectionHeader`
+   - 消费日志工作区：
+     - “筛选与刷新”头部改为 `DashboardSectionHeader`
+     - “消费日志”头部改为 `DashboardSectionHeader`
+   - 页面文件进一步从 **4063 行** 收缩到 **4052 行**
+3. `tests/dashboard-section-header.test.ts`
+   - 锁定：
+     - 标题 / 描述渲染
+     - 默认布局类名
+     - trailing slot 注入
+     - 自定义 `className` 覆盖
+
+**验证结果**：
+
+1. 聚焦回归：
+   - `node --import tsx --test "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+2. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+3. 当前质量结果：
+   - 全量测试：**215 / 215** ✅
+   - 行覆盖率：**91.60%** ✅
+   - 分支覆盖率：**87.17%** ✅
+   - 函数覆盖率：**93.39%** ✅
+
+**备注**：
+
+- dashboard 现在已经形成一套分层明确的可复用 UI 基础设施：
+  - `WorkspaceHeroPanel`
+  - `WorkspaceTabNav`
+  - `WorkspaceMetricCard`
+  - `DashboardSectionHeader`
+- 后续继续拆分 workspace 内容块时，可以优先围绕“筛选区 / 列表区 / 趋势区 / 设置区”做容器组件抽取，而不必再复制区块头部结构
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆 workspace 内容主体（项目筛选表单、激活码结果区、消费日志列表区）
+2. 继续推进 `P3-02`：继续收口 `license-service` 余下编排职责
+3. 继续推进 `P3-05 / P4-04`：补 dashboard 内容组件回归与文档一致性
+
+---
+
+### 2026-03-25 / Iteration 37
+
+**目标**：继续推进 `P3-01`，把 dashboard 内高频重复的筛选 token / 空状态胶囊列表收口成统一组件，进一步压缩页面样板并统一筛选摘要视觉语言。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardTokenList`
+- [x] 激活码 / 消费工作区的 4 处 token 列表已统一复用
+- [x] 新增组件级回归测试并通过全量门禁
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-token-list.tsx`
+   - 新增 dashboard token / 空状态胶囊列表组件
+   - 收口字段：
+     - `tokens`
+     - `emptyText`
+     - `className`
+     - `tokenClassName`
+     - `emptyClassName`
+2. `src/app/admin/dashboard/page.tsx`
+   - 激活码工作区：
+     - “当前生效条件” token 列表改为 `DashboardTokenList`
+     - “激活码列表”顶部筛选摘要改为 `DashboardTokenList`
+   - 消费日志工作区：
+     - “快捷时间范围”下方筛选 token 列表改为 `DashboardTokenList`
+     - “消费日志”顶部筛选摘要改为 `DashboardTokenList`
+   - 页面文件进一步从 **4052 行** 收缩到 **4008 行**
+3. `tests/dashboard-token-list.test.ts`
+   - 锁定：
+     - token 渲染
+     - 空状态文案
+     - 默认布局样式
+     - 自定义样式覆盖
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-token-list.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-token-list.test.ts"` ✅
+   - `node --import tsx --test "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+4. 当前质量结果：
+   - 全量测试：**218 / 218** ✅
+   - 行覆盖率：**91.63%** ✅
+   - 分支覆盖率：**87.13%** ✅
+   - 函数覆盖率：**93.45%** ✅
+
+**备注**：
+
+- dashboard 组件化基础设施继续扩展为：
+  - `WorkspaceHeroPanel`
+  - `WorkspaceTabNav`
+  - `WorkspaceMetricCard`
+  - `DashboardSectionHeader`
+  - `DashboardTokenList`
+- 当前已把“头部 + token 摘要”两类重复 UI 收口，下一步可以继续围绕“筛选表单卡片组 / 结果摘要条 / 表格容器”做进一步拆分
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆 workspace 结果摘要条或筛选表单卡片组
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 38
+
+**目标**：继续推进 `P3-01`，把 dashboard 结果页顶部重复的摘要条收口成统一组件，减少结果区样板结构并统一信息条容器语义。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardSummaryStrip`
+- [x] 激活码结果页 / 消费日志结果页的顶部摘要条已统一复用
+- [x] 新增组件级回归测试并通过全量门禁
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-summary-strip.tsx`
+   - 新增 dashboard 结果页摘要条组件
+   - 收口字段：
+     - `leading`
+     - `trailing`
+     - `className`
+     - `contentClassName`
+2. `src/app/admin/dashboard/page.tsx`
+   - 激活码结果页顶部摘要条改为 `DashboardSummaryStrip`
+   - 消费日志结果页顶部摘要条改为 `DashboardSummaryStrip`
+   - 统一结果页“左侧筛选摘要 + 右侧记录统计”的布局承载方式
+3. `tests/dashboard-summary-strip.test.ts`
+   - 锁定：
+     - 默认容器样式
+     - 左右 slot 渲染
+     - 自定义外层 / 内层样式覆盖
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-summary-strip.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-summary-strip.test.ts"` ✅
+   - `node --import tsx --test "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+4. 当前质量结果：
+   - 全量测试：**220 / 220** ✅
+   - 行覆盖率：**91.66%** ✅
+   - 分支覆盖率：**87.18%** ✅
+   - 函数覆盖率：**93.51%** ✅
+
+**备注**：
+
+- dashboard 可复用基础设施已继续扩展为：
+  - `WorkspaceHeroPanel`
+  - `WorkspaceTabNav`
+  - `WorkspaceMetricCard`
+  - `DashboardSectionHeader`
+  - `DashboardTokenList`
+  - `DashboardSummaryStrip`
+- 这一轮的收益重点在**结构边界清晰化**而不只是机械压缩行数；虽然组件接线后页面文件仍维持在约 **4013 行**，但“结果摘要条”已具备明确的复用入口，后续继续拆“表格容器 / 分页条 / 筛选卡组”会更顺滑
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆表格容器或分页条
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 39
+
+**目标**：继续推进 `P3-01`，把 dashboard 结果区重复的分页条收口成统一组件，减少三处分页样板并统一分页交互骨架。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardPaginationBar`
+- [x] 项目列表 / 激活码结果 / 消费日志结果的 3 处分页条已统一复用
+- [x] 新增组件级回归测试并通过全量门禁
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-pagination-bar.tsx`
+   - 新增 dashboard 分页条组件
+   - 收口字段：
+     - `currentPage`
+     - `totalPages`
+     - `summary`
+     - `onPageChange`
+     - `buttonClassName`
+     - `activeButtonClassName`
+     - `className`
+   - 当 `totalPages <= 1` 时直接不渲染
+2. `src/app/admin/dashboard/page.tsx`
+   - 项目列表分页改为 `DashboardPaginationBar`
+   - 激活码结果分页改为 `DashboardPaginationBar`
+   - 消费日志结果分页改为 `DashboardPaginationBar`
+   - 页面文件进一步从 **4013 行** 收缩到 **3930 行**
+3. `tests/dashboard-pagination-bar.test.ts`
+   - 锁定：
+     - 摘要文案
+     - 上一页 / 下一页 / 页码按钮渲染
+     - 激活页码样式
+     - 边界 disabled 状态
+     - `totalPages <= 1` 不渲染
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-pagination-bar.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-pagination-bar.test.ts"` ✅
+   - `node --import tsx --test "tests/dashboard-pagination-bar.test.ts" "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+4. 当前质量结果：
+   - 全量测试：**223 / 223** ✅
+   - 行覆盖率：**91.71%** ✅
+   - 分支覆盖率：**87.17%** ✅
+   - 函数覆盖率：**93.59%** ✅
+
+**备注**：
+
+- dashboard 当前已形成的 UI 基础设施：
+  - `WorkspaceHeroPanel`
+  - `WorkspaceTabNav`
+  - `WorkspaceMetricCard`
+  - `DashboardSectionHeader`
+  - `DashboardTokenList`
+  - `DashboardSummaryStrip`
+  - `DashboardPaginationBar`
+- 当前可继续优先拆分的区域，已经从“大块页面”进一步收敛到“表格容器 / 空状态 / 筛选卡组”三个清晰切面
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆表格容器或空状态区块
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 40
+
+**目标**：继续推进 `P3-01`，把 dashboard 结果区重复的空状态提示收口成统一组件，减少提示样板并统一结果页的空列表反馈。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardEmptyState`
+- [x] 激活码结果页 / 消费日志结果页的空状态提示已统一复用
+- [x] 新增组件级回归测试并通过全量门禁
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-empty-state.tsx`
+   - 新增 dashboard 空状态组件
+   - 收口字段：
+     - `message`
+     - `className`
+2. `src/app/admin/dashboard/page.tsx`
+   - 激活码结果空状态改为 `DashboardEmptyState`
+   - 消费日志结果空状态改为 `DashboardEmptyState`
+   - 清理已失效的页面级 `emptyStateClassName`
+   - 页面文件在继续整理后维持在 **3931 行**
+3. `tests/dashboard-empty-state.test.ts`
+   - 锁定：
+     - 默认空状态样式
+     - 文案渲染
+     - 自定义 `className` 追加
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-empty-state.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-empty-state.test.ts"` ✅
+   - `node --import tsx --test "tests/dashboard-empty-state.test.ts" "tests/dashboard-pagination-bar.test.ts" "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+4. 当前质量结果：
+   - 全量测试：**225 / 225** ✅
+   - 行覆盖率：**91.73%** ✅
+   - 分支覆盖率：**87.26%** ✅
+   - 函数覆盖率：**93.64%** ✅
+
+**备注**：
+
+- dashboard 当前已形成的 UI 基础设施：
+  - `WorkspaceHeroPanel`
+  - `WorkspaceTabNav`
+  - `WorkspaceMetricCard`
+  - `DashboardSectionHeader`
+  - `DashboardTokenList`
+  - `DashboardSummaryStrip`
+  - `DashboardPaginationBar`
+  - `DashboardEmptyState`
+- 结果区现在已经具备“头部 / 摘要 / 分页 / 空状态”四类明确的复用边界，后续继续拆表格容器时会明显更顺滑
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆表格容器或筛选卡组
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 40
+
+**目标**：继续推进 `P3-01`，把 dashboard 结果区重复的空状态提示收口成统一组件，减少提示样板并统一结果页的空列表反馈。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardEmptyState`
+- [x] 激活码结果页 / 消费日志结果页的空状态提示已统一复用
+- [x] 新增组件级回归测试并通过全量门禁
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-empty-state.tsx`
+   - 新增 dashboard 空状态组件
+   - 收口字段：
+     - `message`
+     - `className`
+2. `src/app/admin/dashboard/page.tsx`
+   - 激活码结果空状态改为 `DashboardEmptyState`
+   - 消费日志结果空状态改为 `DashboardEmptyState`
+   - 清理已失效的页面级 `emptyStateClassName`
+   - 页面文件在继续整理后维持在 **3931 行**
+3. `tests/dashboard-empty-state.test.ts`
+   - 锁定：
+     - 默认空状态样式
+     - 文案渲染
+     - 自定义 `className` 追加
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-empty-state.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-empty-state.test.ts"` ✅
+   - `node --import tsx --test "tests/dashboard-empty-state.test.ts" "tests/dashboard-pagination-bar.test.ts" "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+4. 当前质量结果：
+   - 全量测试：**225 / 225** ✅
+   - 行覆盖率：**91.73%** ✅
+   - 分支覆盖率：**87.26%** ✅
+   - 函数覆盖率：**93.64%** ✅
+
+**备注**：
+
+- dashboard 当前已形成的 UI 基础设施：
+  - `WorkspaceHeroPanel`
+  - `WorkspaceTabNav`
+  - `WorkspaceMetricCard`
+  - `DashboardSectionHeader`
+  - `DashboardTokenList`
+  - `DashboardSummaryStrip`
+  - `DashboardPaginationBar`
+  - `DashboardEmptyState`
+- 结果区现在已经具备“头部 / 摘要 / 分页 / 空状态”四类明确的复用边界，后续继续拆表格容器时会明显更顺滑
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆表格容器或筛选卡组
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
 
 ---
 

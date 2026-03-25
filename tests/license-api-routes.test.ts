@@ -11,6 +11,7 @@ import {
   handleActivateLicenseRequest,
   handleConsumeLicenseRequest,
   handleLicenseStatusRequest,
+  handleVerifyLicenseRequest,
 } from '../src/lib/license-route-handlers'
 import { generateActivationCodes } from '../src/lib/license-generation-service'
 import { createProject } from '../src/lib/license-project-service'
@@ -180,6 +181,45 @@ test('正式 consume 接口对相同 requestId 幂等且不会重复扣次', asy
     assert.equal(secondBody.success, true)
     assert.equal(secondBody.remainingCount, 1)
     assert.equal(secondBody.idempotent, true)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+
+test('兼容 verify 接口复用统一 handler，并返回 legacy snake_case 字段', async () => {
+  const { prisma } = await createTestPrisma()
+
+  try {
+    await createProject(prisma, {
+      name: '兼容插件',
+      projectKey: 'legacy-plugin',
+    })
+
+    const [countCode] = await generateActivationCodes(prisma, {
+      projectKey: 'legacy-plugin',
+      amount: 1,
+      licenseMode: 'COUNT',
+      totalCount: 2,
+      cardType: '2次卡',
+    })
+
+    const response = await handleVerifyLicenseRequest(
+      createJsonRequest('http://127.0.0.1:3000/api/verify', {
+        project_key: 'legacy-plugin',
+        code: countCode.code,
+        machine_id: 'machine-legacy-001',
+      }),
+      prisma,
+    )
+    const body = await response.json()
+
+    assert.equal(response.status, 200)
+    assert.equal(body.success, true)
+    assert.equal(body.remaining_count, 1)
+    assert.equal(body.license_mode, 'COUNT')
+    assert.ok(!('remainingCount' in body))
+    assert.ok(!('licenseMode' in body))
   } finally {
     await prisma.$disconnect()
   }

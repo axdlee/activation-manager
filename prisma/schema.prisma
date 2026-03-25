@@ -73,6 +73,17 @@ model Admin {
   @@map("admins")
 }
 
+model AdminLoginRateLimitState {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  failuresJson String  @default("[]")
+  lockedUntil DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("admin_login_rate_limits")
+}
+
 model SystemConfig {
   id          Int      @id @default(autoincrement())
   key         String   @unique

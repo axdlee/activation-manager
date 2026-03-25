@@ -16,7 +16,14 @@ export const DEFAULT_ADMIN_PASSWORD = '123456'
 export const DEFAULT_PROJECT_KEY = 'default'
 export const DEFAULT_PROJECT_NAME = '默认项目'
 
-const REQUIRED_TABLES = ['activation_codes', 'admins', 'license_consumptions', 'projects', 'system_configs'] as const
+const REQUIRED_TABLES = [
+  'activation_codes',
+  'admin_login_rate_limits',
+  'admins',
+  'license_consumptions',
+  'projects',
+  'system_configs',
+] as const
 const DEFAULT_DB_PATH = path.join(process.cwd(), 'prisma', 'dev.db')
 const PRISMA_SCHEMA_PATH = path.join(process.cwd(), 'prisma', 'schema.prisma')
 const PRISMA_SCHEMA_DATASOURCE_PATTERN = /url\s+=\s+"file:\.\/dev\.db"/

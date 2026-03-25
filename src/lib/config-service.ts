@@ -1,10 +1,16 @@
 import { prisma } from './db'
-import { defaultConfigValues } from './system-config-defaults'
+import {
+  defaultConfigValues,
+  type KnownSystemConfigKey,
+  type KnownSystemConfigMap,
+} from './system-config-defaults'
 import { type SystemConfigItem, type SystemConfigValue } from './system-config-ui'
 import { isSensitiveSystemConfigKey } from './system-config-rules'
 
+type CachedSystemConfigValue = SystemConfigValue | null
+
 // 配置缓存
-let configCache: Record<string, any> = {}
+let configCache: Record<string, CachedSystemConfigValue | undefined> = {}
 let cacheExpiry = 0
 const CACHE_DURATION = 5 * 60 * 1000 // 5分钟缓存
 
@@ -31,10 +37,48 @@ export class MissingRequiredSystemConfigError extends Error {
   }
 }
 
-export async function getConfig(key: string): Promise<any> {
+function isKnownSystemConfigKey(key: string): key is KnownSystemConfigKey {
+  return key in defaultConfigValues
+}
+
+function normalizeKnownSystemConfigValue<K extends KnownSystemConfigKey>(
+  key: K,
+  value: SystemConfigValue,
+): KnownSystemConfigMap[K] {
+  switch (key) {
+    case 'allowedIPs':
+      return (
+        Array.isArray(value)
+          ? value.map((item) => String(item))
+          : String(value)
+            .split(/[\n,]/)
+            .map((item) => item.trim())
+            .filter(Boolean)
+      ) as KnownSystemConfigMap[K]
+    case 'bcryptRounds':
+      return Number(value) as KnownSystemConfigMap[K]
+    default:
+      return String(value) as KnownSystemConfigMap[K]
+  }
+}
+
+function parseConfigValue(rawValue: string): SystemConfigValue {
+  try {
+    return JSON.parse(rawValue)
+  } catch {
+    return rawValue
+  }
+}
+
+export async function getConfig<K extends KnownSystemConfigKey>(key: K): Promise<KnownSystemConfigMap[K] | null>
+export async function getConfig(key: string): Promise<SystemConfigValue | null>
+export async function getConfig(key: string) {
   // 检查缓存
   if (Date.now() < cacheExpiry && configCache[key] !== undefined) {
-    return configCache[key]
+    const cachedValue = configCache[key]
+    return cachedValue !== null && isKnownSystemConfigKey(key)
+      ? normalizeKnownSystemConfigValue(key, cachedValue)
+      : cachedValue
   }
 
   // 从数据库获取配置
@@ -46,13 +90,7 @@ export async function getConfig(key: string): Promise<any> {
     return null
   }
 
-  // 尝试解析JSON值
-  let value: any
-  try {
-    value = JSON.parse(config.value)
-  } catch {
-    value = config.value
-  }
+  const value = parseConfigValue(config.value)
 
   // 更新缓存
   configCache[key] = value
@@ -60,10 +98,16 @@ export async function getConfig(key: string): Promise<any> {
     cacheExpiry = Date.now() + CACHE_DURATION
   }
 
-  return value
+  return isKnownSystemConfigKey(key)
+    ? normalizeKnownSystemConfigValue(key, value)
+    : value
 }
 
-export async function setConfig(key: string, value: any, description?: string): Promise<void> {
+export async function setConfig(
+  key: string,
+  value: SystemConfigValue,
+  description?: string,
+): Promise<void> {
   const stringValue = typeof value === 'string' ? value : JSON.stringify(value)
   
   await prisma.systemConfig.upsert({
@@ -83,27 +127,15 @@ export async function setConfig(key: string, value: any, description?: string): 
   clearConfigCache([key])
 }
 
-export async function getAllConfigs(): Promise<Record<string, any>> {
+export async function getAllConfigs(): Promise<Record<string, SystemConfigValue>> {
   const configs = await prisma.systemConfig.findMany()
-  const result: Record<string, any> = {}
+  const result: Record<string, SystemConfigValue> = {}
 
   for (const config of configs) {
-    try {
-      result[config.key] = JSON.parse(config.value)
-    } catch {
-      result[config.key] = config.value
-    }
+    result[config.key] = parseConfigValue(config.value)
   }
 
   return result
-}
-
-function parseConfigValue(rawValue: string): SystemConfigValue {
-  try {
-    return JSON.parse(rawValue)
-  } catch {
-    return rawValue
-  }
 }
 
 function hasConfigValue(value: SystemConfigValue) {
@@ -131,8 +163,18 @@ function shouldFailFastForConfigValue(key: string, value: unknown, nodeEnv: stri
 }
 
 export function resolveConfigValueWithFallback(
+  key: KnownSystemConfigKey,
+  value: KnownSystemConfigMap[KnownSystemConfigKey] | null,
+  options?: ResolveConfigValueWithFallbackOptions,
+): KnownSystemConfigMap[KnownSystemConfigKey]
+export function resolveConfigValueWithFallback(
   key: string,
-  value: unknown,
+  value: SystemConfigValue | null,
+  options?: ResolveConfigValueWithFallbackOptions,
+): SystemConfigValue | null
+export function resolveConfigValueWithFallback(
+  key: string,
+  value: SystemConfigValue | null,
   options: ResolveConfigValueWithFallbackOptions = {},
 ) {
   const nodeEnv = options.nodeEnv || process.env.NODE_ENV || 'development'
@@ -145,7 +187,7 @@ export function resolveConfigValueWithFallback(
     return value
   }
 
-  return defaultConfigValues[key]
+  return isKnownSystemConfigKey(key) ? defaultConfigValues[key] : value
 }
 
 export function sanitizeSystemConfigsForAdmin(configs: SystemConfigItem[]): SystemConfigItem[] {
@@ -176,7 +218,9 @@ export async function getAllConfigsWithMeta(): Promise<SystemConfigItem[]> {
   }))
 }
 
-export async function getConfigWithDefault(key: string): Promise<any> {
+export async function getConfigWithDefault<K extends KnownSystemConfigKey>(key: K): Promise<KnownSystemConfigMap[K]>
+export async function getConfigWithDefault(key: string): Promise<SystemConfigValue | null>
+export async function getConfigWithDefault(key: string) {
   const value = await getConfig(key)
   return resolveConfigValueWithFallback(key, value)
 }

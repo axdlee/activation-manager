@@ -66,6 +66,17 @@ import {
   PROJECT_KEY_RULE_HINT,
 } from '@/lib/project-key'
 import { ApiDocsWorkspace } from '@/components/api-docs-workspace'
+import { DashboardEmptyState } from '@/components/dashboard-empty-state'
+import { DashboardFilterFieldCard } from '@/components/dashboard-filter-field-card'
+import { DashboardLoadingState } from '@/components/dashboard-loading-state'
+import { DashboardPaginationBar } from '@/components/dashboard-pagination-bar'
+import { DashboardSectionHeader } from '@/components/dashboard-section-header'
+import { DashboardSummaryStrip } from '@/components/dashboard-summary-strip'
+import { DashboardTableContainer } from '@/components/dashboard-table-container'
+import { DashboardTokenList } from '@/components/dashboard-token-list'
+import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
+import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
+import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
 
 interface Project {
   id: number
@@ -1406,14 +1417,8 @@ export default function DashboardPage() {
     'w-full rounded-2xl border border-slate-200 bg-white/95 px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-500'
   const workspaceSummaryCardClassName =
     'rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 shadow-sm'
-  const filterFieldCardClassName =
-    'rounded-[24px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]'
-  const emptyStateClassName =
-    'rounded-[24px] border border-dashed border-slate-200 bg-slate-50/75 px-6 py-10 text-center text-sm text-slate-500'
   const codeBlockClassName =
     'overflow-x-auto rounded-[22px] border border-slate-200/80 bg-slate-950 px-4 py-4 font-mono text-[12px] leading-6 text-slate-100 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.55)]'
-  const tableContainerClassName =
-    'overflow-x-auto rounded-[24px] border border-slate-200/80 bg-white/95 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]'
   const paginationButtonClassName =
     'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
   const paginationActiveButtonClassName =
@@ -2167,95 +2172,51 @@ export default function DashboardPage() {
 
         {activeTab === 'projects' && (
           <div className="space-y-6">
-            <div className={`${panelClassName} relative overflow-hidden p-6 sm:p-7`}>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]" />
-              <div className="relative">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="max-w-2xl">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/80 bg-white/80 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-sky-700 shadow-sm">
-                      <span className="h-2 w-2 rounded-full bg-sky-500" />
-                      项目工作区
-                    </div>
-                    <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">
-                      项目管理中心
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-slate-500 sm:text-base">
-                      把新建项目和存量项目维护拆开处理，减少长页面滚动，也让搜索与编辑操作更聚焦。
-                    </p>
-                  </div>
-
+            <div className={panelClassName}>
+              <WorkspaceHeroPanel
+                badge="项目工作区"
+                title="项目管理中心"
+                description="把新建项目和存量项目维护拆开处理，减少长页面滚动，也让搜索与编辑操作更聚焦。"
+                gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]"
+                metrics={
                   <div className="grid grid-cols-2 gap-3">
-                    <div className={workspaceSummaryCardClassName}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">启用中</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {enabledProjectsCount}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">当前可正常发码的项目</div>
-                    </div>
-                    <div className={workspaceSummaryCardClassName}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">已停用</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {disabledProjectsCount}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">暂不允许继续发码的项目</div>
-                    </div>
+                    <WorkspaceMetricCard
+                      label="启用中"
+                      value={enabledProjectsCount}
+                      description="当前可正常发码的项目"
+                      className={workspaceSummaryCardClassName}
+                    />
+                    <WorkspaceMetricCard
+                      label="已停用"
+                      value={disabledProjectsCount}
+                      description="暂不允许继续发码的项目"
+                      className={workspaceSummaryCardClassName}
+                    />
                   </div>
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {projectWorkspaceTabs.map((tab) => {
-                    const isActive = projectWorkspaceTab === tab.key
-
-                    return (
-                      <button
-                        key={tab.key}
-                        type="button"
-                        onClick={() => setProjectWorkspaceTab(tab.key)}
-                        className={`rounded-[24px] border p-4 text-left transition ${
-                          isActive
-                            ? 'border-sky-200 bg-sky-50/85 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.35)]'
-                            : 'border-white/70 bg-white/75 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white/90'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${
-                              isActive
-                                ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
-                                : 'bg-slate-900 text-white/90'
-                            }`}
-                          >
-                            {tab.shortLabel}
-                          </div>
-                          <div className="min-w-0">
-                            <div className={`text-sm font-semibold ${isActive ? 'text-sky-900' : 'text-slate-900'}`}>
-                              {tab.label}
-                            </div>
-                            <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
-                              {tab.description}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+                }
+                tabs={
+                  <WorkspaceTabNav
+                    tabs={projectWorkspaceTabs}
+                    activeTab={projectWorkspaceTab}
+                    onChange={setProjectWorkspaceTab}
+                    badgeTextClassName="text-sm"
+                  />
+                }
+              />
             </div>
 
             {projectWorkspaceTab === 'create' && (
               <div className={`${panelClassName} p-6`}>
-                <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold text-slate-900">新建项目</h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      为不同产品或插件创建独立 projectKey，后续发码、统计和消费都能按项目隔离。
-                    </p>
-                  </div>
-                  <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
-                    创建后会自动出现在发码与筛选器中
-                  </div>
-                </div>
+                <DashboardSectionHeader
+                  title="新建项目"
+                  description="为不同产品或插件创建独立 projectKey，后续发码、统计和消费都能按项目隔离。"
+                  trailing={
+                    <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
+                      创建后会自动出现在发码与筛选器中
+                    </div>
+                  }
+                  className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
+                />
 
                 <form onSubmit={handleCreateProject} className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                   <div className="rounded-[24px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]">
@@ -2330,17 +2291,16 @@ export default function DashboardPage() {
             {projectWorkspaceTab === 'manage' && (
               <div className={`${panelClassName} p-6`}>
                 <div className="mb-5 flex flex-col gap-4">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                      <h3 className="text-xl font-semibold text-slate-900">项目列表</h3>
-                      <p className="mt-1 text-sm leading-6 text-slate-500">
-                        当前匹配 {projectManagementPage.totalItems} / {projects.length} 个项目，可直接修改名称、描述和启停状态。
-                      </p>
-                    </div>
-                    <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
-                      默认项目名称固定，且不可停用
-                    </div>
-                  </div>
+                  <DashboardSectionHeader
+                    title="项目列表"
+                    description={`当前匹配 ${projectManagementPage.totalItems} / ${projects.length} 个项目，可直接修改名称、描述和启停状态。`}
+                    trailing={
+                      <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
+                        默认项目名称固定，且不可停用
+                      </div>
+                    }
+                    className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
+                  />
 
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <div>
@@ -2390,7 +2350,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className={tableContainerClassName}>
+                <DashboardTableContainer>
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-slate-50/90">
                       <tr>
@@ -2486,44 +2446,16 @@ export default function DashboardPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </DashboardTableContainer>
 
-                {projectManagementPage.totalPages > 1 && (
-                  <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="text-sm text-gray-700">
-                      显示第 {projectManagementStartIndex} - {projectManagementEndIndex} 条，共 {projectManagementPage.totalItems} 条记录
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => setProjectManagementCurrentPage(projectManagementPage.currentPage - 1)}
-                        disabled={projectManagementPage.currentPage === 1}
-                        className={paginationButtonClassName}
-                      >
-                        上一页
-                      </button>
-                      <div className="flex flex-wrap gap-2">
-                        {Array.from({ length: projectManagementPage.totalPages }, (_, index) => index + 1).map((page) => (
-                          <button
-                            key={page}
-                            onClick={() => setProjectManagementCurrentPage(page)}
-                            className={`${paginationButtonClassName} ${
-                              projectManagementPage.currentPage === page ? paginationActiveButtonClassName : ''
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => setProjectManagementCurrentPage(projectManagementPage.currentPage + 1)}
-                        disabled={projectManagementPage.currentPage === projectManagementPage.totalPages}
-                        className={paginationButtonClassName}
-                      >
-                        下一页
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <DashboardPaginationBar
+                  currentPage={projectManagementPage.currentPage}
+                  totalPages={projectManagementPage.totalPages}
+                  summary={`显示第 ${projectManagementStartIndex} - ${projectManagementEndIndex} 条，共 ${projectManagementPage.totalItems} 条记录`}
+                  onPageChange={setProjectManagementCurrentPage}
+                  buttonClassName={paginationButtonClassName}
+                  activeButtonClassName={paginationActiveButtonClassName}
+                />
 
                 {projectManagementPage.totalItems === 0 && (
                   <div className="py-8 text-center text-gray-500">
@@ -2673,7 +2605,7 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                <div className={tableContainerClassName}>
+                <DashboardTableContainer>
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-slate-50/90">
                       <tr>
@@ -2704,7 +2636,7 @@ export default function DashboardPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </DashboardTableContainer>
               </div>
             )}
           </div>
@@ -2712,143 +2644,102 @@ export default function DashboardPage() {
 
         {activeTab === 'list' && (
           <div className="space-y-6">
-            <div className={`${panelClassName} relative overflow-hidden p-6 sm:p-7`}>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.1),transparent_30%)]" />
-              <div className="relative">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="max-w-2xl">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/80 bg-white/80 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-sky-700 shadow-sm">
-                      <span className="h-2 w-2 rounded-full bg-sky-500" />
-                      激活码工作区
-                    </div>
-                    <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">
-                      激活码管理中心
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-slate-500 sm:text-base">
-                      把筛选器和结果列表拆开展示，避免搜索、导出、清理和分页全部挤在一个长页面里。
-                    </p>
-                  </div>
-
+            <div className={panelClassName}>
+              <WorkspaceHeroPanel
+                badge="激活码工作区"
+                title="激活码管理中心"
+                description="把筛选器和结果列表拆开展示，避免搜索、导出、清理和分页全部挤在一个长页面里。"
+                gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.1),transparent_30%)]"
+                metrics={
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className={workspaceSummaryCardClassName}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">当前匹配</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {filteredCodes.length}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">筛选后的激活码记录总数</div>
-                    </div>
-                    <div className={workspaceSummaryCardClassName}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">覆盖项目</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {activationCodeProjectCoverage}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">当前结果涉及的项目数</div>
-                    </div>
-                    <div className={workspaceSummaryCardClassName}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">风险项</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {activationCodeStatusSummary.risk}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">已过期或已耗尽的记录</div>
-                    </div>
+                    <WorkspaceMetricCard
+                      label="当前匹配"
+                      value={filteredCodes.length}
+                      description="筛选后的激活码记录总数"
+                      className={workspaceSummaryCardClassName}
+                    />
+                    <WorkspaceMetricCard
+                      label="覆盖项目"
+                      value={activationCodeProjectCoverage}
+                      description="当前结果涉及的项目数"
+                      className={workspaceSummaryCardClassName}
+                    />
+                    <WorkspaceMetricCard
+                      label="风险项"
+                      value={activationCodeStatusSummary.risk}
+                      description="已过期或已耗尽的记录"
+                      className={workspaceSummaryCardClassName}
+                    />
                   </div>
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {activationCodeWorkspaceTabs.map((tab) => {
-                    const isActive = activationCodeWorkspaceTab === tab.key
-
-                    return (
-                      <button
-                        key={tab.key}
-                        type="button"
-                        onClick={() => setActivationCodeWorkspaceTab(tab.key)}
-                        className={`rounded-[24px] border p-4 text-left transition ${
-                          isActive
-                            ? 'border-sky-200 bg-sky-50/85 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.35)]'
-                            : 'border-white/70 bg-white/75 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white/90'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold ${
-                              isActive
-                                ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
-                                : 'bg-slate-900 text-white/90'
-                            }`}
-                          >
-                            {tab.shortLabel}
-                          </div>
-                          <div className="min-w-0">
-                            <div className={`text-sm font-semibold ${isActive ? 'text-sky-900' : 'text-slate-900'}`}>
-                              {tab.label}
-                            </div>
-                            <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
-                              {tab.description}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+                }
+                tabs={
+                  <WorkspaceTabNav
+                    tabs={activationCodeWorkspaceTabs}
+                    activeTab={activationCodeWorkspaceTab}
+                    onChange={setActivationCodeWorkspaceTab}
+                  />
+                }
+              />
             </div>
 
             {activationCodeWorkspaceTab === 'filters' && (
               <div className={`${panelClassName} p-6`}>
-                <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold text-slate-900">筛选与导出</h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      统一维护搜索项、状态、项目与套餐条件，让输入区和搜索区保持同一套圆润卡片风格。
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={handleResetCodeFilters}
-                      disabled={activationCodeFilterTokens.length === 0}
-                      className={ghostButtonClassName}
-                    >
-                      重置筛选
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActivationCodeWorkspaceTab('results')}
-                      className={primaryButtonClassName}
-                    >
-                      查看结果列表
-                    </button>
-                  </div>
-                </div>
+                <DashboardSectionHeader
+                  title="筛选与导出"
+                  description="统一维护搜索项、状态、项目与套餐条件，让输入区和搜索区保持同一套圆润卡片风格。"
+                  trailing={
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={handleResetCodeFilters}
+                        disabled={activationCodeFilterTokens.length === 0}
+                        className={ghostButtonClassName}
+                      >
+                        重置筛选
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActivationCodeWorkspaceTab('results')}
+                        className={primaryButtonClassName}
+                      >
+                        查看结果列表
+                      </button>
+                    </div>
+                  }
+                />
 
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">搜索激活码或机器ID</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">支持按激活码正文与绑定机器标识快速缩小范围。</p>
+                  <DashboardFilterFieldCard
+                    label="搜索激活码或机器ID"
+                    description="支持按激活码正文与绑定机器标识快速缩小范围。"
+                    htmlFor="activation-code-search-term"
+                  >
                     <input
+                      id="activation-code-search-term"
                       type="text"
                       value={searchTerm}
                       onChange={(e) => {
                         setSearchTerm(e.target.value)
                         setCurrentPage(1)
                       }}
-                      className={`${compactInputClassName} mt-4`}
+                      className={compactInputClassName}
                       placeholder="输入激活码或机器ID"
                     />
-                  </div>
+                  </DashboardFilterFieldCard>
 
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">状态筛选</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">快速区分未激活、使用中、过期和次数耗尽状态。</p>
+                  <DashboardFilterFieldCard
+                    label="状态筛选"
+                    description="快速区分未激活、使用中、过期和次数耗尽状态。"
+                    htmlFor="activation-code-status-filter"
+                  >
                     <select
+                      id="activation-code-status-filter"
                       value={statusFilter}
                       onChange={(e) => {
                         setStatusFilter(e.target.value as StatusFilter)
                         setCurrentPage(1)
                       }}
-                      className={`${compactInputClassName} mt-4`}
+                      className={compactInputClassName}
                     >
                       <option value="all">全部状态</option>
                       <option value="unused">未激活</option>
@@ -2856,18 +2747,21 @@ export default function DashboardPage() {
                       <option value="expired">已过期</option>
                       <option value="depleted">已耗尽</option>
                     </select>
-                  </div>
+                  </DashboardFilterFieldCard>
 
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">项目筛选</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">当你有多个项目时，可以只观察某一条业务线的发码结果。</p>
+                  <DashboardFilterFieldCard
+                    label="项目筛选"
+                    description="当你有多个项目时，可以只观察某一条业务线的发码结果。"
+                    htmlFor="activation-code-project-filter"
+                  >
                     <select
+                      id="activation-code-project-filter"
                       value={projectFilter}
                       onChange={(e) => {
                         setProjectFilter(e.target.value)
                         setCurrentPage(1)
                       }}
-                      className={`${compactInputClassName} mt-4`}
+                      className={compactInputClassName}
                     >
                       <option value="all">全部项目</option>
                       {projects.map((project) => (
@@ -2876,18 +2770,21 @@ export default function DashboardPage() {
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </DashboardFilterFieldCard>
 
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">套餐类型</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">适合将周卡、月卡、自定义天数与无套餐记录分别查看。</p>
+                  <DashboardFilterFieldCard
+                    label="套餐类型"
+                    description="适合将周卡、月卡、自定义天数与无套餐记录分别查看。"
+                    htmlFor="activation-code-card-type-filter"
+                  >
                     <select
+                      id="activation-code-card-type-filter"
                       value={cardTypeFilter}
                       onChange={(e) => {
                         setCardTypeFilter(e.target.value)
                         setCurrentPage(1)
                       }}
-                      className={`${compactInputClassName} mt-4`}
+                      className={compactInputClassName}
                     >
                       <option value="all">全部套餐</option>
                       {getAvailableCardTypes().map((cardType) => (
@@ -2897,42 +2794,32 @@ export default function DashboardPage() {
                       ))}
                       <option value="none">无套餐类型</option>
                     </select>
-                  </div>
+                  </DashboardFilterFieldCard>
 
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">导出当前结果</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">基于当前筛选条件导出 CSV，适合对账、转交和离线留档。</p>
+                  <DashboardFilterFieldCard
+                    label="导出当前结果"
+                    description="基于当前筛选条件导出 CSV，适合对账、转交和离线留档。"
+                  >
                     <button
                       type="button"
                       onClick={() => exportCodes(filteredCodes)}
                       disabled={filteredCodes.length === 0}
-                      className={`mt-4 w-full ${successButtonClassName}`}
+                      className={`w-full ${successButtonClassName}`}
                     >
                       导出筛选结果
                     </button>
-                  </div>
+                  </DashboardFilterFieldCard>
                 </div>
 
                 <div className="mt-5 rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="max-w-3xl">
                       <div className="text-xs uppercase tracking-[0.18em] text-slate-500">当前生效条件</div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {activationCodeFilterTokens.length > 0 ? (
-                          activationCodeFilterTokens.map((token) => (
-                            <span
-                              key={token}
-                              className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-sky-700"
-                            >
-                              {token}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-500">
-                            当前未设置任何筛选条件
-                          </span>
-                        )}
-                      </div>
+                      <DashboardTokenList
+                        tokens={activationCodeFilterTokens}
+                        emptyText="当前未设置任何筛选条件"
+                        className="mt-3 flex flex-wrap gap-2"
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -2962,74 +2849,55 @@ export default function DashboardPage() {
 
             {activationCodeWorkspaceTab === 'results' && (
               <div className={`${panelClassName} p-6`}>
-                <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold text-slate-900">
-                      激活码列表 ({filteredCodes.length} 条记录)
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      当前页聚焦查看结果、执行复制/删除/清理操作；筛选器被折叠到独立 tab，避免纵向滚动过长。
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setActivationCodeWorkspaceTab('filters')}
-                      className={ghostButtonClassName}
-                    >
-                      查看筛选器
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => exportCodes(filteredCodes)}
-                      disabled={filteredCodes.length === 0}
-                      className={successButtonClassName}
-                    >
-                      导出筛选结果
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCleanupExpired}
-                      disabled={loading}
-                      className={warningButtonClassName}
-                    >
-                      清理过期绑定
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mb-5 rounded-[24px] border border-slate-200/80 bg-slate-50/85 px-5 py-4">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex flex-wrap gap-2">
-                      {activationCodeFilterTokens.length > 0 ? (
-                        activationCodeFilterTokens.map((token) => (
-                          <span
-                            key={token}
-                            className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-sky-700"
-                          >
-                            {token}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-500">
-                          当前显示全部激活码
-                        </span>
-                      )}
+                <DashboardSectionHeader
+                  title={`激活码列表 (${filteredCodes.length} 条记录)`}
+                  description="当前页聚焦查看结果、执行复制/删除/清理操作；筛选器被折叠到独立 tab，避免纵向滚动过长。"
+                  trailing={
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setActivationCodeWorkspaceTab('filters')}
+                        className={ghostButtonClassName}
+                      >
+                        查看筛选器
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => exportCodes(filteredCodes)}
+                        disabled={filteredCodes.length === 0}
+                        className={successButtonClassName}
+                      >
+                        导出筛选结果
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCleanupExpired}
+                        disabled={loading}
+                        className={warningButtonClassName}
+                      >
+                        清理过期绑定
+                      </button>
                     </div>
+                  }
+                  className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
+                />
+
+                <DashboardSummaryStrip
+                  leading={
+                    <DashboardTokenList tokens={activationCodeFilterTokens} emptyText="当前显示全部激活码" />
+                  }
+                  trailing={
                     <div className="text-sm text-slate-500">
                       当前展示第 {activationCodeStartIndex} - {activationCodeEndIndex} 条，共 {filteredCodes.length} 条记录
                     </div>
-                  </div>
-                </div>
+                  }
+                />
 
                 {loading ? (
-                  <div className="py-10 text-center">
-                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
-                    <p className="mt-2 text-slate-600">加载中...</p>
-                  </div>
+                  <DashboardLoadingState message="加载中..." />
                 ) : (
                   <>
-                    <div className={tableContainerClassName}>
+                    <DashboardTableContainer>
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-slate-50/90">
                           <tr>
@@ -3084,50 +2952,23 @@ export default function DashboardPage() {
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </DashboardTableContainer>
 
                     {filteredCodes.length === 0 && (
-                      <div className={`mt-5 ${emptyStateClassName}`}>
-                        暂无匹配的激活码记录，建议切换到“筛选与导出”检查关键词、项目或套餐条件。
-                      </div>
+                      <DashboardEmptyState
+                        message="暂无匹配的激活码记录，建议切换到“筛选与导出”检查关键词、项目或套餐条件。"
+                        className="mt-5"
+                      />
                     )}
 
-                    {totalPages > 1 && (
-                      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="text-sm text-gray-700">
-                          显示第 {activationCodeStartIndex} - {activationCodeEndIndex} 条，共 {filteredCodes.length} 条记录
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => setCurrentPage(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className={paginationButtonClassName}
-                          >
-                            上一页
-                          </button>
-                          <div className="flex flex-wrap gap-2">
-                            {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                              <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                className={`${paginationButtonClassName} ${
-                                  currentPage === page ? paginationActiveButtonClassName : ''
-                                }`}
-                              >
-                                {page}
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            onClick={() => setCurrentPage(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                            className={paginationButtonClassName}
-                          >
-                            下一页
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    <DashboardPaginationBar
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      summary={`显示第 ${activationCodeStartIndex} - ${activationCodeEndIndex} 条，共 ${filteredCodes.length} 条记录`}
+                      onPageChange={setCurrentPage}
+                      buttonClassName={paginationButtonClassName}
+                      activeButtonClassName={paginationActiveButtonClassName}
+                    />
                   </>
                 )}
               </div>
@@ -3137,143 +2978,102 @@ export default function DashboardPage() {
 
         {activeTab === 'consumptions' && (
           <div className="space-y-6">
-            <div className={`${panelClassName} relative overflow-hidden p-6 sm:p-7`}>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]" />
-              <div className="relative">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="max-w-2xl">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/80 bg-white/80 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-sky-700 shadow-sm">
-                      <span className="h-2 w-2 rounded-full bg-sky-500" />
-                      消费日志工作区
-                    </div>
-                    <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">
-                      消费日志排查中心
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-slate-500 sm:text-base">
-                      把筛选与刷新动作从日志结果页里拆出来，长表格只负责阅读与导出，避免搜索区压缩可视空间。
-                    </p>
-                  </div>
-
+            <div className={panelClassName}>
+              <WorkspaceHeroPanel
+                badge="消费日志工作区"
+                title="消费日志排查中心"
+                description="把筛选与刷新动作从日志结果页里拆出来，长表格只负责阅读与导出，避免搜索区压缩可视空间。"
+                gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]"
+                metrics={
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className={workspaceSummaryCardClassName}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">匹配日志</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {consumptionPagination.total}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">当前条件下的消费记录数</div>
-                    </div>
-                    <div className={workspaceSummaryCardClassName}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">涉及项目</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {consumptionProjectCoverage}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">当前页涉及的项目数</div>
-                    </div>
-                    <div className={workspaceSummaryCardClassName}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">涉及激活码</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {consumptionCodeCoverage}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">当前页覆盖的激活码数</div>
-                    </div>
+                    <WorkspaceMetricCard
+                      label="匹配日志"
+                      value={consumptionPagination.total}
+                      description="当前条件下的消费记录数"
+                      className={workspaceSummaryCardClassName}
+                    />
+                    <WorkspaceMetricCard
+                      label="涉及项目"
+                      value={consumptionProjectCoverage}
+                      description="当前页涉及的项目数"
+                      className={workspaceSummaryCardClassName}
+                    />
+                    <WorkspaceMetricCard
+                      label="涉及激活码"
+                      value={consumptionCodeCoverage}
+                      description="当前页覆盖的激活码数"
+                      className={workspaceSummaryCardClassName}
+                    />
                   </div>
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {consumptionWorkspaceTabs.map((tab) => {
-                    const isActive = consumptionWorkspaceTab === tab.key
-
-                    return (
-                      <button
-                        key={tab.key}
-                        type="button"
-                        onClick={() => setConsumptionWorkspaceTab(tab.key)}
-                        className={`rounded-[24px] border p-4 text-left transition ${
-                          isActive
-                            ? 'border-sky-200 bg-sky-50/85 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.35)]'
-                            : 'border-white/70 bg-white/75 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white/90'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold ${
-                              isActive
-                                ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
-                                : 'bg-slate-900 text-white/90'
-                            }`}
-                          >
-                            {tab.shortLabel}
-                          </div>
-                          <div className="min-w-0">
-                            <div className={`text-sm font-semibold ${isActive ? 'text-sky-900' : 'text-slate-900'}`}>
-                              {tab.label}
-                            </div>
-                            <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
-                              {tab.description}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+                }
+                tabs={
+                  <WorkspaceTabNav
+                    tabs={consumptionWorkspaceTabs}
+                    activeTab={consumptionWorkspaceTab}
+                    onChange={setConsumptionWorkspaceTab}
+                  />
+                }
+              />
             </div>
 
             {consumptionWorkspaceTab === 'filters' && (
               <div className={`${panelClassName} p-6`}>
-                <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold text-slate-900">筛选与刷新</h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      适合排查插件调用链路、幂等请求与真实扣次波动，所有筛选输入都统一到更圆润的卡片表单里。
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={handleResetConsumptionFilters}
-                      disabled={consumptionFilterTokens.length === 0}
-                      className={ghostButtonClassName}
-                    >
-                      重置筛选
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConsumptionWorkspaceTab('logs')}
-                      className={primaryButtonClassName}
-                    >
-                      查看日志列表
-                    </button>
-                  </div>
-                </div>
+                <DashboardSectionHeader
+                  title="筛选与刷新"
+                  description="适合排查插件调用链路、幂等请求与真实扣次波动，所有筛选输入都统一到更圆润的卡片表单里。"
+                  trailing={
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={handleResetConsumptionFilters}
+                        disabled={consumptionFilterTokens.length === 0}
+                        className={ghostButtonClassName}
+                      >
+                        重置筛选
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConsumptionWorkspaceTab('logs')}
+                        className={primaryButtonClassName}
+                      >
+                        查看日志列表
+                      </button>
+                    </div>
+                  }
+                />
 
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">搜索 requestId / 机器ID / 激活码</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">适合追踪单次插件调用、设备异常与具体激活码的扣次链路。</p>
+                  <DashboardFilterFieldCard
+                    label="搜索 requestId / 机器ID / 激活码"
+                    description="适合追踪单次插件调用、设备异常与具体激活码的扣次链路。"
+                    htmlFor="consumption-search-term"
+                  >
                     <input
+                      id="consumption-search-term"
                       type="text"
                       value={consumptionSearchTerm}
                       onChange={(e) => {
                         setConsumptionSearchTerm(e.target.value)
                         setConsumptionCurrentPage(1)
                       }}
-                      className={`${compactInputClassName} mt-4`}
+                      className={compactInputClassName}
                       placeholder="输入 requestId、机器ID 或激活码"
                     />
-                  </div>
+                  </DashboardFilterFieldCard>
 
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">项目筛选</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">只看某一个项目时，更容易判断插件版本发布后的真实扣次波动。</p>
+                  <DashboardFilterFieldCard
+                    label="项目筛选"
+                    description="只看某一个项目时，更容易判断插件版本发布后的真实扣次波动。"
+                    htmlFor="consumption-project-filter"
+                  >
                     <select
+                      id="consumption-project-filter"
                       value={consumptionProjectFilter}
                       onChange={(e) => {
                         setConsumptionProjectFilter(e.target.value)
                         setConsumptionCurrentPage(1)
                       }}
-                      className={`${compactInputClassName} mt-4`}
+                      className={compactInputClassName}
                     >
                       <option value="all">全部项目</option>
                       {projects.map((project) => (
@@ -3282,50 +3082,57 @@ export default function DashboardPage() {
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </DashboardFilterFieldCard>
 
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">开始时间</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">用于圈定回溯窗口起点，适合配合错误工单或发布日期定位问题。</p>
+                  <DashboardFilterFieldCard
+                    label="开始时间"
+                    description="用于圈定回溯窗口起点，适合配合错误工单或发布日期定位问题。"
+                    htmlFor="consumption-created-from"
+                  >
                     <input
+                      id="consumption-created-from"
                       type="datetime-local"
                       value={consumptionCreatedFrom}
                       onChange={(e) => {
                         setConsumptionCreatedFrom(e.target.value)
                         setConsumptionCurrentPage(1)
                       }}
-                      className={`${compactInputClassName} mt-4`}
+                      className={compactInputClassName}
                     />
-                  </div>
+                  </DashboardFilterFieldCard>
 
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">结束时间</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">与开始时间一起构成完整时间窗，避免长时间段日志对视线造成干扰。</p>
+                  <DashboardFilterFieldCard
+                    label="结束时间"
+                    description="与开始时间一起构成完整时间窗，避免长时间段日志对视线造成干扰。"
+                    htmlFor="consumption-created-to"
+                  >
                     <input
+                      id="consumption-created-to"
                       type="datetime-local"
                       value={consumptionCreatedTo}
                       onChange={(e) => {
                         setConsumptionCreatedTo(e.target.value)
                         setConsumptionCurrentPage(1)
                       }}
-                      className={`${compactInputClassName} mt-4`}
+                      className={compactInputClassName}
                     />
-                  </div>
+                  </DashboardFilterFieldCard>
 
-                  <div className={filterFieldCardClassName}>
-                    <label className="text-sm font-semibold text-slate-900">刷新当前日志</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">立即按当前条件重新拉取，适合观察最新扣次或刚完成的线上操作。</p>
+                  <DashboardFilterFieldCard
+                    label="刷新当前日志"
+                    description="立即按当前条件重新拉取，适合观察最新扣次或刚完成的线上操作。"
+                  >
                     <button
                       type="button"
                       onClick={() => {
                         void fetchConsumptionLogs({}, 'manual')
                       }}
                       disabled={consumptionLoading}
-                      className={`mt-4 w-full ${primaryButtonClassName}`}
+                      className={`w-full ${primaryButtonClassName}`}
                     >
                       {consumptionLoading ? '刷新中...' : '刷新消费日志'}
                     </button>
-                  </div>
+                  </DashboardFilterFieldCard>
                 </div>
 
                 <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
@@ -3362,22 +3169,11 @@ export default function DashboardPage() {
                       </button>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {consumptionFilterTokens.length > 0 ? (
-                        consumptionFilterTokens.map((token) => (
-                          <span
-                            key={token}
-                            className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-sky-700"
-                          >
-                            {token}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-500">
-                          当前未设置任何筛选条件
-                        </span>
-                      )}
-                    </div>
+                    <DashboardTokenList
+                      tokens={consumptionFilterTokens}
+                      emptyText="当前未设置任何筛选条件"
+                      className="mt-4 flex flex-wrap gap-2"
+                    />
                   </div>
 
                   <div className="rounded-[24px] border border-slate-200/80 bg-white/92 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]">
@@ -3405,46 +3201,43 @@ export default function DashboardPage() {
 
             {consumptionWorkspaceTab === 'logs' && (
               <div className={`${panelClassName} p-6`}>
-                <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold text-slate-900">
-                      消费日志 ({consumptionPagination.total} 条记录)
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      仅记录次数型激活码的真实扣次请求，适合用于对账与问题回溯；筛选器已独立成工作区，阅读时更聚焦。
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setConsumptionWorkspaceTab('filters')}
-                      className={ghostButtonClassName}
-                    >
-                      查看筛选器
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void fetchConsumptionLogs({}, 'manual')
-                      }}
-                      disabled={consumptionLoading}
-                      className={primaryButtonClassName}
-                    >
-                      {consumptionLoading ? '刷新中...' : '刷新消费日志'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleExportConsumptionLogs}
-                      disabled={consumptionLoading || consumptionPagination.total === 0}
-                      className={successButtonClassName}
-                    >
-                      导出筛选结果
-                    </button>
-                  </div>
-                </div>
+                <DashboardSectionHeader
+                  title={`消费日志 (${consumptionPagination.total} 条记录)`}
+                  description="仅记录次数型激活码的真实扣次请求，适合用于对账与问题回溯；筛选器已独立成工作区，阅读时更聚焦。"
+                  trailing={
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setConsumptionWorkspaceTab('filters')}
+                        className={ghostButtonClassName}
+                      >
+                        查看筛选器
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void fetchConsumptionLogs({}, 'manual')
+                        }}
+                        disabled={consumptionLoading}
+                        className={primaryButtonClassName}
+                      >
+                        {consumptionLoading ? '刷新中...' : '刷新消费日志'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportConsumptionLogs}
+                        disabled={consumptionLoading || consumptionPagination.total === 0}
+                        className={successButtonClassName}
+                      >
+                        导出筛选结果
+                      </button>
+                    </div>
+                  }
+                  className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
+                />
 
-                <div className="mb-5 rounded-[24px] border border-slate-200/80 bg-slate-50/85 px-5 py-4">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <DashboardSummaryStrip
+                  leading={
                     <div className="flex flex-wrap gap-2">
                       <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-sky-700">
                         自动刷新已开启（{CONSUMPTION_AUTO_REFRESH_DELAY_MS}ms 防抖）
@@ -3452,35 +3245,26 @@ export default function DashboardPage() {
                       <span className={`rounded-full border px-3 py-1.5 text-sm ${consumptionRefreshStatusBadgeClassName}`}>
                         {consumptionRefreshStatusText}
                       </span>
-                      {consumptionFilterTokens.length > 0 ? (
-                        consumptionFilterTokens.map((token) => (
-                          <span
-                            key={token}
-                            className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-sm text-slate-600"
-                          >
-                            {token}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-500">
-                          当前显示全部消费日志
-                        </span>
-                      )}
+                      <DashboardTokenList
+                        tokens={consumptionFilterTokens}
+                        emptyText="当前显示全部消费日志"
+                        className="contents"
+                        tokenClassName="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-sm text-slate-600"
+                      />
                     </div>
+                  }
+                  trailing={
                     <div className="text-sm text-slate-500">
                       当前展示第 {consumptionStartIndex} - {consumptionEndIndex} 条，共 {consumptionPagination.total} 条记录
                     </div>
-                  </div>
-                </div>
+                  }
+                />
 
                 {consumptionLoading ? (
-                  <div className="py-10 text-center">
-                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
-                    <p className="mt-2 text-slate-600">{consumptionRefreshStatusText}</p>
-                  </div>
+                  <DashboardLoadingState message={consumptionRefreshStatusText} />
                 ) : (
                   <>
-                    <div className={tableContainerClassName}>
+                    <DashboardTableContainer>
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-slate-50/90">
                           <tr>
@@ -3528,50 +3312,23 @@ export default function DashboardPage() {
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </DashboardTableContainer>
 
                     {consumptionLogs.length === 0 && (
-                      <div className={`mt-5 ${emptyStateClassName}`}>
-                        暂无匹配的消费日志，建议切换到“筛选与刷新”调整关键词、项目或时间范围。
-                      </div>
+                      <DashboardEmptyState
+                        message="暂无匹配的消费日志，建议切换到“筛选与刷新”调整关键词、项目或时间范围。"
+                        className="mt-5"
+                      />
                     )}
 
-                    {consumptionTotalPages > 1 && (
-                      <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="text-sm text-gray-700">
-                          显示第 {consumptionStartIndex} - {consumptionEndIndex} 条，共 {consumptionPagination.total} 条记录
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => handleChangeConsumptionPage(consumptionPagination.page - 1)}
-                            disabled={consumptionPagination.page === 1}
-                            className={paginationButtonClassName}
-                          >
-                            上一页
-                          </button>
-                          <div className="flex flex-wrap gap-2">
-                            {Array.from({ length: consumptionTotalPages }, (_, index) => index + 1).map((page) => (
-                              <button
-                                key={page}
-                                onClick={() => handleChangeConsumptionPage(page)}
-                                className={`${paginationButtonClassName} ${
-                                  consumptionPagination.page === page ? paginationActiveButtonClassName : ''
-                                }`}
-                              >
-                                {page}
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            onClick={() => handleChangeConsumptionPage(consumptionPagination.page + 1)}
-                            disabled={consumptionPagination.page === consumptionTotalPages}
-                            className={paginationButtonClassName}
-                          >
-                            下一页
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    <DashboardPaginationBar
+                      currentPage={consumptionPagination.page}
+                      totalPages={consumptionTotalPages}
+                      summary={`显示第 ${consumptionStartIndex} - ${consumptionEndIndex} 条，共 ${consumptionPagination.total} 条记录`}
+                      onPageChange={handleChangeConsumptionPage}
+                      buttonClassName={paginationButtonClassName}
+                      activeButtonClassName={paginationActiveButtonClassName}
+                    />
                   </>
                 )}
               </div>

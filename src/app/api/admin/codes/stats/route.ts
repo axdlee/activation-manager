@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { getActivationCodeStats, listProjectStats } from '@/lib/license-service'
 
-export async function GET(request: NextRequest) {
-  try {
-    // 使用认证中间件验证
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
+export const GET = createProtectedAdminRouteHandler(
+  async () => {
     const [stats, projectStats] = await Promise.all([
       getActivationCodeStats(prisma),
       listProjectStats(prisma),
@@ -21,12 +15,10 @@ export async function GET(request: NextRequest) {
       stats,
       projectStats,
     })
-
-  } catch (error) {
-    console.error('获取统计数据时发生错误:', error)
-    return NextResponse.json(
-      { success: false, message: '服务器内部错误' },
-      { status: 500 }
-    )
-  }
-}
+  },
+  {
+    logLabel: '获取统计数据时发生错误',
+    errorStatus: 500,
+    errorMessage: '服务器内部错误',
+  },
+)

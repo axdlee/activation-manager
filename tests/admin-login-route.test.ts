@@ -2,15 +2,18 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import bcrypt from 'bcryptjs'
+import { NextRequest } from 'next/server'
 
 import * as dbModule from '../src/lib/db'
+import { createAdminLoginRateLimiter } from '../src/lib/admin-login-rate-limit'
+import { adminLoginRouteDependencies } from '../src/lib/admin-login-route-handler'
 import * as loginRouteModule from '../src/app/api/admin/login/route'
 
 const { prisma } = dbModule
 const { POST } = loginRouteModule
 
 function createLoginRequest(body: Record<string, unknown>, headers: Record<string, string> = {}) {
-  return new Request('http://127.0.0.1:3000/api/admin/login', {
+  return new NextRequest('http://127.0.0.1:3000/api/admin/login', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -20,10 +23,30 @@ function createLoginRequest(body: Record<string, unknown>, headers: Record<strin
   })
 }
 
+function createAsyncRateLimiter() {
+  const rateLimiter = createAdminLoginRateLimiter()
+
+  return {
+    check: async (key: string) => rateLimiter.check(key),
+    recordFailure: async (key: string) => {
+      rateLimiter.recordFailure(key)
+    },
+    reset: async (key: string) => {
+      rateLimiter.reset(key)
+    },
+    clear: async () => {
+      rateLimiter.clear()
+    },
+  }
+}
+
 test('管理员登录成功时，cookie maxAge 与 jwtExpiresIn 配置保持一致', async (t) => {
   const originalFindAdmin = prisma.admin.findUnique.bind(prisma.admin)
   const originalFindSystemConfig = prisma.systemConfig.findUnique.bind(prisma.systemConfig)
   const originalCompare = bcrypt.compare
+  const originalRateLimiter = adminLoginRouteDependencies.rateLimiter
+
+  adminLoginRouteDependencies.rateLimiter = createAsyncRateLimiter()
 
   ;(prisma.admin as typeof prisma.admin & { findUnique: typeof prisma.admin.findUnique }).findUnique = async () => ({
     id: 1,
@@ -73,6 +96,7 @@ test('管理员登录成功时，cookie maxAge 与 jwtExpiresIn 配置保持一�
       }
     ).findUnique = originalFindSystemConfig
     bcrypt.compare = originalCompare
+    adminLoginRouteDependencies.rateLimiter = originalRateLimiter
     await prisma.$disconnect()
   })
 
@@ -80,7 +104,7 @@ test('管理员登录成功时，cookie maxAge 与 jwtExpiresIn 配置保持一�
     createLoginRequest(
       { username: 'admin', password: '123456' },
       { 'x-forwarded-for': '198.51.100.10' },
-    ) as any,
+    ),
   )
   const body = await response.json()
   const setCookieHeader = response.headers.get('set-cookie') || ''
@@ -94,8 +118,11 @@ test('管理员登录成功时，cookie maxAge 与 jwtExpiresIn 配置保持一�
 test('管理员登录连续输错密码超过阈值后会被限流并返回 Retry-After', async (t) => {
   const originalFindAdmin = prisma.admin.findUnique.bind(prisma.admin)
   const originalCompare = bcrypt.compare
+  const originalRateLimiter = adminLoginRouteDependencies.rateLimiter
   let findAdminCallCount = 0
   let compareCallCount = 0
+
+  adminLoginRouteDependencies.rateLimiter = createAsyncRateLimiter()
 
   ;(prisma.admin as typeof prisma.admin & { findUnique: typeof prisma.admin.findUnique }).findUnique = async () => {
     findAdminCallCount += 1
@@ -117,6 +144,7 @@ test('管理员登录连续输错密码超过阈值后会被限流并返回 Retr
   t.after(async () => {
     ;(prisma.admin as typeof prisma.admin & { findUnique: typeof prisma.admin.findUnique }).findUnique = originalFindAdmin
     bcrypt.compare = originalCompare
+    adminLoginRouteDependencies.rateLimiter = originalRateLimiter
     await prisma.$disconnect()
   })
 
@@ -125,7 +153,7 @@ test('管理员登录连续输错密码超过阈值后会被限流并返回 Retr
       createLoginRequest(
         { username: 'admin', password: 'wrong-password' },
         { 'x-forwarded-for': '203.0.113.10' },
-      ) as any,
+      ),
     )
 
     assert.equal(response.status, 401)
@@ -135,7 +163,7 @@ test('管理员登录连续输错密码超过阈值后会被限流并返回 Retr
     createLoginRequest(
       { username: 'admin', password: 'wrong-password' },
       { 'x-forwarded-for': '203.0.113.10' },
-    ) as any,
+    ),
   )
   const blockedBody = await blockedResponse.json()
   const retryAfter = blockedResponse.headers.get('retry-after') || ''

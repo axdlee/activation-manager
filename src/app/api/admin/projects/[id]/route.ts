@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
+import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { type AdminAuthSuccessResult } from '@/lib/admin-auth-shared'
 import { prisma } from '@/lib/db'
 import {
   deleteProject,
@@ -19,16 +20,12 @@ function parseProjectId(value: string) {
   return id
 }
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: { id: string } },
-) {
-  try {
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
+export const PATCH = createProtectedAdminRouteHandler(
+  async (
+    request: NextRequest,
+    _authResult: AdminAuthSuccessResult,
+    context: { params: { id: string } },
+  ) => {
     const id = parseProjectId(context.params.id)
     const payload = await request.json()
 
@@ -86,27 +83,21 @@ export async function PATCH(
       message: isEnabled ? '项目已启用' : '项目已停用',
       project,
     })
-  } catch (error) {
-    console.error('更新项目失败:', error)
-    const message = error instanceof Error ? error.message : '更新项目失败'
+  },
+  {
+    logLabel: '更新项目失败',
+    errorStatus: 400,
+    errorMessage: '更新项目失败',
+    exposeErrorMessage: true,
+  },
+)
 
-    return NextResponse.json(
-      { success: false, message },
-      { status: 400 },
-    )
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  context: { params: { id: string } },
-) {
-  try {
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
+export const DELETE = createProtectedAdminRouteHandler(
+  async (
+    _request: NextRequest,
+    _authResult: AdminAuthSuccessResult,
+    context: { params: { id: string } },
+  ) => {
     const id = parseProjectId(context.params.id)
     const project = await deleteProject(prisma, { id })
 
@@ -115,13 +106,11 @@ export async function DELETE(
       message: '项目删除成功',
       project,
     })
-  } catch (error) {
-    console.error('删除项目失败:', error)
-    const message = error instanceof Error ? error.message : '删除项目失败'
-
-    return NextResponse.json(
-      { success: false, message },
-      { status: 400 },
-    )
-  }
-}
+  },
+  {
+    logLabel: '删除项目失败',
+    errorStatus: 400,
+    errorMessage: '删除项目失败',
+    exposeErrorMessage: true,
+  },
+)

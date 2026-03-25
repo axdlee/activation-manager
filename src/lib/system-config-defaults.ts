@@ -1,7 +1,17 @@
 import { config as appConfig } from '../config'
 
+export type KnownSystemConfigMap = {
+  allowedIPs: string[]
+  jwtSecret: string
+  jwtExpiresIn: string
+  bcryptRounds: number
+  systemName: string
+}
+
+export type KnownSystemConfigKey = keyof KnownSystemConfigMap
+
 export type SystemConfigSeed = {
-  key: string
+  key: KnownSystemConfigKey
   value: string | number | string[]
   description: string
 }
@@ -64,9 +74,13 @@ export function buildDefaultSystemConfigs(
 
 export const defaultSystemConfigs: SystemConfigSeed[] = buildDefaultSystemConfigs()
 
-export const defaultConfigValues = Object.fromEntries(
-  defaultSystemConfigs.map(({ key, value }) => [key, value]),
-) as Record<string, string | number | string[]>
+export const defaultConfigValues: KnownSystemConfigMap = {
+  allowedIPs: appConfig.security.allowedIPs,
+  jwtSecret: appConfig.jwt.secret,
+  jwtExpiresIn: appConfig.jwt.expiresIn,
+  bcryptRounds: appConfig.security.bcryptRounds,
+  systemName: '激活码管理系统',
+}
 
 export function stringifyConfigValue(value: string | number | string[]) {
   return typeof value === 'string' ? value : JSON.stringify(value)

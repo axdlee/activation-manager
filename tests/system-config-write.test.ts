@@ -8,6 +8,7 @@ import {
 } from '../src/lib/system-config-write'
 import { type PersistableSystemConfigItem } from '../src/lib/system-config-updates'
 
+type PersistSystemConfigClient = NonNullable<Parameters<typeof persistSystemConfigUpdates>[1]>
 type PersistedConfigRecord = {
   value: string
   description?: string
@@ -20,18 +21,20 @@ function createTransactionalConfigClient(options: {
   const persisted = new Map(Object.entries(options.seed || {}))
   let transactionCalls = 0
 
-  return {
+  const client: PersistSystemConfigClient & {
+    persisted: Map<string, PersistedConfigRecord>
+    transactionCalls: number
+  } = {
     persisted,
-    get transactionCalls() {
-      return transactionCalls
-    },
+    transactionCalls: 0,
     systemConfig: {
       async upsert() {
         throw new Error('系统配置写入必须通过事务执行')
       },
     },
-    async $transaction<T>(callback: (tx: { systemConfig: { upsert(args: any): Promise<void> } }) => Promise<T>) {
+    async $transaction<T>(callback) {
       transactionCalls += 1
+      client.transactionCalls = transactionCalls
       const pending = new Map(persisted)
 
       const tx = {
@@ -61,6 +64,8 @@ function createTransactionalConfigClient(options: {
       return result
     },
   }
+
+  return client
 }
 
 test('normalizeSystemConfigUpdates 会拒绝不在 allowlist 中的配置项', () => {
@@ -161,7 +166,7 @@ test('persistSystemConfigUpdates 在事务内批量写入，任一项失败时�
     },
   ]
 
-  await assert.rejects(() => persistSystemConfigUpdates(updates, client as any), /boom:jwtExpiresIn/)
+  await assert.rejects(() => persistSystemConfigUpdates(updates, client), /boom:jwtExpiresIn/)
 
   assert.equal(client.transactionCalls, 1)
   assert.deepEqual(Array.from(client.persisted.entries()), [

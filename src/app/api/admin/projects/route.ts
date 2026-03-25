@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-import { verifyAuth, createAuthResponse } from '@/lib/auth-middleware'
+import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { prisma } from '@/lib/db'
 import {
   createProject,
@@ -8,13 +8,8 @@ import {
   listProjects,
 } from '@/lib/license-project-service'
 
-export async function GET(request: NextRequest) {
-  try {
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
+export const GET = createProtectedAdminRouteHandler(
+  async () => {
     await ensureDefaultProjectRecord(prisma)
     const projects = await listProjects(prisma)
 
@@ -22,22 +17,16 @@ export async function GET(request: NextRequest) {
       success: true,
       projects,
     })
-  } catch (error) {
-    console.error('获取项目列表失败:', error)
-    return NextResponse.json(
-      { success: false, message: '获取项目列表失败' },
-      { status: 500 }
-    )
-  }
-}
+  },
+  {
+    logLabel: '获取项目列表失败',
+    errorStatus: 500,
+    errorMessage: '获取项目列表失败',
+  },
+)
 
-export async function POST(request: NextRequest) {
-  try {
-    const authResult = await verifyAuth(request)
-    if (!authResult.success) {
-      return createAuthResponse(authResult)
-    }
-
+export const POST = createProtectedAdminRouteHandler(
+  async (request: NextRequest) => {
     const { name, projectKey, description } = await request.json()
 
     const project = await createProject(prisma, {
@@ -51,12 +40,11 @@ export async function POST(request: NextRequest) {
       message: '项目创建成功',
       project,
     })
-  } catch (error) {
-    console.error('创建项目失败:', error)
-    const message = error instanceof Error ? error.message : '创建项目失败'
-    return NextResponse.json(
-      { success: false, message },
-      { status: 400 }
-    )
-  }
-}
+  },
+  {
+    logLabel: '创建项目失败',
+    errorStatus: 400,
+    errorMessage: '创建项目失败',
+    exposeErrorMessage: true,
+  },
+)

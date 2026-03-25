@@ -1,3 +1,5 @@
+import { type JWTPayload } from 'jose'
+
 export type AdminAuthMode = 'public' | 'protected'
 
 export type AdminAuthFailureCode =
@@ -9,7 +11,12 @@ export type AdminAuthFailureCode =
 
 export type AdminAuthSuccessResult = {
   success: true
-  payload?: any
+  payload?: AdminJwtPayload
+}
+
+export type AdminJwtPayload = JWTPayload & {
+  username?: string
+  isAdmin?: boolean
 }
 
 export type AdminAuthFailureResult = {

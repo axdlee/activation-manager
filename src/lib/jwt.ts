@@ -1,4 +1,5 @@
-import { SignJWT, jwtVerify } from 'jose'
+import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
+import { type AdminJwtPayload } from './admin-auth-shared'
 import { getConfigWithDefault } from './config-service'
 
 async function getSecret() {
@@ -6,7 +7,7 @@ async function getSecret() {
   return new TextEncoder().encode(String(jwtSecret))
 }
 
-export async function signToken(payload: any) {
+export async function signToken(payload: AdminJwtPayload) {
   const secret = await getSecret()
   const expiresIn = await getConfigWithDefault('jwtExpiresIn')
   
@@ -17,12 +18,12 @@ export async function signToken(payload: any) {
     .sign(secret)
 }
 
-export async function verifyToken(token: string) {
+export async function verifyToken(token: string): Promise<AdminJwtPayload | null> {
   const secret = await getSecret()
 
   try {
     const { payload } = await jwtVerify(token, secret)
-    return payload
+    return payload as JWTPayload as AdminJwtPayload
   } catch (error) {
     return null
   }
