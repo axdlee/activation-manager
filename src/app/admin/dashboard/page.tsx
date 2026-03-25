@@ -37,7 +37,6 @@ import {
 import {
   activationCodeWorkspaceTabs,
   consumptionWorkspaceTabs,
-  projectWorkspaceTabs,
   type ActivationCodeWorkspaceTab,
   type ConsumptionWorkspaceTab,
   type ProjectWorkspaceTab,
@@ -60,20 +59,24 @@ import { buildChangePasswordPageModel } from '@/lib/change-password-ui'
 import {
   getProjectKeyValidationError,
   normalizeProjectKeyInput,
-  PROJECT_KEY_ALLOWED_PATTERN,
-  PROJECT_KEY_MAX_LENGTH,
-  PROJECT_KEY_MIN_LENGTH,
-  PROJECT_KEY_RULE_HINT,
 } from '@/lib/project-key'
 import { ApiDocsWorkspace } from '@/components/api-docs-workspace'
+import { ChangePasswordWorkspace } from '@/components/change-password-workspace'
+import { DashboardActionPanel } from '@/components/dashboard-action-panel'
+import { DashboardDataTable } from '@/components/dashboard-data-table'
 import { DashboardEmptyState } from '@/components/dashboard-empty-state'
 import { DashboardFilterFieldCard } from '@/components/dashboard-filter-field-card'
+import { DashboardFormField } from '@/components/dashboard-form-field'
+import { DashboardInlineActionButton } from '@/components/dashboard-inline-action-button'
 import { DashboardLoadingState } from '@/components/dashboard-loading-state'
 import { DashboardPaginationBar } from '@/components/dashboard-pagination-bar'
 import { DashboardSectionHeader } from '@/components/dashboard-section-header'
+import { DashboardStatusBadge } from '@/components/dashboard-status-badge'
+import { DashboardSubmitField } from '@/components/dashboard-submit-field'
 import { DashboardSummaryStrip } from '@/components/dashboard-summary-strip'
-import { DashboardTableContainer } from '@/components/dashboard-table-container'
 import { DashboardTokenList } from '@/components/dashboard-token-list'
+import { ProjectWorkspace } from '@/components/project-workspace'
+import { SystemConfigWorkspace } from '@/components/system-config-workspace'
 import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
 import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
 import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
@@ -1318,24 +1321,67 @@ export default function DashboardPage() {
   const getProjectNameDraft = (project: Project) => projectNameDrafts[project.id] ?? project.name
   const hasProjectNameChanged = (project: Project) =>
     getProjectNameDraft(project).trim() !== project.name.trim()
-  const getProjectDescriptionDraft = (project: Project) => projectDescriptionDrafts[project.id] ?? (project.description || '')
+  const getProjectDescriptionDraft = (project: Project) =>
+    projectDescriptionDrafts[project.id] ?? (project.description || '')
   const hasProjectDescriptionChanged = (project: Project) =>
     getProjectDescriptionDraft(project).trim() !== (project.description || '').trim()
+  const projectWorkspaceCreateForm = {
+    name: newProjectName,
+    projectKey: newProjectKey,
+    description: newProjectDescription,
+    onSubmit: handleCreateProject,
+    onNameChange: setNewProjectName,
+    onProjectKeyChange: setNewProjectKey,
+    onDescriptionChange: setNewProjectDescription,
+  }
+  const projectWorkspaceManageView = {
+    totalProjects: projects.length,
+    searchTerm: projectManagementSearchTerm,
+    statusFilter: projectManagementStatusFilter,
+    sortBy: projectManagementSortBy,
+    page: projectManagementPage,
+    startIndex: projectManagementStartIndex,
+    endIndex: projectManagementEndIndex,
+    getProjectNameDraft,
+    getProjectDescriptionDraft,
+    hasProjectNameChanged,
+    hasProjectDescriptionChanged,
+    onSearchTermChange: (value: string) => {
+      setProjectManagementSearchTerm(value)
+      setProjectManagementCurrentPage(1)
+    },
+    onStatusFilterChange: (value: ProjectManagementStatusFilter) => {
+      setProjectManagementStatusFilter(value)
+      setProjectManagementCurrentPage(1)
+    },
+    onSortByChange: (value: ProjectManagementSortOption) => {
+      setProjectManagementSortBy(value)
+      setProjectManagementCurrentPage(1)
+    },
+    onPageChange: setProjectManagementCurrentPage,
+    onProjectNameChange: handleProjectNameChange,
+    onProjectDescriptionChange: handleProjectDescriptionChange,
+    onCopyProjectKey: (projectKey: string) => void copyToClipboard(projectKey, '项目标识已复制'),
+    onSaveProjectName: (project: Project) => void handleSaveProjectName(project),
+    onSaveProjectDescription: (project: Project) => void handleSaveProjectDescription(project),
+    onToggleProjectStatus: (project: Project) => void handleToggleProjectStatus(project),
+    onDeleteProject: (project: Project) => void handleDeleteProject(project),
+  }
 
   const getStatusBadge = (code: ActivationCode) => {
     const status = getCodeStatusLabel(code)
 
     if (status === '已过期') {
-      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">已过期</span>
+      return <DashboardStatusBadge label="已过期" tone="danger" />
     }
     if (status === '已耗尽') {
-      return <span className="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">已耗尽</span>
+      return <DashboardStatusBadge label="已耗尽" tone="warning" />
     }
     if (status === '已使用' || status === '使用中') {
-      return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">{status}</span>
+      return <DashboardStatusBadge label={status} tone="success" />
     }
 
-    return <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">未激活</span>
+    return <DashboardStatusBadge label="未激活" tone="info" />
   }
 
   const getAvailableCardTypes = () => {
@@ -1423,109 +1469,6 @@ export default function DashboardPage() {
     'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
   const paginationActiveButtonClassName =
     'border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:border-sky-500 hover:bg-sky-500'
-  const inlineActionButtonClassName =
-    'inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
-  const changePasswordSummaryCardThemeMap = {
-    neutral: {
-      panel:
-        'border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))]',
-      accent: 'bg-slate-400',
-      value: 'text-slate-900',
-    },
-    success: {
-      panel:
-        'border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.96),rgba(255,255,255,0.94))]',
-      accent: 'bg-emerald-500',
-      value: 'text-emerald-900',
-    },
-    warning: {
-      panel:
-        'border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.96),rgba(255,255,255,0.94))]',
-      accent: 'bg-amber-500',
-      value: 'text-amber-900',
-    },
-    danger: {
-      panel:
-        'border-rose-200/80 bg-[linear-gradient(180deg,rgba(255,241,242,0.96),rgba(255,255,255,0.94))]',
-      accent: 'bg-rose-500',
-      value: 'text-rose-900',
-    },
-  } as const
-  const changePasswordChecklistToneMap = {
-    true: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    false: 'border-slate-200 bg-slate-50 text-slate-500',
-  } as const
-  const systemConfigSummaryCardThemeMap = {
-    配置项: {
-      panel:
-        'border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))]',
-      accent: 'bg-slate-900',
-      value: 'text-slate-900',
-    },
-    访问白名单: {
-      panel:
-        'border-sky-200/80 bg-[linear-gradient(180deg,rgba(240,249,255,0.96),rgba(255,255,255,0.94))]',
-      accent: 'bg-sky-500',
-      value: 'text-sky-900',
-    },
-    登录会话: {
-      panel:
-        'border-violet-200/80 bg-[linear-gradient(180deg,rgba(245,243,255,0.96),rgba(255,255,255,0.94))]',
-      accent: 'bg-violet-500',
-      value: 'text-violet-900',
-    },
-    密码强度: {
-      panel:
-        'border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.96),rgba(255,255,255,0.94))]',
-      accent: 'bg-emerald-500',
-      value: 'text-emerald-900',
-    },
-  } as const
-  const systemConfigBadgeClassNameMap = {
-    info: 'border-sky-200 bg-sky-50 text-sky-700',
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    warning: 'border-amber-200 bg-amber-50 text-amber-700',
-    danger: 'border-rose-200 bg-rose-50 text-rose-600',
-    neutral: 'border-slate-200 bg-slate-50 text-slate-600',
-  } as const
-  const systemConfigGroupThemeMap = {
-    access: {
-      panel: 'border-sky-200/80 bg-[linear-gradient(180deg,rgba(240,249,255,0.92),rgba(255,255,255,0.96))]',
-      badge: 'bg-sky-100 text-sky-700',
-      dot: 'bg-sky-500',
-      title: 'text-sky-900',
-      note: 'border-sky-200 bg-sky-50 text-sky-700',
-      rail: 'from-sky-500 via-cyan-400 to-sky-200',
-      divider: 'border-sky-100/80',
-    },
-    security: {
-      panel: 'border-violet-200/80 bg-[linear-gradient(180deg,rgba(245,243,255,0.92),rgba(255,255,255,0.96))]',
-      badge: 'bg-violet-100 text-violet-700',
-      dot: 'bg-violet-500',
-      title: 'text-violet-900',
-      note: 'border-violet-200 bg-violet-50 text-violet-700',
-      rail: 'from-violet-500 via-fuchsia-400 to-violet-200',
-      divider: 'border-violet-100/80',
-    },
-    branding: {
-      panel: 'border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.92),rgba(255,255,255,0.96))]',
-      badge: 'bg-amber-100 text-amber-700',
-      dot: 'bg-amber-500',
-      title: 'text-amber-900',
-      note: 'border-amber-200 bg-amber-50 text-amber-700',
-      rail: 'from-amber-400 via-yellow-300 to-amber-100',
-      divider: 'border-amber-100/80',
-    },
-    advanced: {
-      panel: 'border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,0.96))]',
-      badge: 'bg-slate-100 text-slate-700',
-      dot: 'bg-slate-500',
-      title: 'text-slate-900',
-      note: 'border-slate-200 bg-slate-50 text-slate-600',
-      rail: 'from-slate-500 via-slate-300 to-slate-100',
-      divider: 'border-slate-200/80',
-    },
-  } as const
   const togglePasswordFieldVisibility = (key: string) => {
     setRevealedPasswordFieldKeys((currentKeys) =>
       currentKeys.includes(key)
@@ -2113,53 +2056,41 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto rounded-[24px] border border-slate-200/80">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-slate-50/90">
-                    <tr>
-                      {[
-                        '项目',
-                        '项目标识',
-                        '状态',
-                        '总激活码',
-                        '已激活',
-                        '有效',
-                        '已过期',
-                        '次数剩余',
-                        '次数消耗',
-                      ].map((title) => (
-                        <th
-                          key={title}
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          {title}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredProjectStats.map((project) => (
-                      <tr key={project.id} className="transition hover:bg-slate-50/80">
-                        <td className="px-6 py-4 text-sm font-medium text-slate-900">{project.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-500">{project.projectKey}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {project.isEnabled ? (
-                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">启用中</span>
-                          ) : (
-                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">已停用</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.totalCodes}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.usedCodes}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.activeCodes}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.expiredCodes}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{project.countRemainingTotal}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{project.countConsumedTotal}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DashboardDataTable
+                headers={[
+                  '项目',
+                  '项目标识',
+                  '状态',
+                  '总激活码',
+                  '已激活',
+                  '有效',
+                  '已过期',
+                  '次数剩余',
+                  '次数消耗',
+                ]}
+                containerClassName="overflow-x-auto rounded-[24px] border border-slate-200/80"
+                bodyClassName="bg-white divide-y divide-gray-200"
+              >
+                {filteredProjectStats.map((project) => (
+                  <tr key={project.id} className="transition hover:bg-slate-50/80">
+                    <td className="px-6 py-4 text-sm font-medium text-slate-900">{project.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-500">{project.projectKey}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {project.isEnabled ? (
+                        <DashboardStatusBadge label="启用中" tone="success" />
+                      ) : (
+                        <DashboardStatusBadge label="已停用" tone="neutral" />
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.totalCodes}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.usedCodes}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.activeCodes}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.expiredCodes}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{project.countRemainingTotal}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{project.countConsumedTotal}</td>
+                  </tr>
+                ))}
+              </DashboardDataTable>
 
               {filteredProjectStats.length === 0 && (
                 <div className="py-8 text-center text-gray-500">
@@ -2171,300 +2102,21 @@ export default function DashboardPage() {
         )}
 
         {activeTab === 'projects' && (
-          <div className="space-y-6">
-            <div className={panelClassName}>
-              <WorkspaceHeroPanel
-                badge="项目工作区"
-                title="项目管理中心"
-                description="把新建项目和存量项目维护拆开处理，减少长页面滚动，也让搜索与编辑操作更聚焦。"
-                gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]"
-                metrics={
-                  <div className="grid grid-cols-2 gap-3">
-                    <WorkspaceMetricCard
-                      label="启用中"
-                      value={enabledProjectsCount}
-                      description="当前可正常发码的项目"
-                      className={workspaceSummaryCardClassName}
-                    />
-                    <WorkspaceMetricCard
-                      label="已停用"
-                      value={disabledProjectsCount}
-                      description="暂不允许继续发码的项目"
-                      className={workspaceSummaryCardClassName}
-                    />
-                  </div>
-                }
-                tabs={
-                  <WorkspaceTabNav
-                    tabs={projectWorkspaceTabs}
-                    activeTab={projectWorkspaceTab}
-                    onChange={setProjectWorkspaceTab}
-                    badgeTextClassName="text-sm"
-                  />
-                }
-              />
-            </div>
-
-            {projectWorkspaceTab === 'create' && (
-              <div className={`${panelClassName} p-6`}>
-                <DashboardSectionHeader
-                  title="新建项目"
-                  description="为不同产品或插件创建独立 projectKey，后续发码、统计和消费都能按项目隔离。"
-                  trailing={
-                    <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
-                      创建后会自动出现在发码与筛选器中
-                    </div>
-                  }
-                  className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
-                />
-
-                <form onSubmit={handleCreateProject} className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-                  <div className="rounded-[24px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]">
-                    <label className="text-sm font-semibold text-slate-900">项目名称</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">面向管理员显示的主标题。</p>
-                    <input
-                      type="text"
-                      value={newProjectName}
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      className={`${compactInputClassName} mt-4`}
-                      placeholder="项目名称"
-                      required
-                    />
-                  </div>
-                  <div className="rounded-[24px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]">
-                    <label className="text-sm font-semibold text-slate-900">项目标识</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                      {PROJECT_KEY_RULE_HINT} 例如 <span className="font-medium text-slate-700">browser-plugin</span>。
-                    </p>
-                    <input
-                      type="text"
-                      value={newProjectKey}
-                      onChange={(e) => setNewProjectKey(e.target.value)}
-                      className={`${compactInputClassName} mt-4`}
-                      placeholder="项目标识，例如 browser-plugin"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      spellCheck={false}
-                      pattern={PROJECT_KEY_ALLOWED_PATTERN.source}
-                      minLength={PROJECT_KEY_MIN_LENGTH}
-                      maxLength={PROJECT_KEY_MAX_LENGTH}
-                      required
-                    />
-                  </div>
-                  <div className="rounded-[24px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]">
-                    <label className="text-sm font-semibold text-slate-900">项目描述</label>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">可选，用于补充当前项目的用途说明。</p>
-                    <input
-                      type="text"
-                      value={newProjectDescription}
-                      onChange={(e) => setNewProjectDescription(e.target.value)}
-                      className={`${compactInputClassName} mt-4`}
-                      placeholder="项目描述（可选）"
-                    />
-                  </div>
-                  <div className="xl:col-span-3">
-                    <div className="rounded-[26px] border border-slate-900/10 bg-slate-950/95 p-5 text-white shadow-[0_24px_64px_-42px_rgba(15,23,42,0.7)]">
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                          <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-slate-200">
-                            创建后立即可用
-                          </div>
-                          <h3 className="mt-3 text-base font-semibold text-white">准备创建新的项目空间？</h3>
-                          <p className="mt-1 text-sm leading-6 text-slate-300">
-                            新项目会立即出现在发码、统计和激活码筛选中，建议先确认 projectKey 命名稳定。
-                          </p>
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={loading}
-                          className={`w-full lg:w-auto ${primaryButtonClassName}`}
-                        >
-                          {loading ? '创建中...' : '创建项目'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {projectWorkspaceTab === 'manage' && (
-              <div className={`${panelClassName} p-6`}>
-                <div className="mb-5 flex flex-col gap-4">
-                  <DashboardSectionHeader
-                    title="项目列表"
-                    description={`当前匹配 ${projectManagementPage.totalItems} / ${projects.length} 个项目，可直接修改名称、描述和启停状态。`}
-                    trailing={
-                      <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
-                        默认项目名称固定，且不可停用
-                      </div>
-                    }
-                    className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
-                  />
-
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">搜索项目</label>
-                      <input
-                        type="text"
-                        value={projectManagementSearchTerm}
-                        onChange={(e) => {
-                          setProjectManagementSearchTerm(e.target.value)
-                          setProjectManagementCurrentPage(1)
-                        }}
-                        className={compactInputClassName}
-                        placeholder="项目名称 / projectKey / 描述"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">状态筛选</label>
-                      <select
-                        value={projectManagementStatusFilter}
-                        onChange={(e) => {
-                          setProjectManagementStatusFilter(e.target.value as ProjectManagementStatusFilter)
-                          setProjectManagementCurrentPage(1)
-                        }}
-                        className={compactInputClassName}
-                      >
-                        <option value="all">全部状态</option>
-                        <option value="enabled">仅启用中</option>
-                        <option value="disabled">仅已停用</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">排序方式</label>
-                      <select
-                        value={projectManagementSortBy}
-                        onChange={(e) => {
-                          setProjectManagementSortBy(e.target.value as ProjectManagementSortOption)
-                          setProjectManagementCurrentPage(1)
-                        }}
-                        className={compactInputClassName}
-                      >
-                        <option value="createdAtDesc">按创建时间（最新优先）</option>
-                        <option value="createdAtAsc">按创建时间（最早优先）</option>
-                        <option value="nameAsc">按项目名称（A-Z）</option>
-                        <option value="nameDesc">按项目名称（Z-A）</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <DashboardTableContainer>
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-slate-50/90">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">项目名称</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">项目标识</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">描述</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">状态</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">操作</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {paginatedManageProjects.map((project) => (
-                        <tr key={project.id} className="transition hover:bg-slate-50/80">
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                value={getProjectNameDraft(project)}
-                                onChange={(e) => handleProjectNameChange(project.id, e.target.value)}
-                                className={`${compactInputClassName} min-w-[180px]`}
-                                placeholder="项目名称"
-                                disabled={loading || project.projectKey === 'default'}
-                              />
-                              {project.projectKey === 'default' && (
-                                <p className="text-xs text-gray-400">默认项目名称固定</p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono">{project.projectKey}</span>
-                              <button
-                                onClick={() => void copyToClipboard(project.projectKey, '项目标识已复制')}
-                                className={inlineActionButtonClassName}
-                                disabled={loading}
-                              >
-                                复制
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            <input
-                              type="text"
-                              value={getProjectDescriptionDraft(project)}
-                              onChange={(e) => handleProjectDescriptionChange(project.id, e.target.value)}
-                              className={`${compactInputClassName} min-w-[220px]`}
-                              placeholder="项目描述（可选）"
-                              disabled={loading}
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.isEnabled ? (
-                              <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-800">启用中</span>
-                            ) : (
-                              <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-800">已停用</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm font-medium">
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                onClick={() => void handleSaveProjectName(project)}
-                                className={inlineActionButtonClassName}
-                                disabled={loading || project.projectKey === 'default' || !hasProjectNameChanged(project)}
-                              >
-                                保存名称
-                              </button>
-                              <button
-                                onClick={() => void handleSaveProjectDescription(project)}
-                                className={inlineActionButtonClassName}
-                                disabled={loading || !hasProjectDescriptionChanged(project)}
-                              >
-                                保存描述
-                              </button>
-                              <button
-                                onClick={() => handleToggleProjectStatus(project)}
-                                className={inlineActionButtonClassName}
-                                disabled={loading || (project.projectKey === 'default' && project.isEnabled)}
-                              >
-                                {project.isEnabled ? '停用' : '启用'}
-                              </button>
-                              {project.projectKey !== 'default' && (
-                                <button
-                                  onClick={() => handleDeleteProject(project)}
-                                  className={inlineActionButtonClassName}
-                                  disabled={loading}
-                                >
-                                  删除
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </DashboardTableContainer>
-
-                <DashboardPaginationBar
-                  currentPage={projectManagementPage.currentPage}
-                  totalPages={projectManagementPage.totalPages}
-                  summary={`显示第 ${projectManagementStartIndex} - ${projectManagementEndIndex} 条，共 ${projectManagementPage.totalItems} 条记录`}
-                  onPageChange={setProjectManagementCurrentPage}
-                  buttonClassName={paginationButtonClassName}
-                  activeButtonClassName={paginationActiveButtonClassName}
-                />
-
-                {projectManagementPage.totalItems === 0 && (
-                  <div className="py-8 text-center text-gray-500">
-                    {projects.length === 0 ? '暂无项目数据' : '暂无匹配的项目'}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <ProjectWorkspace
+            activeTab={projectWorkspaceTab}
+            onTabChange={setProjectWorkspaceTab}
+            enabledProjectsCount={enabledProjectsCount}
+            disabledProjectsCount={disabledProjectsCount}
+            loading={loading}
+            createForm={projectWorkspaceCreateForm}
+            manageView={projectWorkspaceManageView}
+            panelClassName={panelClassName}
+            workspaceSummaryCardClassName={workspaceSummaryCardClassName}
+            compactInputClassName={compactInputClassName}
+            primaryButtonClassName={primaryButtonClassName}
+            paginationButtonClassName={paginationButtonClassName}
+            paginationActiveButtonClassName={paginationActiveButtonClassName}
+          />
         )}
 
         {activeTab === 'generate' && (
@@ -2479,9 +2131,9 @@ export default function DashboardPage() {
 
               <form onSubmit={handleGenerateCodes} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">所属项目</label>
+                  <DashboardFormField label="所属项目" htmlFor="generate-selected-project-key">
                     <select
+                      id="generate-selected-project-key"
                       value={selectedProjectKey}
                       onChange={(e) => setSelectedProjectKey(e.target.value)}
                       className={compactInputClassName}
@@ -2492,11 +2144,11 @@ export default function DashboardPage() {
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </DashboardFormField>
 
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">授权类型</label>
+                  <DashboardFormField label="授权类型" htmlFor="generate-license-mode">
                     <select
+                      id="generate-license-mode"
                       value={licenseMode}
                       onChange={(e) => setLicenseMode(e.target.value as LicenseModeValue)}
                       className={compactInputClassName}
@@ -2504,11 +2156,11 @@ export default function DashboardPage() {
                       <option value="TIME">时间型</option>
                       <option value="COUNT">次数型</option>
                     </select>
-                  </div>
+                  </DashboardFormField>
 
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">生成数量</label>
+                  <DashboardFormField label="生成数量" htmlFor="generate-amount">
                     <input
+                      id="generate-amount"
                       type="number"
                       min="1"
                       max="100"
@@ -2517,14 +2169,14 @@ export default function DashboardPage() {
                       className={compactInputClassName}
                       required
                     />
-                  </div>
+                  </DashboardFormField>
                 </div>
 
                 {licenseMode === 'TIME' ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">套餐类型</label>
+                    <DashboardFormField label="套餐类型" htmlFor="generate-card-type">
                       <select
+                        id="generate-card-type"
                         value={selectedCardType}
                         onChange={(e) => handleCardTypeChange(e.target.value)}
                         className={compactInputClassName}
@@ -2536,10 +2188,10 @@ export default function DashboardPage() {
                           </option>
                         ))}
                       </select>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">有效期（天）</label>
+                    </DashboardFormField>
+                    <DashboardFormField label="有效期（天）" htmlFor="generate-expiry-days">
                       <input
+                        id="generate-expiry-days"
                         type="number"
                         min="1"
                         value={selectedCardType === '自定义' ? customDays : expiryDays}
@@ -2555,22 +2207,19 @@ export default function DashboardPage() {
                         className={compactInputClassName}
                         required
                       />
-                    </div>
-                    <div className="flex items-end">
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className={`w-full ${primaryButtonClassName}`}
-                      >
-                        {loading ? '生成中...' : '生成时间型激活码'}
-                      </button>
-                    </div>
+                    </DashboardFormField>
+                    <DashboardSubmitField
+                      idleText="生成时间型激活码"
+                      loadingText="生成中..."
+                      loading={loading}
+                      buttonClassName={primaryButtonClassName}
+                    />
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">总次数</label>
+                    <DashboardFormField label="总次数" htmlFor="generate-total-count">
                       <input
+                        id="generate-total-count"
                         type="number"
                         min="1"
                         value={totalCount}
@@ -2578,16 +2227,13 @@ export default function DashboardPage() {
                         className={compactInputClassName}
                         required
                       />
-                    </div>
-                    <div className="flex items-end">
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className={`w-full ${primaryButtonClassName}`}
-                      >
-                        {loading ? '生成中...' : '生成次数型激活码'}
-                      </button>
-                    </div>
+                    </DashboardFormField>
+                    <DashboardSubmitField
+                      idleText="生成次数型激活码"
+                      loadingText="生成中..."
+                      loading={loading}
+                      buttonClassName={primaryButtonClassName}
+                    />
                   </div>
                 )}
               </form>
@@ -2605,38 +2251,23 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                <DashboardTableContainer>
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-slate-50/90">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">项目</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">激活码</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">授权类型</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">规格</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">创建时间</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">剩余次数</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">操作</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {generatedCodes.map((code) => (
-                        <tr key={code.id} className="transition hover:bg-slate-50/80">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getProjectDisplay(code)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{code.code}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getLicenseModeDisplay(code.licenseMode)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getSpecDisplay(code)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(code.createdAt).toLocaleString()}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getRemainingDisplay(code)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onClick={() => void copyToClipboard(code.code)} className={inlineActionButtonClassName}>
-                              复制
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </DashboardTableContainer>
+                <DashboardDataTable headers={['项目', '激活码', '授权类型', '规格', '创建时间', '剩余次数', '操作']}>
+                  {generatedCodes.map((code) => (
+                    <tr key={code.id} className="transition hover:bg-slate-50/80">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getProjectDisplay(code)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{code.code}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getLicenseModeDisplay(code.licenseMode)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getSpecDisplay(code)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(code.createdAt).toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getRemainingDisplay(code)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <DashboardInlineActionButton onClick={() => void copyToClipboard(code.code)}>
+                          复制
+                        </DashboardInlineActionButton>
+                      </td>
+                    </tr>
+                  ))}
+                </DashboardDataTable>
               </div>
             )}
           </div>
@@ -2897,62 +2528,36 @@ export default function DashboardPage() {
                   <DashboardLoadingState message="加载中..." />
                 ) : (
                   <>
-                    <DashboardTableContainer>
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-slate-50/90">
-                          <tr>
-                            {[
-                              '项目',
-                              '激活码',
-                              '状态',
-                              '授权类型',
-                              '规格',
-                              '创建时间',
-                              '过期时间',
-                              '剩余次数',
-                              '使用时间',
-                              '使用者',
-                              '操作',
-                            ].map((title) => (
-                              <th
-                                key={title}
-                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                              >
-                                {title}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                          {paginatedCodes.map((code) => (
-                            <tr key={code.id} className="transition hover:bg-slate-50/80">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getProjectDisplay(code)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{code.code}</td>
-                              <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(code)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getLicenseModeDisplay(code.licenseMode)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getSpecDisplay(code)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(code.createdAt).toLocaleString()}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getExpiryDisplay(code)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getRemainingDisplay(code)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {code.usedAt ? new Date(code.usedAt).toLocaleString() : '-'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{code.usedBy || '-'}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex flex-wrap gap-2">
-                                  <button onClick={() => void copyToClipboard(code.code)} className={inlineActionButtonClassName}>
-                                    复制
-                                  </button>
-                                  <button onClick={() => handleDeleteCode(code.id)} className={inlineActionButtonClassName}>
-                                    删除
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </DashboardTableContainer>
+                    <DashboardDataTable
+                      headers={['项目', '激活码', '状态', '授权类型', '规格', '创建时间', '过期时间', '剩余次数', '使用时间', '使用者', '操作']}
+                    >
+                      {paginatedCodes.map((code) => (
+                        <tr key={code.id} className="transition hover:bg-slate-50/80">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getProjectDisplay(code)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{code.code}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(code)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getLicenseModeDisplay(code.licenseMode)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getSpecDisplay(code)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(code.createdAt).toLocaleString()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getExpiryDisplay(code)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getRemainingDisplay(code)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {code.usedAt ? new Date(code.usedAt).toLocaleString() : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{code.usedBy || '-'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex flex-wrap gap-2">
+                              <DashboardInlineActionButton onClick={() => void copyToClipboard(code.code)}>
+                                复制
+                              </DashboardInlineActionButton>
+                              <DashboardInlineActionButton onClick={() => handleDeleteCode(code.id)}>
+                                删除
+                              </DashboardInlineActionButton>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </DashboardDataTable>
 
                     {filteredCodes.length === 0 && (
                       <DashboardEmptyState
@@ -3264,55 +2869,34 @@ export default function DashboardPage() {
                   <DashboardLoadingState message={consumptionRefreshStatusText} />
                 ) : (
                   <>
-                    <DashboardTableContainer>
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-slate-50/90">
-                          <tr>
-                            {[
-                              '项目',
-                              '激活码',
-                              'requestId',
-                              '机器ID',
-                              '授权类型',
-                              '剩余次数',
-                              '消费时间',
-                            ].map((title) => (
-                              <th
-                                key={title}
-                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                              >
-                                {title}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {consumptionLogs.map((log) => (
-                            <tr key={log.id} className="transition hover:bg-slate-50/80">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
-                                {log.activationCode.project.name}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
-                                {log.activationCode.code}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-500">
-                                {log.requestId}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{log.machineId}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                {getLicenseModeDisplay(log.activationCode.licenseMode)}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
-                                {log.remainingCountAfter}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                {new Date(log.createdAt).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </DashboardTableContainer>
+                    <DashboardDataTable
+                      headers={['项目', '激活码', 'requestId', '机器ID', '授权类型', '剩余次数', '消费时间']}
+                      bodyClassName="bg-white divide-y divide-gray-200"
+                    >
+                      {consumptionLogs.map((log) => (
+                        <tr key={log.id} className="transition hover:bg-slate-50/80">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
+                            {log.activationCode.project.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
+                            {log.activationCode.code}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-500">
+                            {log.requestId}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{log.machineId}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            {getLicenseModeDisplay(log.activationCode.licenseMode)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
+                            {log.remainingCountAfter}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </DashboardDataTable>
 
                     {consumptionLogs.length === 0 && (
                       <DashboardEmptyState
@@ -3341,608 +2925,38 @@ export default function DashboardPage() {
         )}
 
         {activeTab === 'changePassword' && (
-          <div className="space-y-6">
-            <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-              <div className={`${panelClassName} relative overflow-hidden p-6 sm:p-7`}>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.12),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.12),transparent_28%)]" />
-                <div className="relative">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/80 bg-white/80 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-emerald-700 shadow-sm">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    凭证安全
-                  </div>
-
-                  <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="max-w-2xl">
-                      <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-                        管理员密码工作台
-                      </h2>
-                      <p className="mt-2 text-sm leading-7 text-slate-500 sm:text-base">
-                        在修改前先完成实时检查，确保新密码可用、可记忆，并符合后台最基本的安全要求。
-                      </p>
-                    </div>
-
-                    <div className="rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 text-sm leading-6 text-slate-600 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]">
-                      已完成 <span className="font-semibold text-slate-900">{completedPasswordChecklistCount}</span> /{' '}
-                      {changePasswordPageModel.checklist.length} 项安全检查。
-                    </div>
-                  </div>
-
-                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    {changePasswordPageModel.summaryCards.map((card) => {
-                      const summaryCardTheme = changePasswordSummaryCardThemeMap[card.tone]
-
-                      return (
-                        <div
-                          key={card.label}
-                          className={`relative overflow-hidden rounded-[24px] border px-5 py-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.3)] ${summaryCardTheme.panel}`}
-                        >
-                          <div className={`absolute inset-x-5 top-0 h-1 rounded-full ${summaryCardTheme.accent}`} />
-                          <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                            {card.label}
-                          </div>
-                          <div className={`mt-3 text-3xl font-semibold tracking-tight ${summaryCardTheme.value}`}>
-                            {card.value}
-                          </div>
-                          <div className="mt-2 text-sm leading-6 text-slate-500">{card.description}</div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div className={`${panelClassName} relative overflow-hidden border-emerald-100 bg-[linear-gradient(180deg,rgba(240,253,244,0.96),rgba(255,255,255,0.94))] p-6`}>
-                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-sky-400 to-indigo-400" />
-                <div className="relative">
-                  <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-emerald-700">
-                    修改后行为
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">完成后会立即触发这些变化</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    密码修改属于即时生效操作，建议在一个稳定的网络环境下完成。
-                  </p>
-
-                  <div className="mt-5 space-y-3">
-                    {[
-                      '后台会先校验当前密码，只有验证通过后才会写入新的管理员凭据。',
-                      '新密码会按系统当前 bcrypt 轮数重新哈希，安全成本与系统配置保持一致。',
-                      '修改成功后会在 3 秒内自动登出，方便让所有旧会话失效并重新验证。',
-                    ].map((tip, index) => (
-                      <div
-                        key={tip}
-                        className="flex items-start gap-3 rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 text-sm leading-7 text-slate-600 shadow-sm"
-                      >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-xs font-semibold text-white shadow-sm">
-                          0{index + 1}
-                        </div>
-                        <div>{tip}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <div className="rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 shadow-sm">
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">自动登出</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">3 秒</div>
-                      <div className="mt-1 text-sm text-slate-500">修改成功后的安全退出窗口</div>
-                    </div>
-                    <div className="rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 shadow-sm">
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">最低长度</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">6 位</div>
-                      <div className="mt-1 text-sm text-slate-500">接口层当前要求的最小值</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
-              <form onSubmit={handleChangePassword} className={`${panelClassName} relative overflow-hidden p-6`}>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.1),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.08),transparent_26%)]" />
-                <div className="relative">
-                  <div className="mb-5">
-                    <div className="inline-flex items-center rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-slate-700">
-                      更新凭据
-                    </div>
-                    <h3 className="mt-4 text-xl font-semibold text-slate-900">修改管理员密码</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                      建议使用至少 10 位、包含数字与符号的新密码，以降低后台被撞库和弱口令命中的风险。
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    {[
-                      {
-                        key: 'currentPassword',
-                        label: '当前密码',
-                        description: '用于验证当前操作者身份。',
-                        value: currentPassword,
-                        onChange: setCurrentPassword,
-                        placeholder: '请输入当前密码',
-                        autoComplete: 'current-password',
-                        minLength: undefined,
-                      },
-                      {
-                        key: 'newPassword',
-                        label: '新密码',
-                        description: '建议至少 10 位，并加入数字与符号。',
-                        value: newPassword,
-                        onChange: setNewPassword,
-                        placeholder: '请输入新密码（至少6位）',
-                        autoComplete: 'new-password',
-                        minLength: 6,
-                      },
-                      {
-                        key: 'confirmPassword',
-                        label: '确认新密码',
-                        description: '再次输入新密码，避免误保存。',
-                        value: confirmPassword,
-                        onChange: setConfirmPassword,
-                        placeholder: '请再次输入新密码',
-                        autoComplete: 'new-password',
-                        minLength: 6,
-                      },
-                    ].map((field) => (
-                      <div
-                        key={field.key}
-                        className="rounded-[24px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.35)] backdrop-blur"
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <label
-                              htmlFor={field.key}
-                              className="text-base font-semibold text-slate-900"
-                            >
-                              {field.label}
-                            </label>
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
-                              {field.description}
-                            </p>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => togglePasswordFieldVisibility(field.key)}
-                            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-                          >
-                            {isPasswordFieldVisible(field.key) ? '隐藏内容' : '显示内容'}
-                          </button>
-                        </div>
-
-                        <div className="mt-4">
-                          <input
-                            type={isPasswordFieldVisible(field.key) ? 'text' : 'password'}
-                            id={field.key}
-                            value={field.value}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            className={inputClassName}
-                            placeholder={field.placeholder}
-                            required
-                            minLength={field.minLength}
-                            autoComplete={field.autoComplete}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-5 rounded-[26px] border border-slate-900/10 bg-slate-950/95 p-5 text-white shadow-[0_24px_64px_-42px_rgba(15,23,42,0.7)]">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
-                        <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-slate-200">
-                          确认后立即生效
-                        </div>
-                        <h3 className="mt-3 text-base font-semibold text-white">准备提交本次密码变更？</h3>
-                        <p className="mt-1 text-sm leading-6 text-slate-300">
-                          修改成功后系统会提示重新登录，并在 3 秒内自动退出当前会话。
-                        </p>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-slate-950/30 transition hover:-translate-y-0.5 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
-                      >
-                        {loading ? '修改中...' : '修改密码'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-
-              <div className="space-y-6">
-                <div className={`${panelClassName} p-6`}>
-                  <div className="mb-5 flex items-start justify-between gap-4">
-                    <div>
-                      <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-sky-700">
-                        实时校验
-                      </div>
-                      <h3 className="mt-4 text-lg font-semibold text-slate-900">当前密码安全检查</h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
-                        输入时会即时反馈关键检查项，减少提交后报错的来回成本。
-                      </p>
-                    </div>
-
-                    <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                      {completedPasswordChecklistCount} / {changePasswordPageModel.checklist.length} 已通过
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {changePasswordPageModel.checklist.map((item) => (
-                      <div
-                        key={item.key}
-                        className={`flex items-start gap-3 rounded-[22px] border px-4 py-4 ${changePasswordChecklistToneMap[String(item.satisfied) as 'true' | 'false']}`}
-                      >
-                        <div
-                          className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${
-                            item.satisfied ? 'bg-emerald-600 text-white' : 'bg-white text-slate-400'
-                          }`}
-                        >
-                          {item.satisfied ? '✓' : '·'}
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold">{item.label}</div>
-                          <div className="mt-1 text-sm leading-6 opacity-90">{item.description}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`${panelClassName} relative overflow-hidden border-violet-100 bg-[linear-gradient(180deg,rgba(245,243,255,0.96),rgba(255,255,255,0.94))] p-6`}>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.12),transparent_30%)]" />
-                  <div className="relative">
-                    <div className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-violet-700">
-                      安全建议
-                    </div>
-                    <h3 className="mt-4 text-lg font-semibold text-slate-900">给管理员密码留一点冗余</h3>
-                    <div className="mt-4 grid gap-3">
-                      {[
-                        '优先使用“词组 + 数字 + 符号”的组合，既更强也更容易记忆。',
-                        '避免复用项目 key、公司名、手机号等容易被猜中的信息。',
-                        '如在多人环境共用后台，建议定期轮换管理员密码并缩短会话时长。',
-                      ].map((tip) => (
-                        <div
-                          key={tip}
-                          className="rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 text-sm leading-7 text-slate-600 shadow-sm"
-                        >
-                          {tip}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ChangePasswordWorkspace
+            pageModel={changePasswordPageModel}
+            completedChecklistCount={completedPasswordChecklistCount}
+            currentPassword={currentPassword}
+            newPassword={newPassword}
+            confirmPassword={confirmPassword}
+            loading={loading}
+            inputClassName={inputClassName}
+            panelClassName={panelClassName}
+            onSubmit={handleChangePassword}
+            onCurrentPasswordChange={setCurrentPassword}
+            onNewPasswordChange={setNewPassword}
+            onConfirmPasswordChange={setConfirmPassword}
+            togglePasswordFieldVisibility={togglePasswordFieldVisibility}
+            isPasswordFieldVisible={isPasswordFieldVisible}
+          />
         )}
 
         {activeTab === 'systemConfig' && (
-          <div className="space-y-6 pb-10">
-            <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-              <div className={`${panelClassName} relative overflow-hidden p-6 sm:p-7`}>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.12),transparent_30%)]" />
-                <div className="relative">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/80 bg-white/80 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-sky-700 shadow-sm">
-                    <span className="h-2 w-2 rounded-full bg-sky-500" />
-                    配置工作台
-                  </div>
-
-                  <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="max-w-2xl">
-                      <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-                        系统配置中心
-                      </h2>
-                      <p className="mt-2 text-sm leading-7 text-slate-500 sm:text-base">
-                        把访问控制、登录安全和系统展示统一放进一个更清晰、更有层次的配置工作台。
-                      </p>
-                    </div>
-
-                    <div className="rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 text-sm leading-6 text-slate-600 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]">
-                      已归纳为 <span className="font-semibold text-slate-900">{systemConfigPageModel.groups.length}</span>{' '}
-                      个配置分区，保存后会立即写入系统配置表。
-                    </div>
-                  </div>
-
-                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {systemConfigPageModel.summaryCards.map((card) => {
-                      const summaryCardTheme =
-                        systemConfigSummaryCardThemeMap[
-                          card.label as keyof typeof systemConfigSummaryCardThemeMap
-                        ] || systemConfigSummaryCardThemeMap.配置项
-
-                      return (
-                        <div
-                          key={card.label}
-                          className={`group relative overflow-hidden rounded-[24px] border px-5 py-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.3)] transition hover:-translate-y-0.5 ${summaryCardTheme.panel}`}
-                        >
-                          <div className={`absolute inset-x-5 top-0 h-1 rounded-full ${summaryCardTheme.accent}`} />
-                          <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{card.label}</div>
-                          <div
-                            className={`mt-3 text-3xl font-semibold tracking-tight ${summaryCardTheme.value}`}
-                          >
-                            {card.value}
-                          </div>
-                          <div className="mt-2 text-sm leading-6 text-slate-500">
-                            {card.description}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div className={`${panelClassName} relative overflow-hidden border-violet-100 bg-[linear-gradient(180deg,rgba(250,245,255,0.96),rgba(255,255,255,0.94))] p-6`}>
-                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 via-fuchsia-400 to-sky-400" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.12),transparent_30%)]" />
-                <div className="relative">
-                  <div className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-violet-700">
-                    变更前提示
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">先确认这些关键影响</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    配置页里所有更改都属于即时生效型操作，建议先从影响面最大的项开始检查。
-                  </p>
-
-                  <div className="mt-5 space-y-3">
-                    {[
-                      '修改 JWT 密钥后，当前所有管理员会话都需要重新登录。',
-                      '调整 IP 白名单前，请确认当前访问 IP 已被包含，避免把自己锁在系统外。',
-                      '提升 bcrypt 轮数会增强安全性，但登录与改密耗时也会增加。',
-                    ].map((tip, index) => (
-                      <div
-                        key={tip}
-                        className="flex items-start gap-3 rounded-[22px] border border-white/80 bg-white/75 px-4 py-4 text-sm leading-7 text-slate-600 shadow-sm backdrop-blur"
-                      >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-xs font-semibold text-white shadow-sm">
-                          0{index + 1}
-                        </div>
-                        <div>{tip}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <div className="rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 shadow-sm">
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">敏感项</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {systemConfigSensitiveCount}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">涉及会话或凭证配置</div>
-                    </div>
-                    <div className="rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 shadow-sm">
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">白名单地址</div>
-                      <div className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-                        {systemConfigWhitelistEntryCount}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">当前允许访问后台的来源</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {loading && systemConfigs.length === 0 ? (
-              <div className={`${panelClassName} p-10 text-center`}>
-                <div className="inline-block h-9 w-9 animate-spin rounded-full border-b-2 border-sky-600" />
-                <p className="mt-3 text-sm text-slate-500">正在加载系统配置...</p>
-              </div>
-            ) : systemConfigPageModel.groups.length === 0 ? (
-              <div className={`${panelClassName} p-10 text-center text-slate-500`}>
-                暂无系统配置数据
-              </div>
-            ) : (
-              <form onSubmit={handleUpdateSystemConfig} className="space-y-6">
-                {systemConfigPageModel.groups.map((group) => {
-                  const groupTheme = systemConfigGroupThemeMap[group.key]
-
-                  return (
-                    <section
-                      key={group.key}
-                      className={`${panelClassName} ${groupTheme.panel} relative overflow-hidden`}
-                    >
-                      <div className={`absolute inset-y-6 left-0 w-1 rounded-full bg-gradient-to-b ${groupTheme.rail}`} />
-                      <div className="grid gap-0 xl:grid-cols-[280px_minmax(0,1fr)]">
-                        <div className={`border-b px-6 py-6 xl:border-b-0 xl:border-r ${groupTheme.divider}`}>
-                          <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-[0.18em] ${groupTheme.badge}`}>
-                            <span className={`h-2 w-2 rounded-full ${groupTheme.dot}`} />
-                            {group.badge}
-                          </div>
-                          <h3 className={`mt-4 text-xl font-semibold tracking-tight ${groupTheme.title}`}>
-                            {group.title}
-                          </h3>
-                          <p className="mt-2 text-sm leading-7 text-slate-500">{group.description}</p>
-
-                          <div className="mt-5 flex flex-wrap gap-2">
-                            <span className="rounded-full border border-white/80 bg-white/85 px-3 py-1.5 text-xs font-medium text-slate-500 shadow-sm">
-                              {group.items.length} 项配置
-                            </span>
-                            <span className="rounded-full border border-white/80 bg-white/85 px-3 py-1.5 text-xs font-medium text-slate-500 shadow-sm">
-                              {group.items.filter((item) => item.sensitive).length} 个敏感项
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="p-6">
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {group.items.map((item) => (
-                              <article
-                                key={item.key}
-                                className={`group relative overflow-hidden rounded-[26px] border border-white/85 bg-white/92 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.35)] backdrop-blur transition hover:-translate-y-0.5 hover:shadow-[0_24px_64px_-42px_rgba(15,23,42,0.38)] ${
-                                  item.layout === 'full' ? 'md:col-span-2' : ''
-                                }`}
-                              >
-                                <div className={`absolute inset-x-5 top-0 h-px bg-gradient-to-r ${groupTheme.rail} opacity-80`} />
-
-                                <div className="relative">
-                                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                    <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <h4 className="text-base font-semibold text-slate-900">
-                                          {item.label}
-                                        </h4>
-                                        {item.badges?.map((badge) => (
-                                          <span
-                                            key={`${item.key}-${badge.label}`}
-                                            className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${systemConfigBadgeClassNameMap[badge.tone]}`}
-                                          >
-                                            {badge.label}
-                                          </span>
-                                        ))}
-                                      </div>
-                                      <p className="mt-2 text-sm leading-6 text-slate-500">
-                                        {item.description}
-                                      </p>
-                                    </div>
-
-                                    {item.sensitive && (
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleSensitiveConfigVisibility(item.key)}
-                                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-                                      >
-                                        {isSensitiveConfigVisible(item.key) ? '隐藏内容' : '显示内容'}
-                                      </button>
-                                    )}
-                                  </div>
-
-                                  <div className="mt-4 space-y-4">
-                                    {item.inputKind === 'textarea' ? (
-                                      <textarea
-                                        value={Array.isArray(item.value) ? item.value.join('\n') : String(item.value || '')}
-                                        onChange={(e) => {
-                                          const ips = e.target.value
-                                            .split('\n')
-                                            .map((ip) => ip.trim())
-                                            .filter(Boolean)
-                                          updateConfigValue(item.key, ips)
-                                        }}
-                                        className={`${inputClassName} min-h-[152px] resize-y`}
-                                        rows={5}
-                                        placeholder={item.placeholder}
-                                      />
-                                    ) : item.inputKind === 'number' ? (
-                                      <input
-                                        type="number"
-                                        min="4"
-                                        max="15"
-                                        value={item.value}
-                                        onChange={(e) => {
-                                          const nextValue = Number.parseInt(e.target.value, 10)
-                                          updateConfigValue(item.key, Number.isNaN(nextValue) ? 4 : nextValue)
-                                        }}
-                                        className={inputClassName}
-                                      />
-                                    ) : item.inputKind === 'select' ? (
-                                      <select
-                                        value={String(item.value)}
-                                        onChange={(e) => updateConfigValue(item.key, e.target.value)}
-                                        className={inputClassName}
-                                      >
-                                        {item.options?.map((option) => (
-                                          <option key={option.value} value={option.value}>
-                                            {option.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    ) : (
-                                      <input
-                                        type={
-                                          item.inputKind === 'password'
-                                            ? (isSensitiveConfigVisible(item.key) ? 'text' : 'password')
-                                            : 'text'
-                                        }
-                                        value={String(item.value ?? '')}
-                                        onChange={(e) => updateConfigValue(item.key, e.target.value)}
-                                        className={`${inputClassName} ${
-                                          item.sensitive ? 'font-mono tracking-[0.08em]' : ''
-                                        }`}
-                                        placeholder={item.placeholder}
-                                      />
-                                    )}
-
-                                    {item.previewTokens && (
-                                      <div className="rounded-[20px] border border-white/80 bg-white/82 p-4 shadow-sm">
-                                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                          当前白名单预览
-                                        </div>
-                                        <div className="mt-3 flex flex-wrap gap-2">
-                                          {item.previewTokens.length > 0 ? (
-                                            item.previewTokens.map((token) => (
-                                              <span
-                                                key={`${item.key}-${token}`}
-                                                className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-700"
-                                              >
-                                                {token}
-                                              </span>
-                                            ))
-                                          ) : (
-                                            <span className="rounded-full border border-dashed border-slate-200 px-3 py-1.5 text-xs text-slate-400">
-                                              尚未填写 IP 地址
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div className={`mt-4 rounded-[20px] border px-4 py-3 ${groupTheme.note}`}>
-                                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] opacity-70">
-                                      操作建议
-                                    </div>
-                                    <div className="text-sm leading-6">{item.hint}</div>
-                                  </div>
-                                </div>
-                              </article>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-                  )
-                })}
-
-                <div className="relative">
-                  <div className="relative overflow-hidden rounded-[28px] border border-slate-900/10 bg-slate-950/95 p-5 text-white shadow-[0_32px_90px_-48px_rgba(15,23,42,0.7)] backdrop-blur">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.16),transparent_34%)]" />
-                    <div className="relative flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                      <div>
-                        <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-slate-200">
-                          保存后立即生效
-                        </div>
-                        <h3 className="mt-3 text-lg font-semibold text-white">准备保存本次配置变更？</h3>
-                        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
-                          保存后会立即写入系统配置表；涉及认证与白名单的变更会立刻影响后台访问行为。
-                        </p>
-
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-slate-200">
-                            {systemConfigs.length} 项配置
-                          </span>
-                          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-slate-200">
-                            {systemConfigSensitiveCount} 个敏感项
-                          </span>
-                          <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-slate-200">
-                            {systemConfigWhitelistEntryCount} 个白名单地址
-                          </span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-slate-950/30 transition hover:-translate-y-0.5 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
-                      >
-                        {loading ? '保存中...' : '保存配置'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            )}
-          </div>
+          <SystemConfigWorkspace
+            pageModel={systemConfigPageModel}
+            systemConfigsCount={systemConfigs.length}
+            sensitiveCount={systemConfigSensitiveCount}
+            whitelistEntryCount={systemConfigWhitelistEntryCount}
+            loading={loading}
+            inputClassName={inputClassName}
+            panelClassName={panelClassName}
+            onSubmit={handleUpdateSystemConfig}
+            updateConfigValue={updateConfigValue}
+            toggleSensitiveConfigVisibility={toggleSensitiveConfigVisibility}
+            isSensitiveConfigVisible={isSensitiveConfigVisible}
+          />
         )}
       </div>
     </main>

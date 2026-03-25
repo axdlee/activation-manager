@@ -2313,49 +2313,120 @@
 
 ---
 
-### 2026-03-25 / Iteration 40
+### 2026-03-25 / Iteration 41
 
-**目标**：继续推进 `P3-01`，把 dashboard 结果区重复的空状态提示收口成统一组件，减少提示样板并统一结果页的空列表反馈。
+**目标**：继续推进 `P3-01`，把 dashboard 多处重复的表格外层容器收口成统一组件，进一步减少结果区表格样板并统一视觉骨架。
 
 **已完成**：
 
-- [x] 新增通用 `DashboardEmptyState`
-- [x] 激活码结果页 / 消费日志结果页的空状态提示已统一复用
-- [x] 新增组件级回归测试并通过全量门禁
+- [x] 新增通用 `DashboardTableContainer`
+- [x] 项目列表 / 本次生成激活码 / 激活码结果 / 消费日志结果的 4 处表格外壳已统一复用
+- [x] 清理页面级 `tableContainerClassName`
 
 **本轮落地内容**：
 
-1. `src/components/dashboard-empty-state.tsx`
-   - 新增 dashboard 空状态组件
+1. `src/components/dashboard-table-container.tsx`
+   - 新增 dashboard 表格容器组件
    - 收口字段：
-     - `message`
+     - `children`
      - `className`
 2. `src/app/admin/dashboard/page.tsx`
-   - 激活码结果空状态改为 `DashboardEmptyState`
-   - 消费日志结果空状态改为 `DashboardEmptyState`
-   - 清理已失效的页面级 `emptyStateClassName`
-   - 页面文件在继续整理后维持在 **3931 行**
-3. `tests/dashboard-empty-state.test.ts`
+   - 项目列表表格改为 `DashboardTableContainer`
+   - 本次生成激活码表格改为 `DashboardTableContainer`
+   - 激活码结果表格改为 `DashboardTableContainer`
+   - 消费日志结果表格改为 `DashboardTableContainer`
+3. `tests/dashboard-table-container.test.ts`
    - 锁定：
-     - 默认空状态样式
-     - 文案渲染
-     - 自定义 `className` 追加
+     - 默认表格容器样式
+     - 子节点渲染
+     - 自定义 `className` 覆盖
 
 **验证结果**：
 
 1. RED：
-   - `node --import tsx --test "tests/dashboard-empty-state.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+   - `node --import tsx --test "tests/dashboard-table-container.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
 2. GREEN：
-   - `node --import tsx --test "tests/dashboard-empty-state.test.ts"` ✅
-   - `node --import tsx --test "tests/dashboard-empty-state.test.ts" "tests/dashboard-pagination-bar.test.ts" "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+   - `node --import tsx --test "tests/dashboard-table-container.test.ts"` ✅
+   - `node --import tsx --test "tests/dashboard-table-container.test.ts" "tests/dashboard-empty-state.test.ts" "tests/dashboard-pagination-bar.test.ts" "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+
+**备注**：
+
+- 结果区当前已形成“头部 / 摘要 / 表格容器 / 分页 / 空状态”的稳定复用边界
+- 后续继续拆筛选卡组和加载态时，不再需要在页面里重复维护表格外层阴影与圆角样式
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆筛选卡组或加载态区块
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 42
+
+**目标**：继续推进 `P3-01`，把 dashboard 筛选工作区中重复的字段卡片与结果页加载区块收口成统一组件，进一步统一输入表单视觉语义与加载反馈。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardFilterFieldCard`
+- [x] 新增通用 `DashboardLoadingState`
+- [x] 激活码 / 消费日志工作区的 10 个筛选卡片已统一复用
+- [x] 激活码结果页 / 消费日志结果页的加载态已统一复用
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-filter-field-card.tsx`
+   - 新增 dashboard 筛选字段卡片组件
+   - 收口字段：
+     - `label`
+     - `description`
+     - `children`
+     - `htmlFor`
+     - `className`
+     - `bodyClassName`
+   - 在未提供 `htmlFor` 时退化为纯展示标题，避免对非表单按钮使用无意义的 label 语义
+2. `src/components/dashboard-loading-state.tsx`
+   - 新增 dashboard 通用加载态组件
+   - 收口字段：
+     - `message`
+     - `className`
+3. `src/app/admin/dashboard/page.tsx`
+   - 激活码筛选区的搜索 / 状态 / 项目 / 套餐 / 导出卡片改为 `DashboardFilterFieldCard`
+   - 消费日志筛选区的搜索 / 项目 / 时间范围 / 刷新卡片改为 `DashboardFilterFieldCard`
+   - 为筛选控件补充 `id` 与 `htmlFor` 关联，改善语义一致性
+   - 激活码结果页与消费日志结果页 loading block 改为 `DashboardLoadingState`
+   - 页面文件当前维持在 **3950 行**，虽然增加了显式语义属性，但重复 UI 样板继续收口
+4. `tests/dashboard-filter-field-card.test.ts`
+   - 锁定：
+     - 默认卡片样式
+     - 标题 / 描述 / 内容区渲染
+     - `htmlFor` 透传
+     - 自定义卡片 / 内容区样式覆盖
+5. `tests/dashboard-loading-state.test.ts`
+   - 锁定：
+     - 默认加载态容器样式
+     - 旋转指示器渲染
+     - 文案渲染
+     - 自定义 `className` 覆盖
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-filter-field-card.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+   - `node --import tsx --test "tests/dashboard-loading-state.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-loading-state.test.ts" "tests/dashboard-filter-field-card.test.ts" "tests/dashboard-table-container.test.ts" "tests/dashboard-empty-state.test.ts" "tests/dashboard-pagination-bar.test.ts" "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
 3. 提交视角门禁：
    - `git diff --check` ✅
    - `npm run quality:gate` ✅
 4. 当前质量结果：
-   - 全量测试：**225 / 225** ✅
-   - 行覆盖率：**91.73%** ✅
-   - 分支覆盖率：**87.26%** ✅
-   - 函数覆盖率：**93.64%** ✅
+   - 全量测试：**231 / 231** ✅
+   - 行覆盖率：**91.79%** ✅
+   - 分支覆盖率：**87.44%** ✅
+   - 函数覆盖率：**93.79%** ✅
 
 **备注**：
 
@@ -2368,13 +2439,506 @@
   - `DashboardSummaryStrip`
   - `DashboardPaginationBar`
   - `DashboardEmptyState`
-- 结果区现在已经具备“头部 / 摘要 / 分页 / 空状态”四类明确的复用边界，后续继续拆表格容器时会明显更顺滑
+  - `DashboardTableContainer`
+  - `DashboardFilterFieldCard`
+  - `DashboardLoadingState`
+- 这一轮的重点不是机械压缩总代码行，而是把“重复的表单壳层 / 结果加载反馈”真正抽成稳定组件，并顺手补上更明确的表单关联语义
 
 **下一步**：
 
-1. 继续推进 `P3-01`：拆表格容器或筛选卡组
+1. 继续推进 `P3-01`：拆表格 head / body 骨架或统计筛选卡组
 2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
 3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 43
+
+**目标**：继续推进 `P3-01`，把 dashboard 各工作区重复的表格 head / body / header-cell 骨架收口成统一组件，进一步压缩页面样板并统一表格语义。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardDataTable`
+- [x] 项目统计 / 项目管理 / 本次生成激活码 / 激活码结果 / 消费日志结果的 5 张表格已统一复用
+- [x] dashboard 页面移除对 `DashboardTableContainer` 的直接拼装依赖，改为通过高层表格组件收口
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-data-table.tsx`
+   - 新增 dashboard 通用数据表格组件
+   - 复用 `DashboardTableContainer` 作为底层外壳
+   - 收口字段：
+     - `headers`
+     - `children`
+     - `containerClassName`
+     - `tableClassName`
+     - `headClassName`
+     - `bodyClassName`
+     - `headerCellClassName`
+2. `src/app/admin/dashboard/page.tsx`
+   - 项目统计表格改为 `DashboardDataTable`
+   - 项目管理表格改为 `DashboardDataTable`
+   - 本次生成激活码表格改为 `DashboardDataTable`
+   - 激活码结果表格改为 `DashboardDataTable`
+   - 消费日志结果表格改为 `DashboardDataTable`
+   - 页面文件进一步从 **3950 行** 收缩到 **3863 行**
+3. `tests/dashboard-data-table.test.ts`
+   - 锁定：
+     - 默认表格容器样式
+     - 表头渲染
+     - `tbody` 内容透传
+     - 自定义容器 / `thead` / `tbody` / `th` 样式覆盖
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-data-table.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-data-table.test.ts" "tests/dashboard-loading-state.test.ts" "tests/dashboard-filter-field-card.test.ts" "tests/dashboard-table-container.test.ts" "tests/dashboard-empty-state.test.ts" "tests/dashboard-pagination-bar.test.ts" "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` 待本轮完成后再次确认
+
+**备注**：
+
+- dashboard 当前的表格层次已变为：
+  - `DashboardDataTable`
+  - `DashboardTableContainer`
+- 当前页面里仍可继续抽离的重复热点，已经进一步聚焦到：
+  - 表格行级 badge / inline action 组合
+  - 项目统计与生成页表单区块
+  - 顶部统计 / 趋势区域中的信息卡片
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆表格行级 action / badge 组合或表单字段组
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 44
+
+**目标**：继续推进 `P3-01`，把 dashboard 中重复的状态徽标与行内操作按钮收口成统一组件，进一步统一视觉语言并减少页面内零散样板。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardStatusBadge`
+- [x] 新增通用 `DashboardInlineActionButton`
+- [x] 项目统计 / 项目管理 / 激活码状态展示已统一复用状态徽标组件
+- [x] 项目管理 / 发码结果 / 激活码结果中的行内复制 / 删除 / 保存动作已统一复用行内按钮组件
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-status-badge.tsx`
+   - 新增 dashboard 状态徽标组件
+   - 收口字段：
+     - `label`
+     - `tone`
+     - `className`
+   - 统一支持：
+     - `success`
+     - `neutral`
+     - `warning`
+     - `danger`
+     - `info`
+2. `src/components/dashboard-inline-action-button.tsx`
+   - 新增 dashboard 行内操作按钮组件
+   - 收口字段：
+     - 原生 `button` 属性透传
+     - `children`
+     - `className`
+   - 默认 `type="button"`，避免表格内按钮意外触发表单提交
+3. `src/app/admin/dashboard/page.tsx`
+   - `getStatusBadge` 改为复用 `DashboardStatusBadge`
+   - 项目统计表与项目管理表的项目状态展示改为复用 `DashboardStatusBadge`
+   - 项目标识复制、项目保存/启停/删除、发码结果复制、激活码结果复制/删除改为复用 `DashboardInlineActionButton`
+   - 清理页面级 `inlineActionButtonClassName`
+   - 页面文件进一步从 **3863 行** 收缩到 **3858 行**
+4. `tests/dashboard-status-badge.test.ts`
+   - 锁定：
+     - tone 对应默认样式
+     - 自定义 `className` 覆盖
+5. `tests/dashboard-inline-action-button.test.ts`
+   - 锁定：
+     - 默认 `type="button"`
+     - 默认按钮样式
+     - `disabled` 与自定义 `className` 透传
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-status-badge.test.ts" "tests/dashboard-inline-action-button.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-status-badge.test.ts" "tests/dashboard-inline-action-button.test.ts" "tests/dashboard-data-table.test.ts" "tests/dashboard-loading-state.test.ts" "tests/dashboard-filter-field-card.test.ts" "tests/dashboard-table-container.test.ts" "tests/dashboard-empty-state.test.ts" "tests/dashboard-pagination-bar.test.ts" "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` 待本轮完成后再次确认
+
+**备注**：
+
+- dashboard 当前已形成的可复用 UI 基础设施继续扩展为：
+  - `DashboardDataTable`
+  - `DashboardStatusBadge`
+  - `DashboardInlineActionButton`
+- 这一轮的重点是把“颜色语义”和“按钮触发表现”沉到组件层，减少页面里散落的 class 细节
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆项目创建 / 发码表单字段组，继续压 dashboard 大页面
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 45
+
+**目标**：继续推进 `P3-01`，把项目创建、项目筛选与发码页里重复的表单字段结构进一步收口，统一表单语义与字段壳层。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardFormField`
+- [x] 新建项目工作区 3 张字段卡片已改为复用 `DashboardFilterFieldCard`
+- [x] 项目管理筛选区与发码页表单的多处 label + control 样板已改为复用 `DashboardFormField`
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-form-field.tsx`
+   - 新增 dashboard 轻量字段组件
+   - 收口字段：
+     - `label`
+     - `children`
+     - `description`
+     - `htmlFor`
+     - `className`
+     - `labelClassName`
+     - `descriptionClassName`
+     - `bodyClassName`
+2. `src/app/admin/dashboard/page.tsx`
+   - 新建项目中的：
+     - 项目名称
+     - 项目标识
+     - 项目描述
+     改为复用 `DashboardFilterFieldCard`
+   - 项目管理筛选区中的：
+     - 搜索项目
+     - 状态筛选
+     - 排序方式
+     改为复用 `DashboardFormField`
+   - 发码页中的：
+     - 所属项目
+     - 授权类型
+     - 生成数量
+     - 套餐类型
+     - 有效期（天）
+     - 总次数
+     改为复用 `DashboardFormField`
+   - 为相关字段补充 `id / htmlFor` 关联，统一语义结构
+   - 页面文件当前为 **3870 行**；虽然为了表单语义和复用入口略有回弹，但重复结构边界更清晰
+3. `tests/dashboard-form-field.test.ts`
+   - 锁定：
+     - 默认 label / description / body 渲染
+     - `htmlFor` 透传
+     - 容器 / label / body 自定义样式覆盖
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-form-field.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-form-field.test.ts" "tests/dashboard-status-badge.test.ts" "tests/dashboard-inline-action-button.test.ts" "tests/dashboard-data-table.test.ts" "tests/dashboard-loading-state.test.ts" "tests/dashboard-filter-field-card.test.ts" "tests/dashboard-table-container.test.ts" "tests/dashboard-empty-state.test.ts" "tests/dashboard-pagination-bar.test.ts" "tests/dashboard-summary-strip.test.ts" "tests/dashboard-token-list.test.ts" "tests/dashboard-section-header.test.ts" "tests/workspace-hero-panel.test.ts" "tests/workspace-metric-card.test.ts" "tests/workspace-tab-nav.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` 待本轮完成后再次确认
+
+**备注**：
+
+- 当前 dashboard 表单层已形成两级复用：
+  - 卡片型字段：`DashboardFilterFieldCard`
+  - 轻量字段：`DashboardFormField`
+- 这轮重点不是单纯追求行数下降，而是把“字段语义 + label/for 关联 + 描述文案”沉成稳定基础设施
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆项目创建行动卡 / 发码提交区，继续压 dashboard 大页面
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：补更多 dashboard 内容组件回归并同步文档
+
+---
+
+### 2026-03-25 / Iteration 46
+
+**目标**：继续推进 `P3-01`，把 dashboard 中重复出现的深色行动卡与发码提交区收口为可复用组件，并用提交级门禁验证整体稳定性。
+
+**已完成**：
+
+- [x] 新增通用 `DashboardActionPanel`
+- [x] 新增通用 `DashboardSubmitField`
+- [x] 项目创建 / 修改密码 / 系统配置保存的深色 CTA 面板已接入统一组件
+- [x] 发码页 TIME / COUNT 两种模式的提交区已接入统一组件
+- [x] 完成新增组件的 TDD 与全量质量门禁
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-action-panel.tsx`
+   - 新增 dashboard 深色行动卡组件
+   - 收口内容：
+     - `badge`
+     - `title`
+     - `description`
+     - `action`
+     - `children`
+     - `background`
+     - 外层 / 内层 / 文案样式覆盖入口
+   - 既能承载标准暗色 CTA，也能兼容系统配置页带背景光斑和统计 chips 的增强卡片
+2. `src/components/dashboard-submit-field.tsx`
+   - 新增 dashboard 表单提交槽组件
+   - 收口内容：
+     - `idleText`
+     - `loadingText`
+     - `loading`
+     - `buttonClassName`
+     - `type`
+     - 提交禁用态与 `w-full` 按钮壳层
+3. `src/app/admin/dashboard/page.tsx`
+   - 项目创建区底部行动卡改为复用 `DashboardActionPanel`
+   - 修改密码区底部行动卡改为复用 `DashboardActionPanel`
+   - 系统配置区保存行动卡改为复用 `DashboardActionPanel`
+   - 发码页时间型 / 次数型提交区改为复用 `DashboardSubmitField`
+   - 页面文件进一步从 **3870 行** 收缩到 **3853 行**
+4. `tests/dashboard-action-panel.test.ts`
+   - 锁定：
+     - 默认暗色行动卡结构
+     - 标题 / 描述 / 操作区渲染
+     - 自定义样式覆盖
+     - 背景层插槽
+5. `tests/dashboard-submit-field.test.ts`
+   - 锁定：
+     - 默认提交槽结构
+     - `loading` 时文案切换与禁用
+     - 按钮类型透传
+     - 自定义容器 / 按钮样式覆盖
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-action-panel.test.ts" "tests/dashboard-submit-field.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-action-panel.test.ts" "tests/dashboard-submit-field.test.ts" "tests/dashboard-form-field.test.ts"` ✅
+   - 修复 `DashboardSubmitField` 的 `loading` 类型遗漏后，再次执行聚焦测试 ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+   - 全量测试：**243 / 243** ✅
+   - 覆盖率：
+     - 行覆盖率：**91.97%**
+     - 分支覆盖率：**87.30%**
+     - 函数覆盖率：**94.08%**
+
+**备注**：
+
+- 当前 dashboard 结构化复用基础设施继续扩展为：
+  - `DashboardActionPanel`
+  - `DashboardSubmitField`
+- 这轮重点不是新增视觉层，而是把“高频 CTA 结构 + 提交位语义”沉到组件层，减少页面内重复布局与状态切换样板
+- 本轮在 build 阶段捕获了 `loading` 自定义属性缺少类型声明的问题，已修复并重新通过全量门禁
+
+**下一步**：
+
+1. 继续推进 `P3-01`：拆项目管理表格中的行级编辑块（名称 / 描述 / projectKey 操作）
+2. 继续推进 `P3-02`：继续收口 `license-service` 领域编排职责
+3. 继续推进 `P3-05 / P4-04`：围绕 API 文档工作区与设置工作区补更多 UI 回归测试和视觉一致性治理
+
+---
+
+### 2026-03-25 / Iteration 47
+
+**目标**：继续推进 `P3-01`，把项目管理表格中的行级编辑块沉到组件层，进一步压缩 dashboard 大页面并统一项目编辑行语义。
+
+**已完成**：
+
+- [x] 新增 `DashboardProjectManagementRow`
+- [x] 项目管理表格的名称编辑 / 描述编辑 / 状态 / 操作区已接入统一行组件
+- [x] 完成新组件 TDD，并继续验证 dashboard 组件体系稳定性
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-project-management-row.tsx`
+   - 新增项目管理表格行组件
+   - 收口内容：
+     - 项目名称编辑输入
+     - 默认项目固定提示
+     - projectKey 展示与复制操作
+     - 描述编辑输入
+     - 状态徽标
+     - 保存名称 / 保存描述 / 启停 / 删除操作
+   - 将默认项目与普通项目的差异行为集中到单一职责组件中
+2. `src/app/admin/dashboard/page.tsx`
+   - 项目管理表格 row 结构改为复用 `DashboardProjectManagementRow`
+   - 页面文件进一步从 **3853 行** 收缩到 **3796 行**
+3. `tests/dashboard-project-management-row.test.ts`
+   - 锁定：
+     - 默认项目的固定提示、受限操作与删除按钮隐藏
+     - 普通项目的可编辑字段、状态与删除操作
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-project-management-row.test.ts"` ❌（组件不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-project-management-row.test.ts" "tests/dashboard-action-panel.test.ts" "tests/dashboard-submit-field.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+   - 全量测试：**245 / 245** ✅
+   - 覆盖率：
+     - 行覆盖率：**92.06%**
+     - 分支覆盖率：**87.30%**
+     - 函数覆盖率：**93.97%**
+
+**备注**：
+
+- 这轮继续遵循 **KISS / DRY**：没有把项目管理区抽成过大的复杂容器，只把“单行编辑职责”下沉为稳定边界
+- `DashboardProjectManagementRow` 与既有的 `DashboardInlineActionButton`、`DashboardStatusBadge` 组合使用，保持基础设施分层清晰
+
+**下一步**：
+
+1. 继续推进 `P3-02`：收口 `license-service` 领域编排职责
+2. 继续推进 `P3-01`：梳理设置 / API 文档工作区中仍然偏长的内容块
+3. 继续推进 `P3-05 / P4-04`：围绕新增行组件补更多组合级回归测试
+
+---
+
+### 2026-03-25 / Iteration 48
+
+**目标**：继续推进 `P3-02`，把 `license-service` 中重复的“输入标准化 + project 解析 + 缺参短路”收口为独立服务，降低聚合服务的编排噪音。
+
+**已完成**：
+
+- [x] 新增 `license-command-context-service`
+- [x] `license-service` 已改为复用统一命令上下文解析
+- [x] 为新服务补充独立单测，并验证未改变现有激活 / 消费行为
+
+**本轮落地内容**：
+
+1. `src/lib/license-command-context-service.ts`
+   - 新增命令上下文服务
+   - 收口能力：
+     - `resolveLicenseActionCommandContext`
+     - `resolveConsumeLicenseCommandContext`
+   - 统一处理：
+     - 输入 trim / 标准化
+     - 缺参短路
+     - 项目解析
+     - consume 幂等请求上下文构建
+2. `src/lib/license-service.ts`
+   - `getLicenseStatus`
+   - `activateLicense`
+   - `consumeLicense`
+   统一改为复用命令上下文服务，减少重复的参数预处理与 project 解析逻辑
+3. `tests/license-command-context-service.test.ts`
+   - 锁定：
+     - 缺参时直接返回统一结果且不查项目
+     - 标准化输入后解析默认/目标项目上下文
+     - consume 请求上下文与 requestId 标准化
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/license-command-context-service.test.ts"` ❌（模块不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/license-command-context-service.test.ts" "tests/license-service.test.ts"` ✅
+   - 修复 `license-service.ts` 中类型导入与无用导入后，再次执行聚焦测试 ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+   - 全量测试：**248 / 248** ✅
+   - 覆盖率：
+     - 行覆盖率：**92.17%**
+     - 分支覆盖率：**87.36%**
+     - 函数覆盖率：**94.02%**
+
+**备注**：
+
+- 这轮重构遵循 **KISS / DRY / YAGNI**：
+  - 只收口真实重复的参数预处理链路
+  - 没有引入额外 facade / 过深抽象
+  - 保持 `license-service` 继续承担“领域入口编排”，而把命令上下文准备下沉
+- 当前 `license-service` 的职责边界更清晰：
+  - 参数上下文准备 -> `license-command-context-service`
+  - 事务前置检查 -> `license-transaction-preparation-service`
+  - 激活 / 消费流程 -> 各自 flow service
+
+**下一步**：
+
+1. 继续推进 `P3-02`：继续检查 `license-route-handlers` / `license-api` 是否还能进一步统一错误映射与 handler 装配
+2. 继续推进 `P3-01`：梳理设置页与 API 文档工作区里仍偏长的内容块
+3. 继续推进 `P3-05 / P4-04`：补更多组合级回归测试，特别是文档工作区与设置工作区
+
+---
+
+### 2026-03-25 / Iteration 49
+
+**目标**：继续推进 `P3-02`，把 `license-route-handlers` 中重复的 handler 装配收口为统一工厂，降低路由层样板代码和响应分支噪音。
+
+**已完成**：
+
+- [x] 新增 `createLicenseRouteHandler`
+- [x] 激活 / 消费 / 状态 / verify 四个路由处理器已改为复用统一工厂
+- [x] 补充工厂级测试并与现有 API 路由回归联动验证
+
+**本轮落地内容**：
+
+1. `src/lib/license-route-handlers.ts`
+   - 新增：
+     - `LicenseRouteRequestParams`
+     - `createLicenseRouteHandler`
+   - 统一收口：
+     - 请求体读取
+     - service 装配
+     - legacy / 正式响应切换
+     - 错误映射
+   - `handleActivateLicenseRequest`
+   - `handleConsumeLicenseRequest`
+   - `handleLicenseStatusRequest`
+   - `handleVerifyLicenseRequest`
+     全部改为基于工厂生成
+2. `tests/license-route-handler-factory.test.ts`
+   - 锁定：
+     - 请求体标准化与正式字段输出
+     - `legacyOnly` 模式仅输出兼容字段
+     - service 抛出 `Error` 时的统一错误响应
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/license-route-handler-factory.test.ts"` ❌（`createLicenseRouteHandler is not a function`）
+2. GREEN：
+   - `node --import tsx --test "tests/license-route-handler-factory.test.ts" "tests/license-api-routes.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+   - 全量测试：**251 / 251** ✅
+   - 覆盖率：
+     - 行覆盖率：**92.25%**
+     - 分支覆盖率：**87.48%**
+     - 函数覆盖率：**94.11%**
+
+**备注**：
+
+- 这轮继续遵循 **DRY / KISS**：
+  - 没有改变 API 行为，只消除重复的装配样板
+  - route handler 继续保持薄层，只负责 request/response 边界
+- 当前 license 路由入口职责进一步清晰：
+  - request 解析 / response 映射 -> `license-api`
+  - handler 装配 -> `createLicenseRouteHandler`
+  - 业务执行 -> `license-service`
+
+**下一步**：
+
+1. 继续推进 `P3-01`：梳理设置页与 API 文档工作区仍偏长的内容块
+2. 继续推进 `P3-05 / P4-04`：补文档工作区 / 设置工作区更高层级组合回归测试
+3. 继续推进 `P3-02`：检查 `license-api` 是否还需要进一步拆出 request/response adapter 单测入口
 
 ---
 
@@ -2386,3 +2950,304 @@
 2. 对应验收标准
 3. 已做验证
 4. 是否引入新的后续任务
+
+---
+
+### 2026-03-25 / Iteration 50
+
+**目标**：继续推进 `P3-01`，把设置页与 API 文档页重复出现的摘要卡、编号提示卡、小型指标卡收口为统一组件，进一步统一 UI 语义与页面质感。
+
+**已完成**：
+
+- [x] 新增统一摘要卡组件 `DashboardSummaryCard`
+- [x] 新增统一编号提示列表组件 `DashboardNumberedList`
+- [x] 新增统一小型指标卡组件 `DashboardStatTile`
+- [x] 改密页、系统配置页、API 文档页已接入新组件
+- [x] 补充 3 组组件级测试，并完成提交视角门禁验证
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-summary-card.tsx`
+   - 统一摘要卡结构：顶部强调线 / 标签 / 数值 / 描述
+   - 支持覆写 panel / accent / value / description 样式
+2. `src/components/dashboard-numbered-list.tsx`
+   - 统一“01 / 02 / 03”编号提示块
+   - 支持覆写容器、条目、编号与自定义编号渲染
+3. `src/components/dashboard-stat-tile.tsx`
+   - 统一小型统计卡结构：label / value / description
+4. `src/app/admin/dashboard/page.tsx`
+   - 改密页顶部摘要卡改为复用 `DashboardSummaryCard`
+   - 改密页“修改后行为”提示区改为复用 `DashboardNumberedList`
+   - 改密页“自动登出 / 最低长度”改为复用 `DashboardStatTile`
+   - 系统配置页顶部摘要卡改为复用 `DashboardSummaryCard`
+   - 系统配置页“变更前提示”改为复用 `DashboardNumberedList`
+   - 系统配置页“敏感项 / 白名单地址”改为复用 `DashboardStatTile`
+5. `src/components/api-docs-workspace.tsx`
+   - 顶部摘要卡改为复用 `DashboardSummaryCard`
+6. 新增测试：
+   - `tests/dashboard-summary-card.test.ts`
+   - `tests/dashboard-numbered-list.test.ts`
+   - `tests/dashboard-stat-tile.test.ts`
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-summary-card.test.ts" "tests/dashboard-numbered-list.test.ts" "tests/dashboard-stat-tile.test.ts"` ❌（3 个模块均不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-summary-card.test.ts" "tests/dashboard-numbered-list.test.ts" "tests/dashboard-stat-tile.test.ts" "tests/public-pages.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+   - 全量测试：**261 / 261** ✅
+   - 覆盖率：
+     - 行覆盖率：**92.43%**
+     - 分支覆盖率：**87.55%**
+     - 函数覆盖率：**94.26%**
+
+**备注**：
+
+- 本轮继续遵循 **KISS / DRY / YAGNI**：
+  - 只抽离已在多处重复出现、且视觉语义明确的 3 类高频结构
+  - 没有引入复杂主题系统或过度参数化组件
+  - 先保障“统一、可复用、易测试”，再考虑更深层抽象
+- 页面收益：
+  - 设置页与 API 文档页的核心信息块视觉更统一
+  - 后续继续治理代码示例块、设置项卡片时有了稳定基础组件
+
+**下一步**：
+
+1. 继续推进 `P3-01`：收口 API 文档页里的代码示例卡 / 请求响应示例块
+2. 继续推进 `P3-05 / P4-04`：补设置页 / API 文档页更高层组合回归测试
+3. 继续推进设置页结构治理：评估系统配置分组是否进一步切成工作区级 tab，缩短单屏长度
+
+---
+
+### 2026-03-25 / Iteration 51
+
+**目标**：继续推进 `P3-01`，把 API 文档页中重复出现的“标题区 + 操作按钮 + 代码块”结构收口为统一代码展示组件，减少请求示例、响应示例与多语言示例的样板代码。
+
+**已完成**：
+
+- [x] 新增统一代码展示组件 `DashboardCodePanel`
+- [x] API 文档页请求示例 / 响应示例 / 多语言示例已接入新组件
+- [x] 补充组件级测试并完成提交视角门禁验证
+
+**本轮落地内容**：
+
+1. `src/components/dashboard-code-panel.tsx`
+   - 统一代码展示面板结构：header / action / code block
+   - 支持覆写面板、头部布局、头部内容区与代码块样式
+2. `src/components/api-docs-workspace.tsx`
+   - endpoints tab 中的“请求示例 / 响应示例”改为复用 `DashboardCodePanel`
+   - examples tab 中的多语言示例卡改为复用 `DashboardCodePanel`
+   - 移除工作区内部重复维护的代码块卡片样板结构
+3. 新增测试：
+   - `tests/dashboard-code-panel.test.ts`
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/dashboard-code-panel.test.ts"` ❌（模块不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/dashboard-code-panel.test.ts" "tests/public-pages.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+   - 全量测试：**263 / 263** ✅
+   - 覆盖率：
+     - 行覆盖率：**92.44%**
+     - 分支覆盖率：**87.50%**
+     - 函数覆盖率：**94.31%**
+
+**备注**：
+
+- 本轮继续遵循 **KISS / DRY / YAGNI**：
+  - 只抽离已在 API 文档页中高频重复的代码展示骨架
+  - 没有引入额外复制逻辑抽象或文档 DSL
+  - 保留页面现有语义，仅统一结构与视觉承载方式
+- 页面收益：
+  - API 文档的请求/响应/多语言示例视觉更统一
+  - 后续若继续补 SDK 示例、调试命令块，可直接复用该组件
+
+**下一步**：
+
+1. 继续推进 `P3-05 / P4-04`：补 API 文档页更高层组合测试（endpoints / examples / admin tab）
+2. 继续推进 `P3-01`：评估本地联调命令块与后台接口卡是否进一步统一为展示组件
+3. 继续推进设置页长度治理：评估 systemConfig 分组 tab 化是否值得落地
+
+---
+
+### 2026-03-25 / Iteration 52
+
+**目标**：继续推进 `P3-01`，把 API 文档工作区中剩余重复的“后台接口组卡”和“本地联调命令卡”拆成独立组件，进一步缩短 `ApiDocsWorkspace` 的单文件体积并统一卡片语义。
+
+**已完成**：
+
+- [x] 新增 `ApiDocsAdminGroupCard`
+- [x] 新增 `ApiDocsDebugCommandCard`
+- [x] API 文档页 admin tab 已接入新组件
+- [x] 新增组件级测试并完成提交视角门禁验证
+
+**本轮落地内容**：
+
+1. `src/components/api-docs-admin-group-card.tsx`
+   - 统一后台接口分组卡结构：title / description / endpoint list
+   - 统一 endpoint method badge + path + description 展示骨架
+   - 支持覆写容器、列表与条目样式
+2. `src/components/api-docs-debug-command-card.tsx`
+   - 基于 `DashboardCodePanel` 封装联调命令卡
+   - 统一 title / description / command / copy button 呈现方式
+   - 支持覆写面板、按钮和代码区样式
+3. `src/components/api-docs-workspace.tsx`
+   - admin tab 中“联调时常用的后台接口”改为复用 `ApiDocsAdminGroupCard`
+   - admin tab 中“本地联调与排查辅助”改为复用 `ApiDocsDebugCommandCard`
+4. 新增测试：
+   - `tests/api-docs-admin-group-card.test.ts`
+   - `tests/api-docs-debug-command-card.test.ts`
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/api-docs-admin-group-card.test.ts" "tests/api-docs-debug-command-card.test.ts"` ❌（模块不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/api-docs-admin-group-card.test.ts" "tests/api-docs-debug-command-card.test.ts" "tests/public-pages.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+   - 全量测试：**267 / 267** ✅
+   - 覆盖率：
+     - 行覆盖率：**92.79%**
+     - 分支覆盖率：**87.42%**
+     - 函数覆盖率：**94.39%**
+
+**备注**：
+
+- 本轮继续遵循 **KISS / DRY / YAGNI**：
+  - 只拆已经重复且语义稳定的两类卡片
+  - 没有引入新的全局主题抽象或复杂文档 schema
+  - 继续以“页面结构变薄 + 组件边界清晰 + 测试可落地”为优先级
+- 页面收益：
+  - `ApiDocsWorkspace` 的 admin 区块更规整、重复样板继续减少
+  - 联调命令卡与请求/响应代码卡在视觉与交互上更统一
+
+**下一步**：
+
+1. 继续推进 `P3-05 / P4-04`：补 API 文档工作区更高层的 tab 级组合测试
+2. 继续推进设置页长度治理：评估 systemConfig 分组 tab 化是否值得落地
+3. 继续检查 dashboard 主页是否还存在可继续下沉的局部重复块
+### 2026-03-25 / Iteration 53
+
+**目标**：继续推进 `P3-05 / P4-04`，为 API 文档工作区补上更高层的 tab 级组合回归，确保非默认 tab 在公开页与后台页都可稳定渲染。
+
+**已完成**：
+
+- [x] `ApiDocsWorkspace` 支持通过 `initialTab` 指定初始工作区
+- [x] 新增 API 文档工作区 tab 级高层回归测试
+- [x] 完成提交视角门禁验证
+
+**本轮落地内容**：
+
+1. `src/components/api-docs-workspace.tsx`
+   - 新增 `initialTab?: ApiDocsWorkspaceTab`
+   - 工作区初始状态改为由 `initialTab` 驱动，便于高层组合测试与后续复用
+2. 新增测试：
+   - `tests/api-docs-workspace-tabs.test.ts`
+3. 测试覆盖新增场景：
+   - `endpoints` 初始 tab
+   - `examples` 初始 tab
+   - `admin` 初始 tab
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/api-docs-workspace-tabs.test.ts"` ❌（组件尚不支持指定初始 tab）
+2. GREEN：
+   - `node --import tsx --test "tests/api-docs-workspace-tabs.test.ts" "tests/public-pages.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run quality:gate` ✅
+   - 全量测试：**270 / 270** ✅
+   - 覆盖率：
+     - 行覆盖率：**94.74%**
+     - 分支覆盖率：**87.59%**
+     - 函数覆盖率：**94.34%**
+
+**备注**：
+
+- 本轮继续遵循 **KISS / DRY / YAGNI**：
+  - 只为已有工作区补充最小可控入口，不引入额外路由状态或复杂上下文
+  - 重点是把真实用户会进入的非默认 tab 纳入稳定回归，而不是堆叠新的展示逻辑
+- 页面收益：
+  - API 文档工作区的 `overview` 之外场景已纳入自动化兜底
+  - 后续若继续拆分 API 文档子面板，可直接沿用该测试方式
+
+**下一步**：
+
+1. 继续推进设置页长度治理：落地 systemConfig 分组 tab 化
+2. 继续补设置页更高层组合回归测试
+3. 继续检查 dashboard 主页与设置页剩余局部重复块
+
+---
+
+### 2026-03-25 / Iteration 54
+
+**目标**：继续推进设置页长度治理，把 systemConfig 从“整页长表单”改为“总览 + 分区 tab”的工作区结构，提升页面节奏与可编辑聚焦度。
+
+**已完成**：
+
+- [x] 新增 `SystemConfigWorkspace`，承接系统配置页工作区布局
+- [x] 新增 `buildSystemConfigWorkspaceTabs`，统一总览与分区 tab 元数据
+- [x] dashboard 设置页已切换为“总览 + 分区编辑”结构
+- [x] 新增高层回归测试并完成无警告门禁验证
+
+**本轮落地内容**：
+
+1. `src/components/system-config-workspace.tsx`
+   - 抽离系统配置工作区 UI
+   - 新增 `overview / access / security / branding / advanced` 工作区导航
+   - `overview` 只展示影响提示、分区速览与保存方式说明
+   - 分区 tab 只渲染当前组字段，显著缩短单屏长度
+2. `src/lib/dashboard-workspace-tabs.ts`
+   - 新增 `SystemConfigWorkspaceTab`
+   - 新增 `buildSystemConfigWorkspaceTabs`
+3. `src/lib/system-config-ui.ts`
+   - 导出系统配置页模型相关类型，供设置工作区组件复用
+4. `src/app/admin/dashboard/page.tsx`
+   - 系统配置页改为接入 `SystemConfigWorkspace`
+   - 移除 dashboard 页内重复维护的 systemConfig 主题与渲染样板
+5. 新增测试：
+   - `tests/system-config-workspace.test.ts`
+
+**验证结果**：
+
+1. RED：
+   - `node --import tsx --test "tests/system-config-workspace.test.ts"` ❌（组件与 tab 构建器不存在，`MODULE_NOT_FOUND`）
+2. GREEN：
+   - `node --import tsx --test "tests/system-config-workspace.test.ts" "tests/dashboard-workspace-tabs.test.ts" "tests/system-config-ui.test.ts"` ✅
+3. 提交视角门禁：
+   - `git diff --check` ✅
+   - `npm run lint` ✅（无 warnings / errors）
+   - `npm run quality:gate` ✅
+   - 全量测试：**273 / 273** ✅
+   - 覆盖率：
+     - 行覆盖率：**94.85%**
+     - 分支覆盖率：**87.34%**
+     - 函数覆盖率：**93.83%**
+
+**备注**：
+
+- 本轮继续遵循 **KISS / DRY / YAGNI**：
+  - 没有引入额外全局状态或新路由，仅把已有分组信息组织为更清晰的工作区
+  - 复用现有 Hero / Tab / Summary / CTA 组件，避免重复造型与实现分叉
+- 页面收益：
+  - 设置页从“整页滚动编辑”升级为“先总览、再聚焦分区编辑”的结构
+  - 风格与 API 文档工作区保持统一，整体后台 UI 一致性更高
+  - `dashboard/page.tsx` 继续瘦身，系统配置渲染边界更清晰
+
+**下一步**：
+
+1. 继续补设置页 / 改密页更高层组合回归测试
+2. 继续检查 `SystemConfigWorkspace` 的 overview 与 group focus 区是否还可继续组件化
+3. 继续清点 dashboard 主页剩余可下沉的重复块
+
+---

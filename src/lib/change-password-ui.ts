@@ -4,16 +4,16 @@ export type ChangePasswordInput = {
   confirmPassword: string
 }
 
-type ChangePasswordTone = 'neutral' | 'success' | 'warning' | 'danger'
+export type ChangePasswordTone = 'neutral' | 'success' | 'warning' | 'danger'
 
-type ChangePasswordSummaryCard = {
+export type ChangePasswordSummaryCard = {
   label: string
   value: string
   description: string
   tone: ChangePasswordTone
 }
 
-type ChangePasswordChecklistItem = {
+export type ChangePasswordChecklistItem = {
   key: 'length' | 'difference' | 'match'
   label: string
   description: string
@@ -85,7 +85,12 @@ function resolveConfirmStatus(newPassword: string, confirmPassword: string) {
   }
 }
 
-export function buildChangePasswordPageModel(input: ChangePasswordInput) {
+export type ChangePasswordPageModel = {
+  summaryCards: ChangePasswordSummaryCard[]
+  checklist: ChangePasswordChecklistItem[]
+}
+
+export function buildChangePasswordPageModel(input: ChangePasswordInput): ChangePasswordPageModel {
   const completedFields = [
     input.currentPassword,
     input.newPassword,

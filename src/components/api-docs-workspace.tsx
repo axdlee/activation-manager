@@ -2,6 +2,10 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
+import { ApiDocsAdminGroupCard } from '@/components/api-docs-admin-group-card'
+import { ApiDocsDebugCommandCard } from '@/components/api-docs-debug-command-card'
+import { DashboardCodePanel } from '@/components/dashboard-code-panel'
+import { DashboardSummaryCard } from '@/components/dashboard-summary-card'
 import { buildApiDocsPageModel } from '@/lib/api-docs-ui'
 import {
   apiDocsWorkspaceTabs,
@@ -17,6 +21,7 @@ import {
 
 type ApiDocsWorkspaceProps = {
   mode?: 'dashboard' | 'public'
+  initialTab?: ApiDocsWorkspaceTab
   onFeedback?: (content: string, type?: 'success' | 'error') => void
 }
 
@@ -53,9 +58,6 @@ const methodBadgeClassNameMap = {
   DELETE: 'border-rose-200 bg-rose-50 text-rose-700',
 } as const
 
-const codeBlockClassName =
-  'overflow-x-auto rounded-[22px] border border-slate-200/80 bg-slate-950 px-4 py-4 font-mono text-[12px] leading-6 text-slate-100 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.55)]'
-
 const tableContainerClassName =
   'overflow-x-auto rounded-[24px] border border-slate-200/80 bg-white/95 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]'
 
@@ -64,9 +66,10 @@ const inlineActionButtonClassName =
 
 export function ApiDocsWorkspace({
   mode = 'dashboard',
+  initialTab = 'overview',
   onFeedback,
 }: ApiDocsWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<ApiDocsWorkspaceTab>('overview')
+  const [activeTab, setActiveTab] = useState<ApiDocsWorkspaceTab>(initialTab)
   const [localFeedback, setLocalFeedback] = useState<{
     text: string
     type: 'success' | 'error'
@@ -176,25 +179,15 @@ export function ApiDocsWorkspace({
               const summaryCardTheme = summaryCardThemeMap[card.tone]
 
               return (
-                <div
+                <DashboardSummaryCard
                   key={card.label}
-                  className={`relative overflow-hidden rounded-[24px] border px-5 py-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.3)] ${summaryCardTheme.panel}`}
-                >
-                  <div
-                    className={`absolute inset-x-5 top-0 h-1 rounded-full ${summaryCardTheme.accent}`}
-                  />
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                    {card.label}
-                  </div>
-                  <div
-                    className={`mt-3 text-3xl font-semibold tracking-tight ${summaryCardTheme.value}`}
-                  >
-                    {card.value}
-                  </div>
-                  <div className="mt-2 text-sm leading-6 text-slate-500">
-                    {card.description}
-                  </div>
-                </div>
+                  label={card.label}
+                  value={card.value}
+                  description={card.description}
+                  panelClassName={summaryCardTheme.panel}
+                  accentClassName={summaryCardTheme.accent}
+                  valueClassName={`mt-3 text-3xl font-semibold tracking-tight ${summaryCardTheme.value}`}
+                />
               )
             })}
           </div>
@@ -453,8 +446,8 @@ export function ApiDocsWorkspace({
                 </div>
 
                 <div className="grid grid-cols-1 gap-5">
-                  <div className="rounded-[24px] border border-slate-200/80 bg-white/92 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]">
-                    <div className="mb-3 flex items-center justify-between gap-3">
+                  <DashboardCodePanel
+                    header={
                       <div>
                         <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
                           请求示例
@@ -463,6 +456,8 @@ export function ApiDocsWorkspace({
                           可直接用于 Postman、脚本或插件侧联调。
                         </div>
                       </div>
+                    }
+                    action={
                       <button
                         type="button"
                         onClick={() =>
@@ -472,14 +467,12 @@ export function ApiDocsWorkspace({
                       >
                         复制
                       </button>
-                    </div>
-                    <pre className={codeBlockClassName}>
-                      <code>{endpoint.requestExample}</code>
-                    </pre>
-                  </div>
+                    }
+                    code={endpoint.requestExample}
+                  />
 
-                  <div className="rounded-[24px] border border-slate-200/80 bg-white/92 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]">
-                    <div className="mb-3 flex items-center justify-between gap-3">
+                  <DashboardCodePanel
+                    header={
                       <div>
                         <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
                           响应示例
@@ -488,6 +481,8 @@ export function ApiDocsWorkspace({
                           用于核对业务是否成功、字段是否匹配以及是否命中幂等。
                         </div>
                       </div>
+                    }
+                    action={
                       <button
                         type="button"
                         onClick={() =>
@@ -497,11 +492,9 @@ export function ApiDocsWorkspace({
                       >
                         复制
                       </button>
-                    </div>
-                    <pre className={codeBlockClassName}>
-                      <code>{endpoint.responseExample}</code>
-                    </pre>
-                  </div>
+                    }
+                    code={endpoint.responseExample}
+                  />
                 </div>
               </div>
             </div>
@@ -512,8 +505,11 @@ export function ApiDocsWorkspace({
       {activeTab === 'examples' && (
         <div className="grid grid-cols-1 gap-6">
           {apiDocsPageModel.languageSnippets.map((snippet) => (
-            <div key={snippet.key} className={`${publicPanelClassName} p-6`}>
-              <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <DashboardCodePanel
+              key={snippet.key}
+              panelClassName={`${publicPanelClassName} p-6`}
+              headerClassName="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
+              header={
                 <div className="max-w-3xl">
                   <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-slate-600">
                     {snippet.label}
@@ -525,7 +521,8 @@ export function ApiDocsWorkspace({
                     {snippet.description}
                   </p>
                 </div>
-
+              }
+              action={
                 <button
                   type="button"
                   onClick={() =>
@@ -535,12 +532,9 @@ export function ApiDocsWorkspace({
                 >
                   复制示例代码
                 </button>
-              </div>
-
-              <pre className={codeBlockClassName}>
-                <code>{snippet.code}</code>
-              </pre>
-            </div>
+              }
+              code={snippet.code}
+            />
           ))}
         </div>
       )}
@@ -559,37 +553,13 @@ export function ApiDocsWorkspace({
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
               {apiDocsPageModel.adminGroups.map((group) => (
-                <div
+                <ApiDocsAdminGroupCard
                   key={group.title}
-                  className="rounded-[24px] border border-slate-200/80 bg-white/92 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]"
-                >
-                  <h4 className="text-lg font-semibold text-slate-900">{group.title}</h4>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    {group.description}
-                  </p>
-                  <div className="mt-4 space-y-3">
-                    {group.endpoints.map((endpoint) => (
-                      <div
-                        key={`${endpoint.method}-${endpoint.path}`}
-                        className="rounded-[20px] border border-slate-200/80 bg-slate-50/85 px-4 py-4"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${methodBadgeClassNameMap[endpoint.method]}`}
-                          >
-                            {endpoint.method}
-                          </span>
-                          <span className="text-sm font-mono text-slate-900">
-                            {endpoint.path}
-                          </span>
-                        </div>
-                        <p className="mt-3 text-sm leading-6 text-slate-500">
-                          {endpoint.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                  title={group.title}
+                  description={group.description}
+                  endpoints={group.endpoints}
+                  methodBadgeClassNameMap={methodBadgeClassNameMap}
+                />
               ))}
             </div>
           </div>
@@ -606,22 +576,14 @@ export function ApiDocsWorkspace({
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
               {apiDocsPageModel.localDebugging.map((item) => (
-                <div key={item.title} className={publicFeatureCardClassName}>
-                  <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    {item.description}
-                  </p>
-                  <div className="mt-4 rounded-[18px] border border-slate-200 bg-slate-950 px-4 py-3 font-mono text-xs leading-6 text-slate-100">
-                    {item.command}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void copyToClipboard(item.command, `${item.title} 已复制`)}
-                    className={`mt-4 ${publicSecondaryButtonClassName}`}
-                  >
-                    复制
-                  </button>
-                </div>
+                <ApiDocsDebugCommandCard
+                  key={item.title}
+                  title={item.title}
+                  description={item.description}
+                  command={item.command}
+                  onCopy={() => void copyToClipboard(item.command, `${item.title} 已复制`)}
+                  buttonClassName={publicSecondaryButtonClassName}
+                />
               ))}
             </div>
           </div>

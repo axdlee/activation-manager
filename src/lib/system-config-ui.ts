@@ -11,19 +11,19 @@ export type SystemConfigItem = {
 
 type SystemConfigInputKind = 'text' | 'password' | 'number' | 'select' | 'textarea'
 type SystemConfigCardLayout = 'default' | 'full'
-type SystemConfigBadgeTone = 'info' | 'success' | 'warning' | 'danger' | 'neutral'
+export type SystemConfigBadgeTone = 'info' | 'success' | 'warning' | 'danger' | 'neutral'
 
-type SystemConfigOption = {
+export type SystemConfigOption = {
   label: string
   value: string
 }
 
-type SystemConfigBadge = {
+export type SystemConfigBadge = {
   label: string
   tone: SystemConfigBadgeTone
 }
 
-type SystemConfigDisplayItem = {
+export type SystemConfigDisplayItem = {
   key: string
   label: string
   description: string
@@ -40,9 +40,9 @@ type SystemConfigDisplayItem = {
   previewTokens?: string[]
 }
 
-type SystemConfigGroupKey = 'access' | 'security' | 'branding' | 'advanced'
+export type SystemConfigGroupKey = 'access' | 'security' | 'branding' | 'advanced'
 
-type SystemConfigGroup = {
+export type SystemConfigGroup = {
   key: SystemConfigGroupKey
   title: string
   description: string
@@ -50,10 +50,15 @@ type SystemConfigGroup = {
   items: SystemConfigDisplayItem[]
 }
 
-type SystemConfigSummaryCard = {
+export type SystemConfigSummaryCard = {
   label: string
   value: string
   description: string
+}
+
+export type SystemConfigPageModel = {
+  groups: SystemConfigGroup[]
+  summaryCards: SystemConfigSummaryCard[]
 }
 
 const jwtExpiryOptions: SystemConfigOption[] = [
@@ -309,7 +314,7 @@ function sortGroupItems(groupKey: SystemConfigGroupKey, items: SystemConfigDispl
   })
 }
 
-export function buildSystemConfigPageModel(configs: SystemConfigItem[]) {
+export function buildSystemConfigPageModel(configs: SystemConfigItem[]): SystemConfigPageModel {
   const groupedItems = new Map<SystemConfigGroupKey, SystemConfigDisplayItem[]>()
 
   configs.forEach((config) => {

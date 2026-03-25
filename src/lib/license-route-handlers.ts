@@ -5,6 +5,7 @@ import {
   createLicenseErrorResponse,
   createLegacyLicenseResponse,
   createLicenseResponse,
+  type LicenseApiRequestParams,
   readLicenseRequest,
 } from '@/lib/license-api'
 import {
@@ -13,19 +14,17 @@ import {
   getLicenseStatus,
   verifyActivationCode,
 } from '@/lib/license-service'
+import type { LicenseResult } from '@/lib/license-result-service'
+
+type LicenseRouteOptions = {
+  errorMessage: string
+  legacyOnly?: boolean
+}
 
 async function executeLicenseRequest(
   request: Request,
-  handler: (params: {
-    projectKey?: string
-    code: string
-    machineId: string
-    requestId?: string
-  }) => ReturnType<typeof activateLicense>,
-  options: {
-    errorMessage: string
-    legacyOnly?: boolean
-  },
+  handler: (params: LicenseApiRequestParams) => Promise<LicenseResult>,
+  options: LicenseRouteOptions,
 ) {
   try {
     const result = await handler(await readLicenseRequest(request))
@@ -35,76 +34,69 @@ async function executeLicenseRequest(
   }
 }
 
-export async function handleActivateLicenseRequest(
-  request: Request,
-  client: PrismaClient = prisma,
+export function createLicenseRouteHandler(
+  service: (
+    client: PrismaClient,
+    params: LicenseApiRequestParams,
+  ) => Promise<LicenseResult>,
+  options: LicenseRouteOptions,
 ) {
-  return executeLicenseRequest(
+  return async (
+    request: Request,
+    client: PrismaClient = prisma,
+  ) => executeLicenseRequest(
     request,
-    ({ projectKey, code, machineId }) =>
-      activateLicense(client, {
-        projectKey,
-        code,
-        machineId,
-      }),
-    {
-      errorMessage: '激活激活码失败',
-    },
+    (params) => service(client, params),
+    options,
   )
 }
 
-export async function handleConsumeLicenseRequest(
-  request: Request,
-  client: PrismaClient = prisma,
-) {
-  return executeLicenseRequest(
-    request,
-    ({ projectKey, code, machineId, requestId }) =>
-      consumeLicense(client, {
-        projectKey,
-        code,
-        machineId,
-        requestId,
-      }),
-    {
-      errorMessage: '消费激活码失败',
-    },
-  )
-}
+export const handleActivateLicenseRequest = createLicenseRouteHandler(
+  async (client, { projectKey, code, machineId }) =>
+    activateLicense(client, {
+      projectKey,
+      code,
+      machineId,
+    }),
+  {
+    errorMessage: '激活激活码失败',
+  },
+)
 
-export async function handleLicenseStatusRequest(
-  request: Request,
-  client: PrismaClient = prisma,
-) {
-  return executeLicenseRequest(
-    request,
-    ({ projectKey, code, machineId }) =>
-      getLicenseStatus(client, {
-        projectKey,
-        code,
-        machineId,
-      }),
-    {
-      errorMessage: '获取激活码状态失败',
-    },
-  )
-}
+export const handleConsumeLicenseRequest = createLicenseRouteHandler(
+  async (client, { projectKey, code, machineId, requestId }) =>
+    consumeLicense(client, {
+      projectKey,
+      code,
+      machineId,
+      requestId,
+    }),
+  {
+    errorMessage: '消费激活码失败',
+  },
+)
 
-export async function handleVerifyLicenseRequest(
-  request: Request,
-  client: PrismaClient = prisma,
-) {
-  return executeLicenseRequest(
-    request,
-    ({ projectKey, code, machineId }) =>
-      verifyActivationCode(client, {
-        projectKey,
-        code,
-        machineId,
-      }),
-    {
-      errorMessage: '验证激活码失败',
-      legacyOnly: true,
-    },
-  )
-}
+export const handleLicenseStatusRequest = createLicenseRouteHandler(
+  async (client, { projectKey, code, machineId }) =>
+    getLicenseStatus(client, {
+      projectKey,
+      code,
+      machineId,
+    }),
+  {
+    errorMessage: '获取激活码状态失败',
+  },
+)
+
+export const handleVerifyLicenseRequest = createLicenseRouteHandler(
+  async (client, { projectKey, code, machineId }) =>
+    verifyActivationCode(client, {
+      projectKey,
+      code,
+      machineId,
+    }),
+  {
+    errorMessage: '验证激活码失败',
+    legacyOnly: true,
+  },
+)

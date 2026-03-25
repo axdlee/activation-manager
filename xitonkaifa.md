@@ -381,11 +381,22 @@ tests/
 
 当前新增：
 
+- `src/components/dashboard-data-table.tsx`
+- `src/components/dashboard-action-panel.tsx`
 - `src/components/dashboard-empty-state.tsx`
+- `src/components/dashboard-filter-field-card.tsx`
+- `src/components/dashboard-form-field.tsx`
+- `src/components/dashboard-inline-action-button.tsx`
+- `src/components/dashboard-loading-state.tsx`
 - `src/components/dashboard-pagination-bar.tsx`
+- `src/components/dashboard-project-management-row.tsx`
 - `src/components/dashboard-section-header.tsx`
+- `src/components/dashboard-status-badge.tsx`
+- `src/components/dashboard-submit-field.tsx`
 - `src/components/dashboard-summary-strip.tsx`
+- `src/components/dashboard-table-container.tsx`
 - `src/components/dashboard-token-list.tsx`
+- `src/lib/license-command-context-service.ts`
 - `src/components/workspace-hero-panel.tsx`
 - `src/components/workspace-tab-nav.tsx`
 - `src/components/workspace-metric-card.tsx`
@@ -402,11 +413,44 @@ tests/
 8. 激活码结果页 / 消费日志结果页顶部摘要条
 9. 项目列表 / 激活码结果 / 消费日志结果分页条
 10. 激活码结果页 / 消费日志结果页空状态提示
+11. 项目列表 / 本次生成激活码 / 激活码结果 / 消费日志结果表格容器
+12. 激活码 / 消费日志工作区筛选字段卡片
+13. 激活码结果页 / 消费日志结果页 loading 区块
+14. 项目统计 / 项目管理 / 发码结果 / 激活码结果 / 消费日志结果的表格骨架（thead / tbody / th）
+15. 项目 / 激活码状态徽标
+16. 行内复制 / 删除 / 保存类操作按钮
+17. 项目创建、项目筛选与发码页的表单字段结构
+18. 项目创建 / 修改密码 / 系统配置保存的深色行动卡
+19. 发码页时间型 / 次数型的提交区与 loading 文案切换
+20. 项目管理表格中的单行编辑块（名称 / projectKey / 描述 / 状态 / 操作）
+21. license-service 中的命令上下文准备（标准化 / 缺参短路 / 项目解析 / consume requestContext）
+22. license-route-handlers 的统一工厂装配（request 解析 / 响应映射 / legacy 切换 / 错误响应）
+23. API 文档 / 改密页 / 系统配置页通用摘要卡（DashboardSummaryCard）
+24. 设置页编号提示块（DashboardNumberedList）
+25. 设置页小型统计卡（DashboardStatTile）
+26. API 文档请求/响应/多语言示例代码展示面板（DashboardCodePanel）
+27. API 文档后台接口组卡（ApiDocsAdminGroupCard）
+28. API 文档本地联调命令卡（ApiDocsDebugCommandCard）
 
 这样做的目标：
 
 - 降低 `src/app/admin/dashboard/page.tsx` 的重复 UI 样板
 - 统一 tab 卡片视觉与交互
+- 统一筛选字段卡片、加载反馈与表格容器语义
+- 统一表格骨架，避免每张表都重复维护 `thead / tbody / th` 样板
+- 统一状态颜色语义与行内操作按钮交互
+- 统一表单字段的 label / description / control 语义结构
+- 统一深色 CTA 面板的 badge / 标题 / 描述 / 操作布局
+- 统一提交按钮的 loading / disabled / submit 语义
+- 统一项目管理行的编辑语义与默认项目特殊限制
+- 统一 license-service 入口编排前的命令上下文准备流程
+- 统一 license route handler 的装配模式与 legacy/正式响应切换
+- 统一设置页与 API 文档页的摘要卡视觉与结构
+- 统一设置页的编号提示块和小型指标卡语义
+- 统一 API 文档页的请求示例、响应示例与多语言代码展示骨架
+- 统一 API 文档页后台接口分组卡与本地联调命令卡结构
+- 统一 API 文档工作区的初始 tab 测试入口与高层组合回归
+- 统一系统配置页的总览 / 分区导航 / 分区编辑工作区结构
 - 为后续继续拆分 workspace 内容块打基础
 
 ## 测试策略
@@ -416,13 +460,33 @@ tests/
 - 后台认证 / 白名单 / JWT 校验
 - 后台项目管理 route 回归（列表 / 创建 / 更新 / 删除）
 - dashboard section header 组件渲染与布局回归
+- dashboard stat tile 组件渲染与样式覆盖回归
+- dashboard data table 组件渲染与表头样式回归
+- api docs admin group card 组件渲染与后台接口组样式回归
+- api docs debug command card 组件渲染与联调命令卡样式回归
+- api docs workspace 的 endpoints / examples / admin 初始 tab 组合回归
+- system config workspace 的 tabs 构建、overview 初始态与 security 初始态回归
+- dashboard action panel 组件渲染、背景插槽与样式覆盖回归
+- dashboard code panel 组件渲染与代码块结构回归
 - dashboard empty state 组件渲染与空状态文案回归
+- dashboard filter field card 组件渲染、htmlFor 透传与样式覆盖回归
+- dashboard form field 组件渲染、htmlFor 透传与样式覆盖回归
+- dashboard inline action button 组件渲染与按钮属性透传回归
+- dashboard loading state 组件渲染与加载态文案回归
 - dashboard pagination bar 组件渲染与分页状态回归
+- dashboard numbered list 组件渲染与编号样式回归
+- dashboard project management row 组件渲染与默认/普通项目行回归
 - dashboard summary strip 组件渲染与布局回归
+- dashboard status badge 组件渲染与 tone 样式回归
+- dashboard submit field 组件渲染与 loading / disabled / type 透传回归
+- dashboard summary card 组件渲染与摘要视觉回归
+- dashboard table container 组件渲染与容器样式回归
 - dashboard token list 组件渲染与空状态回归
 - dashboard workspace hero 组件渲染与结构回归
 - dashboard workspace tab 组件渲染与激活态样式
 - dashboard workspace metric card 组件渲染与样式覆盖
+- license command context service 的缺参短路、项目解析与 requestContext 构建回归
+- license route handler factory 的 request 标准化、legacyOnly 输出与错误响应回归
 - 数据库 bootstrap 创建与兼容补齐
 - 多项目隔离
 - 次数型激活码扣次
@@ -449,6 +513,16 @@ npm run quality:gate
 - 行覆盖率 `>= 90%`
 - 分支覆盖率 `>= 85%`
 - 函数覆盖率 `>= 90%`
+
+最近一次提交级门禁结果：
+
+- `git diff --check` ✅
+- `npm run quality:gate` ✅
+- 全量测试：`273 / 273` ✅
+- 覆盖率：
+  - 行覆盖率 `94.85%`
+  - 分支覆盖率 `87.34%`
+  - 函数覆盖率 `93.83%`
 
 ## 本地联调
 

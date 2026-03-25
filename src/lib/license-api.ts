@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-type LicenseApiResult = {
+export type LicenseApiResult = {
   success: boolean
   message: string
   status: number
@@ -12,6 +12,17 @@ type LicenseApiResult = {
   idempotent?: boolean
 }
 
+export type LicenseApiRequestParams = {
+  projectKey?: string
+  code: string
+  machineId: string
+  requestId?: string
+}
+
+type LicenseApiResponseOptions = {
+  legacyOnly?: boolean
+}
+
 function normalizeOptionalString(value: unknown) {
   if (value === undefined || value === null) {
     return undefined
@@ -21,22 +32,24 @@ function normalizeOptionalString(value: unknown) {
   return normalizedValue || undefined
 }
 
-export async function readLicenseRequest(request: Request) {
-  const payload = await request.json()
+export function normalizeLicenseRequestPayload(payload: unknown): LicenseApiRequestParams {
+  const requestPayload = payload as Record<string, unknown> | null | undefined
 
   return {
-    projectKey: normalizeOptionalString(payload?.projectKey ?? payload?.project_key),
-    code: normalizeOptionalString(payload?.code) ?? '',
-    machineId: normalizeOptionalString(payload?.machineId ?? payload?.machine_id) ?? '',
-    requestId: normalizeOptionalString(payload?.requestId ?? payload?.request_id),
+    projectKey: normalizeOptionalString(requestPayload?.projectKey ?? requestPayload?.project_key),
+    code: normalizeOptionalString(requestPayload?.code) ?? '',
+    machineId: normalizeOptionalString(requestPayload?.machineId ?? requestPayload?.machine_id) ?? '',
+    requestId: normalizeOptionalString(requestPayload?.requestId ?? requestPayload?.request_id),
   }
+}
+
+export async function readLicenseRequest(request: Request) {
+  return normalizeLicenseRequestPayload(await request.json())
 }
 
 function buildLicenseResponsePayload(
   result: LicenseApiResult,
-  options: {
-    legacyOnly?: boolean
-  } = {},
+  options: LicenseApiResponseOptions = {},
 ) {
   const sharedPayload = {
     success: result.success,
@@ -62,15 +75,19 @@ function buildLicenseResponsePayload(
   }
 }
 
+export function createLicenseJsonResponse(
+  result: LicenseApiResult,
+  options: LicenseApiResponseOptions = {},
+) {
+  return NextResponse.json(buildLicenseResponsePayload(result, options), { status: result.status })
+}
+
 export function createLicenseResponse(result: LicenseApiResult) {
-  return NextResponse.json(buildLicenseResponsePayload(result), { status: result.status })
+  return createLicenseJsonResponse(result)
 }
 
 export function createLegacyLicenseResponse(result: LicenseApiResult) {
-  return NextResponse.json(
-    buildLicenseResponsePayload(result, { legacyOnly: true }),
-    { status: result.status },
-  )
+  return createLicenseJsonResponse(result, { legacyOnly: true })
 }
 
 export function createLicenseErrorResponse(message: string, error: unknown) {

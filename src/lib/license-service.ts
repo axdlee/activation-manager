@@ -20,14 +20,14 @@ export {
   updateProjectStatus,
 } from './license-project-service'
 import {
-  buildLicenseConsumptionRequestContext,
-  type ConsumeLicenseInput,
   type LicenseActionInput,
+  type ConsumeLicenseInput,
   type LicenseStatusInput,
-  normalizeConsumeLicenseInput,
-  normalizeLicenseActionInput,
 } from './license-action-context'
-import { resolveProject } from './license-project-service'
+import {
+  resolveConsumeLicenseCommandContext,
+  resolveLicenseActionCommandContext,
+} from './license-command-context-service'
 import {
   claimConsumptionRequestId,
   resolveExistingConsumptionResult,
@@ -43,35 +43,34 @@ import {
   consumeTimeLicense,
 } from './license-consume-flow-service'
 import {
-  createMissingParamsResult,
   type LicenseResult,
 } from './license-result-service'
 
 export async function getLicenseStatus(client: PrismaClient, input: LicenseStatusInput): Promise<LicenseResult> {
-  const { projectKey, code, machineId } = normalizeLicenseActionInput(input)
-  if (!code || !machineId) {
-    return createMissingParamsResult()
+  const resolution = await resolveLicenseActionCommandContext(client, input)
+  if (!resolution.ok) {
+    return resolution.result
   }
 
-  const project = await resolveProject(client, projectKey)
+  const { projectId, code, machineId } = resolution.context
   return resolveLicenseStatusForMachine(client, {
-    projectId: project.id,
+    projectId,
     code,
     machineId,
   })
 }
 
 export async function activateLicense(client: PrismaClient, input: LicenseActionInput): Promise<LicenseResult> {
-  const { projectKey, code, machineId } = normalizeLicenseActionInput(input)
-  if (!code || !machineId) {
-    return createMissingParamsResult()
+  const resolution = await resolveLicenseActionCommandContext(client, input)
+  if (!resolution.ok) {
+    return resolution.result
   }
 
-  const project = await resolveProject(client, projectKey)
+  const { projectId, code, machineId } = resolution.context
 
   return client.$transaction(async (tx) => {
     const preparationResult = await prepareLicenseTransactionAction(tx, {
-      projectId: project.id,
+      projectId,
       code,
       machineId,
     })
@@ -101,23 +100,12 @@ export async function activateLicense(client: PrismaClient, input: LicenseAction
 }
 
 export async function consumeLicense(client: PrismaClient, input: ConsumeLicenseInput): Promise<LicenseResult> {
-  const {
-    projectKey,
-    code,
-    machineId,
-    requestId,
-  } = normalizeConsumeLicenseInput(input)
-
-  if (!code || !machineId) {
-    return createMissingParamsResult()
+  const resolution = await resolveConsumeLicenseCommandContext(client, input)
+  if (!resolution.ok) {
+    return resolution.result
   }
 
-  const project = await resolveProject(client, projectKey)
-  const requestContext = buildLicenseConsumptionRequestContext({
-    code,
-    projectId: project.id,
-    machineId,
-  })
+  const { projectId, code, machineId, requestId, requestContext } = resolution.context
 
   return client.$transaction(async (tx) => {
     if (requestId) {
@@ -128,7 +116,7 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
     }
 
     const preparationResult = await prepareLicenseTransactionAction(tx, {
-      projectId: project.id,
+      projectId,
       code,
       machineId,
     })
@@ -143,7 +131,7 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
       return consumeTimeLicense({
         tx,
         activationCode,
-        projectId: project.id,
+        projectId,
         code,
         machineId,
         reloadActivationCode: txHelpers.reloadActivationCode,
@@ -154,7 +142,7 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
     return consumeCountLicense({
       tx,
       activationCode,
-      projectId: project.id,
+      projectId,
       code,
       machineId,
       requestId,

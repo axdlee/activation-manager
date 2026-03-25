@@ -1,3 +1,5 @@
+import type { SystemConfigGroupKey } from '@/lib/system-config-ui'
+
 type WorkspaceTab<T extends string> = {
   key: T
   label: string
@@ -84,3 +86,55 @@ export const apiDocsWorkspaceTabs: Array<WorkspaceTab<ApiDocsWorkspaceTab>> = [
     description: '结合管理接口、日志和 smoke 脚本完成联调',
   },
 ]
+
+export type SystemConfigWorkspaceTab = 'overview' | SystemConfigGroupKey
+
+const systemConfigWorkspaceOverviewTab: WorkspaceTab<SystemConfigWorkspaceTab> = {
+  key: 'overview',
+  label: '配置总览',
+  shortLabel: '总览',
+  description: '先看影响提示、分区入口与保存建议',
+}
+
+const systemConfigWorkspaceTabMetaMap: Record<
+  SystemConfigGroupKey,
+  WorkspaceTab<SystemConfigWorkspaceTab>
+> = {
+  access: {
+    key: 'access',
+    label: '访问控制',
+    shortLabel: '访问',
+    description: '集中维护后台访问白名单与来源限制',
+  },
+  security: {
+    key: 'security',
+    label: '认证与会话',
+    shortLabel: '安全',
+    description: '统一处理 JWT、会话时长与密码强度',
+  },
+  branding: {
+    key: 'branding',
+    label: '系统展示',
+    shortLabel: '展示',
+    description: '维护管理员侧可见的系统名称与品牌信息',
+  },
+  advanced: {
+    key: 'advanced',
+    label: '高级配置',
+    shortLabel: '扩展',
+    description: '承载暂未归类的扩展配置与演进项',
+  },
+}
+
+export function buildSystemConfigWorkspaceTabs(
+  groups: Array<{ key: SystemConfigGroupKey }>,
+): Array<WorkspaceTab<SystemConfigWorkspaceTab>> {
+  const groupKeySet = new Set(groups.map((group) => group.key))
+
+  return [
+    systemConfigWorkspaceOverviewTab,
+    ...(['access', 'security', 'branding', 'advanced'] as const)
+      .filter((groupKey) => groupKeySet.has(groupKey))
+      .map((groupKey) => systemConfigWorkspaceTabMetaMap[groupKey]),
+  ]
+}
