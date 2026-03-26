@@ -15,12 +15,13 @@
 
 - [项目定位](#项目定位)
 - [核心能力](#核心能力)
-- [界面预览](#界面预览)
+- [首页概览](#首页概览)
 - [3 分钟快速开始](#3-分钟快速开始)
 - [Docker 部署](#docker-部署)
 - [GitHub 自动发布 DockerHub](#github-自动发布-dockerhub)
 - [推荐接入流程](#推荐接入流程)
 - [管理后台可以做什么](#管理后台可以做什么)
+- [一眼看懂系统原理](#一眼看懂系统原理)
 - [安全与工程保障](#安全与工程保障)
 - [FAQ](#faq)
 
@@ -696,11 +697,128 @@ CI 工作流位置：
 
 ### 系统体系图
 
-![系统体系图](./Readmeimg/001.png)
+```mermaid
+flowchart TB
+    user[插件 / 客户端 / 接入方]
+    admin[管理员]
+
+    subgraph Pages[Next.js 页面层]
+        home[首页 /]
+        docs[公开 API 文档 /docs/api]
+        login[后台登录 /admin/login]
+        dashboard[后台工作区 /admin/dashboard]
+    end
+
+    subgraph Middleware[后台访问控制]
+        mw[middleware.ts]
+        validate[/api/admin/auth/validate]
+        auth[admin-auth-service]
+        ip[IP 白名单]
+        jwt[JWT Cookie 会话]
+    end
+
+    subgraph Api[业务 API]
+        activate[POST /api/license/activate]
+        status[POST /api/license/status]
+        consume[POST /api/license/consume]
+        verify[POST /api/verify]
+        adminApi[后台接口<br/>项目 / 发码 / 激活码 / 日志 / 配置]
+    end
+
+    subgraph Service[领域服务]
+        licenseSvc[授权服务<br/>项目隔离 / TIME / COUNT / 设备绑定]
+        idem[requestId 幂等控制]
+        analytics[统计与日志服务]
+        configSvc[系统配置服务]
+    end
+
+    subgraph Data[数据层]
+        prisma[Prisma Client]
+        sqlite[(SQLite / prisma/dev.db)]
+    end
+
+    subgraph Runtime[容器 / 运行时]
+        entry[scripts/docker-entrypoint.sh]
+        bootstrap[npm run bootstrap:runtime]
+        start[next start]
+    end
+
+    user --> home
+    user --> docs
+    user --> activate
+    user --> status
+    user --> consume
+    user --> verify
+
+    admin --> login
+    admin --> dashboard
+    dashboard --> mw
+    mw --> validate
+    validate --> auth
+    auth --> ip
+    auth --> jwt
+    dashboard --> adminApi
+
+    activate --> licenseSvc
+    status --> licenseSvc
+    consume --> idem
+    idem --> licenseSvc
+    verify --> licenseSvc
+    adminApi --> analytics
+    adminApi --> configSvc
+    adminApi --> licenseSvc
+
+    licenseSvc --> prisma
+    analytics --> prisma
+    configSvc --> prisma
+    prisma --> sqlite
+
+    entry --> bootstrap
+    bootstrap --> prisma
+    bootstrap --> sqlite
+    bootstrap --> start
+```
 
 ### 客户端验证流程图
 
-![激活码验证流程](./Readmeimg/002.png)
+```mermaid
+flowchart TD
+    start([开始接入]) --> prepare[准备 projectKey / code / machineId]
+    prepare --> first{是否首次绑定设备?}
+
+    first -- 是 --> activate[调用 /api/license/activate]
+    activate --> activateCheck{授权类型}
+    activateCheck -- TIME --> timeBind[写入 usedBy / usedAt / expiresAt]
+    activateCheck -- COUNT --> countBind[仅绑定设备<br/>remainingCount 不扣减]
+
+    timeBind --> statusCall
+    countBind --> statusCall[调用 /api/license/status]
+
+    first -- 否 --> statusCall
+    statusCall --> stateResult[返回当前状态<br/>valid / expiresAt / remainingCount]
+    stateResult --> biz{是否发生真实业务?}
+
+    biz -- 否 --> end1([结束 / 继续展示状态])
+    biz -- 是 --> req[生成并携带 requestId]
+    req --> consume[调用 /api/license/consume]
+    consume --> typeCheck{授权类型}
+
+    typeCheck -- TIME --> timeVerify[仅校验是否过期 / 是否属于当前设备]
+    timeVerify --> end2([返回有效性结果])
+
+    typeCheck -- COUNT --> idem{requestId 是否已处理?}
+    idem -- 是 --> replay[直接返回历史结果<br/>idempotent = true]
+    idem -- 否 --> remain{remainingCount > 0 ?}
+    remain -- 否 --> exhausted[返回次数耗尽]
+    remain -- 是 --> deduct[扣减 1 次并写入消费日志]
+    deduct --> adminTrace[后台按 requestId / machineId / projectKey 反查]
+    replay --> end3([避免重复扣次])
+    exhausted --> end4([提示额度不足])
+    adminTrace --> end5([联调与对账闭环完成])
+```
+
+> 说明：对次数型授权来说，`activate` 只负责绑定设备，真正扣次只发生在 `consume`；<br/>
+> 对时间型授权来说，首次激活后开始计算有效期，后续 `status / consume` 只做有效性校验。
 
 ---
 
