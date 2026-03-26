@@ -572,7 +572,11 @@ docker compose --env-file .env down
 - 容器内持久化目录：`/app/data`
 - 应用内数据库访问路径：`/app/prisma/dev.db`（通过符号链接映射到 `/app/data/dev.db`）
 
-如果你改成宿主机目录挂载，例如挂到 `/app/data`，请确保宿主机目录对容器进程有写权限。
+如果你改成宿主机目录挂载，例如挂到 `/app/data`：
+
+- 入口脚本会先以 root 尝试修复 `/app/data` 权限，再降权为非 root 用户运行应用
+- 在大多数本地 Docker / 服务器场景下，普通 `755` 目录也能自动完成首次初始化
+- 如果底层文件系统禁止 `chown`（例如部分受限 NFS / SMB 挂载），仍建议直接使用 Docker named volume，或提前把宿主机目录授权给容器运行用户
 
 ### 生产服务器部署建议
 
@@ -679,7 +683,34 @@ docker inspect activation-manager
 - SQLite 文件目录权限不对
 - 容器刚启动，初始化尚未完成
 
-#### 4）我应该用 `latest` 还是 `sha-<commit>`？
+#### 4）如果我把宿主机目录挂到 `/app/data`，仍然报 `Permission denied` 怎么办？
+
+优先级建议如下：
+
+1. **优先改用 named volume**
+
+   ```bash
+   docker volume create activation_manager_data
+   docker run -d \
+     --name activation-manager \
+     --env-file .env \
+     -p 3000:3000 \
+     -v activation_manager_data:/app/data \
+     --restart unless-stopped \
+     xdlee/activation-manager:latest
+   ```
+
+2. 如果你必须使用宿主机目录挂载，请提前给目录写权限
+   例如在 Linux 服务器上：
+
+   ```bash
+   mkdir -p ./data
+   sudo chown -R 1000:1000 ./data
+   ```
+
+3. 如果底层挂载本身不允许容器内 `chown`，请不要再用 bind mount，直接改用 named volume
+
+#### 5）我应该用 `latest` 还是 `sha-<commit>`？
 
 - 想省事、接受随主分支更新：用 `latest`
 - 想和某次发布严格绑定、便于回滚：用 `sha-<commit>`

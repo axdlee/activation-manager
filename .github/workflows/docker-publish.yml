@@ -80,9 +80,47 @@ jobs:
       - name: Run Docker smoke test
         run: BASE_URL=http://127.0.0.1:3300 bash ./scripts/smoke-license-api.sh
 
+      - name: Verify bind-mounted data directory compatibility
+        run: |
+          bind_mount_dir="${RUNNER_TEMP}/activation-manager-bind-data"
+          rm -rf "$bind_mount_dir"
+          mkdir -p "$bind_mount_dir"
+          chmod 755 "$bind_mount_dir"
+
+          docker run -d \
+            --name activation-manager-bind \
+            --env-file .env.ci \
+            -p 3301:3000 \
+            -v "$bind_mount_dir:/app/data" \
+            activation-manager:local
+
+          for attempt in $(seq 1 36); do
+            health_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' activation-manager-bind)"
+            echo "attempt=${attempt} bind_mount_health=${health_status}"
+
+            if [ "$health_status" = "healthy" ]; then
+              curl -fI http://127.0.0.1:3301/
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "bind mount 验证失败"
+          docker logs activation-manager-bind
+          exit 1
+
       - name: Print Docker logs on failure
         if: failure()
         run: docker compose --env-file .env.ci logs --no-color
+
+      - name: Print bind mount container logs on failure
+        if: failure()
+        run: docker logs activation-manager-bind || true
+
+      - name: Cleanup bind mount verification container
+        if: always()
+        run: docker rm -f activation-manager-bind || true
 
       - name: Shutdown Docker Compose stack
         if: always()

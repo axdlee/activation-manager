@@ -25,7 +25,7 @@ ENV NODE_ENV=production \
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates sqlite3 \
+    && apt-get install -y --no-install-recommends ca-certificates sqlite3 util-linux \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/data /app/prisma \
     && chmod 0777 /app/data \
@@ -43,7 +43,6 @@ COPY --from=builder --chown=node:node /app/prisma ./prisma
 RUN chmod +x /app/scripts/docker-entrypoint.sh \
     && chown -R node:node /app
 
-USER node
 EXPOSE 3000
 VOLUME ["/app/data"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 3000)).then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
