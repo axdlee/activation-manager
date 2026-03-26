@@ -6,11 +6,27 @@ import { NextRequest } from 'next/server'
 import * as dbModule from '../src/lib/db'
 import * as projectDetailRouteModule from '../src/app/api/admin/projects/[id]/route'
 import * as projectsRouteModule from '../src/app/api/admin/projects/route'
+import { bootstrapDevelopmentDatabase } from '../src/lib/dev-bootstrap'
 import { signToken } from '../src/lib/jwt'
 
 const { prisma } = dbModule
 const { GET, POST } = projectsRouteModule
 const { PATCH, DELETE } = projectDetailRouteModule
+
+const silentLogger = {
+  log: () => undefined,
+  error: () => undefined,
+}
+
+test.before(async () => {
+  await bootstrapDevelopmentDatabase({
+    logger: silentLogger,
+  })
+})
+
+test.after(async () => {
+  await prisma.$disconnect()
+})
 
 function createUniqueProjectKey(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -42,7 +58,6 @@ test('项目列表接口会返回已创建项目', async (t) => {
         id: project.id,
       },
     })
-    await prisma.$disconnect()
   })
 
   const request = createAdminRequest('http://127.0.0.1:3000/api/admin/projects', {
@@ -72,7 +87,6 @@ test('项目创建接口会标准化输入并返回创建结果', async (t) => {
         projectKey,
       },
     })
-    await prisma.$disconnect()
   })
 
   const request = createAdminRequest('http://127.0.0.1:3000/api/admin/projects', {
@@ -126,7 +140,6 @@ test('项目更新接口支持通过路由参数更新描述', async (t) => {
         id: project.id,
       },
     })
-    await prisma.$disconnect()
   })
 
   const request = createAdminRequest(`http://127.0.0.1:3000/api/admin/projects/${project.id}`, {
@@ -180,7 +193,6 @@ test('项目删除接口会删除空项目', async (t) => {
         id: project.id,
       },
     })
-    await prisma.$disconnect()
   })
 
   const request = createAdminRequest(`http://127.0.0.1:3000/api/admin/projects/${project.id}`, {
