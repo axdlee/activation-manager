@@ -263,6 +263,17 @@ npm run start
 - Docker Hub：`xdlee/activation-manager`
 - 仓库地址：<https://hub.docker.com/r/xdlee/activation-manager>
 
+该仓库当前为 **public**，普通使用者可直接拉取，无需先执行 `docker login`。
+
+部署方式选择建议：
+
+| 场景 | 推荐方式 | 原因 |
+|---|---|---|
+| 我只是要把服务跑起来 | 直接拉 Docker Hub 镜像 | 最快、最稳定、与 CI 发布结果一致 |
+| 我要固定版本、便于回滚 | 使用 `sha-<commit>` 标签 | 可追溯、避免 `latest` 漂移 |
+| 我要改源码或二次开发 | 本地 `docker build` | 可基于当前工作区自定义构建 |
+| 我要统一管理日志 / 环境变量 / 重建流程 | `docker compose` | 运维体验更顺手 |
+
 推荐标签：
 
 - `latest`：默认分支最新稳定镜像
@@ -294,7 +305,40 @@ npm run start
 
 ### 方式 A：直接拉取 Docker Hub 镜像运行（推荐）
 
+#### 一屏快速部署
+
+如果你只是想**尽快跑起来**，直接执行下面这一组命令即可：
+
+```bash
+cat > .env <<'EOF'
+JWT_SECRET=change-this-to-a-long-random-secret
+PORT=3000
+ALLOWED_IPS=127.0.0.1,::1
+EOF
+
+docker pull xdlee/activation-manager:latest
+docker volume create activation_manager_data
+
+docker run -d \
+  --name activation-manager \
+  --env-file .env \
+  -p 3000:3000 \
+  -v activation_manager_data:/app/data \
+  --restart unless-stopped \
+  xdlee/activation-manager:latest
+```
+
+默认访问地址：
+
+- 首页：`http://localhost:3000`
+- 管理后台：`http://localhost:3000/admin/login`
+- API 文档：`http://localhost:3000/docs/api`
+
+如果你希望看分步骤说明，再继续往下看。
+
 #### 1）准备环境变量文件
+
+> 如果你刚刚已经执行过上面的“一屏快速部署”，这一小节可直接跳过。
 
 ```bash
 cat > .env <<'EOF'
@@ -323,6 +367,14 @@ EOF
 docker pull xdlee/activation-manager:latest
 ```
 
+如果你希望版本更稳定，可优先考虑：
+
+```bash
+docker pull xdlee/activation-manager:main
+# 或
+docker pull xdlee/activation-manager:sha-<commit>
+```
+
 #### 3）创建持久化卷
 
 ```bash
@@ -345,6 +397,8 @@ docker run -d \
 
 > 我已经实测过：**镜像发布链路、容器健康检查和 smoke 联调均已通过**。
 
+> 容器首次启动时会自动初始化数据库与默认配置，通常需要 `10 ~ 60` 秒不等；建议在访问页面前先确认健康状态变为 `healthy`。
+
 #### 5）查看状态、日志与健康检查
 
 ```bash
@@ -366,7 +420,27 @@ docker inspect --format '{{.State.Health.Status}}' activation-manager
 
 > 容器首次启动后会自动补齐默认管理员、默认项目与默认系统配置；请首登后立即修改密码。
 
-#### 7）可选：基于仓库源码再跑一次真实 smoke 联调
+#### 7）如果你没有源码，如何快速验收镜像是否正常
+
+如果你只是从 Docker Hub 拉了镜像，没有 clone 仓库，也可以先做这一组最小验收：
+
+```bash
+curl -I http://127.0.0.1:3000/
+curl -I http://127.0.0.1:3000/admin/login
+curl -I http://127.0.0.1:3000/docs/api
+docker inspect --format '{{.State.Health.Status}}' activation-manager
+```
+
+期望结果：
+
+- 首页返回 `200`
+- 登录页返回 `200`
+- 文档页返回 `200`
+- 容器健康状态为 `healthy`
+
+如果这 4 项都正常，说明镜像、启动脚本、Next.js 服务和基础路由都已工作。
+
+#### 8）可选：基于仓库源码再跑一次真实 smoke 联调
 
 ```bash
 BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
@@ -382,12 +456,48 @@ BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
 - 次数型激活码生成 / 绑定 / 幂等扣次
 - 消费日志、统计、CSV 导出
 
-#### 8）停止与删除容器
+#### 9）停止与删除容器
 
 ```bash
 docker stop activation-manager
 docker rm activation-manager
 ```
+
+#### 10）升级与回滚
+
+升级到最新镜像：
+
+```bash
+docker pull xdlee/activation-manager:latest
+docker stop activation-manager
+docker rm activation-manager
+
+docker run -d \
+  --name activation-manager \
+  --env-file .env \
+  -p 3000:3000 \
+  -v activation_manager_data:/app/data \
+  --restart unless-stopped \
+  xdlee/activation-manager:latest
+```
+
+回滚到指定提交镜像：
+
+```bash
+docker pull xdlee/activation-manager:sha-<commit>
+docker stop activation-manager
+docker rm activation-manager
+
+docker run -d \
+  --name activation-manager \
+  --env-file .env \
+  -p 3000:3000 \
+  -v activation_manager_data:/app/data \
+  --restart unless-stopped \
+  xdlee/activation-manager:sha-<commit>
+```
+
+> 因为数据库挂载在独立卷 `activation_manager_data` 中，所以只要你不手动删除卷，升级或回滚都不会丢失数据。
 
 ### 方式 B：从源码构建镜像（可选）
 
@@ -463,6 +573,116 @@ docker compose --env-file .env down
 - 应用内数据库访问路径：`/app/prisma/dev.db`（通过符号链接映射到 `/app/data/dev.db`）
 
 如果你改成宿主机目录挂载，例如挂到 `/app/data`，请确保宿主机目录对容器进程有写权限。
+
+### 生产服务器部署建议
+
+如果你是要把它真正部署到服务器，而不是只在本机联调，建议按下面的基线来：
+
+1. `JWT_SECRET` 使用**足够长的随机字符串**
+2. `ALLOWED_IPS` 按真实来源收紧，不要长期保留整个私网段
+3. 如果前面还有 Nginx / Caddy / Traefik，优先把端口只绑定到本机：
+
+   ```bash
+   -p 127.0.0.1:3000:3000
+   ```
+
+4. 使用命名卷或宿主机目录持久化 `/app/data`
+5. 保留 `--restart unless-stopped`
+6. 升级前先做一次数据库备份
+
+一个更适合服务器反向代理场景的启动示例：
+
+```bash
+docker run -d \
+  --name activation-manager \
+  --env-file .env \
+  -p 127.0.0.1:3000:3000 \
+  -v activation_manager_data:/app/data \
+  --restart unless-stopped \
+  xdlee/activation-manager:latest
+```
+
+### 反向代理 / HTTPS 建议
+
+本服务本身可以直接跑在 Docker 中，但正式对外时仍建议：
+
+- 由 Nginx / Caddy / Traefik 统一做 HTTPS 终止
+- 容器仅监听内网或本机回环地址
+- 域名层启用 TLS 证书与自动续期
+
+也就是说，更推荐的拓扑是：
+
+```text
+Internet -> HTTPS Reverse Proxy -> activation-manager container
+```
+
+这样可以把：
+
+- TLS 证书管理
+- 域名路由
+- 限流 / 安全头
+- 日志统一收集
+
+都放在反向代理层处理。
+
+### 备份与恢复
+
+如果你已经开始正式使用，建议把数据库备份作为常规动作：
+
+- 详细指南：[`DATABASE_BACKUP_GUIDE.md`](./DATABASE_BACKUP_GUIDE.md)
+- 常用命令：
+
+```bash
+npm run db:backup
+npm run db:backup-simple
+npm run db:backup-sql
+```
+
+如果你是纯 Docker 镜像部署、机器上没有源码仓库，也至少要保证：
+
+- `activation_manager_data` 卷有宿主机级别快照或备份策略
+- 升级前先复制或导出 SQLite 数据文件
+
+### Docker 部署常见问题
+
+#### 1）为什么容器重启后数据没了？
+
+通常是因为没有挂载卷，或者删除容器时顺手把卷也删了。
+
+请确认你使用了：
+
+```bash
+-v activation_manager_data:/app/data
+```
+
+#### 2）为什么后台打不开，或者接口返回 403？
+
+大概率是 `ALLOWED_IPS` 没配对。
+
+- 本机直连：至少保留 `127.0.0.1,::1`
+- 通过 Docker 私网 / 虚拟网桥访问：需要把对应私网段加入白名单
+- 正式服务器：需要按真实来源地址精确收紧
+
+#### 3）为什么容器一直不是 healthy？
+
+可按这个顺序排查：
+
+```bash
+docker logs -f activation-manager
+docker inspect --format '{{.State.Health.Status}}' activation-manager
+docker inspect activation-manager
+```
+
+常见原因：
+
+- `JWT_SECRET` 缺失
+- SQLite 文件目录权限不对
+- 容器刚启动，初始化尚未完成
+
+#### 4）我应该用 `latest` 还是 `sha-<commit>`？
+
+- 想省事、接受随主分支更新：用 `latest`
+- 想和某次发布严格绑定、便于回滚：用 `sha-<commit>`
 
 ---
 
