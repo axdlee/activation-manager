@@ -1,6 +1,6 @@
 import { type LicenseActionCodeRecord } from './license-action-context'
+import { resolveMutableLicenseActionCodeForMachine } from './license-auto-rebind-service'
 import { prepareMachineBindingForLicenseAction } from './license-binding-preflight-service'
-import { loadLicenseActionCodeForMachine } from './license-code-access-service'
 import { type DbClient } from './license-project-service'
 import { type LicenseResult } from './license-result-service'
 import { createLicenseTransactionHelpers } from './license-transaction-helpers'
@@ -42,9 +42,12 @@ export async function prepareLicenseTransactionAction(
   }
 
   const txHelpers = createLicenseTransactionHelpers(client, context)
-  const codeLoadResult = await loadLicenseActionCodeForMachine({
+  const codeLoadResult = await resolveMutableLicenseActionCodeForMachine({
+    tx: client,
     machineId: context.machineId,
+    activationCode: await txHelpers.reloadActivationCode(),
     reloadActivationCode: txHelpers.reloadActivationCode,
+    resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
   })
 
   if (codeLoadResult.result) {

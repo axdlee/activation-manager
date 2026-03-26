@@ -4,6 +4,9 @@ export type ProjectManagementListItem = {
   projectKey: string
   description: string | null
   isEnabled: boolean
+  allowAutoRebind: boolean | null
+  autoRebindCooldownMinutes: number | null
+  autoRebindMaxCount: number | null
   createdAt: string
 }
 

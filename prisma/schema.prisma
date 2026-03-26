@@ -17,9 +17,14 @@ model Project {
   projectKey  String           @unique
   description String?
   isEnabled   Boolean          @default(true)
+  allowAutoRebind Boolean?
+  autoRebindCooldownMinutes Int?
+  autoRebindMaxCount Int?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   codes       ActivationCode[]
+  bindingHistories ActivationCodeBindingHistory[]
+  adminAuditLogs   AdminOperationAuditLog[]
 
   @@map("projects")
 }
@@ -30,6 +35,9 @@ model ActivationCode {
   isUsed         Boolean     @default(false)
   usedAt         DateTime?
   usedBy         String?     // 机器ID
+  lastBoundAt    DateTime?
+  lastRebindAt   DateTime?
+  rebindCount    Int         @default(0)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   expiresAt      DateTime?
@@ -41,12 +49,56 @@ model ActivationCode {
   totalCount     Int?        // 次数型激活码总次数
   remainingCount Int?        // 次数型激活码剩余次数
   consumedCount  Int         @default(0)
+  allowAutoRebind Boolean?
+  autoRebindCooldownMinutes Int?
+  autoRebindMaxCount Int?
+  autoRebindCount Int       @default(0)
   consumptions   LicenseConsumption[]
+  bindingHistories ActivationCodeBindingHistory[]
+  adminAuditLogs   AdminOperationAuditLog[]
 
   @@unique([projectId, usedBy], map: "activation_codes_projectId_usedBy_key")
   @@index([projectId], map: "activation_codes_projectId_idx")
   @@index([projectId, usedBy, isUsed, usedAt], map: "activation_codes_projectId_usedBy_isUsed_usedAt_idx")
   @@map("activation_codes")
+}
+
+model ActivationCodeBindingHistory {
+  id             Int            @id @default(autoincrement())
+  activationCodeId Int
+  activationCode ActivationCode @relation(fields: [activationCodeId], references: [id])
+  projectId      Int
+  project        Project        @relation(fields: [projectId], references: [id])
+  eventType      String
+  operatorType   String
+  operatorUsername String?
+  fromMachineId  String?
+  toMachineId    String?
+  reason         String?
+  createdAt      DateTime       @default(now())
+
+  @@index([activationCodeId, createdAt], map: "activation_code_binding_histories_activationCodeId_createdAt_idx")
+  @@index([projectId, createdAt], map: "activation_code_binding_histories_projectId_createdAt_idx")
+  @@map("activation_code_binding_histories")
+}
+
+model AdminOperationAuditLog {
+  id             Int             @id @default(autoincrement())
+  adminUsername  String
+  operationType  String
+  activationCodeId Int?
+  activationCode ActivationCode? @relation(fields: [activationCodeId], references: [id])
+  projectId      Int?
+  project        Project?        @relation(fields: [projectId], references: [id])
+  targetLabel    String?
+  reason         String?
+  detailJson     String?
+  createdAt      DateTime        @default(now())
+
+  @@index([activationCodeId, createdAt], map: "admin_operation_audit_logs_activationCodeId_createdAt_idx")
+  @@index([projectId, createdAt], map: "admin_operation_audit_logs_projectId_createdAt_idx")
+  @@index([adminUsername, createdAt], map: "admin_operation_audit_logs_adminUsername_createdAt_idx")
+  @@map("admin_operation_audit_logs")
 }
 
 model LicenseConsumption {

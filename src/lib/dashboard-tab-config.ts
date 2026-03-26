@@ -4,6 +4,7 @@ export type DashboardTabKey =
   | 'stats'
   | 'projects'
   | 'consumptions'
+  | 'auditLogs'
   | 'apiDocs'
   | 'changePassword'
   | 'systemConfig'
@@ -45,6 +46,12 @@ export const dashboardTabs: DashboardTabMeta[] = [
     label: '消费日志',
     shortLabel: '日志',
     description: '按 requestId、机器ID与时间范围排查真实扣次记录。',
+  },
+  {
+    key: 'auditLogs',
+    label: '审计中心',
+    shortLabel: '审计',
+    description: '集中回溯管理员对项目、激活码与发码动作的关键操作。',
   },
   {
     key: 'apiDocs',

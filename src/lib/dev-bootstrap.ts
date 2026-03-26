@@ -17,8 +17,10 @@ export const DEFAULT_PROJECT_KEY = 'default'
 export const DEFAULT_PROJECT_NAME = '默认项目'
 
 const REQUIRED_TABLES = [
+  'activation_code_binding_histories',
   'activation_codes',
   'admin_login_rate_limits',
+  'admin_operation_audit_logs',
   'admins',
   'license_consumptions',
   'projects',

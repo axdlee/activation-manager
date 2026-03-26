@@ -12,8 +12,23 @@ export const GET = createProtectedAdminRouteHandler(
             id: true,
             name: true,
             projectKey: true,
-          }
-        }
+            allowAutoRebind: true,
+            autoRebindCooldownMinutes: true,
+            autoRebindMaxCount: true,
+          },
+        },
+        bindingHistories: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 10,
+        },
+        adminAuditLogs: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 10,
+        },
       },
       orderBy: {
         createdAt: 'desc'

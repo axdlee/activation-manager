@@ -232,19 +232,36 @@ function renderGroupSection({
                     ) : item.inputKind === 'number' ? (
                       <input
                         type="number"
-                        min="4"
-                        max="15"
-                        value={item.value}
+                        min={item.min}
+                        max={item.max}
+                        step={item.step}
+                        value={
+                          typeof item.value === 'number'
+                            ? item.value
+                            : Number.parseInt(String(item.value ?? item.min ?? 0), 10)
+                        }
                         onChange={(event) => {
                           const nextValue = Number.parseInt(event.target.value, 10)
-                          updateConfigValue(item.key, Number.isNaN(nextValue) ? 4 : nextValue)
+                          updateConfigValue(
+                            item.key,
+                            Number.isNaN(nextValue) ? (item.min ?? 0) : nextValue,
+                          )
                         }}
                         className={inputClassName}
                       />
                     ) : item.inputKind === 'select' ? (
                       <select
                         value={String(item.value)}
-                        onChange={(event) => updateConfigValue(item.key, event.target.value)}
+                        onChange={(event) =>
+                          updateConfigValue(
+                            item.key,
+                            event.target.value === 'true'
+                              ? true
+                              : event.target.value === 'false'
+                                ? false
+                                : event.target.value,
+                          )
+                        }
                         className={inputClassName}
                       >
                         {item.options?.map((option) => (

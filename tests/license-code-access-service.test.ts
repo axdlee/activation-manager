@@ -65,3 +65,28 @@ test('loadLicenseActionCodeForMachine 在当前设备可用时返回激活码实
     activationCode,
   })
 })
+
+test('loadLicenseActionCodeForMachine 在时间卡已过期时优先返回过期结果，而不是设备占用', async () => {
+  const result = await loadLicenseActionCodeForMachine({
+    machineId: 'machine-001',
+    reloadActivationCode: async () => ({
+      id: 2,
+      code: 'CODE-EXPIRED-001',
+      licenseMode: 'TIME',
+      isUsed: true,
+      usedAt: new Date('2026-03-20T00:00:00.000Z'),
+      expiresAt: new Date('2026-03-21T00:00:00.000Z'),
+      validDays: 1,
+      remainingCount: null,
+      usedBy: 'machine-002',
+    }),
+  })
+
+  assert.deepEqual(result, {
+    result: {
+      success: false,
+      message: '激活码已过期',
+      status: 400,
+    },
+  })
+})

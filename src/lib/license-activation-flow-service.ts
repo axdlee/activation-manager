@@ -10,6 +10,7 @@ import {
   createExpiredResult,
   type LicenseResult,
 } from './license-result-service'
+import { recordActivationCodeBindingHistory } from './license-binding-history-service'
 import { type DbClient } from './license-project-service'
 
 type ActivationMutationClient = Pick<DbClient, 'activationCode'>
@@ -47,7 +48,17 @@ export async function activateCountLicense(params: {
         isUsed: true,
         usedAt: activationCode.usedAt ?? now,
         usedBy: machineId,
+        lastBoundAt: now,
       },
+    })
+
+    await recordActivationCodeBindingHistory(tx as DbClient, {
+      activationCodeId: activationCode.id,
+      projectId: activationCode.projectId,
+      eventType: 'INITIAL_BIND',
+      operatorType: 'CLIENT',
+      fromMachineId: activationCode.usedBy ?? null,
+      toMachineId: machineId,
     })
 
     return createActivationSuccessResult(updatedCode, '激活码激活成功')
@@ -82,6 +93,42 @@ export async function activateTimeLicense(params: {
   }
 
   const now = new Date()
+
+  if (activationCode.isUsed && !activationCode.usedBy) {
+    if (isCodeExpired(activationCode)) {
+      return createExpiredResult()
+    }
+
+    try {
+      const updatedCode = await tx.activationCode.update({
+        where: {
+          id: activationCode.id,
+        },
+        data: {
+          usedBy: machineId,
+          lastBoundAt: now,
+        },
+      })
+
+      await recordActivationCodeBindingHistory(tx as DbClient, {
+        activationCodeId: activationCode.id,
+        projectId: activationCode.projectId,
+        eventType: 'INITIAL_BIND',
+        operatorType: 'CLIENT',
+        fromMachineId: activationCode.usedBy ?? null,
+        toMachineId: machineId,
+      })
+
+      return createActivationSuccessResult(updatedCode, '激活码绑定成功')
+    } catch (error) {
+      if (isProjectMachineUniqueConstraintError(error)) {
+        return resolveProjectMachineConflict()
+      }
+
+      throw error
+    }
+  }
+
   const expiresAt = activationCode.validDays
     ? new Date(now.getTime() + activationCode.validDays * 24 * 60 * 60 * 1000)
     : null
@@ -96,7 +143,17 @@ export async function activateTimeLicense(params: {
         usedAt: now,
         usedBy: machineId,
         expiresAt,
+        lastBoundAt: now,
       },
+    })
+
+    await recordActivationCodeBindingHistory(tx as DbClient, {
+      activationCodeId: activationCode.id,
+      projectId: activationCode.projectId,
+      eventType: 'INITIAL_BIND',
+      operatorType: 'CLIENT',
+      fromMachineId: activationCode.usedBy ?? null,
+      toMachineId: machineId,
     })
 
     return createActivationSuccessResult(updatedCode, '激活码激活成功')

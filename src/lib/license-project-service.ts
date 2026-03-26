@@ -1,6 +1,12 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 
+import { recordAdminOperationAuditLog } from './admin-operation-audit-service'
 import { DEFAULT_PROJECT_KEY, DEFAULT_PROJECT_NAME } from './dev-bootstrap'
+import {
+  normalizeNullableBooleanOverride,
+  normalizeNullableCooldownMinutesOverride,
+  normalizeNullableMaxCountOverride,
+} from './license-rebind-policy'
 import { normalizeProjectKeyForCreate } from './project-key'
 
 export type DbClient = PrismaClient | Prisma.TransactionClient
@@ -9,6 +15,10 @@ type CreateProjectInput = {
   name: string
   projectKey: string
   description?: string | null
+  allowAutoRebind?: boolean | null
+  autoRebindCooldownMinutes?: number | null
+  autoRebindMaxCount?: number | null
+  adminUsername?: string
 }
 
 type UpdateProjectStatusInput = {
@@ -24,6 +34,14 @@ type UpdateProjectNameInput = {
 type UpdateProjectDescriptionInput = {
   id: number
   description?: string | null
+}
+
+type UpdateProjectRebindSettingsInput = {
+  id: number
+  allowAutoRebind?: boolean | null
+  autoRebindCooldownMinutes?: number | null
+  autoRebindMaxCount?: number | null
+  adminUsername?: string
 }
 
 type DeleteProjectInput = {
@@ -116,19 +134,45 @@ export async function createProject(client: DbClient, input: CreateProjectInput)
   const name = normalizeOptionalText(input.name)
   const projectKey = normalizeProjectKeyForCreate(input.projectKey)
   const description = normalizeOptionalText(input.description) || null
+  const allowAutoRebind = normalizeNullableBooleanOverride(input.allowAutoRebind)
+  const autoRebindCooldownMinutes = normalizeNullableCooldownMinutesOverride(
+    input.autoRebindCooldownMinutes,
+  )
+  const autoRebindMaxCount = normalizeNullableMaxCountOverride(input.autoRebindMaxCount)
 
   if (!name) {
     throw new Error('项目名称不能为空')
   }
 
-  return client.project.create({
+  const createdProject = await client.project.create({
     data: {
       name,
       projectKey,
       description,
       isEnabled: true,
+      allowAutoRebind,
+      autoRebindCooldownMinutes,
+      autoRebindMaxCount,
     },
   })
+
+  if (input.adminUsername) {
+    await recordAdminOperationAuditLog(client, {
+      adminUsername: input.adminUsername,
+      operationType: 'PROJECT_CREATED',
+      projectId: createdProject.id,
+      targetLabel: createdProject.projectKey,
+      detail: {
+        name: createdProject.name,
+        projectKey: createdProject.projectKey,
+        allowAutoRebind: createdProject.allowAutoRebind,
+        autoRebindCooldownMinutes: createdProject.autoRebindCooldownMinutes,
+        autoRebindMaxCount: createdProject.autoRebindMaxCount,
+      },
+    })
+  }
+
+  return createdProject
 }
 
 export async function updateProjectStatus(client: DbClient, input: UpdateProjectStatusInput) {
@@ -194,6 +238,50 @@ export async function updateProjectDescription(client: DbClient, input: UpdatePr
       description: input.description?.trim() || null,
     },
   })
+}
+
+export async function updateProjectRebindSettings(
+  client: DbClient,
+  input: UpdateProjectRebindSettingsInput,
+) {
+  const project = await getProjectById(client, input.id)
+
+  if (!project) {
+    throw new Error('项目不存在')
+  }
+
+  const allowAutoRebind = normalizeNullableBooleanOverride(input.allowAutoRebind)
+  const autoRebindCooldownMinutes = normalizeNullableCooldownMinutesOverride(
+    input.autoRebindCooldownMinutes,
+  )
+  const autoRebindMaxCount = normalizeNullableMaxCountOverride(input.autoRebindMaxCount)
+
+  const updatedProject = await client.project.update({
+    where: {
+      id: project.id,
+    },
+    data: {
+      allowAutoRebind,
+      autoRebindCooldownMinutes,
+      autoRebindMaxCount,
+    },
+  })
+
+  if (input.adminUsername) {
+    await recordAdminOperationAuditLog(client, {
+      adminUsername: input.adminUsername,
+      operationType: 'PROJECT_REBIND_SETTINGS_UPDATED',
+      projectId: updatedProject.id,
+      targetLabel: updatedProject.projectKey,
+      detail: {
+        allowAutoRebind: updatedProject.allowAutoRebind,
+        autoRebindCooldownMinutes: updatedProject.autoRebindCooldownMinutes,
+        autoRebindMaxCount: updatedProject.autoRebindMaxCount,
+      },
+    })
+  }
+
+  return updatedProject
 }
 
 export async function deleteProject(client: DbClient, input: DeleteProjectInput) {

@@ -80,8 +80,17 @@ test('项目列表接口会返回已创建项目', async (t) => {
 
 test('项目创建接口会标准化输入并返回创建结果', async (t) => {
   const projectKey = createUniqueProjectKey('route-create-project')
+  let createdProjectId: number | null = null
 
   t.after(async () => {
+    if (createdProjectId !== null) {
+      await prisma.adminOperationAuditLog.deleteMany({
+        where: {
+          projectId: createdProjectId,
+        },
+      })
+    }
+
     await prisma.project.deleteMany({
       where: {
         projectKey,
@@ -99,11 +108,22 @@ test('项目创建接口会标准化输入并返回创建结果', async (t) => {
       name: '  新建项目  ',
       projectKey: `  ${projectKey}  `,
       description: '  项目描述  ',
+      allowAutoRebind: true,
+      autoRebindCooldownMinutes: 90,
     }),
   })
 
   const response = await POST(request)
   const body = await response.json()
+  createdProjectId = body.project.id
+  const adminLogs = await prisma.adminOperationAuditLog.findMany({
+    where: {
+      projectId: body.project.id,
+    },
+    orderBy: {
+      id: 'asc',
+    },
+  })
 
   assert.equal(response.status, 200)
   assert.deepEqual(
@@ -113,6 +133,8 @@ test('项目创建接口会标准化输入并返回创建结果', async (t) => {
       name: body.project.name,
       projectKey: body.project.projectKey,
       description: body.project.description,
+      allowAutoRebind: body.project.allowAutoRebind,
+      autoRebindCooldownMinutes: body.project.autoRebindCooldownMinutes,
     },
     {
       success: true,
@@ -120,7 +142,23 @@ test('项目创建接口会标准化输入并返回创建结果', async (t) => {
       name: '新建项目',
       projectKey,
       description: '项目描述',
+      allowAutoRebind: true,
+      autoRebindCooldownMinutes: 90,
     },
+  )
+  assert.deepEqual(
+    adminLogs.map((entry) => ({
+      operationType: entry.operationType,
+      adminUsername: entry.adminUsername,
+      targetLabel: entry.targetLabel,
+    })),
+    [
+      {
+        operationType: 'PROJECT_CREATED',
+        adminUsername: 'admin',
+        targetLabel: projectKey,
+      },
+    ],
   )
 })
 
@@ -160,6 +198,14 @@ test('项目更新接口支持通过路由参数更新描述', async (t) => {
       id: project.id,
     },
   })
+  const adminLogs = await prisma.adminOperationAuditLog.findMany({
+    where: {
+      projectId: project.id,
+    },
+    orderBy: {
+      id: 'asc',
+    },
+  })
 
   assert.equal(response.status, 200)
   assert.deepEqual(
@@ -175,6 +221,94 @@ test('项目更新接口支持通过路由参数更新描述', async (t) => {
     },
   )
   assert.equal(updatedProject.description, 'new-description')
+})
+
+test('项目更新接口支持更新项目级换绑策略', async (t) => {
+  const project = await prisma.project.create({
+    data: {
+      name: '待更新换绑策略项目',
+      projectKey: createUniqueProjectKey('route-patch-project-policy'),
+      description: 'policy-description',
+      isEnabled: true,
+    },
+  })
+
+  t.after(async () => {
+    await prisma.adminOperationAuditLog.deleteMany({
+      where: {
+        projectId: project.id,
+      },
+    })
+    await prisma.project.deleteMany({
+      where: {
+        id: project.id,
+      },
+    })
+  })
+
+  const request = createAdminRequest(`http://127.0.0.1:3000/api/admin/projects/${project.id}`, {
+    method: 'PATCH',
+    headers: {
+      'content-type': 'application/json',
+      cookie: await createAuthCookie(),
+    },
+    body: JSON.stringify({
+      allowAutoRebind: false,
+      autoRebindCooldownMinutes: 240,
+      autoRebindMaxCount: 3,
+    }),
+  })
+
+  const response = await PATCH(request, { params: { id: String(project.id) } })
+  const body = await response.json()
+  const updatedProject = await prisma.project.findUniqueOrThrow({
+    where: {
+      id: project.id,
+    },
+  })
+  const adminLogs = await prisma.adminOperationAuditLog.findMany({
+    where: {
+      projectId: project.id,
+    },
+    orderBy: {
+      id: 'asc',
+    },
+  })
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(
+    {
+      success: body.success,
+      message: body.message,
+      allowAutoRebind: body.project.allowAutoRebind,
+      autoRebindCooldownMinutes: body.project.autoRebindCooldownMinutes,
+      autoRebindMaxCount: body.project.autoRebindMaxCount,
+    },
+    {
+      success: true,
+      message: '项目换绑策略已更新',
+      allowAutoRebind: false,
+      autoRebindCooldownMinutes: 240,
+      autoRebindMaxCount: 3,
+    },
+  )
+  assert.equal(updatedProject.allowAutoRebind, false)
+  assert.equal(updatedProject.autoRebindCooldownMinutes, 240)
+  assert.equal(updatedProject.autoRebindMaxCount, 3)
+  assert.deepEqual(
+    adminLogs.map((entry) => ({
+      operationType: entry.operationType,
+      adminUsername: entry.adminUsername,
+      targetLabel: entry.targetLabel,
+    })),
+    [
+      {
+        operationType: 'PROJECT_REBIND_SETTINGS_UPDATED',
+        adminUsername: 'admin',
+        targetLabel: project.projectKey,
+      },
+    ],
+  )
 })
 
 test('项目删除接口会删除空项目', async (t) => {

@@ -1,12 +1,23 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 import { prisma } from '@/lib/db'
 import { generateActivationCodes } from '@/lib/license-generation-service'
 
 export const POST = createProtectedAdminRouteHandler(
-  async (request: NextRequest) => {
-    const { amount, expiryDays, cardType, projectKey, licenseMode, totalCount } = await request.json()
+  async (request: NextRequest, authResult) => {
+    const {
+      amount,
+      expiryDays,
+      cardType,
+      projectKey,
+      licenseMode,
+      totalCount,
+      allowAutoRebind,
+      autoRebindCooldownMinutes,
+      autoRebindMaxCount,
+    } = await request.json()
 
     const codes = await generateActivationCodes(prisma, {
       projectKey,
@@ -15,7 +26,28 @@ export const POST = createProtectedAdminRouteHandler(
       validDays: expiryDays || null,
       totalCount: totalCount || null,
       cardType: cardType || null,
+      allowAutoRebind,
+      autoRebindCooldownMinutes,
+      autoRebindMaxCount,
     })
+
+    if (authResult.payload?.username && codes.length > 0) {
+      await recordAdminOperationAuditLog(prisma, {
+        adminUsername: authResult.payload.username,
+        operationType: 'CODE_BATCH_GENERATED',
+        projectId: codes[0]?.projectId,
+        targetLabel: codes[0]?.project?.projectKey || projectKey || null,
+        detail: {
+          amount: codes.length,
+          licenseMode: licenseMode || 'TIME',
+          validDays: licenseMode === 'TIME' ? expiryDays || null : null,
+          totalCount: licenseMode === 'COUNT' ? totalCount || null : null,
+          allowAutoRebind: codes[0]?.allowAutoRebind ?? null,
+          autoRebindCooldownMinutes: codes[0]?.autoRebindCooldownMinutes ?? null,
+          autoRebindMaxCount: codes[0]?.autoRebindMaxCount ?? null,
+        },
+      })
+    }
 
     return NextResponse.json({
       success: true,

@@ -15,8 +15,26 @@ export type LicenseStatusInput = LicenseActionInput
 
 export type LicenseActionCodeRecord = LicenseStatusLike & {
   id: number
+  code: string
+  projectId: number
+  createdAt?: Date | string | null
   licenseMode: string
   usedBy?: string | null
+  lastBoundAt?: Date | string | null
+  lastRebindAt?: Date | string | null
+  rebindCount?: number
+  autoRebindCount?: number
+  allowAutoRebind?: boolean | null
+  autoRebindCooldownMinutes?: number | null
+  autoRebindMaxCount?: number | null
+  project?: {
+    id: number
+    name: string
+    projectKey: string
+    allowAutoRebind?: boolean | null
+    autoRebindCooldownMinutes?: number | null
+    autoRebindMaxCount?: number | null
+  } | null
 }
 
 export type LicenseConflictResolver = () => Promise<LicenseResult>

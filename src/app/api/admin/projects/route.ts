@@ -26,13 +26,25 @@ export const GET = createProtectedAdminRouteHandler(
 )
 
 export const POST = createProtectedAdminRouteHandler(
-  async (request: NextRequest) => {
-    const { name, projectKey, description } = await request.json()
+  async (request: NextRequest, authResult) => {
+    const {
+      name,
+      projectKey,
+      description,
+      allowAutoRebind,
+      autoRebindCooldownMinutes,
+      autoRebindMaxCount,
+    } =
+      await request.json()
 
     const project = await createProject(prisma, {
       name,
       projectKey,
       description,
+      allowAutoRebind,
+      autoRebindCooldownMinutes,
+      autoRebindMaxCount,
+      adminUsername: authResult.payload?.username,
     })
 
     return NextResponse.json({

@@ -15,6 +15,7 @@ export type LicenseResult = {
   isActivated?: boolean
   valid?: boolean
   idempotent?: boolean
+  rebindAllowedAt?: Date | null
 }
 
 type LicenseResultCode = LicenseStatusLike & {
@@ -58,6 +59,23 @@ export function createUsedByOtherDeviceResult(): LicenseResult {
     success: false,
     message: '激活码已被其他设备使用',
     status: 400,
+  }
+}
+
+export function createRebindCooldownResult(rebindAllowedAt: Date): LicenseResult {
+  return {
+    success: false,
+    message: '激活码处于换绑冷却期，请稍后重试',
+    status: 409,
+    rebindAllowedAt,
+  }
+}
+
+export function createRebindLimitReachedResult(): LicenseResult {
+  return {
+    success: false,
+    message: '激活码已达到自助换绑次数上限',
+    status: 409,
   }
 }
 

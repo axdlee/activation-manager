@@ -14,6 +14,9 @@ const projects: ProjectManagementListItem[] = [
     projectKey: 'default',
     description: '系统默认项目',
     isEnabled: true,
+    allowAutoRebind: null,
+    autoRebindCooldownMinutes: null,
+    autoRebindMaxCount: null,
     createdAt: '2026-03-01T00:00:00.000Z',
   },
   {
@@ -22,6 +25,9 @@ const projects: ProjectManagementListItem[] = [
     projectKey: 'browser-plugin',
     description: '浏览器插件授权',
     isEnabled: false,
+    allowAutoRebind: true,
+    autoRebindCooldownMinutes: 180,
+    autoRebindMaxCount: 2,
     createdAt: '2026-03-10T00:00:00.000Z',
   },
 ]
@@ -43,17 +49,28 @@ function createManageView(overrides: Partial<React.ComponentProps<typeof Project
     endIndex: 2,
     getProjectNameDraft: (project: ProjectManagementListItem) => project.name,
     getProjectDescriptionDraft: (project: ProjectManagementListItem) => project.description || '',
+    getProjectRebindPolicyDraft: (project: ProjectManagementListItem) =>
+      project.allowAutoRebind === true ? 'enabled' : project.allowAutoRebind === false ? 'disabled' : 'inherit',
+    getProjectRebindCooldownMinutesDraft: (project: ProjectManagementListItem) =>
+      project.autoRebindCooldownMinutes === null ? '' : String(project.autoRebindCooldownMinutes),
+    getProjectRebindMaxCountDraft: (project: ProjectManagementListItem) =>
+      project.autoRebindMaxCount === null ? '' : String(project.autoRebindMaxCount),
     hasProjectNameChanged: () => false,
     hasProjectDescriptionChanged: () => false,
+    hasProjectRebindSettingsChanged: () => false,
     onSearchTermChange: () => {},
     onStatusFilterChange: () => {},
     onSortByChange: () => {},
     onPageChange: () => {},
     onProjectNameChange: () => {},
     onProjectDescriptionChange: () => {},
+    onProjectRebindPolicyChange: () => {},
+    onProjectRebindCooldownMinutesChange: () => {},
+    onProjectRebindMaxCountChange: () => {},
     onCopyProjectKey: () => {},
     onSaveProjectName: () => {},
     onSaveProjectDescription: () => {},
+    onSaveProjectRebindSettings: () => {},
     onToggleProjectStatus: () => {},
     onDeleteProject: () => {},
     ...overrides,
@@ -76,10 +93,16 @@ function createProps(overrides: Partial<React.ComponentProps<typeof ProjectWorks
       name: '',
       projectKey: '',
       description: '',
+      rebindPolicyValue: 'inherit',
+      rebindCooldownMinutesValue: '',
+      rebindMaxCountValue: '',
       onSubmit: () => {},
       onNameChange: () => {},
       onProjectKeyChange: () => {},
       onDescriptionChange: () => {},
+      onRebindPolicyChange: () => {},
+      onRebindCooldownMinutesChange: () => {},
+      onRebindMaxCountChange: () => {},
     },
     manageView: createManageView(),
     onTabChange: () => {},
@@ -87,18 +110,24 @@ function createProps(overrides: Partial<React.ComponentProps<typeof ProjectWorks
   }
 }
 
-test('ProjectWorkspace 在 create tab 渲染项目工作区头部与新建表单', () => {
+test('ProjectWorkspace 在 create tab 渲染项目工作区头部、新建表单与换绑默认策略', () => {
   const html = renderToStaticMarkup(React.createElement(ProjectWorkspace, createProps()))
 
   assert.equal(html.includes('项目管理中心'), true)
   assert.equal(html.includes('项目工作区'), true)
   assert.equal(html.includes('新建项目'), true)
   assert.equal(html.includes('项目标识，例如 browser-plugin'), true)
+  assert.equal(html.includes('自助换绑策略'), true)
+  assert.equal(html.includes('继承系统配置'), true)
+  assert.equal(html.includes('换绑冷却时间（分钟）'), true)
+  assert.equal(html.includes('留空则继承系统配置'), true)
+  assert.equal(html.includes('自助换绑次数上限'), true)
+  assert.equal(html.includes('0 表示不限制；留空则继承系统配置'), true)
   assert.equal(html.includes('创建项目'), true)
   assert.equal(html.includes('browser-plugin'), true)
 })
 
-test('ProjectWorkspace 在 manage tab 渲染筛选、分页与空状态提示', () => {
+test('ProjectWorkspace 在 manage tab 渲染筛选、分页、策略列与空状态提示', () => {
   const html = renderToStaticMarkup(
     React.createElement(
       ProjectWorkspace,
@@ -124,6 +153,7 @@ test('ProjectWorkspace 在 manage tab 渲染筛选、分页与空状态提示', 
   assert.equal(html.includes('搜索项目'), true)
   assert.equal(html.includes('状态筛选'), true)
   assert.equal(html.includes('排序方式'), true)
+  assert.equal(html.includes('换绑策略'), true)
   assert.equal(html.includes('默认项目名称固定，且不可停用'), true)
   assert.equal(html.includes('显示第 0 - 0 条，共 0 条记录'), true)
   assert.equal(html.includes('暂无匹配的项目'), true)

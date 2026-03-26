@@ -2,6 +2,7 @@ import {
   getRemainingCount,
   isCodeExpired,
 } from './license-status'
+import { recordActivationCodeBindingHistory } from './license-binding-history-service'
 import { type DbClient } from './license-project-service'
 import { isPrismaUniqueConstraintError } from './prisma-error-utils'
 
@@ -50,6 +51,9 @@ export async function findProjectActivationCode(
           id: true,
           name: true,
           projectKey: true,
+          allowAutoRebind: true,
+          autoRebindCooldownMinutes: true,
+          autoRebindMaxCount: true,
         },
       },
     },
@@ -97,9 +101,9 @@ export async function releaseReusableMachineBindings(
     },
   })
 
-  const reusableBindingIds = existingBindings
+  const reusableBindings = existingBindings
     .filter((binding) => binding.code !== targetCode && canReuseProjectBinding(binding))
-    .map((binding) => binding.id)
+  const reusableBindingIds = reusableBindings.map((binding) => binding.id)
 
   if (reusableBindingIds.length === 0) {
     return
@@ -115,4 +119,16 @@ export async function releaseReusableMachineBindings(
       usedBy: null,
     },
   })
+
+  for (const binding of reusableBindings) {
+    await recordActivationCodeBindingHistory(client, {
+      activationCodeId: binding.id,
+      projectId: binding.projectId,
+      eventType: 'REUSABLE_BINDING_RELEASED',
+      operatorType: 'SYSTEM',
+      fromMachineId: machineId,
+      toMachineId: null,
+      reason: `为同项目激活码 ${targetCode} 释放已失效旧绑定`,
+    })
+  }
 }

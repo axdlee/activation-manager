@@ -56,7 +56,17 @@ function normalizeKnownSystemConfigValue<K extends KnownSystemConfigKey>(
             .filter(Boolean)
       ) as KnownSystemConfigMap[K]
     case 'bcryptRounds':
+    case 'autoRebindCooldownMinutes':
+    case 'autoRebindMaxCount':
       return Number(value) as KnownSystemConfigMap[K]
+    case 'allowAutoRebind':
+      return (
+        typeof value === 'boolean'
+          ? value
+          : typeof value === 'string'
+            ? value === 'true'
+            : Boolean(value)
+      ) as KnownSystemConfigMap[K]
     default:
       return String(value) as KnownSystemConfigMap[K]
   }

@@ -16,6 +16,7 @@ import {
   type LicenseResult,
 } from './license-result-service'
 import { type DbClient } from './license-project-service'
+import { recordActivationCodeBindingHistory } from './license-binding-history-service'
 
 type ConsumeMutationClient = Pick<DbClient, 'activationCode'>
 
@@ -55,6 +56,7 @@ export async function consumeTimeLicense(params: {
           usedAt: now,
           usedBy: machineId,
           expiresAt,
+          lastBoundAt: now,
         },
       })
 
@@ -73,6 +75,17 @@ export async function consumeTimeLicense(params: {
         }
       }
 
+      if (updateResult.count > 0) {
+        await recordActivationCodeBindingHistory(tx as DbClient, {
+          activationCodeId: activationCode.id,
+          projectId: params.projectId,
+          eventType: 'INITIAL_BIND',
+          operatorType: 'CLIENT',
+          fromMachineId: activationCode.usedBy ?? null,
+          toMachineId: machineId,
+        })
+      }
+
       return createTimeConsumeSuccessResult(updatedCode)
     } catch (error) {
       if (isProjectMachineUniqueConstraintError(error)) {
@@ -85,6 +98,53 @@ export async function consumeTimeLicense(params: {
 
   if (isCodeExpired(activationCode)) {
     return createExpiredResult()
+  }
+
+  if (!activationCode.usedBy) {
+    const now = new Date()
+
+    try {
+      const updateResult = await tx.activationCode.updateMany({
+        where: {
+          id: activationCode.id,
+          projectId: params.projectId,
+          isUsed: true,
+          usedBy: null,
+        },
+        data: {
+          usedBy: machineId,
+          lastBoundAt: now,
+        },
+      })
+
+      const updatedCode = await reloadActivationCode()
+      if (!updatedCode) {
+        return createLicenseNotFoundResult()
+      }
+
+      if (updateResult.count === 0 && updatedCode.usedBy && updatedCode.usedBy !== machineId) {
+        return createUsedByOtherDeviceResult()
+      }
+
+      if (updateResult.count > 0) {
+        await recordActivationCodeBindingHistory(tx as DbClient, {
+          activationCodeId: activationCode.id,
+          projectId: params.projectId,
+          eventType: 'INITIAL_BIND',
+          operatorType: 'CLIENT',
+          fromMachineId: activationCode.usedBy ?? null,
+          toMachineId: machineId,
+        })
+      }
+
+      return createTimeConsumeSuccessResult(updatedCode)
+    } catch (error) {
+      if (isProjectMachineUniqueConstraintError(error)) {
+        return resolveProjectMachineConflict()
+      }
+
+      throw error
+    }
   }
 
   return createTimeConsumeSuccessResult(activationCode)
@@ -136,8 +196,9 @@ export async function consumeCountLicense(params: {
     }
   }
 
+  let updateResult: { count: number } | null = null
   try {
-    const updateResult = await tx.activationCode.updateMany({
+    updateResult = await tx.activationCode.updateMany({
       where: {
         id: activationCode.id,
         projectId: params.projectId,
@@ -150,6 +211,7 @@ export async function consumeCountLicense(params: {
       data: {
         isUsed: true,
         usedBy: machineId,
+        ...(activationCode.usedBy ? {} : { lastBoundAt: new Date() }),
         remainingCount: {
           decrement: 1,
         },
@@ -204,6 +266,17 @@ export async function consumeCountLicense(params: {
 
   if (requestId && persistConsumptionRemainingCount) {
     await persistConsumptionRemainingCount(requestId, updatedCode.remainingCount ?? 0)
+  }
+
+  if (!activationCode.usedBy && (updateResult?.count ?? 0) > 0) {
+    await recordActivationCodeBindingHistory(tx as DbClient, {
+      activationCodeId: activationCode.id,
+      projectId: params.projectId,
+      eventType: 'INITIAL_BIND',
+      operatorType: 'CLIENT',
+      fromMachineId: null,
+      toMachineId: machineId,
+    })
   }
 
   return createCountConsumeSuccessResult(updatedCode)

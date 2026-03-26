@@ -7,6 +7,7 @@ import {
   deleteProject,
   updateProjectDescription,
   updateProjectName,
+  updateProjectRebindSettings,
   updateProjectStatus,
 } from '@/lib/license-project-service'
 
@@ -23,7 +24,7 @@ function parseProjectId(value: string) {
 export const PATCH = createProtectedAdminRouteHandler(
   async (
     request: NextRequest,
-    _authResult: AdminAuthSuccessResult,
+    authResult: AdminAuthSuccessResult,
     context: { params: { id: string } },
   ) => {
     const id = parseProjectId(context.params.id)
@@ -63,6 +64,26 @@ export const PATCH = createProtectedAdminRouteHandler(
       return NextResponse.json({
         success: true,
         message: '项目描述已更新',
+        project,
+      })
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(payload, 'allowAutoRebind') ||
+      Object.prototype.hasOwnProperty.call(payload, 'autoRebindCooldownMinutes') ||
+      Object.prototype.hasOwnProperty.call(payload, 'autoRebindMaxCount')
+    ) {
+      const project = await updateProjectRebindSettings(prisma, {
+        id,
+        allowAutoRebind: payload.allowAutoRebind,
+        autoRebindCooldownMinutes: payload.autoRebindCooldownMinutes,
+        autoRebindMaxCount: payload.autoRebindMaxCount,
+        adminUsername: authResult.payload?.username,
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: '项目换绑策略已更新',
         project,
       })
     }

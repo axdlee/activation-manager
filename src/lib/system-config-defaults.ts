@@ -1,4 +1,9 @@
 import { config as appConfig } from '../config'
+import {
+  DEFAULT_ALLOW_AUTO_REBIND,
+  DEFAULT_AUTO_REBIND_COOLDOWN_MINUTES,
+  DEFAULT_AUTO_REBIND_MAX_COUNT,
+} from './license-rebind-policy-shared'
 
 export type KnownSystemConfigMap = {
   allowedIPs: string[]
@@ -6,13 +11,16 @@ export type KnownSystemConfigMap = {
   jwtExpiresIn: string
   bcryptRounds: number
   systemName: string
+  allowAutoRebind: boolean
+  autoRebindCooldownMinutes: number
+  autoRebindMaxCount: number
 }
 
 export type KnownSystemConfigKey = keyof KnownSystemConfigMap
 
 export type SystemConfigSeed = {
   key: KnownSystemConfigKey
-  value: string | number | string[]
+  value: string | number | boolean | string[]
   description: string
 }
 
@@ -64,6 +72,21 @@ export function buildDefaultSystemConfigs(
       value: allowedIpsSeed,
       description: 'IP白名单列表',
     },
+    {
+      key: 'allowAutoRebind',
+      value: DEFAULT_ALLOW_AUTO_REBIND,
+      description: '是否允许激活码在满足条件时自动换绑',
+    },
+    {
+      key: 'autoRebindCooldownMinutes',
+      value: DEFAULT_AUTO_REBIND_COOLDOWN_MINUTES,
+      description: '激活码自动换绑冷却时间（分钟）',
+    },
+    {
+      key: 'autoRebindMaxCount',
+      value: DEFAULT_AUTO_REBIND_MAX_COUNT,
+      description: '激活码最大自助换绑次数（0 表示不限制）',
+    },
     ...(jwtSecretSeed
       ? [
           {
@@ -99,8 +122,11 @@ export const defaultConfigValues: KnownSystemConfigMap = {
   jwtExpiresIn: appConfig.jwt.expiresIn,
   bcryptRounds: appConfig.security.bcryptRounds,
   systemName: '激活码管理系统',
+  allowAutoRebind: DEFAULT_ALLOW_AUTO_REBIND,
+  autoRebindCooldownMinutes: DEFAULT_AUTO_REBIND_COOLDOWN_MINUTES,
+  autoRebindMaxCount: DEFAULT_AUTO_REBIND_MAX_COUNT,
 }
 
-export function stringifyConfigValue(value: string | number | string[]) {
+export function stringifyConfigValue(value: string | number | boolean | string[]) {
   return typeof value === 'string' ? value : JSON.stringify(value)
 }

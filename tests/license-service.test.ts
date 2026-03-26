@@ -1291,3 +1291,157 @@ test('updateProjectName 会更新项目名称并拒绝空名称与默认项目',
     await prisma.$disconnect()
   }
 })
+
+test('activateLicense 在项目允许自动换绑且无冷却时，会将激活码从旧设备迁移到新设备', async () => {
+  const { prisma } = await createTestPrisma()
+
+  try {
+    await createProject(prisma, {
+      name: '自动换绑项目',
+      projectKey: 'auto-rebind-project',
+      allowAutoRebind: true,
+      autoRebindCooldownMinutes: 0,
+    })
+
+    const [timeCode] = await generateActivationCodes(prisma, {
+      projectKey: 'auto-rebind-project',
+      amount: 1,
+      licenseMode: 'TIME',
+      validDays: 30,
+      cardType: '月卡',
+    })
+
+    const firstActivation = await activateLicense(prisma, {
+      projectKey: 'auto-rebind-project',
+      code: timeCode.code,
+      machineId: 'machine-old',
+    })
+    const rebindActivation = await activateLicense(prisma, {
+      projectKey: 'auto-rebind-project',
+      code: timeCode.code,
+      machineId: 'machine-new',
+    })
+    const reboundStatus = await getLicenseStatus(prisma, {
+      projectKey: 'auto-rebind-project',
+      code: timeCode.code,
+      machineId: 'machine-new',
+    })
+    const oldMachineStatus = await getLicenseStatus(prisma, {
+      projectKey: 'auto-rebind-project',
+      code: timeCode.code,
+      machineId: 'machine-old',
+    })
+
+    const updatedCode = await prisma.activationCode.findUniqueOrThrow({
+      where: {
+        id: timeCode.id,
+      },
+    })
+
+    assert.equal(firstActivation.success, true)
+    assert.equal(rebindActivation.success, true)
+    assert.equal(reboundStatus.success, true)
+    assert.equal(oldMachineStatus.success, false)
+    assert.equal(oldMachineStatus.message, '激活码已被其他设备使用')
+    assert.equal(updatedCode.usedBy, 'machine-new')
+    assert.equal(updatedCode.rebindCount, 1)
+    assert.ok(updatedCode.lastRebindAt instanceof Date)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+test('activateLicense 在自动换绑冷却期内会返回受限结果', async () => {
+  const { prisma } = await createTestPrisma()
+
+  try {
+    await createProject(prisma, {
+      name: '冷却换绑项目',
+      projectKey: 'cooldown-rebind-project',
+      allowAutoRebind: true,
+      autoRebindCooldownMinutes: 240,
+    })
+
+    const [timeCode] = await generateActivationCodes(prisma, {
+      projectKey: 'cooldown-rebind-project',
+      amount: 1,
+      licenseMode: 'TIME',
+      validDays: 30,
+      cardType: '月卡',
+    })
+
+    const firstActivation = await activateLicense(prisma, {
+      projectKey: 'cooldown-rebind-project',
+      code: timeCode.code,
+      machineId: 'machine-old',
+    })
+    const secondActivation = await activateLicense(prisma, {
+      projectKey: 'cooldown-rebind-project',
+      code: timeCode.code,
+      machineId: 'machine-new',
+    })
+
+    assert.equal(firstActivation.success, true)
+    assert.equal(secondActivation.success, false)
+    assert.equal(secondActivation.status, 409)
+    assert.match(secondActivation.message, /换绑冷却期/)
+    assert.ok(secondActivation.rebindAllowedAt instanceof Date)
+  } finally {
+    await prisma.$disconnect()
+  }
+})
+
+test('activateLicense 在达到自助换绑次数上限后会拒绝继续自动换绑', async () => {
+  const { prisma } = await createTestPrisma()
+
+  try {
+    await createProject(prisma, {
+      name: '次数限制换绑项目',
+      projectKey: 'limited-auto-rebind-project',
+      allowAutoRebind: true,
+      autoRebindCooldownMinutes: 0,
+      autoRebindMaxCount: 1,
+    })
+
+    const [timeCode] = await generateActivationCodes(prisma, {
+      projectKey: 'limited-auto-rebind-project',
+      amount: 1,
+      licenseMode: 'TIME',
+      validDays: 30,
+      cardType: '月卡',
+    })
+
+    const firstActivation = await activateLicense(prisma, {
+      projectKey: 'limited-auto-rebind-project',
+      code: timeCode.code,
+      machineId: 'machine-old',
+    })
+    const secondActivation = await activateLicense(prisma, {
+      projectKey: 'limited-auto-rebind-project',
+      code: timeCode.code,
+      machineId: 'machine-new',
+    })
+    const thirdActivation = await activateLicense(prisma, {
+      projectKey: 'limited-auto-rebind-project',
+      code: timeCode.code,
+      machineId: 'machine-third',
+    })
+
+    const updatedCode = await prisma.activationCode.findUniqueOrThrow({
+      where: {
+        id: timeCode.id,
+      },
+    })
+
+    assert.equal(firstActivation.success, true)
+    assert.equal(secondActivation.success, true)
+    assert.equal(thirdActivation.success, false)
+    assert.equal(thirdActivation.status, 409)
+    assert.match(thirdActivation.message, /自助换绑次数上限/)
+    assert.equal(updatedCode.usedBy, 'machine-new')
+    assert.equal(updatedCode.rebindCount, 1)
+    assert.equal(updatedCode.autoRebindCount, 1)
+  } finally {
+    await prisma.$disconnect()
+  }
+})

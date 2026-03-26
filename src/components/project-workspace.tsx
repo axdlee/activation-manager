@@ -40,10 +40,16 @@ type ProjectWorkspaceCreateForm = {
   name: string
   projectKey: string
   description: string
+  rebindPolicyValue?: string
+  rebindCooldownMinutesValue?: string
+  rebindMaxCountValue?: string
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   onNameChange: (value: string) => void
   onProjectKeyChange: (value: string) => void
   onDescriptionChange: (value: string) => void
+  onRebindPolicyChange?: (value: string) => void
+  onRebindCooldownMinutesChange?: (value: string) => void
+  onRebindMaxCountChange?: (value: string) => void
 }
 
 type ProjectWorkspaceManageView = {
@@ -56,17 +62,25 @@ type ProjectWorkspaceManageView = {
   endIndex: number
   getProjectNameDraft: (project: ProjectManagementListItem) => string
   getProjectDescriptionDraft: (project: ProjectManagementListItem) => string
+  getProjectRebindPolicyDraft?: (project: ProjectManagementListItem) => string
+  getProjectRebindCooldownMinutesDraft?: (project: ProjectManagementListItem) => string
+  getProjectRebindMaxCountDraft?: (project: ProjectManagementListItem) => string
   hasProjectNameChanged: (project: ProjectManagementListItem) => boolean
   hasProjectDescriptionChanged: (project: ProjectManagementListItem) => boolean
+  hasProjectRebindSettingsChanged?: (project: ProjectManagementListItem) => boolean
   onSearchTermChange: (value: string) => void
   onStatusFilterChange: (value: ProjectManagementStatusFilter) => void
   onSortByChange: (value: ProjectManagementSortOption) => void
   onPageChange: (page: number) => void
   onProjectNameChange: (projectId: number, value: string) => void
   onProjectDescriptionChange: (projectId: number, value: string) => void
+  onProjectRebindPolicyChange?: (projectId: number, value: string) => void
+  onProjectRebindCooldownMinutesChange?: (projectId: number, value: string) => void
+  onProjectRebindMaxCountChange?: (projectId: number, value: string) => void
   onCopyProjectKey: (projectKey: string) => void
   onSaveProjectName: (project: ProjectManagementListItem) => void
   onSaveProjectDescription: (project: ProjectManagementListItem) => void
+  onSaveProjectRebindSettings?: (project: ProjectManagementListItem) => void
   onToggleProjectStatus: (project: ProjectManagementListItem) => void
   onDeleteProject: (project: ProjectManagementListItem) => void
 }
@@ -100,6 +114,30 @@ const defaultPaginationButtonClassName =
 const defaultPaginationActiveButtonClassName =
   'border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:border-sky-500 hover:bg-sky-500'
 
+function resolveProjectRebindPolicyValue(project: ProjectManagementListItem) {
+  if (project.allowAutoRebind === true) {
+    return 'enabled'
+  }
+
+  if (project.allowAutoRebind === false) {
+    return 'disabled'
+  }
+
+  return 'inherit'
+}
+
+function resolveProjectRebindCooldownMinutesValue(project: ProjectManagementListItem) {
+  return project.autoRebindCooldownMinutes === null || project.autoRebindCooldownMinutes === undefined
+    ? ''
+    : String(project.autoRebindCooldownMinutes)
+}
+
+function resolveProjectRebindMaxCountValue(project: ProjectManagementListItem) {
+  return project.autoRebindMaxCount === null || project.autoRebindMaxCount === undefined
+    ? ''
+    : String(project.autoRebindMaxCount)
+}
+
 export function ProjectWorkspace({
   activeTab,
   onTabChange,
@@ -123,7 +161,7 @@ export function ProjectWorkspace({
         <WorkspaceHeroPanel
           badge="项目工作区"
           title="项目管理中心"
-          description="把新建项目和存量项目维护拆开处理，减少长页面滚动，也让搜索与编辑操作更聚焦。"
+          description="把新建项目和存量项目维护拆开处理，减少长页面滚动，也让搜索、编辑与换绑策略维护更聚焦。"
           gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]"
           metrics={
             <div className="grid grid-cols-2 gap-3">
@@ -156,7 +194,7 @@ export function ProjectWorkspace({
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
             title="新建项目"
-            description="为不同产品或插件创建独立 projectKey，后续发码、统计和消费都能按项目隔离。"
+            description="为不同产品或插件创建独立 projectKey，后续发码、统计、消费与换绑策略都能按项目隔离。"
             trailing={
               <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
                 创建后会自动出现在发码与筛选器中
@@ -165,7 +203,7 @@ export function ProjectWorkspace({
             className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
           />
 
-          <form onSubmit={createForm.onSubmit} className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <form onSubmit={createForm.onSubmit} className="grid grid-cols-1 gap-4 xl:grid-cols-6">
             <DashboardFilterFieldCard
               label="项目名称"
               description="面向管理员显示的主标题。"
@@ -220,11 +258,57 @@ export function ProjectWorkspace({
                 placeholder="项目描述（可选）"
               />
             </DashboardFilterFieldCard>
-            <div className="xl:col-span-3">
+            <DashboardFilterFieldCard
+              label="自助换绑策略"
+              description="项目级默认规则；若留给单码继承，则会在发码或单码管理时继续覆盖。"
+              htmlFor="create-project-rebind-policy"
+            >
+              <select
+                id="create-project-rebind-policy"
+                value={createForm.rebindPolicyValue || 'inherit'}
+                onChange={(event) => createForm.onRebindPolicyChange?.(event.target.value)}
+                className={compactInputClassName}
+              >
+                <option value="inherit">继承系统配置</option>
+                <option value="enabled">允许自助换绑</option>
+                <option value="disabled">禁止自助换绑</option>
+              </select>
+            </DashboardFilterFieldCard>
+            <DashboardFilterFieldCard
+              label="换绑冷却时间（分钟）"
+              description="留空则继承系统配置；0 表示无冷却。"
+              htmlFor="create-project-rebind-cooldown"
+            >
+              <input
+                id="create-project-rebind-cooldown"
+                type="number"
+                min="0"
+                value={createForm.rebindCooldownMinutesValue || ''}
+                onChange={(event) => createForm.onRebindCooldownMinutesChange?.(event.target.value)}
+                className={compactInputClassName}
+                placeholder="留空则继承系统配置"
+              />
+            </DashboardFilterFieldCard>
+            <DashboardFilterFieldCard
+              label="自助换绑次数上限"
+              description="0 表示不限制；留空则继承系统配置。"
+              htmlFor="create-project-rebind-max-count"
+            >
+              <input
+                id="create-project-rebind-max-count"
+                type="number"
+                min="0"
+                value={createForm.rebindMaxCountValue || ''}
+                onChange={(event) => createForm.onRebindMaxCountChange?.(event.target.value)}
+                className={compactInputClassName}
+                placeholder="0 表示不限制；留空则继承系统配置"
+              />
+            </DashboardFilterFieldCard>
+            <div className="xl:col-span-6">
               <DashboardActionPanel
                 badge="创建后立即可用"
                 title="准备创建新的项目空间？"
-                description="新项目会立即出现在发码、统计和激活码筛选中，建议先确认 projectKey 命名稳定。"
+                description="新项目会立即出现在发码、统计和激活码筛选中，建议先确认 projectKey 命名稳定，并同步设定默认换绑规则。"
                 action={
                   <button
                     type="submit"
@@ -243,7 +327,7 @@ export function ProjectWorkspace({
           <div className="mb-5 flex flex-col gap-4">
             <DashboardSectionHeader
               title="项目列表"
-              description={`当前匹配 ${manageView.page.totalItems} / ${manageView.totalProjects} 个项目，可直接修改名称、描述和启停状态。`}
+              description={`当前匹配 ${manageView.page.totalItems} / ${manageView.totalProjects} 个项目，可直接修改名称、描述、换绑策略和启停状态。`}
               trailing={
                 <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
                   默认项目名称固定，且不可停用
@@ -281,13 +365,13 @@ export function ProjectWorkspace({
                   className={compactInputClassName}
                 >
                   <option value="all">全部状态</option>
-                  <option value="enabled">仅启用中</option>
-                  <option value="disabled">仅已停用</option>
+                  <option value="enabled">仅启用</option>
+                  <option value="disabled">仅停用</option>
                 </select>
               </DashboardFilterFieldCard>
               <DashboardFilterFieldCard
                 label="排序方式"
-                description="根据创建时间或项目名称重排列表。"
+                description="根据最新创建时间或项目名称切换查看节奏。"
                 htmlFor="project-management-sort-by"
               >
                 <select
@@ -298,38 +382,65 @@ export function ProjectWorkspace({
                   }
                   className={compactInputClassName}
                 >
-                  <option value="createdAtDesc">按创建时间（最新优先）</option>
-                  <option value="createdAtAsc">按创建时间（最早优先）</option>
-                  <option value="nameAsc">按项目名称（A-Z）</option>
-                  <option value="nameDesc">按项目名称（Z-A）</option>
+                  <option value="createdAtDesc">最新创建</option>
+                  <option value="createdAtAsc">最早创建</option>
+                  <option value="nameAsc">名称 A-Z</option>
+                  <option value="nameDesc">名称 Z-A</option>
                 </select>
               </DashboardFilterFieldCard>
             </div>
           </div>
 
-          <DashboardDataTable headers={['项目名称', '项目标识', '描述', '状态', '操作']}>
+          <DashboardDataTable headers={['项目名称', '项目标识', '描述', '换绑策略', '状态', '操作']}>
             {manageView.page.items.map((project) => (
               <DashboardProjectManagementRow
                 key={project.id}
                 project={project}
                 nameValue={manageView.getProjectNameDraft(project)}
                 descriptionValue={manageView.getProjectDescriptionDraft(project)}
+                rebindPolicyValue={
+                  manageView.getProjectRebindPolicyDraft?.(project) ??
+                  resolveProjectRebindPolicyValue(project)
+                }
+                rebindCooldownMinutesValue={
+                  manageView.getProjectRebindCooldownMinutesDraft?.(project) ??
+                  resolveProjectRebindCooldownMinutesValue(project)
+                }
+                rebindMaxCountValue={
+                  manageView.getProjectRebindMaxCountDraft?.(project) ??
+                  resolveProjectRebindMaxCountValue(project)
+                }
                 compactInputClassName={compactInputClassName}
                 loading={loading}
                 canSaveName={manageView.hasProjectNameChanged(project)}
                 canSaveDescription={manageView.hasProjectDescriptionChanged(project)}
+                canSaveRebindSettings={manageView.hasProjectRebindSettingsChanged?.(project) ?? false}
                 onNameChange={(value) => manageView.onProjectNameChange(project.id, value)}
                 onDescriptionChange={(value) =>
                   manageView.onProjectDescriptionChange(project.id, value)
                 }
+                onRebindPolicyChange={(value) =>
+                  manageView.onProjectRebindPolicyChange?.(project.id, value)
+                }
+                onRebindCooldownMinutesChange={(value) =>
+                  manageView.onProjectRebindCooldownMinutesChange?.(project.id, value)
+                }
+                onRebindMaxCountChange={(value) =>
+                  manageView.onProjectRebindMaxCountChange?.(project.id, value)
+                }
                 onCopyProjectKey={() => manageView.onCopyProjectKey(project.projectKey)}
                 onSaveName={() => manageView.onSaveProjectName(project)}
                 onSaveDescription={() => manageView.onSaveProjectDescription(project)}
+                onSaveRebindSettings={() => manageView.onSaveProjectRebindSettings?.(project)}
                 onToggleStatus={() => manageView.onToggleProjectStatus(project)}
                 onDelete={() => manageView.onDeleteProject(project)}
               />
             ))}
           </DashboardDataTable>
+
+          {manageView.page.totalItems === 0 ? (
+            <DashboardEmptyState message="暂无匹配的项目" className="mt-5" />
+          ) : null}
 
           {manageView.page.totalPages > 1 ? (
             <DashboardPaginationBar
@@ -343,13 +454,6 @@ export function ProjectWorkspace({
           ) : (
             <div className="mt-6 text-sm text-gray-700">{paginationSummary}</div>
           )}
-
-          {manageView.page.totalItems === 0 ? (
-            <DashboardEmptyState
-              className="mt-4"
-              message={manageView.totalProjects === 0 ? '暂无项目数据' : '暂无匹配的项目'}
-            />
-          ) : null}
         </div>
       )}
     </div>

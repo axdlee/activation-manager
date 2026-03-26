@@ -6,7 +6,7 @@ import { dashboardTabs, getDashboardTabMeta } from '../src/lib/dashboard-tab-con
 test('dashboardTabs 按后台主工作流顺序返回标签配置', () => {
   assert.deepEqual(
     dashboardTabs.map((tab) => tab.key),
-    ['stats', 'projects', 'generate', 'list', 'consumptions', 'apiDocs', 'changePassword', 'systemConfig'],
+    ['stats', 'projects', 'generate', 'list', 'consumptions', 'auditLogs', 'apiDocs', 'changePassword', 'systemConfig'],
   )
 })
 

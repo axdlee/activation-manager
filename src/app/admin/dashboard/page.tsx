@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation'
 
 // 定义激活码接口
 import {
+  adminAuditOperationTypeOptions,
+  buildAdminOperationDetailSummary,
+  buildAdminOperationTimelineDescription,
+  getAdminOperationTypeLabel,
+} from '@/lib/admin-audit-log-ui'
+import {
   buildConsumptionAutoRefreshKey,
   CONSUMPTION_AUTO_REFRESH_DELAY_MS,
 } from '@/lib/consumption-auto-refresh'
@@ -36,6 +42,7 @@ import {
 } from '@/lib/dashboard-tab-config'
 import {
   consumptionWorkspaceTabs,
+  type AuditLogWorkspaceTab,
   type ActivationCodeWorkspaceTab,
   type ConsumptionWorkspaceTab,
   type ProjectWorkspaceTab,
@@ -59,8 +66,25 @@ import {
   getProjectKeyValidationError,
   normalizeProjectKeyInput,
 } from '@/lib/project-key'
+import {
+  AUTO_REBIND_COOLDOWN_MINUTES_MAX,
+  AUTO_REBIND_COOLDOWN_MINUTES_MIN,
+  AUTO_REBIND_MAX_COUNT_MAX,
+  AUTO_REBIND_MAX_COUNT_MIN,
+  DEFAULT_ALLOW_AUTO_REBIND,
+  DEFAULT_AUTO_REBIND_COOLDOWN_MINUTES,
+  DEFAULT_AUTO_REBIND_MAX_COUNT,
+  formatAutoRebindMaxCountLabel,
+  formatCooldownMinutesLabel,
+  fromRebindOverrideSelectValue,
+  resolveEffectiveRebindPolicy,
+  toRebindOverrideSelectValue,
+  type RebindOverrideSelectValue,
+  type RebindPolicySource,
+} from '@/lib/license-rebind-policy'
 import { ApiDocsWorkspace } from '@/components/api-docs-workspace'
 import { ActivationCodeWorkspace } from '@/components/activation-code-workspace'
+import { AuditLogWorkspace } from '@/components/audit-log-workspace'
 import { ChangePasswordWorkspace } from '@/components/change-password-workspace'
 import { ConsumptionWorkspace } from '@/components/consumption-workspace'
 import { DashboardActionPanel } from '@/components/dashboard-action-panel'
@@ -88,7 +112,40 @@ interface Project {
   projectKey: string
   description: string | null
   isEnabled: boolean
+  allowAutoRebind: boolean | null
+  autoRebindCooldownMinutes: number | null
+  autoRebindMaxCount: number | null
   createdAt: string
+}
+
+interface ActivationCodeBindingHistoryEntry {
+  id: number
+  eventType: string
+  operatorType: string
+  operatorUsername: string | null
+  fromMachineId: string | null
+  toMachineId: string | null
+  reason: string | null
+  createdAt: string
+}
+
+interface AdminOperationAuditLogEntry {
+  id: number
+  adminUsername: string
+  operationType: string
+  targetLabel: string | null
+  reason: string | null
+  detailJson: string | null
+  createdAt: string
+  project?: {
+    id: number
+    name: string
+    projectKey: string
+  } | null
+  activationCode?: {
+    id: number
+    code: string
+  } | null
 }
 
 interface ActivationCode {
@@ -107,10 +164,22 @@ interface ActivationCode {
   totalCount: number | null
   remainingCount: number | null
   consumedCount: number
+  allowAutoRebind: boolean | null
+  autoRebindCooldownMinutes: number | null
+  autoRebindMaxCount: number | null
+  lastBoundAt: string | null
+  lastRebindAt: string | null
+  rebindCount: number
+  autoRebindCount: number
+  bindingHistories?: ActivationCodeBindingHistoryEntry[]
+  adminAuditLogs?: AdminOperationAuditLogEntry[]
   project?: {
     id: number
     name: string
     projectKey: string
+    allowAutoRebind: boolean | null
+    autoRebindCooldownMinutes: number | null
+    autoRebindMaxCount: number | null
   }
 }
 
@@ -139,6 +208,14 @@ interface ConsumptionPagination {
   page: number
   pageSize: number
   totalPages: number
+}
+
+type AuditLogQueryFilters = {
+  keyword: string
+  projectKey: 'all' | string
+  operationType: 'all' | string
+  createdFrom: string
+  createdTo: string
 }
 
 interface Stats {
@@ -249,6 +326,13 @@ export default function DashboardPage() {
   const [consumptionProjectFilter, setConsumptionProjectFilter] = useState<'all' | string>('all')
   const [consumptionCreatedFrom, setConsumptionCreatedFrom] = useState('')
   const [consumptionCreatedTo, setConsumptionCreatedTo] = useState('')
+  const [auditLogs, setAuditLogs] = useState<AdminOperationAuditLogEntry[]>([])
+  const [auditLogSearchTerm, setAuditLogSearchTerm] = useState('')
+  const [auditLogProjectFilter, setAuditLogProjectFilter] = useState<'all' | string>('all')
+  const [auditLogOperationTypeFilter, setAuditLogOperationTypeFilter] =
+    useState<'all' | string>('all')
+  const [auditLogCreatedFrom, setAuditLogCreatedFrom] = useState('')
+  const [auditLogCreatedTo, setAuditLogCreatedTo] = useState('')
   const [consumptionLoading, setConsumptionLoading] = useState(false)
   const [consumptionRefreshSource, setConsumptionRefreshSource] = useState<ConsumptionRefreshSource>('initial')
   const [consumptionLastRefreshedAt, setConsumptionLastRefreshedAt] = useState<string | null>(null)
@@ -259,8 +343,15 @@ export default function DashboardPage() {
     pageSize: 10,
     totalPages: 1,
   })
+  const [auditLogPagination, setAuditLogPagination] = useState<ConsumptionPagination>({
+    total: 0,
+    page: 1,
+    pageSize: 10,
+    totalPages: 1,
+  })
   const [currentPage, setCurrentPage] = useState(1)
   const [consumptionCurrentPage, setConsumptionCurrentPage] = useState(1)
+  const [auditLogCurrentPage, setAuditLogCurrentPage] = useState(1)
   const [projectManagementCurrentPage, setProjectManagementCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [currentPassword, setCurrentPassword] = useState('')
@@ -272,8 +363,18 @@ export default function DashboardPage() {
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectKey, setNewProjectKey] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
+  const [newProjectRebindPolicy, setNewProjectRebindPolicy] =
+    useState<RebindOverrideSelectValue>('inherit')
+  const [newProjectRebindCooldownMinutes, setNewProjectRebindCooldownMinutes] = useState('')
+  const [newProjectRebindMaxCount, setNewProjectRebindMaxCount] = useState('')
   const [projectNameDrafts, setProjectNameDrafts] = useState<Record<number, string>>({})
   const [projectDescriptionDrafts, setProjectDescriptionDrafts] = useState<Record<number, string>>({})
+  const [projectRebindPolicyDrafts, setProjectRebindPolicyDrafts] =
+    useState<Record<number, RebindOverrideSelectValue>>({})
+  const [projectRebindCooldownMinutesDrafts, setProjectRebindCooldownMinutesDrafts] =
+    useState<Record<number, string>>({})
+  const [projectRebindMaxCountDrafts, setProjectRebindMaxCountDrafts] =
+    useState<Record<number, string>>({})
   const [projectManagementSearchTerm, setProjectManagementSearchTerm] = useState('')
   const [projectManagementStatusFilter, setProjectManagementStatusFilter] =
     useState<ProjectManagementStatusFilter>('all')
@@ -283,7 +384,23 @@ export default function DashboardPage() {
     useState<ActivationCodeWorkspaceTab>('results')
   const [consumptionWorkspaceTab, setConsumptionWorkspaceTab] =
     useState<ConsumptionWorkspaceTab>('logs')
+  const [auditLogWorkspaceTab, setAuditLogWorkspaceTab] =
+    useState<AuditLogWorkspaceTab>('logs')
   const [projectWorkspaceTab, setProjectWorkspaceTab] = useState<ProjectWorkspaceTab>('manage')
+  const [generateRebindPolicy, setGenerateRebindPolicy] =
+    useState<RebindOverrideSelectValue>('inherit')
+  const [generateRebindCooldownMinutes, setGenerateRebindCooldownMinutes] = useState('')
+  const [generateRebindMaxCount, setGenerateRebindMaxCount] = useState('')
+  const [selectedActivationCodeId, setSelectedActivationCodeId] = useState<number | null>(null)
+  const [selectedActivationCodeRebindPolicy, setSelectedActivationCodeRebindPolicy] =
+    useState<RebindOverrideSelectValue>('inherit')
+  const [selectedActivationCodeRebindCooldownMinutes, setSelectedActivationCodeRebindCooldownMinutes] =
+    useState('')
+  const [selectedActivationCodeRebindMaxCount, setSelectedActivationCodeRebindMaxCount] =
+    useState('')
+  const [selectedActivationCodeTargetMachineId, setSelectedActivationCodeTargetMachineId] =
+    useState('')
+  const [selectedActivationCodeAdminReason, setSelectedActivationCodeAdminReason] = useState('')
   const router = useRouter()
   const hasConsumptionAutoRefreshInitializedRef = useRef(false)
   const skipNextConsumptionAutoRefreshRef = useRef(false)
@@ -310,6 +427,90 @@ export default function DashboardPage() {
     }
   }
 
+  const parseNullableCooldownMinutesInput = useCallback((value: string) => {
+    const normalizedValue = value.trim()
+
+    if (!normalizedValue) {
+      return null
+    }
+
+    const parsedValue = Number.parseInt(normalizedValue, 10)
+
+    if (
+      Number.isNaN(parsedValue) ||
+      parsedValue < AUTO_REBIND_COOLDOWN_MINUTES_MIN ||
+      parsedValue > AUTO_REBIND_COOLDOWN_MINUTES_MAX
+    ) {
+      throw new Error(
+        `换绑冷却时间必须在 ${AUTO_REBIND_COOLDOWN_MINUTES_MIN} 到 ${AUTO_REBIND_COOLDOWN_MINUTES_MAX} 分钟之间`,
+      )
+    }
+
+    return parsedValue
+  }, [])
+
+  const parseNullableMaxCountInput = useCallback((value: string) => {
+    const normalizedValue = value.trim()
+
+    if (!normalizedValue) {
+      return null
+    }
+
+    const parsedValue = Number.parseInt(normalizedValue, 10)
+
+    if (
+      Number.isNaN(parsedValue) ||
+      parsedValue < AUTO_REBIND_MAX_COUNT_MIN ||
+      parsedValue > AUTO_REBIND_MAX_COUNT_MAX
+    ) {
+      throw new Error(
+        `自助换绑次数上限必须在 ${AUTO_REBIND_MAX_COUNT_MIN} 到 ${AUTO_REBIND_MAX_COUNT_MAX} 之间`,
+      )
+    }
+
+    return parsedValue
+  }, [])
+
+  const normalizeOptionalAdminReason = useCallback((value: string) => {
+    const normalizedValue = value.trim()
+    return normalizedValue ? normalizedValue : undefined
+  }, [])
+
+  const getSystemRebindDefaults = useCallback(() => {
+    const allowAutoRebindConfig = systemConfigs.find((config) => config.key === 'allowAutoRebind')
+    const cooldownConfig = systemConfigs.find(
+      (config) => config.key === 'autoRebindCooldownMinutes',
+    )
+    const maxCountConfig = systemConfigs.find((config) => config.key === 'autoRebindMaxCount')
+
+    return {
+      allowAutoRebind:
+        typeof allowAutoRebindConfig?.value === 'boolean'
+          ? allowAutoRebindConfig.value
+          : DEFAULT_ALLOW_AUTO_REBIND,
+      autoRebindCooldownMinutes:
+        typeof cooldownConfig?.value === 'number'
+          ? cooldownConfig.value
+          : DEFAULT_AUTO_REBIND_COOLDOWN_MINUTES,
+      autoRebindMaxCount:
+        typeof maxCountConfig?.value === 'number'
+          ? maxCountConfig.value
+          : DEFAULT_AUTO_REBIND_MAX_COUNT,
+    }
+  }, [systemConfigs])
+
+  const getRebindPolicySourceLabel = useCallback((source: RebindPolicySource) => {
+    if (source === 'code') {
+      return '单码配置'
+    }
+
+    if (source === 'project') {
+      return '项目配置'
+    }
+
+    return '系统配置'
+  }, [])
+
   const fetchProjects = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/projects')
@@ -319,14 +520,29 @@ export default function DashboardPage() {
 
         const nextProjectNameDrafts: Record<number, string> = {}
         const nextProjectDescriptionDrafts: Record<number, string> = {}
+        const nextProjectRebindPolicyDrafts: Record<number, RebindOverrideSelectValue> = {}
+        const nextProjectRebindCooldownMinutesDrafts: Record<number, string> = {}
+        const nextProjectRebindMaxCountDrafts: Record<number, string> = {}
 
         data.projects.forEach((project: Project) => {
           nextProjectNameDrafts[project.id] = project.name
           nextProjectDescriptionDrafts[project.id] = project.description || ''
+          nextProjectRebindPolicyDrafts[project.id] = toRebindOverrideSelectValue(
+            project.allowAutoRebind,
+          )
+          nextProjectRebindCooldownMinutesDrafts[project.id] =
+            project.autoRebindCooldownMinutes === null
+              ? ''
+              : String(project.autoRebindCooldownMinutes)
+          nextProjectRebindMaxCountDrafts[project.id] =
+            project.autoRebindMaxCount === null ? '' : String(project.autoRebindMaxCount)
         })
 
         setProjectNameDrafts(nextProjectNameDrafts)
         setProjectDescriptionDrafts(nextProjectDescriptionDrafts)
+        setProjectRebindPolicyDrafts(nextProjectRebindPolicyDrafts)
+        setProjectRebindCooldownMinutesDrafts(nextProjectRebindCooldownMinutesDrafts)
+        setProjectRebindMaxCountDrafts(nextProjectRebindMaxCountDrafts)
         const enabledProjects = data.projects.filter((project: Project) => project.isEnabled)
         const hasSelectedEnabledProject = enabledProjects.some(
           (project: Project) => project.projectKey === selectedProjectKey,
@@ -503,6 +719,7 @@ export default function DashboardPage() {
       const data = await response.json()
       if (data.success) {
         setAllCodes(data.codes)
+        return data.codes as ActivationCode[]
       } else {
         showMessage(data.message || '获取激活码列表失败', 'error')
       }
@@ -511,7 +728,44 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
+
+    return [] as ActivationCode[]
   }, [showMessage])
+
+  const syncSelectedActivationCodeDrafts = useCallback((activationCode: ActivationCode | null) => {
+    if (!activationCode) {
+      setSelectedActivationCodeId(null)
+      setSelectedActivationCodeRebindPolicy('inherit')
+      setSelectedActivationCodeRebindCooldownMinutes('')
+      setSelectedActivationCodeRebindMaxCount('')
+      setSelectedActivationCodeTargetMachineId('')
+      setSelectedActivationCodeAdminReason('')
+      return
+    }
+
+    setSelectedActivationCodeId(activationCode.id)
+    setSelectedActivationCodeRebindPolicy(toRebindOverrideSelectValue(activationCode.allowAutoRebind))
+    setSelectedActivationCodeRebindCooldownMinutes(
+      activationCode.autoRebindCooldownMinutes === null
+        ? ''
+        : String(activationCode.autoRebindCooldownMinutes),
+    )
+    setSelectedActivationCodeRebindMaxCount(
+      activationCode.autoRebindMaxCount === null
+        ? ''
+        : String(activationCode.autoRebindMaxCount),
+    )
+    setSelectedActivationCodeTargetMachineId('')
+    setSelectedActivationCodeAdminReason('')
+  }, [])
+
+  const selectActivationCodeForManagement = useCallback(
+    (activationCodeId: number) => {
+      const matchedActivationCode = allCodes.find((code) => code.id === activationCodeId) || null
+      syncSelectedActivationCodeDrafts(matchedActivationCode)
+    },
+    [allCodes, syncSelectedActivationCodeDrafts],
+  )
 
   const currentConsumptionFilters = useMemo<ConsumptionQueryFilters>(() => ({
     projectKey: consumptionProjectFilter,
@@ -535,6 +789,27 @@ export default function DashboardPage() {
     ...currentConsumptionFilters,
     ...overrides,
   }), [currentConsumptionFilters])
+
+  const currentAuditLogFilters = useMemo<AuditLogQueryFilters>(() => ({
+    keyword: auditLogSearchTerm,
+    projectKey: auditLogProjectFilter,
+    operationType: auditLogOperationTypeFilter,
+    createdFrom: auditLogCreatedFrom,
+    createdTo: auditLogCreatedTo,
+  }), [
+    auditLogCreatedFrom,
+    auditLogCreatedTo,
+    auditLogOperationTypeFilter,
+    auditLogProjectFilter,
+    auditLogSearchTerm,
+  ])
+
+  const buildCurrentAuditLogFilters = useCallback((
+    overrides: Partial<AuditLogQueryFilters> = {},
+  ): AuditLogQueryFilters => ({
+    ...currentAuditLogFilters,
+    ...overrides,
+  }), [currentAuditLogFilters])
 
   const fetchConsumptionLogs = useCallback(async (
     overrides: Partial<ConsumptionQueryFilters> = {},
@@ -580,6 +855,53 @@ export default function DashboardPage() {
     }
   }, [buildCurrentConsumptionFilters, consumptionCurrentPage, itemsPerPage, showMessage])
 
+  const fetchAdminAuditLogs = useCallback(async (
+    overrides: Partial<AuditLogQueryFilters> = {},
+    page: number = auditLogCurrentPage,
+  ) => {
+    try {
+      setLoading(true)
+      const filters = buildCurrentAuditLogFilters(overrides)
+      const params = new URLSearchParams()
+
+      if (filters.projectKey !== 'all') {
+        params.set('projectKey', filters.projectKey)
+      }
+      if (filters.keyword.trim()) {
+        params.set('keyword', filters.keyword.trim())
+      }
+      if (filters.operationType !== 'all') {
+        params.set('operationType', filters.operationType)
+      }
+      if (filters.createdFrom) {
+        params.set('createdFrom', filters.createdFrom)
+      }
+      if (filters.createdTo) {
+        params.set('createdTo', filters.createdTo)
+      }
+
+      params.set('page', String(page))
+      params.set('pageSize', String(itemsPerPage))
+
+      const response = await fetch(`/api/admin/audit-logs?${params.toString()}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setAuditLogs(data.logs)
+        setAuditLogPagination(data.pagination)
+        if (data.pagination?.page !== page) {
+          setAuditLogCurrentPage(data.pagination.page)
+        }
+      } else {
+        showMessage(data.message || '获取审计日志失败', 'error')
+      }
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }, [auditLogCurrentPage, buildCurrentAuditLogFilters, itemsPerPage, showMessage])
+
   useEffect(() => {
     fetchConsumptionLogsRef.current = fetchConsumptionLogs
   }, [fetchConsumptionLogs])
@@ -600,7 +922,13 @@ export default function DashboardPage() {
 
     lastLoadedDashboardTabRef.current = activeTab
 
-    if (activeTab === 'generate' || activeTab === 'list' || activeTab === 'projects' || activeTab === 'consumptions') {
+    if (
+      activeTab === 'generate' ||
+      activeTab === 'list' ||
+      activeTab === 'projects' ||
+      activeTab === 'consumptions' ||
+      activeTab === 'auditLogs'
+    ) {
       void fetchProjects()
     }
     if (activeTab === 'list') {
@@ -609,13 +937,29 @@ export default function DashboardPage() {
     if (activeTab === 'consumptions') {
       void fetchConsumptionLogs({}, 'initial')
     }
+    if (activeTab === 'auditLogs') {
+      setAuditLogCurrentPage(1)
+      void fetchAdminAuditLogs({}, 1)
+    }
     if (activeTab === 'systemConfig') {
+      void fetchSystemConfigs()
+    }
+    if ((activeTab === 'generate' || activeTab === 'list' || activeTab === 'projects') && systemConfigs.length === 0) {
       void fetchSystemConfigs()
     }
     if (activeTab === 'stats') {
       void fetchStats()
     }
-  }, [activeTab, fetchAllCodes, fetchConsumptionLogs, fetchProjects, fetchStats, fetchSystemConfigs])
+  }, [
+    activeTab,
+    fetchAdminAuditLogs,
+    fetchAllCodes,
+    fetchConsumptionLogs,
+    fetchProjects,
+    fetchStats,
+    fetchSystemConfigs,
+    systemConfigs.length,
+  ])
 
   useEffect(() => {
     if (activeTab !== 'stats') {
@@ -675,8 +1019,8 @@ export default function DashboardPage() {
       const data = await response.json()
       if (data.success) {
         showMessage('激活码删除成功')
-        fetchAllCodes()
-        fetchStats()
+        void refreshActivationCodesAndKeepSelection()
+        void fetchStats()
       } else {
         showMessage(data.message || '删除失败', 'error')
       }
@@ -700,8 +1044,8 @@ export default function DashboardPage() {
       const data = await response.json()
       if (data.success) {
         showMessage(data.message)
-        fetchAllCodes()
-        fetchStats()
+        void refreshActivationCodesAndKeepSelection()
+        void fetchStats()
       } else {
         showMessage(data.message || '清理失败', 'error')
       }
@@ -813,6 +1157,9 @@ export default function DashboardPage() {
         expiryDays: licenseMode === 'TIME' ? finalExpiryDays : null,
         totalCount: licenseMode === 'COUNT' ? totalCount : null,
         cardType: licenseMode === 'TIME' ? finalCardType : null,
+        allowAutoRebind: fromRebindOverrideSelectValue(generateRebindPolicy),
+        autoRebindCooldownMinutes: parseNullableCooldownMinutesInput(generateRebindCooldownMinutes),
+        autoRebindMaxCount: parseNullableMaxCountInput(generateRebindMaxCount),
       }
 
       const response = await fetch('/api/admin/codes/generate', {
@@ -827,15 +1174,15 @@ export default function DashboardPage() {
       if (data.success) {
         setGeneratedCodes(data.codes)
         showMessage(data.message)
-        fetchStats()
+        void fetchStats()
         if (activeTab === 'list') {
-          fetchAllCodes()
+          void fetchAllCodes()
         }
       } else {
         showMessage(data.message || '生成失败', 'error')
       }
     } catch (error) {
-      showMessage('网络错误，请重试', 'error')
+      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
     } finally {
       setLoading(false)
     }
@@ -868,6 +1215,11 @@ export default function DashboardPage() {
           name: normalizedProjectName,
           projectKey: normalizedProjectKey,
           description: newProjectDescription,
+          allowAutoRebind: fromRebindOverrideSelectValue(newProjectRebindPolicy),
+          autoRebindCooldownMinutes: parseNullableCooldownMinutesInput(
+            newProjectRebindCooldownMinutes,
+          ),
+          autoRebindMaxCount: parseNullableMaxCountInput(newProjectRebindMaxCount),
         }),
       })
 
@@ -877,14 +1229,17 @@ export default function DashboardPage() {
         setNewProjectName('')
         setNewProjectKey('')
         setNewProjectDescription('')
+        setNewProjectRebindPolicy('inherit')
+        setNewProjectRebindCooldownMinutes('')
+        setNewProjectRebindMaxCount('')
         setProjectWorkspaceTab('manage')
         setProjectManagementCurrentPage(1)
-        fetchProjects()
+        void fetchProjects()
       } else {
         showMessage(data.message || '项目创建失败', 'error')
       }
     } catch (error) {
-      showMessage('网络错误，请重试', 'error')
+      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
     } finally {
       setLoading(false)
     }
@@ -963,6 +1318,30 @@ export default function DashboardPage() {
     }))
   }
 
+  const handleProjectRebindPolicyChange = (
+    projectId: number,
+    value: RebindOverrideSelectValue,
+  ) => {
+    setProjectRebindPolicyDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [projectId]: value,
+    }))
+  }
+
+  const handleProjectRebindCooldownMinutesChange = (projectId: number, value: string) => {
+    setProjectRebindCooldownMinutesDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [projectId]: value,
+    }))
+  }
+
+  const handleProjectRebindMaxCountChange = (projectId: number, value: string) => {
+    setProjectRebindMaxCountDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [projectId]: value,
+    }))
+  }
+
   const handleSaveProjectDescription = async (project: Project) => {
     try {
       setLoading(true)
@@ -985,6 +1364,46 @@ export default function DashboardPage() {
       }
     } catch (error) {
       showMessage('网络错误，请重试', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSaveProjectRebindSettings = async (project: Project) => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/admin/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          allowAutoRebind: fromRebindOverrideSelectValue(
+            projectRebindPolicyDrafts[project.id] ??
+              toRebindOverrideSelectValue(project.allowAutoRebind),
+          ),
+          autoRebindCooldownMinutes: parseNullableCooldownMinutesInput(
+            projectRebindCooldownMinutesDrafts[project.id] ??
+              (project.autoRebindCooldownMinutes === null
+                ? ''
+                : String(project.autoRebindCooldownMinutes)),
+          ),
+          autoRebindMaxCount: parseNullableMaxCountInput(
+            projectRebindMaxCountDrafts[project.id] ??
+              (project.autoRebindMaxCount === null ? '' : String(project.autoRebindMaxCount)),
+          ),
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        showMessage(data.message)
+        await fetchProjects()
+      } else {
+        showMessage(data.message || '更新项目换绑策略失败', 'error')
+      }
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
     } finally {
       setLoading(false)
     }
@@ -1067,7 +1486,7 @@ export default function DashboardPage() {
   const exportCodes = (codes: ActivationCode[]) => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
-      '项目,激活码,授权类型,规格,状态,创建时间,过期时间,剩余次数,已用次数,使用时间,使用者\n' +
+      '项目,激活码,授权类型,规格,状态,创建时间,过期时间,剩余次数,已用次数,使用时间,绑定设备 / machineId\n' +
       codes
         .map((code) => {
           const status = getCodeStatusLabel(code)
@@ -1326,14 +1745,37 @@ export default function DashboardPage() {
     projectDescriptionDrafts[project.id] ?? (project.description || '')
   const hasProjectDescriptionChanged = (project: Project) =>
     getProjectDescriptionDraft(project).trim() !== (project.description || '').trim()
+  const getProjectRebindPolicyDraft = (project: Project) =>
+    projectRebindPolicyDrafts[project.id] ?? toRebindOverrideSelectValue(project.allowAutoRebind)
+  const getProjectRebindCooldownMinutesDraft = (project: Project) =>
+    projectRebindCooldownMinutesDrafts[project.id] ??
+    (project.autoRebindCooldownMinutes === null ? '' : String(project.autoRebindCooldownMinutes))
+  const getProjectRebindMaxCountDraft = (project: Project) =>
+    projectRebindMaxCountDrafts[project.id] ??
+    (project.autoRebindMaxCount === null ? '' : String(project.autoRebindMaxCount))
+  const hasProjectRebindSettingsChanged = (project: Project) =>
+    getProjectRebindPolicyDraft(project) !== toRebindOverrideSelectValue(project.allowAutoRebind) ||
+    getProjectRebindCooldownMinutesDraft(project).trim() !==
+      (project.autoRebindCooldownMinutes === null
+        ? ''
+        : String(project.autoRebindCooldownMinutes)) ||
+    getProjectRebindMaxCountDraft(project).trim() !==
+      (project.autoRebindMaxCount === null ? '' : String(project.autoRebindMaxCount))
   const projectWorkspaceCreateForm = {
     name: newProjectName,
     projectKey: newProjectKey,
     description: newProjectDescription,
+    rebindPolicyValue: newProjectRebindPolicy,
+    rebindCooldownMinutesValue: newProjectRebindCooldownMinutes,
+    rebindMaxCountValue: newProjectRebindMaxCount,
     onSubmit: handleCreateProject,
     onNameChange: setNewProjectName,
     onProjectKeyChange: setNewProjectKey,
     onDescriptionChange: setNewProjectDescription,
+    onRebindPolicyChange: (value: string) =>
+      setNewProjectRebindPolicy(value as RebindOverrideSelectValue),
+    onRebindCooldownMinutesChange: setNewProjectRebindCooldownMinutes,
+    onRebindMaxCountChange: setNewProjectRebindMaxCount,
   }
   const projectWorkspaceManageView = {
     totalProjects: projects.length,
@@ -1345,8 +1787,12 @@ export default function DashboardPage() {
     endIndex: projectManagementEndIndex,
     getProjectNameDraft,
     getProjectDescriptionDraft,
+    getProjectRebindPolicyDraft,
+    getProjectRebindCooldownMinutesDraft,
+    getProjectRebindMaxCountDraft,
     hasProjectNameChanged,
     hasProjectDescriptionChanged,
+    hasProjectRebindSettingsChanged,
     onSearchTermChange: (value: string) => {
       setProjectManagementSearchTerm(value)
       setProjectManagementCurrentPage(1)
@@ -1362,9 +1808,14 @@ export default function DashboardPage() {
     onPageChange: setProjectManagementCurrentPage,
     onProjectNameChange: handleProjectNameChange,
     onProjectDescriptionChange: handleProjectDescriptionChange,
+    onProjectRebindPolicyChange: (projectId: number, value: string) =>
+      handleProjectRebindPolicyChange(projectId, value as RebindOverrideSelectValue),
+    onProjectRebindCooldownMinutesChange: handleProjectRebindCooldownMinutesChange,
+    onProjectRebindMaxCountChange: handleProjectRebindMaxCountChange,
     onCopyProjectKey: (projectKey: string) => void copyToClipboard(projectKey, '项目标识已复制'),
     onSaveProjectName: (project: Project) => void handleSaveProjectName(project),
     onSaveProjectDescription: (project: Project) => void handleSaveProjectDescription(project),
+    onSaveProjectRebindSettings: (project: Project) => void handleSaveProjectRebindSettings(project),
     onToggleProjectStatus: (project: Project) => void handleToggleProjectStatus(project),
     onDeleteProject: (project: Project) => void handleDeleteProject(project),
   }
@@ -1409,6 +1860,26 @@ export default function DashboardPage() {
     consumptionCreatedFrom ? `开始：${new Date(consumptionCreatedFrom).toLocaleString()}` : null,
     consumptionCreatedTo ? `结束：${new Date(consumptionCreatedTo).toLocaleString()}` : null,
   ].filter((token): token is string => Boolean(token))
+  const auditLogOperatorCoverage = new Set(auditLogs.map((log) => log.adminUsername)).size
+  const auditLogProjectCoverage = new Set(
+    auditLogs
+      .map((log) => log.project?.projectKey)
+      .filter((projectKey): projectKey is string => Boolean(projectKey)),
+  ).size
+  const auditLogFilterTokens = [
+    auditLogSearchTerm.trim() ? `关键词：${auditLogSearchTerm.trim()}` : null,
+    auditLogProjectFilter !== 'all'
+      ? `项目：${projects.find((project) => project.projectKey === auditLogProjectFilter)?.name || auditLogProjectFilter}`
+      : null,
+    auditLogOperationTypeFilter !== 'all'
+      ? `操作：${
+          adminAuditOperationTypeOptions.find((item) => item.value === auditLogOperationTypeFilter)
+            ?.label || auditLogOperationTypeFilter
+        }`
+      : null,
+    auditLogCreatedFrom ? `开始：${new Date(auditLogCreatedFrom).toLocaleString()}` : null,
+    auditLogCreatedTo ? `结束：${new Date(auditLogCreatedTo).toLocaleString()}` : null,
+  ].filter((token): token is string => Boolean(token))
 
   const consumptionTotalPages = consumptionPagination.totalPages
   const consumptionStartIndex =
@@ -1422,6 +1893,15 @@ export default function DashboardPage() {
           consumptionPagination.page * consumptionPagination.pageSize,
           consumptionPagination.total,
         )
+  const auditLogTotalPages = auditLogPagination.totalPages
+  const auditLogStartIndex =
+    auditLogPagination.total === 0
+      ? 0
+      : (auditLogPagination.page - 1) * auditLogPagination.pageSize + 1
+  const auditLogEndIndex =
+    auditLogPagination.total === 0
+      ? 0
+      : Math.min(auditLogPagination.page * auditLogPagination.pageSize, auditLogPagination.total)
   const consumptionRefreshStatus = getConsumptionRefreshStatus({
     isLoading: consumptionLoading,
     refreshSource: consumptionRefreshSource,
@@ -1500,6 +1980,37 @@ export default function DashboardPage() {
     document.body.removeChild(link)
   }
 
+  const handleExportAdminAuditLogs = () => {
+    const filters = buildCurrentAuditLogFilters()
+    const params = new URLSearchParams()
+
+    if (filters.projectKey !== 'all') {
+      params.set('projectKey', filters.projectKey)
+    }
+    if (filters.keyword.trim()) {
+      params.set('keyword', filters.keyword.trim())
+    }
+    if (filters.operationType !== 'all') {
+      params.set('operationType', filters.operationType)
+    }
+    if (filters.createdFrom) {
+      params.set('createdFrom', filters.createdFrom)
+    }
+    if (filters.createdTo) {
+      params.set('createdTo', filters.createdTo)
+    }
+
+    const exportUrl = params.toString()
+      ? `/api/admin/audit-logs/export?${params.toString()}`
+      : '/api/admin/audit-logs/export'
+
+    const link = document.createElement('a')
+    link.setAttribute('href', exportUrl)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const applyConsumptionQuickRange = (createdFrom: string, createdTo: string) => {
     skipNextConsumptionAutoRefreshRef.current = true
     setConsumptionCreatedFrom(createdFrom)
@@ -1521,12 +2032,228 @@ export default function DashboardPage() {
     applyConsumptionQuickRange('', '')
   }
 
+  const handleResetAuditLogFilters = () => {
+    setAuditLogSearchTerm('')
+    setAuditLogProjectFilter('all')
+    setAuditLogOperationTypeFilter('all')
+    setAuditLogCreatedFrom('')
+    setAuditLogCreatedTo('')
+    setAuditLogCurrentPage(1)
+  }
+
+  const handleChangeAuditLogWorkspaceTab = (tab: AuditLogWorkspaceTab) => {
+    setAuditLogWorkspaceTab(tab)
+
+    if (tab === 'logs') {
+      setAuditLogCurrentPage(1)
+      void fetchAdminAuditLogs({}, 1)
+    }
+  }
+
+  const handleChangeAuditLogPage = (nextPage: number) => {
+    if (
+      nextPage < 1 ||
+      nextPage > auditLogPagination.totalPages ||
+      nextPage === auditLogPagination.page
+    ) {
+      return
+    }
+
+    setAuditLogCurrentPage(nextPage)
+    void fetchAdminAuditLogs({}, nextPage)
+  }
+
   const handleResetCodeFilters = () => {
     setSearchTerm('')
     setStatusFilter('all')
     setProjectFilter('all')
     setCardTypeFilter('all')
     setCurrentPage(1)
+  }
+
+  const selectedActivationCode =
+    selectedActivationCodeId === null
+      ? null
+      : allCodes.find((code) => code.id === selectedActivationCodeId) || null
+
+  const buildActivationCodePolicySummary = useCallback(
+    (activationCode: ActivationCode | null) => {
+      if (!activationCode) {
+        return [] as string[]
+      }
+
+      const effectivePolicy = resolveEffectiveRebindPolicy(
+        {
+          allowAutoRebind: activationCode.allowAutoRebind ?? null,
+          autoRebindCooldownMinutes: activationCode.autoRebindCooldownMinutes ?? null,
+          autoRebindMaxCount: activationCode.autoRebindMaxCount ?? null,
+          project: activationCode.project
+            ? {
+                allowAutoRebind: activationCode.project.allowAutoRebind ?? null,
+                autoRebindCooldownMinutes:
+                  activationCode.project.autoRebindCooldownMinutes ?? null,
+                autoRebindMaxCount: activationCode.project.autoRebindMaxCount ?? null,
+              }
+            : null,
+        },
+        getSystemRebindDefaults(),
+      )
+
+      return [
+        `自助换绑：${effectivePolicy.allowAutoRebind ? '允许' : '禁止'}（来源：${getRebindPolicySourceLabel(
+          effectivePolicy.allowAutoRebindSource,
+        )}）`,
+        `冷却时间：${formatCooldownMinutesLabel(
+          effectivePolicy.autoRebindCooldownMinutes,
+        )}（来源：${getRebindPolicySourceLabel(
+          effectivePolicy.autoRebindCooldownMinutesSource,
+        )}）`,
+        `次数上限：${formatAutoRebindMaxCountLabel(
+          effectivePolicy.autoRebindMaxCount,
+        )}（来源：${getRebindPolicySourceLabel(
+          effectivePolicy.autoRebindMaxCountSource,
+        )}）`,
+      ]
+    },
+    [getRebindPolicySourceLabel, getSystemRebindDefaults],
+  )
+
+  const refreshActivationCodesAndKeepSelection = useCallback(async () => {
+    const refreshedCodes = await fetchAllCodes()
+
+    if (selectedActivationCodeId === null) {
+      return refreshedCodes
+    }
+
+    const refreshedSelectedActivationCode =
+      refreshedCodes.find((code) => code.id === selectedActivationCodeId) || null
+    syncSelectedActivationCodeDrafts(refreshedSelectedActivationCode)
+
+    return refreshedCodes
+  }, [fetchAllCodes, selectedActivationCodeId, syncSelectedActivationCodeDrafts])
+
+  const handleSaveActivationCodeRebindSettings = async () => {
+    if (selectedActivationCodeId === null) {
+      showMessage('请先选择一条激活码', 'error')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/admin/codes/${selectedActivationCodeId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          allowAutoRebind: fromRebindOverrideSelectValue(selectedActivationCodeRebindPolicy),
+          autoRebindCooldownMinutes: parseNullableCooldownMinutesInput(
+            selectedActivationCodeRebindCooldownMinutes,
+          ),
+          autoRebindMaxCount: parseNullableMaxCountInput(
+            selectedActivationCodeRebindMaxCount,
+          ),
+          reason: normalizeOptionalAdminReason(selectedActivationCodeAdminReason),
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        showMessage(data.message)
+        await refreshActivationCodesAndKeepSelection()
+        setSelectedActivationCodeAdminReason('')
+      } else {
+        showMessage(data.message || '更新激活码换绑策略失败', 'error')
+      }
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleForceUnbindActivationCode = async () => {
+    if (selectedActivationCodeId === null) {
+      showMessage('请先选择一条激活码', 'error')
+      return
+    }
+
+    if (!confirm('确定要强制解绑这条激活码吗？这不会重置有效期和剩余次数。')) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/admin/codes/${selectedActivationCodeId}/binding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'unbind',
+          reason: normalizeOptionalAdminReason(selectedActivationCodeAdminReason),
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        showMessage(data.message)
+        await refreshActivationCodesAndKeepSelection()
+        setSelectedActivationCodeAdminReason('')
+      } else {
+        showMessage(data.message || '强制解绑失败', 'error')
+      }
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleForceRebindActivationCode = async () => {
+    if (selectedActivationCodeId === null) {
+      showMessage('请先选择一条激活码', 'error')
+      return
+    }
+
+    const machineId = selectedActivationCodeTargetMachineId.trim()
+    if (!machineId) {
+      showMessage('请输入目标 machineId', 'error')
+      return
+    }
+
+    if (!confirm(`确定要将该激活码强制换绑到设备「${machineId}」吗？`)) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/admin/codes/${selectedActivationCodeId}/binding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'rebind',
+          machineId,
+          reason: normalizeOptionalAdminReason(selectedActivationCodeAdminReason),
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        showMessage(data.message)
+        await refreshActivationCodesAndKeepSelection()
+        setSelectedActivationCodeTargetMachineId('')
+        setSelectedActivationCodeAdminReason('')
+      } else {
+        showMessage(data.message || '强制换绑失败', 'error')
+      }
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleResetConsumptionFilters = () => {
@@ -1574,6 +2301,56 @@ export default function DashboardPage() {
     link.click()
     document.body.removeChild(link)
   }
+
+  const formatCodeManagementTimestamp = (value: string | null | undefined) =>
+    value ? new Date(value).toLocaleString() : '-'
+
+  const getBindingHistoryTitle = (eventType: string) => {
+    switch (eventType) {
+      case 'AUTO_REBIND':
+        return '自动换绑'
+      case 'FORCE_UNBIND':
+        return '管理员强制解绑'
+      case 'FORCE_REBIND':
+        return '管理员强制换绑'
+      case 'REUSABLE_BINDING_RELEASED':
+        return '系统释放旧绑定'
+      default:
+        return '首次绑定'
+    }
+  }
+
+  const buildMachineTransitionDescription = (
+    fromMachineId: string | null | undefined,
+    toMachineId: string | null | undefined,
+    reason: string | null | undefined,
+  ) => {
+    const transition = fromMachineId || toMachineId
+      ? `${fromMachineId || '未绑定'} → ${toMachineId || '未绑定'}`
+      : '未记录设备变化'
+
+    return reason ? `${transition} · ${reason}` : transition
+  }
+
+  const buildBindingHistoryEntries = (activationCode: ActivationCode | null) =>
+    (activationCode?.bindingHistories || []).map((entry) => ({
+      id: entry.id,
+      title: getBindingHistoryTitle(entry.eventType),
+      description: buildMachineTransitionDescription(
+        entry.fromMachineId,
+        entry.toMachineId,
+        entry.reason,
+      ),
+      timestamp: formatCodeManagementTimestamp(entry.createdAt),
+    }))
+
+  const buildAdminAuditEntries = (activationCode: ActivationCode | null) =>
+    (activationCode?.adminAuditLogs || []).map((entry) => ({
+      id: entry.id,
+      title: getAdminOperationTypeLabel(entry.operationType),
+      description: buildAdminOperationTimelineDescription(entry),
+      timestamp: formatCodeManagementTimestamp(entry.createdAt),
+    }))
 
   const activationCodeFiltersView = {
     searchTerm,
@@ -1623,6 +2400,46 @@ export default function DashboardPage() {
     getSpecDisplay,
     getExpiryDisplay,
     getRemainingDisplay,
+    managementView: {
+      selectedCodeId: selectedActivationCode?.id ?? null,
+      selectedCodeTitle: selectedActivationCode?.code ?? '',
+      selectedCodeSubtitle: selectedActivationCode
+        ? `${getProjectDisplay(selectedActivationCode)} · ${
+            selectedActivationCode.project?.projectKey || selectedActivationCode.projectId
+          }`
+        : '',
+      bindingDeviceDisplay: selectedActivationCode?.usedBy || '未绑定',
+      usedAtDisplay: selectedActivationCode?.usedAt
+        ? new Date(selectedActivationCode.usedAt).toLocaleString()
+        : '-',
+      lastBoundAtDisplay: selectedActivationCode?.lastBoundAt
+        ? new Date(selectedActivationCode.lastBoundAt).toLocaleString()
+        : '-',
+      lastRebindAtDisplay: selectedActivationCode?.lastRebindAt
+        ? new Date(selectedActivationCode.lastRebindAt).toLocaleString()
+        : '-',
+      rebindCountDisplay: `${selectedActivationCode?.rebindCount ?? 0} 次`,
+      autoRebindCountDisplay: `${selectedActivationCode?.autoRebindCount ?? 0} 次`,
+      effectivePolicySummary: buildActivationCodePolicySummary(selectedActivationCode),
+      overridePolicyValue: selectedActivationCodeRebindPolicy,
+      overrideCooldownMinutesValue: selectedActivationCodeRebindCooldownMinutes,
+      overrideMaxCountValue: selectedActivationCodeRebindMaxCount,
+      targetMachineId: selectedActivationCodeTargetMachineId,
+      adminActionReason: selectedActivationCodeAdminReason,
+      bindingHistoryEntries: buildBindingHistoryEntries(selectedActivationCode),
+      adminAuditEntries: buildAdminAuditEntries(selectedActivationCode),
+      loading,
+      onSelectCode: selectActivationCodeForManagement,
+      onOverridePolicyChange: (value: string) =>
+        setSelectedActivationCodeRebindPolicy(value as RebindOverrideSelectValue),
+      onOverrideCooldownMinutesChange: setSelectedActivationCodeRebindCooldownMinutes,
+      onOverrideMaxCountChange: setSelectedActivationCodeRebindMaxCount,
+      onTargetMachineIdChange: setSelectedActivationCodeTargetMachineId,
+      onAdminActionReasonChange: setSelectedActivationCodeAdminReason,
+      onSaveSettings: () => void handleSaveActivationCodeRebindSettings(),
+      onForceUnbind: () => void handleForceUnbindActivationCode(),
+      onForceRebind: () => void handleForceRebindActivationCode(),
+    },
   }
 
   const consumptionFiltersView = {
@@ -1682,6 +2499,55 @@ export default function DashboardPage() {
     getLicenseModeDisplay,
   }
 
+  const auditLogFiltersView = {
+    searchTerm: auditLogSearchTerm,
+    projectFilter: auditLogProjectFilter,
+    operationTypeFilter: auditLogOperationTypeFilter,
+    createdFrom: auditLogCreatedFrom,
+    createdTo: auditLogCreatedTo,
+    projectOptions: projects,
+    operationTypeOptions: adminAuditOperationTypeOptions,
+    filterTokens: auditLogFilterTokens,
+    onSearchTermChange: (value: string) => {
+      setAuditLogSearchTerm(value)
+      setAuditLogCurrentPage(1)
+    },
+    onProjectFilterChange: (value: string) => {
+      setAuditLogProjectFilter(value)
+      setAuditLogCurrentPage(1)
+    },
+    onOperationTypeFilterChange: (value: string) => {
+      setAuditLogOperationTypeFilter(value)
+      setAuditLogCurrentPage(1)
+    },
+    onCreatedFromChange: (value: string) => {
+      setAuditLogCreatedFrom(value)
+      setAuditLogCurrentPage(1)
+    },
+    onCreatedToChange: (value: string) => {
+      setAuditLogCreatedTo(value)
+      setAuditLogCurrentPage(1)
+    },
+    onReset: handleResetAuditLogFilters,
+    onExport: handleExportAdminAuditLogs,
+  }
+
+  const auditLogLogsView = {
+    filterTokens: auditLogFilterTokens,
+    totalCount: auditLogPagination.total,
+    startIndex: auditLogStartIndex,
+    endIndex: auditLogEndIndex,
+    currentPage: auditLogPagination.page,
+    totalPages: auditLogTotalPages,
+    logs: auditLogs.map((log) => ({
+      ...log,
+      operationTypeLabel: getAdminOperationTypeLabel(log.operationType),
+      detailSummary: buildAdminOperationDetailSummary(log.operationType, log.detailJson),
+    })),
+    onExport: handleExportAdminAuditLogs,
+    onPageChange: handleChangeAuditLogPage,
+  }
+
   useEffect(() => {
     const lastPage = Math.max(totalPages, 1)
 
@@ -1697,6 +2563,40 @@ export default function DashboardPage() {
       setConsumptionCurrentPage(lastPage)
     }
   }, [consumptionCurrentPage, consumptionTotalPages])
+
+  useEffect(() => {
+    const lastPage = Math.max(auditLogTotalPages, 1)
+
+    if (auditLogCurrentPage > lastPage) {
+      setAuditLogCurrentPage(lastPage)
+    }
+  }, [auditLogCurrentPage, auditLogTotalPages])
+
+  useEffect(() => {
+    if (selectedActivationCodeId === null) {
+      return
+    }
+
+    const matchedActivationCode = allCodes.find((code) => code.id === selectedActivationCodeId) || null
+    if (!matchedActivationCode) {
+      syncSelectedActivationCodeDrafts(null)
+      return
+    }
+
+    setSelectedActivationCodeRebindPolicy(
+      toRebindOverrideSelectValue(matchedActivationCode.allowAutoRebind),
+    )
+    setSelectedActivationCodeRebindCooldownMinutes(
+      matchedActivationCode.autoRebindCooldownMinutes === null
+        ? ''
+        : String(matchedActivationCode.autoRebindCooldownMinutes),
+    )
+    setSelectedActivationCodeRebindMaxCount(
+      matchedActivationCode.autoRebindMaxCount === null
+        ? ''
+        : String(matchedActivationCode.autoRebindMaxCount),
+    )
+  }, [allCodes, selectedActivationCodeId, syncSelectedActivationCodeDrafts])
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#f6f8fc_42%,#eef2ff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
@@ -2238,7 +3138,7 @@ export default function DashboardPage() {
               </div>
 
               <form onSubmit={handleGenerateCodes} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
                   <DashboardFormField label="所属项目" htmlFor="generate-selected-project-key">
                     <select
                       id="generate-selected-project-key"
@@ -2276,6 +3176,51 @@ export default function DashboardPage() {
                       onChange={(e) => setAmount(parseInt(e.target.value))}
                       className={compactInputClassName}
                       required
+                    />
+                  </DashboardFormField>
+
+                  <DashboardFormField label="自助换绑策略" htmlFor="generate-rebind-policy">
+                    <select
+                      id="generate-rebind-policy"
+                      value={generateRebindPolicy}
+                      onChange={(e) =>
+                        setGenerateRebindPolicy(e.target.value as RebindOverrideSelectValue)
+                      }
+                      className={compactInputClassName}
+                    >
+                      <option value="inherit">继承项目配置</option>
+                      <option value="enabled">允许自助换绑</option>
+                      <option value="disabled">禁止自助换绑</option>
+                    </select>
+                  </DashboardFormField>
+
+                  <DashboardFormField
+                    label="换绑冷却时间（分钟）"
+                    htmlFor="generate-rebind-cooldown"
+                  >
+                    <input
+                      id="generate-rebind-cooldown"
+                      type="number"
+                      min="0"
+                      value={generateRebindCooldownMinutes}
+                      onChange={(e) => setGenerateRebindCooldownMinutes(e.target.value)}
+                      className={compactInputClassName}
+                      placeholder="留空则继承项目配置"
+                    />
+                  </DashboardFormField>
+
+                  <DashboardFormField
+                    label="自助换绑次数上限"
+                    htmlFor="generate-rebind-max-count"
+                  >
+                    <input
+                      id="generate-rebind-max-count"
+                      type="number"
+                      min="0"
+                      value={generateRebindMaxCount}
+                      onChange={(e) => setGenerateRebindMaxCount(e.target.value)}
+                      className={compactInputClassName}
+                      placeholder="0 表示不限制；留空则继承项目配置"
                     />
                   </DashboardFormField>
                 </div>
@@ -2413,6 +3358,27 @@ export default function DashboardPage() {
             loading={consumptionLoading}
             filtersView={consumptionFiltersView}
             logsView={consumptionLogsView}
+            panelClassName={panelClassName}
+            workspaceSummaryCardClassName={workspaceSummaryCardClassName}
+            compactInputClassName={compactInputClassName}
+            primaryButtonClassName={primaryButtonClassName}
+            successButtonClassName={successButtonClassName}
+            ghostButtonClassName={ghostButtonClassName}
+            paginationButtonClassName={paginationButtonClassName}
+            paginationActiveButtonClassName={paginationActiveButtonClassName}
+          />
+        )}
+
+        {activeTab === 'auditLogs' && (
+          <AuditLogWorkspace
+            activeTab={auditLogWorkspaceTab}
+            onTabChange={handleChangeAuditLogWorkspaceTab}
+            loading={loading}
+            matchedCount={auditLogPagination.total}
+            operatorCoverage={auditLogOperatorCoverage}
+            projectCoverage={auditLogProjectCoverage}
+            filtersView={auditLogFiltersView}
+            logsView={auditLogLogsView}
             panelClassName={panelClassName}
             workspaceSummaryCardClassName={workspaceSummaryCardClassName}
             compactInputClassName={compactInputClassName}

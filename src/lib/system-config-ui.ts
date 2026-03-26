@@ -1,4 +1,4 @@
-export type SystemConfigValue = string | number | string[]
+export type SystemConfigValue = string | number | boolean | string[]
 
 export type SystemConfigItem = {
   key: string
@@ -32,6 +32,9 @@ export type SystemConfigDisplayItem = {
   inputKind: SystemConfigInputKind
   options?: SystemConfigOption[]
   placeholder?: string
+  min?: number
+  max?: number
+  step?: number
   sensitive?: boolean
   masked?: boolean
   hasValue?: boolean
@@ -98,7 +101,7 @@ const advancedGroupMeta: Omit<SystemConfigGroup, 'items'> = {
 }
 
 const groupItemOrderMap: Partial<Record<SystemConfigGroupKey, string[]>> = {
-  access: ['allowedIPs'],
+  access: ['allowedIPs', 'allowAutoRebind', 'autoRebindCooldownMinutes', 'autoRebindMaxCount'],
   security: ['jwtSecret', 'jwtExpiresIn', 'bcryptRounds'],
   branding: ['systemName'],
 }
@@ -131,6 +134,56 @@ function resolveWhitelistBadges(value: SystemConfigValue): SystemConfigBadge[] {
   }
 
   return [{ label: `${whitelistEntries.length} 个地址`, tone: 'info' }]
+}
+
+function resolveAutoRebindBadges(value: SystemConfigValue): SystemConfigBadge[] {
+  return value === true
+    ? [{ label: '允许自动换绑', tone: 'success' }]
+    : [{ label: '默认禁止', tone: 'neutral' }]
+}
+
+function resolveAutoRebindCooldownBadges(value: SystemConfigValue): SystemConfigBadge[] {
+  const cooldownMinutes = Number(value)
+
+  if (!Number.isFinite(cooldownMinutes)) {
+    return []
+  }
+
+  if (cooldownMinutes === 0) {
+    return [{ label: '无冷却', tone: 'warning' }]
+  }
+
+  if (cooldownMinutes <= 60) {
+    return [{ label: '短冷却', tone: 'info' }]
+  }
+
+  if (cooldownMinutes <= 24 * 60) {
+    return [{ label: '推荐', tone: 'success' }]
+  }
+
+  return [{ label: '长冷却', tone: 'neutral' }]
+}
+
+function resolveAutoRebindMaxCountBadges(value: SystemConfigValue): SystemConfigBadge[] {
+  const maxCount = Number(value)
+
+  if (!Number.isFinite(maxCount)) {
+    return []
+  }
+
+  if (maxCount === 0) {
+    return [{ label: '不限制', tone: 'warning' }]
+  }
+
+  if (maxCount <= 3) {
+    return [{ label: '限制较严', tone: 'info' }]
+  }
+
+  if (maxCount <= 10) {
+    return [{ label: '推荐', tone: 'success' }]
+  }
+
+  return [{ label: '限制较宽', tone: 'neutral' }]
 }
 
 function resolveJwtExpiresInBadges(value: SystemConfigValue): SystemConfigBadge[] {
@@ -198,6 +251,49 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
         layout: 'full',
         badges: resolveWhitelistBadges(config.value),
         previewTokens: normalizeTokenList(config.value),
+      }
+    case 'allowAutoRebind':
+      return {
+        key: config.key,
+        label: '自动换绑',
+        description: '允许激活码在满足冷却时间时，从旧设备自动迁移到新设备。',
+        hint: '建议默认关闭；确实需要跨设备迁移时，再结合项目级或单码级策略按需开启。',
+        value: config.value,
+        inputKind: 'select',
+        options: [
+          { label: '禁止自动换绑', value: 'false' },
+          { label: '允许自动换绑', value: 'true' },
+        ],
+        layout: 'default',
+        badges: resolveAutoRebindBadges(config.value),
+      }
+    case 'autoRebindCooldownMinutes':
+      return {
+        key: config.key,
+        label: '换绑冷却时间',
+        description: '控制同一激活码两次自动换绑之间至少间隔多久。',
+        hint: '单位为分钟；0 表示不设冷却。建议至少保留 60 分钟，降低激活码被频繁转移的风险。',
+        value: config.value,
+        inputKind: 'number',
+        min: 0,
+        max: 30 * 24 * 60,
+        step: 1,
+        layout: 'default',
+        badges: resolveAutoRebindCooldownBadges(config.value),
+      }
+    case 'autoRebindMaxCount':
+      return {
+        key: config.key,
+        label: '自助换绑次数上限',
+        description: '限制单个激活码最多还能自助迁移多少次设备。',
+        hint: '单位为次；0 表示不限制。建议结合冷却时间共同使用，避免激活码被频繁流转。',
+        value: config.value,
+        inputKind: 'number',
+        min: 0,
+        max: 9999,
+        step: 1,
+        layout: 'default',
+        badges: resolveAutoRebindMaxCountBadges(config.value),
       }
     case 'jwtSecret':
       return {
@@ -272,6 +368,14 @@ function resolveGroupKey(configKey: string): SystemConfigGroupKey {
     return 'access'
   }
 
+  if (
+    configKey === 'allowAutoRebind' ||
+    configKey === 'autoRebindCooldownMinutes' ||
+    configKey === 'autoRebindMaxCount'
+  ) {
+    return 'access'
+  }
+
   if (configKey === 'jwtSecret' || configKey === 'jwtExpiresIn' || configKey === 'bcryptRounds') {
     return 'security'
   }
@@ -342,6 +446,8 @@ export function buildSystemConfigPageModel(configs: SystemConfigItem[]): SystemC
   ]
 
   const allowedIPs = configs.find((config) => config.key === 'allowedIPs')?.value || []
+  const allowAutoRebind =
+    configs.find((config) => config.key === 'allowAutoRebind')?.value || false
   const jwtExpiresIn = configs.find((config) => config.key === 'jwtExpiresIn')?.value || '--'
   const bcryptRounds = configs.find((config) => config.key === 'bcryptRounds')?.value || '--'
 
@@ -354,7 +460,7 @@ export function buildSystemConfigPageModel(configs: SystemConfigItem[]): SystemC
     {
       label: '访问白名单',
       value: formatWhitelistValue(allowedIPs),
-      description: '后台访问来源将按白名单限制',
+      description: allowAutoRebind ? '后台访问与自动换绑策略同时生效' : '后台访问来源将按白名单限制',
     },
     {
       label: '登录会话',

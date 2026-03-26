@@ -1,11 +1,20 @@
 import { clearConfigCache } from './config-service'
 import { prisma } from './db'
+import {
+  AUTO_REBIND_COOLDOWN_MINUTES_MAX,
+  AUTO_REBIND_COOLDOWN_MINUTES_MIN,
+  AUTO_REBIND_MAX_COUNT_MAX,
+  AUTO_REBIND_MAX_COUNT_MIN,
+} from './license-rebind-policy-shared'
 import { stringifyConfigValue } from './system-config-defaults'
 import { type PersistableSystemConfigItem } from './system-config-updates'
 import { type SystemConfigValue } from './system-config-ui'
 
 const writableSystemConfigKeySet = new Set([
   'allowedIPs',
+  'allowAutoRebind',
+  'autoRebindCooldownMinutes',
+  'autoRebindMaxCount',
   'jwtSecret',
   'jwtExpiresIn',
   'bcryptRounds',
@@ -99,10 +108,65 @@ function normalizeBcryptRounds(value: SystemConfigValue) {
   return value
 }
 
+function normalizeBooleanConfigValue(key: string, value: SystemConfigValue) {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    if (value === 'true') {
+      return true
+    }
+
+    if (value === 'false') {
+      return false
+    }
+  }
+
+  throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 必须是布尔值`)
+}
+
+function normalizeAutoRebindCooldownMinutes(value: SystemConfigValue) {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    throw new InvalidSystemConfigPayloadError('系统配置 autoRebindCooldownMinutes 必须是整数')
+  }
+
+  if (
+    value < AUTO_REBIND_COOLDOWN_MINUTES_MIN ||
+    value > AUTO_REBIND_COOLDOWN_MINUTES_MAX
+  ) {
+    throw new InvalidSystemConfigPayloadError(
+      `系统配置 autoRebindCooldownMinutes 必须在 ${AUTO_REBIND_COOLDOWN_MINUTES_MIN} 到 ${AUTO_REBIND_COOLDOWN_MINUTES_MAX} 之间`,
+    )
+  }
+
+  return value
+}
+
+function normalizeAutoRebindMaxCount(value: SystemConfigValue) {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    throw new InvalidSystemConfigPayloadError('系统配置 autoRebindMaxCount 必须是整数')
+  }
+
+  if (value < AUTO_REBIND_MAX_COUNT_MIN || value > AUTO_REBIND_MAX_COUNT_MAX) {
+    throw new InvalidSystemConfigPayloadError(
+      `系统配置 autoRebindMaxCount 必须在 ${AUTO_REBIND_MAX_COUNT_MIN} 到 ${AUTO_REBIND_MAX_COUNT_MAX} 之间`,
+    )
+  }
+
+  return value
+}
+
 function normalizeSystemConfigValue(key: string, value: SystemConfigValue): SystemConfigValue {
   switch (key) {
     case 'allowedIPs':
       return normalizeAllowedIps(value)
+    case 'allowAutoRebind':
+      return normalizeBooleanConfigValue(key, value)
+    case 'autoRebindCooldownMinutes':
+      return normalizeAutoRebindCooldownMinutes(value)
+    case 'autoRebindMaxCount':
+      return normalizeAutoRebindMaxCount(value)
     case 'jwtSecret':
       return ensureStringValue(key, value)
     case 'jwtExpiresIn':

@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   activationCodeWorkspaceTabs,
+  auditLogWorkspaceTabs,
   apiDocsWorkspaceTabs,
   consumptionWorkspaceTabs,
   projectWorkspaceTabs,
@@ -14,12 +15,14 @@ test('dashboard workspace tabs 按各自工作流顺序暴露配置', () => {
       project: projectWorkspaceTabs.map((tab) => tab.key),
       activationCode: activationCodeWorkspaceTabs.map((tab) => tab.key),
       consumption: consumptionWorkspaceTabs.map((tab) => tab.key),
+      auditLogs: auditLogWorkspaceTabs.map((tab) => tab.key),
       apiDocs: apiDocsWorkspaceTabs.map((tab) => tab.key),
     },
     {
       project: ['manage', 'create'],
       activationCode: ['results', 'filters'],
       consumption: ['logs', 'filters'],
+      auditLogs: ['logs', 'filters'],
       apiDocs: ['overview', 'endpoints', 'examples', 'admin'],
     },
   )

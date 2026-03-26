@@ -58,6 +58,23 @@ export const consumptionWorkspaceTabs: Array<WorkspaceTab<ConsumptionWorkspaceTa
   },
 ]
 
+export type AuditLogWorkspaceTab = 'logs' | 'filters'
+
+export const auditLogWorkspaceTabs: Array<WorkspaceTab<AuditLogWorkspaceTab>> = [
+  {
+    key: 'logs',
+    label: '日志列表',
+    shortLabel: '日志',
+    description: '查看分页结果并导出管理员操作记录',
+  },
+  {
+    key: 'filters',
+    label: '筛选与导出',
+    shortLabel: '筛选',
+    description: '集中维护项目、操作类型与时间范围条件',
+  },
+]
+
 export type ApiDocsWorkspaceTab = 'overview' | 'endpoints' | 'examples' | 'admin'
 
 export const apiDocsWorkspaceTabs: Array<WorkspaceTab<ApiDocsWorkspaceTab>> = [

@@ -1,5 +1,10 @@
 import crypto from 'crypto'
 
+import {
+  normalizeNullableBooleanOverride,
+  normalizeNullableCooldownMinutesOverride,
+  normalizeNullableMaxCountOverride,
+} from './license-rebind-policy'
 import { resolveProject, type DbClient } from './license-project-service'
 import { isPrismaUniqueConstraintError } from './prisma-error-utils'
 import { type LicenseModeValue } from './license-status'
@@ -11,6 +16,9 @@ export type GenerateActivationCodesInput = {
   validDays?: number | null
   totalCount?: number | null
   cardType?: string | null
+  allowAutoRebind?: boolean | null
+  autoRebindCooldownMinutes?: number | null
+  autoRebindMaxCount?: number | null
 }
 
 const GENERATE_CODES_BATCH_RETRY_LIMIT = 5
@@ -56,6 +64,11 @@ export async function generateActivationCodes(client: DbClient, input: GenerateA
   const licenseMode = input.licenseMode
   const validDays = input.validDays ?? null
   const totalCount = input.totalCount ?? null
+  const allowAutoRebind = normalizeNullableBooleanOverride(input.allowAutoRebind)
+  const autoRebindCooldownMinutes = normalizeNullableCooldownMinutesOverride(
+    input.autoRebindCooldownMinutes,
+  )
+  const autoRebindMaxCount = normalizeNullableMaxCountOverride(input.autoRebindMaxCount)
 
   if (!amount || amount < 1 || amount > 100) {
     throw new Error('生成数量必须在1-100之间')
@@ -88,6 +101,9 @@ export async function generateActivationCodes(client: DbClient, input: GenerateA
           totalCount: licenseMode === 'COUNT' ? totalCount : null,
           remainingCount: licenseMode === 'COUNT' ? totalCount : null,
           expiresAt: null,
+          allowAutoRebind,
+          autoRebindCooldownMinutes,
+          autoRebindMaxCount,
         })),
         include: {
           project: {
