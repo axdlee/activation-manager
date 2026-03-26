@@ -19,6 +19,24 @@ export type SystemConfigSeed = {
 type BuildDefaultSystemConfigsOptions = {
   nodeEnv?: string
   jwtSecretEnv?: string
+  allowedIPsEnv?: string
+}
+
+function resolveAllowedIpsSeed(allowedIPsEnv: string | undefined = process.env.ALLOWED_IPS) {
+  if (!allowedIPsEnv) {
+    return appConfig.security.allowedIPs
+  }
+
+  const normalizedAllowedIPs = Array.from(
+    new Set(
+      allowedIPsEnv
+        .split(/[\n,]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  )
+
+  return normalizedAllowedIPs.length > 0 ? normalizedAllowedIPs : appConfig.security.allowedIPs
 }
 
 export function resolveJwtSecretSeed(
@@ -38,11 +56,12 @@ export function buildDefaultSystemConfigs(
 ): SystemConfigSeed[] {
   const nodeEnv = options.nodeEnv || process.env.NODE_ENV || 'development'
   const jwtSecretSeed = resolveJwtSecretSeed(nodeEnv, options.jwtSecretEnv)
+  const allowedIpsSeed = resolveAllowedIpsSeed(options.allowedIPsEnv)
 
   return [
     {
       key: 'allowedIPs',
-      value: appConfig.security.allowedIPs,
+      value: allowedIpsSeed,
       description: 'IP白名单列表',
     },
     ...(jwtSecretSeed

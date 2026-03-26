@@ -35,3 +35,15 @@ test('buildDefaultSystemConfigs 在生产环境下会优先使用显式提供的
     description: 'JWT密钥',
   })
 })
+
+test('buildDefaultSystemConfigs 支持通过显式 ALLOWED_IPS 注入 Docker 场景白名单', () => {
+  const systemConfigs = buildDefaultSystemConfigs({
+    allowedIPsEnv: '127.0.0.1,::1,172.16.0.0/12',
+  })
+
+  assert.deepEqual(systemConfigs.find((config) => config.key === 'allowedIPs'), {
+    key: 'allowedIPs',
+    value: ['127.0.0.1', '::1', '172.16.0.0/12'],
+    description: 'IP白名单列表',
+  })
+})

@@ -109,6 +109,22 @@ test('authorizeAdminRequest 在生产环境下对不在白名单中的 IP 返回
   })
 })
 
+test('authorizeAdminRequest 在生产环境下支持 IPv4 CIDR 白名单规则', async () => {
+  const result = await authorizeAdminRequest(
+    createRequestLike({ ip: '172.18.0.1', token: 'valid-token' }),
+    { mode: 'protected', nodeEnv: 'production' },
+    {
+      getAllowedIPs: async () => ['172.16.0.0/12'],
+      verifyToken: async (token) => ({ sub: token, isAdmin: true }),
+    },
+  )
+
+  assert.deepEqual(result, {
+    success: true,
+    payload: { sub: 'valid-token', isAdmin: true },
+  })
+})
+
 test('authorizeAdminRequest 遇到关键配置缺失时返回 500 配置错误', async () => {
   const result = await authorizeAdminRequest(
     createRequestLike({ ip: '127.0.0.1', token: 'valid-token' }),

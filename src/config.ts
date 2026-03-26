@@ -1,3 +1,22 @@
+const DEFAULT_ALLOWED_IPS = ['127.0.0.1', '::1']
+
+function resolveAllowedIPs(allowedIPsEnv: string | undefined = process.env.ALLOWED_IPS) {
+  if (!allowedIPsEnv) {
+    return DEFAULT_ALLOWED_IPS
+  }
+
+  const normalizedAllowedIPs = Array.from(
+    new Set(
+      allowedIPsEnv
+        .split(/[\n,]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  )
+
+  return normalizedAllowedIPs.length > 0 ? normalizedAllowedIPs : DEFAULT_ALLOWED_IPS
+}
+
 export const config = {
   // 数据库配置
   database: {
@@ -12,7 +31,7 @@ export const config = {
   
   // 安全配置
   security: {
-    allowedIPs: ["127.0.0.1", "::1"],
+    allowedIPs: resolveAllowedIPs(),
     bcryptRounds: 12
   },
   
@@ -21,4 +40,4 @@ export const config = {
     port: 3000,
     nodeEnv: process.env.NODE_ENV || "development"
   }
-} 
+}

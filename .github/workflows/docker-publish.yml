@@ -32,10 +32,63 @@ jobs:
       - name: Run quality gate
         run: npm run quality:gate
 
+  smoke:
+    name: Docker Compose Smoke Verification
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare Docker smoke env
+        run: |
+          cat > .env.ci <<'EOF'
+          JWT_SECRET=ci-docker-smoke-secret-change-me
+          PORT=3300
+          ALLOWED_IPS=127.0.0.1,::1,172.16.0.0/12
+          EOF
+
+      - name: Build and start application via Docker Compose
+        run: docker compose --env-file .env.ci up -d --build
+
+      - name: Wait for container health
+        run: |
+          container_id="$(docker compose --env-file .env.ci ps -q activation-manager)"
+          test -n "$container_id" || { echo "未找到 activation-manager 容器"; exit 1; }
+
+          for attempt in $(seq 1 36); do
+            health_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$container_id")"
+            echo "attempt=${attempt} health=${health_status}"
+
+            if [ "$health_status" = "healthy" ]; then
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "容器未在预期时间内变为 healthy"
+          docker inspect "$container_id"
+          exit 1
+
+      - name: Run Docker smoke test
+        run: BASE_URL=http://127.0.0.1:3300 bash ./scripts/smoke-license-api.sh
+
+      - name: Print Docker logs on failure
+        if: failure()
+        run: docker compose --env-file .env.ci logs --no-color
+
+      - name: Shutdown Docker Compose stack
+        if: always()
+        run: docker compose --env-file .env.ci down -v
+
   publish:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    needs: verify
+    needs:
+      - verify
+      - smoke
     timeout-minutes: 30
     permissions:
       contents: read
@@ -62,6 +115,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -84,6 +140,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

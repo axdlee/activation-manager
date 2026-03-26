@@ -12,6 +12,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       JWT_SECRET: ${JWT_SECRET:?请先在 .env 中配置 JWT_SECRET}
+      ALLOWED_IPS: ${ALLOWED_IPS:-127.0.0.1,::1,172.16.0.0/12}
     volumes:
       - activation_manager_data:/app/data
 

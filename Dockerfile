@@ -9,6 +9,9 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM base AS builder
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run db:generate && npm run build

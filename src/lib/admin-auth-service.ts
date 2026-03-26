@@ -1,3 +1,5 @@
+import { isIP } from 'node:net'
+
 import { getConfigWithDefault, MissingRequiredSystemConfigError } from './config-service'
 import { verifyToken } from './jwt'
 import {
@@ -65,7 +67,50 @@ export function extractClientIp(request: RequestLike) {
 }
 
 function isIpAllowed(clientIp: string, allowedIPs: string[], nodeEnv: string) {
-  return nodeEnv !== 'production' || allowedIPs.includes(clientIp)
+  if (nodeEnv !== 'production') {
+    return true
+  }
+
+  return allowedIPs.some((allowedIpRule) => {
+    const normalizedRule = allowedIpRule.trim()
+
+    if (!normalizedRule) {
+      return false
+    }
+
+    if (normalizedRule === clientIp) {
+      return true
+    }
+
+    return matchesIpv4Cidr(clientIp, normalizedRule)
+  })
+}
+
+function matchesIpv4Cidr(clientIp: string, rule: string) {
+  const [network, prefixText] = rule.split('/')
+  const prefix = Number(prefixText)
+
+  if (
+    !rule.includes('/') ||
+    isIP(clientIp) !== 4 ||
+    isIP(network) !== 4 ||
+    !Number.isInteger(prefix) ||
+    prefix < 0 ||
+    prefix > 32
+  ) {
+    return false
+  }
+
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0
+
+  return (ipv4ToInt(clientIp) & mask) === (ipv4ToInt(network) & mask)
+}
+
+function ipv4ToInt(ip: string) {
+  return ip
+    .split('.')
+    .map((segment) => Number(segment))
+    .reduce((result, segment) => ((result << 8) | segment) >>> 0, 0)
 }
 
 function isDynamicServerUsageError(error: unknown) {

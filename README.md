@@ -117,59 +117,18 @@
 
 ---
 
-## 界面预览
+## 首页概览
 
-### 首页与公开文档
+首页已经整理成适合对外展示的落地页，首次打开就能看到：
 
-<p>
-  <img src="./Readmeimg/validation-20260325/public-home.png" width="49%" alt="激活码管理系统首页" />
-  <img src="./Readmeimg/validation-20260325/docs-api-overview.png" width="49%" alt="公开 API 文档总览页" />
+- 多项目隔离
+- TIME / COUNT 双授权模型
+- 管理后台入口
+- 公开 API 文档入口
+
+<p align="center">
+  <img src="./Readmeimg/validation-20260326/public-home.jpg" width="92%" alt="激活码管理系统首页（最新版 UI）" />
 </p>
-
-- 左图：首页，适合对外展示项目定位与核心能力
-- 右图：公开 API 文档页，可直接发给插件开发者、测试同学或合作方
-
-### 后台核心工作区
-
-<p>
-  <img src="./Readmeimg/validation-20260325/admin-dashboard-stats.png" width="49%" alt="后台统计总览" />
-  <img src="./Readmeimg/validation-20260325/admin-project-management.png" width="49%" alt="项目管理页面" />
-</p>
-
-<p>
-  <img src="./Readmeimg/validation-20260325/admin-generate-codes.png" width="49%" alt="生成激活码页面" />
-  <img src="./Readmeimg/validation-20260325/admin-activation-codes.png" width="49%" alt="激活码管理页面" />
-</p>
-
-<p>
-  <img src="./Readmeimg/validation-20260325/admin-consumption-logs.png" width="49%" alt="消费日志页面" />
-  <img src="./Readmeimg/validation-20260325/admin-system-config.png" width="49%" alt="系统配置页面" />
-</p>
-
-这些页面分别覆盖：
-- 数据统计与趋势分析
-- 多项目管理与 `projectKey` 维护
-- 时间卡 / 次数卡生成
-- 激活码查询、复制、删除、清理
-- 消费日志检索与导出
-- 系统级安全配置管理
-
-<details>
-<summary>查看更多截图</summary>
-
-### 登录、文档工作区与安全设置
-
-<p>
-  <img src="./Readmeimg/validation-20260325/admin-login.png" width="49%" alt="后台登录页" />
-  <img src="./Readmeimg/validation-20260325/admin-api-docs.png" width="49%" alt="后台 API 接入工作区" />
-</p>
-
-<p>
-  <img src="./Readmeimg/validation-20260325/docs-api-examples.png" width="49%" alt="公开 API 文档多语言示例" />
-  <img src="./Readmeimg/validation-20260325/admin-change-password.png" width="49%" alt="管理员密码修改页" />
-</p>
-
-</details>
 
 ---
 
@@ -220,6 +179,12 @@ npm run dev
 - 首页：`http://localhost:3000`
 - 管理后台登录：`http://localhost:3000/admin/login`
 - 公开 API 文档：`http://localhost:3000/docs/api`
+
+如果你是第一次部署，建议先从登录页进入后台：
+
+<p align="center">
+  <img src="./Readmeimg/validation-20260326/admin-login.jpg" width="88%" alt="管理后台登录页（最新版 UI）" />
+</p>
 
 默认管理员账号：
 
@@ -279,9 +244,12 @@ npm run start
 
 ## Docker 部署
 
-### 推荐方式：Docker Compose
+这个项目 **直接使用 Docker 就可以运行，不依赖 Docker Compose**。
 
-仓库已补齐以下文件，可直接用于服务端部署：
+- 如果你只是单机部署一套服务：**推荐直接 `docker run`**
+- 如果你想顺手管理 `.env`、日志、重建和停止流程：再使用 `docker compose`
+
+仓库内已经补齐：
 
 - `Dockerfile`
 - `docker-compose.yml`
@@ -289,7 +257,11 @@ npm run start
 - `scripts/docker-entrypoint.sh`
 - `scripts/bootstrap-runtime.ts`
 
-### 1）准备环境变量
+其中 `.env.docker.example` 里除了 `JWT_SECRET`，还提供了 `ALLOWED_IPS` 示例配置。
+
+### 方式 A：直接 `docker run`（推荐）
+
+#### 1）准备环境变量
 
 ```bash
 cp .env.docker.example .env
@@ -297,19 +269,46 @@ cp .env.docker.example .env
 
 至少要把 `.env` 里的 `JWT_SECRET` 改成你自己的高强度随机字符串。
 
-### 2）构建并启动
+另外建议同时检查：
+
+- `ALLOWED_IPS`：Docker 本地部署默认带有 `172.16.0.0/12`，用于放行宿主机经 Docker 网桥访问后台的场景
+- 如果你部署在正式服务器，请按实际来源 IP 收紧白名单，不要长期保留过宽的私网段规则
+
+#### 2）构建镜像
 
 ```bash
-docker compose up -d --build
+docker build -t activation-manager:local .
 ```
 
-### 3）查看日志
+#### 3）创建持久化卷
 
 ```bash
-docker compose logs -f activation-manager
+docker volume create activation_manager_data
 ```
 
-### 4）访问系统
+#### 4）启动容器
+
+```bash
+docker run -d \
+  --name activation-manager \
+  --env-file .env \
+  -p 3000:3000 \
+  -v activation_manager_data:/app/data \
+  --restart unless-stopped \
+  activation-manager:local
+```
+
+> 我已经实测过：**直接 `docker run` 后容器可正常变为 `healthy`，并且完整 smoke 联调通过。**
+
+#### 5）查看状态、日志与健康检查
+
+```bash
+docker ps
+docker logs -f activation-manager
+docker inspect --format '{{.State.Health.Status}}' activation-manager
+```
+
+#### 6）访问系统
 
 - 首页：`http://localhost:3000`
 - 管理后台登录：`http://localhost:3000/admin/login`
@@ -320,17 +319,42 @@ docker compose logs -f activation-manager
 - 用户名：`admin`
 - 密码：`123456`
 
-> 容器首次启动后也会自动补齐默认管理员、默认项目与默认系统配置；请首登后立即修改密码。
+> 容器首次启动后会自动补齐默认管理员、默认项目与默认系统配置；请首登后立即修改密码。
 
-### 5）停止与更新
+#### 7）跑一次真实 smoke 联调
 
 ```bash
-# 停止
-docker compose down
-
-# 拉起最新变更
-docker compose up -d --build
+BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
 ```
+
+如果输出 `✅ 联调通过`，说明以下链路都已正常：
+
+- 容器启动
+- Prisma 初始化
+- 默认管理员和系统配置补齐
+- 后台登录
+- 项目创建
+- 次数型激活码生成 / 绑定 / 幂等扣次
+- 消费日志、统计、CSV 导出
+
+#### 8）停止与删除容器
+
+```bash
+docker stop activation-manager
+docker rm activation-manager
+```
+
+### 方式 B：Docker Compose（可选）
+
+如果你更习惯用 compose 管理环境变量、日志和重建流程，可以使用：
+
+```bash
+docker compose --env-file .env up -d --build
+docker compose --env-file .env logs -f activation-manager
+docker compose --env-file .env down
+```
+
+> 注意：compose 只是为了运维更方便，**不是这个项目的运行前提**。
 
 ### 容器启动时自动做了什么
 
@@ -351,27 +375,12 @@ docker compose up -d --build
 
 ### 数据持久化说明
 
-`docker-compose.yml` 默认使用命名卷：
+无论你用 `docker run` 还是 `docker compose`，都推荐把 `/app/data` 挂到命名卷或宿主机目录。
 
-- 卷名：`activation_manager_data`
 - 容器内持久化目录：`/app/data`
 - 应用内数据库访问路径：`/app/prisma/dev.db`（通过符号链接映射到 `/app/data/dev.db`）
 
 如果你改成宿主机目录挂载，例如挂到 `/app/data`，请确保宿主机目录对容器进程有写权限。
-
-### 直接使用 docker run
-
-```bash
-docker build -t activation-manager:local .
-
-docker run -d \
-  --name activation-manager \
-  -p 3000:3000 \
-  -e JWT_SECRET="please-change-me" \
-  -v activation_manager_data:/app/data \
-  --restart unless-stopped \
-  activation-manager:local
-```
 
 ---
 
@@ -384,8 +393,11 @@ docker run -d \
 它会在 **每次 push** 和 **手动触发** 时自动执行：
 
 1. 先跑一遍 `npm run quality:gate`
-2. 再构建 Docker 镜像
-3. 最后推送到 DockerHub
+2. 再用 `docker compose` 真正拉起容器并等待 `healthy`
+3. 然后执行 `scripts/smoke-license-api.sh` 做真实接口联调
+4. 最后构建并推送 DockerHub 镜像
+
+> 这里在 CI 里使用 `docker compose`，只是为了把“启动容器、等待健康检查、执行 smoke”收口成一个稳定的流水线步骤；**项目运行本身并不依赖 compose**。
 
 ### 你需要配置的 GitHub Secrets
 
@@ -411,6 +423,34 @@ docker run -d \
 - 提交 SHA 标签，例如：`sha-abc1234`
 - `latest`（仅默认分支）
 
+### 默认发布的平台架构
+
+工作流默认会发布多架构镜像：
+
+- `linux/amd64`
+- `linux/arm64`
+
+这样无论你的服务器是常见的 x86_64 云主机，还是 ARM 设备 / ARM 服务器，都可以直接拉取同一个镜像标签。
+
+### 推荐的远端发布前自检
+
+在你首次 push 触发自动发布前，建议本地先执行：
+
+```bash
+npm run quality:gate
+docker compose --env-file .env.docker.example up -d --build
+BASE_URL=http://127.0.0.1:3300 npm run smoke:license-api
+docker compose --env-file .env.docker.example down -v
+```
+
+如果这 3 步都通过，通常 GitHub Actions 的 Docker 发布链路也会稳定通过。
+
+如果你只想验证“直接 `docker run` 的运行链路”，也可以按上面的 Docker 部署章节直接启动容器，再执行一次：
+
+```bash
+BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
+```
+
 ### 建议的 DockerHub 仓库命名
 
 例如你的 DockerHub 用户名是 `yourname`，仓库名建议配置为：
@@ -435,6 +475,12 @@ docker run -d \
 4. 每次真实业务发生时，调用 `consume`
 5. 联调时去后台消费日志按 `requestId` 反查
 6. 最后用 `smoke:license-api` 做回归
+
+如果你要把一个页面直接发给接入方，优先发这个公开文档页：
+
+<p align="center">
+  <img src="./Readmeimg/validation-20260326/docs-api-overview.jpg" width="92%" alt="公开 API 文档总览页（最新版 UI）" />
+</p>
 
 ### 行为约定
 
@@ -480,6 +526,13 @@ await client.consume({
 - 本地运行后的公开页面：`http://localhost:3000/docs/api`
 - 仓库内详版文档：[apidocs.md](./apidocs.md)
 
+公开文档页和后台联调工作区都已经按最新版 UI 重拍：
+
+<p>
+  <img src="./Readmeimg/validation-20260326/docs-api-examples.jpg" width="49%" alt="公开 API 文档多语言示例（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260326/admin-api-docs.jpg" width="49%" alt="后台 API 接入工作区（最新版 UI）" />
+</p>
+
 ---
 
 ## 管理后台可以做什么
@@ -489,6 +542,10 @@ await client.consume({
 - 查看项目级统计与次数使用率
 - 查看消费趋势、周期对比与项目对比
 
+<p align="center">
+  <img src="./Readmeimg/validation-20260326/admin-dashboard-stats.jpg" width="92%" alt="后台统计总览（最新版 UI）" />
+</p>
+
 ### 项目管理
 - 创建项目
 - 编辑项目名称 / 描述
@@ -497,16 +554,29 @@ await client.consume({
 - 启用 / 停用项目
 - 删除空项目
 
+<p align="center">
+  <img src="./Readmeimg/validation-20260326/admin-project-management.jpg" width="92%" alt="项目管理页面（最新版 UI）" />
+</p>
+
 ### 发码与码管理
 - 批量生成时间型或次数型激活码
 - 查看激活码状态、规格、过期时间、剩余次数
 - 删除激活码
 - 清理过期绑定
 
+<p>
+  <img src="./Readmeimg/validation-20260326/admin-generate-codes.jpg" width="49%" alt="生成激活码页面（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260326/admin-activation-codes.jpg" width="49%" alt="激活码管理页面（最新版 UI）" />
+</p>
+
 ### 消费日志
 - 查询次数型真实扣次记录
 - 支持 `projectKey / requestId / machineId / 时间范围` 过滤
 - 服务端分页 + CSV 导出
+
+<p align="center">
+  <img src="./Readmeimg/validation-20260326/admin-consumption-logs.jpg" width="92%" alt="消费日志页面（最新版 UI）" />
+</p>
 
 ### 安全与配置
 - 修改管理员密码
@@ -514,6 +584,11 @@ await client.consume({
 - 管理 JWT 有效期与密钥
 - 管理密码哈希成本
 - 管理系统展示名称等配置
+
+<p>
+  <img src="./Readmeimg/validation-20260326/admin-system-config.jpg" width="49%" alt="系统配置页面（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260326/admin-change-password.jpg" width="49%" alt="管理员密码修改页（最新版 UI）" />
+</p>
 
 ---
 
@@ -635,7 +710,7 @@ CI 工作流位置：
 - [数据库备份指南](./DATABASE_BACKUP_GUIDE.md)
 - [更新日志](./CHANGELOG.md)
 - [开发说明](./xitonkaifa.md)
-- [README 截图清单](./Readmeimg/validation-20260325/README_SCREENSHOTS.md)
+- [README 截图清单（最新版）](./Readmeimg/validation-20260326/README_SCREENSHOTS.md)
 
 ---
 
@@ -690,4 +765,4 @@ JWT_SECRET="请替换为高强度随机字符串" npm run init-system-config
 
 ## Stargazers over time
 
-[![Stargazers over time](https://starchart.cc/Fiftonb/Easytoac.svg?variant=adaptive)](https://starchart.cc/Fiftonb/Easytoac)
+[![Stargazers over time](https://starchart.cc/axdlee/activation-manager.svg?variant=adaptive)](https://starchart.cc/axdlee/activation-manager)
