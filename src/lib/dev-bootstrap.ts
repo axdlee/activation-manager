@@ -447,6 +447,23 @@ async function ensureDefaultAdminInternal(dbPath: string, logger: BootstrapLogge
   logger.log('请登录后及时修改密码！')
 }
 
+async function bootstrapDatabase({
+  dbPath,
+  logger,
+  completionLabel,
+}: {
+  dbPath: string
+  logger: BootstrapLogger
+  completionLabel: string
+}) {
+  ensureSchema(dbPath)
+  const defaultProjectId = ensureDefaultProjectRow(dbPath)
+  backfillActivationCodesProject(dbPath, defaultProjectId)
+  await ensureDefaultSystemConfigsInternal(dbPath, logger)
+  await ensureDefaultAdminInternal(dbPath, logger)
+  logger.log(`✅ ${completionLabel}: ${dbPath}`)
+}
+
 export async function ensureDefaultAdmin(
   dbPath: string = DEFAULT_DB_PATH,
   logger: BootstrapLogger = console,
@@ -462,10 +479,23 @@ export async function bootstrapDevelopmentDatabase({
   dbPath?: string
   logger?: BootstrapLogger
 } = {}) {
-  ensureSchema(dbPath)
-  const defaultProjectId = ensureDefaultProjectRow(dbPath)
-  backfillActivationCodesProject(dbPath, defaultProjectId)
-  await ensureDefaultSystemConfigsInternal(dbPath, logger)
-  await ensureDefaultAdminInternal(dbPath, logger)
-  logger.log(`✅ 开发环境初始化完成: ${dbPath}`)
+  await bootstrapDatabase({
+    dbPath,
+    logger,
+    completionLabel: '开发环境初始化完成',
+  })
+}
+
+export async function bootstrapRuntimeDatabase({
+  dbPath = DEFAULT_DB_PATH,
+  logger = console,
+}: {
+  dbPath?: string
+  logger?: BootstrapLogger
+} = {}) {
+  await bootstrapDatabase({
+    dbPath,
+    logger,
+    completionLabel: '运行环境初始化完成',
+  })
 }

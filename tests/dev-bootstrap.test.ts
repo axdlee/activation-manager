@@ -9,6 +9,7 @@ import bcrypt from 'bcryptjs'
 
 import {
   bootstrapDevelopmentDatabase,
+  bootstrapRuntimeDatabase,
   DEFAULT_ADMIN_PASSWORD,
   DEFAULT_ADMIN_USERNAME,
   DEFAULT_PROJECT_KEY,
@@ -181,6 +182,42 @@ test('ensureDefaultSystemConfigs 在生产环境缺少 JWT_SECRET 且数据库�
     await assert.rejects(
       () => ensureDefaultSystemConfigs(dbPath, silentLogger),
       /JWT_SECRET|jwtSecret/,
+    )
+  } finally {
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV
+    } else {
+      process.env.NODE_ENV = previousNodeEnv
+    }
+
+    if (previousJwtSecret === undefined) {
+      delete process.env.JWT_SECRET
+    } else {
+      process.env.JWT_SECRET = previousJwtSecret
+    }
+  }
+})
+
+test('bootstrapRuntimeDatabase 在生产环境提供 JWT_SECRET 时可完成初始化', async () => {
+  const previousNodeEnv = process.env.NODE_ENV
+  const previousJwtSecret = process.env.JWT_SECRET
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-bootstrap-'))
+  const dbPath = path.join(tempDir, 'dev.db')
+
+  process.env.NODE_ENV = 'production'
+  process.env.JWT_SECRET = 'docker-runtime-secret'
+
+  try {
+    await bootstrapRuntimeDatabase({
+      dbPath,
+      logger: silentLogger,
+    })
+
+    assert.equal(querySqlite(dbPath, 'SELECT COUNT(*) FROM admins;'), '1')
+    assert.equal(querySqlite(dbPath, 'SELECT COUNT(*) FROM projects;'), '1')
+    assert.equal(
+      querySqlite(dbPath, "SELECT value FROM system_configs WHERE key = 'jwtSecret';"),
+      'docker-runtime-secret',
     )
   } finally {
     if (previousNodeEnv === undefined) {

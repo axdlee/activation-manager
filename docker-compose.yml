@@ -1,0 +1,19 @@
+services:
+  activation-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_IMAGE:-activation-manager:local}
+    restart: unless-stopped
+    init: true
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:?请先在 .env 中配置 JWT_SECRET}
+    volumes:
+      - activation_manager_data:/app/data
+
+volumes:
+  activation_manager_data:

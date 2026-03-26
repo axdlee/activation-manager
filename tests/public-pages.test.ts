@@ -24,6 +24,14 @@ test('首页会渲染管理后台入口与公开 API 文档入口', async () => 
   assert.equal(html.includes('进入管理后台'), true)
   assert.equal(html.includes('查看 API 文档'), true)
   assert.equal(html.includes('多项目隔离'), true)
+  assert.equal(
+    html.includes('rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white'),
+    true,
+  )
+  assert.equal(
+    html.includes('bg-gradient-to-r from-sky-600 via-cyan-500 to-indigo-500'),
+    false,
+  )
 })
 
 test('公开 API 文档页暴露 metadata，并渲染首页与登录入口', async () => {

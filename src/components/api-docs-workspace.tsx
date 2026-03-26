@@ -67,12 +67,38 @@ const inlineActionButtonClassName =
 const publicCodeBlockClassName =
   'overflow-x-auto rounded-[22px] border border-sky-100 bg-slate-50 px-4 py-4 font-mono text-[12px] leading-6 text-slate-800 shadow-inner shadow-sky-100/50'
 
+const docsPublicPanelClassName =
+  'rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_-42px_rgba(15,23,42,0.16)] backdrop-blur-sm'
+
+const docsPublicFeatureCardClassName =
+  'rounded-[24px] border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.16)]'
+
+const docsPublicPillClassName =
+  'inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-sky-700 shadow-sm'
+
+const docsPublicPrimaryButtonClassName =
+  'inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-sky-600 via-cyan-500 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:-translate-y-0.5 hover:from-sky-500 hover:via-cyan-500 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-50'
+
+const docsPublicSecondaryButtonClassName =
+  'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50'
+
 export function ApiDocsWorkspace({
   mode = 'dashboard',
   initialTab = 'overview',
   onFeedback,
 }: ApiDocsWorkspaceProps) {
   const isPublicMode = mode === 'public'
+  const panelClassName = isPublicMode ? docsPublicPanelClassName : publicPanelClassName
+  const featureCardClassName = isPublicMode
+    ? docsPublicFeatureCardClassName
+    : publicFeatureCardClassName
+  const pillClassName = isPublicMode ? docsPublicPillClassName : publicPillClassName
+  const primaryButtonClassName = isPublicMode
+    ? docsPublicPrimaryButtonClassName
+    : publicPrimaryButtonClassName
+  const secondaryButtonClassName = isPublicMode
+    ? docsPublicSecondaryButtonClassName
+    : publicSecondaryButtonClassName
   const [activeTab, setActiveTab] = useState<ApiDocsWorkspaceTab>(initialTab)
   const [localFeedback, setLocalFeedback] = useState<{
     text: string
@@ -143,7 +169,7 @@ export function ApiDocsWorkspace({
 
   return (
     <div className="space-y-6">
-      <div className={`${publicPanelClassName} relative overflow-hidden p-6 sm:p-7`}>
+      <div className={`${panelClassName} relative overflow-hidden p-6 sm:p-7`}>
         <div
           className="absolute inset-0"
           style={{
@@ -154,7 +180,7 @@ export function ApiDocsWorkspace({
         <div className="relative">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <div className={publicPillClassName}>
+              <div className={pillClassName}>
                 <span className="h-2 w-2 rounded-full bg-sky-500" />
                 {heroContent.badge}
               </div>
@@ -266,7 +292,7 @@ export function ApiDocsWorkspace({
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               {apiDocsPageModel.researchSteps.map((step) => (
-                <div key={step.step} className={publicFeatureCardClassName}>
+                <div key={step.step} className={featureCardClassName}>
                   <div className="flex items-start gap-4">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white shadow-sm">
                       {step.step}
@@ -291,7 +317,7 @@ export function ApiDocsWorkspace({
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             {apiDocsPageModel.licenseModels.map((card) => (
-              <div key={card.badge} className={`${publicPanelClassName} p-6`}>
+              <div key={card.badge} className={`${panelClassName} p-6`}>
                 <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-sky-700">
                   {card.badge}
                 </div>
@@ -313,7 +339,7 @@ export function ApiDocsWorkspace({
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <div className={`${publicPanelClassName} p-6`}>
+            <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
                 <h3 className="text-xl font-semibold text-slate-900">通用请求字段</h3>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
@@ -354,7 +380,7 @@ export function ApiDocsWorkspace({
               </div>
             </div>
 
-            <div className={`${publicPanelClassName} p-6`}>
+            <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
                 <h3 className="text-xl font-semibold text-slate-900">统一响应字段</h3>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
@@ -401,7 +427,7 @@ export function ApiDocsWorkspace({
       {activeTab === 'endpoints' && (
         <div className="space-y-6">
           {apiDocsPageModel.endpoints.map((endpoint) => (
-            <div key={endpoint.key} className={`${publicPanelClassName} p-6`}>
+            <div key={endpoint.key} className={`${panelClassName} p-6`}>
               <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div className="max-w-3xl">
                   <div className="flex flex-wrap items-center gap-2">
@@ -437,7 +463,7 @@ export function ApiDocsWorkspace({
                   <button
                     type="button"
                     onClick={() => void copyToClipboard(endpoint.path, '接口路径已复制')}
-                    className={publicSecondaryButtonClassName}
+                    className={secondaryButtonClassName}
                   >
                     复制路径
                   </button>
@@ -521,7 +547,7 @@ export function ApiDocsWorkspace({
           {apiDocsPageModel.languageSnippets.map((snippet) => (
             <DashboardCodePanel
               key={snippet.key}
-              panelClassName={`${publicPanelClassName} p-6`}
+              panelClassName={`${panelClassName} p-6`}
               headerClassName="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
               header={
                 <div className="max-w-3xl">
@@ -542,7 +568,7 @@ export function ApiDocsWorkspace({
                   onClick={() =>
                     void copyToClipboard(snippet.code, `${snippet.label} 示例已复制`)
                   }
-                  className={publicPrimaryButtonClassName}
+                  className={primaryButtonClassName}
                 >
                   复制示例代码
                 </button>
@@ -556,7 +582,7 @@ export function ApiDocsWorkspace({
 
       {activeTab === 'admin' && (
         <div className="space-y-6">
-          <div className={`${publicPanelClassName} p-6`}>
+          <div className={`${panelClassName} p-6`}>
             <div className="mb-5">
               <h3 className="text-xl font-semibold text-slate-900">
                 联调时常用的后台接口
@@ -579,7 +605,7 @@ export function ApiDocsWorkspace({
             </div>
           </div>
 
-          <div className={`${publicPanelClassName} p-6`}>
+          <div className={`${panelClassName} p-6`}>
             <div className="mb-5">
               <h3 className="text-xl font-semibold text-slate-900">
                 本地联调与排查辅助
@@ -597,7 +623,7 @@ export function ApiDocsWorkspace({
                   description={item.description}
                   command={item.command}
                   onCopy={() => void copyToClipboard(item.command, `${item.title} 已复制`)}
-                  buttonClassName={publicSecondaryButtonClassName}
+                  buttonClassName={secondaryButtonClassName}
                   codeClassName={isPublicMode ? publicCodeBlockClassName : undefined}
                 />
               ))}

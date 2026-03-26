@@ -6,6 +6,7 @@
     "predev": "npm run bootstrap:dev",
     "dev": "next dev",
     "bootstrap:dev": "tsx scripts/bootstrap-dev.ts",
+    "bootstrap:runtime": "tsx scripts/bootstrap-runtime.ts",
     "smoke:license-api": "bash ./scripts/smoke-license-api.sh",
     "build": "NEXT_DIST_DIR=.next-build next build",
     "start": "NEXT_DIST_DIR=.next-build next start",
