@@ -90,6 +90,7 @@ jobs:
           docker run -d \
             --name activation-manager-bind \
             --env-file .env.ci \
+            -e PORT=3000 \
             -p 3301:3000 \
             -v "$bind_mount_dir:/app/data" \
             activation-manager:local
@@ -98,8 +99,7 @@ jobs:
             health_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' activation-manager-bind)"
             echo "attempt=${attempt} bind_mount_health=${health_status}"
 
-            if [ "$health_status" = "healthy" ]; then
-              curl -fI http://127.0.0.1:3301/
+            if [ "$health_status" = "healthy" ] && curl -fsS http://127.0.0.1:3301/ >/dev/null; then
               exit 0
             fi
 
