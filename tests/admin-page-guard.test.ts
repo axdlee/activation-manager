@@ -5,6 +5,7 @@ import {
   buildAdminAuthValidationUrl,
   resolveAdminPageAuthMode,
   resolveAdminPageGuardAction,
+  resolveAdminAuthValidationOrigin,
 } from '../src/lib/admin-page-guard'
 
 test('resolveAdminPageAuthMode 会区分登录页与受保护后台页', () => {
@@ -22,6 +23,39 @@ test('buildAdminAuthValidationUrl 会为不同页面模式生成统一校验地�
   assert.equal(
     buildAdminAuthValidationUrl('https://example.com/admin/login', 'public').toString(),
     'https://example.com/api/admin/auth/validate?mode=public',
+  )
+})
+
+test('resolveAdminAuthValidationOrigin 会优先使用显式内部地址，其次回退到运行端口', () => {
+  assert.equal(
+    resolveAdminAuthValidationOrigin('https://example.com/admin/login', {
+      internalOrigin: 'http://127.0.0.1:3300',
+      runtimePort: '3000',
+    }),
+    'http://127.0.0.1:3300',
+  )
+
+  assert.equal(
+    resolveAdminAuthValidationOrigin('https://example.com/admin/login', {
+      runtimePort: '3000',
+    }),
+    'http://127.0.0.1:3000',
+  )
+
+  assert.equal(
+    resolveAdminAuthValidationOrigin('https://example.com/admin/login'),
+    'https://example.com',
+  )
+})
+
+test('buildAdminAuthValidationUrl 支持基于内部校验地址生成 validate 路径', () => {
+  assert.equal(
+    buildAdminAuthValidationUrl(
+      'https://example.com/admin/dashboard',
+      'protected',
+      'http://127.0.0.1:3000',
+    ).toString(),
+    'http://127.0.0.1:3000/api/admin/auth/validate?mode=protected',
   )
 })
 

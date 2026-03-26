@@ -4,6 +4,7 @@ import {
   buildAdminAuthValidationUrl,
   resolveAdminPageAuthMode,
   resolveAdminPageGuardAction,
+  resolveAdminAuthValidationOrigin,
 } from './lib/admin-page-guard'
 
 function normalizeAdminAuthStatus(status: number): 401 | 403 | 500 {
@@ -15,7 +16,11 @@ function normalizeAdminAuthStatus(status: number): 401 | 403 | 500 {
 }
 
 async function validateAdminPageRequest(request: NextRequest, mode: 'public' | 'protected') {
-  const validationUrl = buildAdminAuthValidationUrl(request.url, mode)
+  const validationOrigin = resolveAdminAuthValidationOrigin(request.url, {
+    internalOrigin: process.env.INTERNAL_ADMIN_AUTH_ORIGIN,
+    runtimePort: process.env.PORT,
+  })
+  const validationUrl = buildAdminAuthValidationUrl(request.url, mode, validationOrigin)
   const forwardedFor =
     request.ip ||
     request.headers.get('x-forwarded-for') ||
@@ -46,6 +51,7 @@ async function validateAdminPageRequest(request: NextRequest, mode: 'public' | '
 
     return result
   } catch (error) {
+    console.error('后台访问校验失败:', error)
     return {
       success: false,
       code: 'auth_failed',

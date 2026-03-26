@@ -16,8 +16,11 @@ function createJsonResponse(body: Record<string, unknown>, status: number) {
 
 test('middleware 在受保护后台页收到 401 时会重定向到登录页', async () => {
   const originalFetch = global.fetch
-  global.fetch = async () =>
-    createJsonResponse(
+  const originalPort = process.env.PORT
+  let capturedUrl = ''
+  global.fetch = async (input) => {
+    capturedUrl = String(input)
+    return createJsonResponse(
       {
         success: false,
         code: 'token_invalid',
@@ -26,19 +29,31 @@ test('middleware 在受保护后台页收到 401 时会重定向到登录页', a
       },
       401,
     )
+  }
+  process.env.PORT = '3000'
 
   try {
     const response = await middleware(new NextRequest('https://example.com/admin/dashboard'))
 
     assert.equal(response.status, 307)
     assert.equal(response.headers.get('location'), 'https://example.com/admin/login')
+    assert.equal(
+      capturedUrl,
+      'http://127.0.0.1:3000/api/admin/auth/validate?mode=protected',
+    )
   } finally {
     global.fetch = originalFetch
+    if (originalPort === undefined) {
+      delete process.env.PORT
+    } else {
+      process.env.PORT = originalPort
+    }
   }
 })
 
 test('middleware 在登录页收到 403 时会直接返回错误响应', async () => {
   const originalFetch = global.fetch
+  const originalPort = process.env.PORT
   global.fetch = async () =>
     createJsonResponse(
       {
@@ -49,6 +64,7 @@ test('middleware 在登录页收到 403 时会直接返回错误响应', async (
       },
       403,
     )
+  process.env.PORT = '3000'
 
   try {
     const response = await middleware(new NextRequest('https://example.com/admin/login'))
@@ -58,5 +74,10 @@ test('middleware 在登录页收到 403 时会直接返回错误响应', async (
     assert.equal(await response.text(), '访问被拒绝: IP地址不在白名单中')
   } finally {
     global.fetch = originalFetch
+    if (originalPort === undefined) {
+      delete process.env.PORT
+    } else {
+      process.env.PORT = originalPort
+    }
   }
 })

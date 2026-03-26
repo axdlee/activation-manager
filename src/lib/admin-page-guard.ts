@@ -22,8 +22,36 @@ export function resolveAdminPageAuthMode(pathname: string): AdminAuthMode | null
   return pathname === '/admin/login' ? 'public' : 'protected'
 }
 
-export function buildAdminAuthValidationUrl(requestUrl: string, mode: AdminAuthMode) {
-  const url = new URL('/api/admin/auth/validate', requestUrl)
+export function resolveAdminAuthValidationOrigin(
+  requestUrl: string,
+  options: {
+    internalOrigin?: string | null
+    runtimePort?: string | number | null
+  } = {},
+) {
+  const normalizedInternalOrigin = options.internalOrigin?.trim()
+  if (normalizedInternalOrigin) {
+    return normalizedInternalOrigin
+  }
+
+  const normalizedRuntimePort =
+    options.runtimePort === undefined || options.runtimePort === null
+      ? ''
+      : String(options.runtimePort).trim()
+
+  if (normalizedRuntimePort) {
+    return `http://127.0.0.1:${normalizedRuntimePort}`
+  }
+
+  return new URL(requestUrl).origin
+}
+
+export function buildAdminAuthValidationUrl(
+  requestUrl: string,
+  mode: AdminAuthMode,
+  validationOrigin: string = requestUrl,
+) {
+  const url = new URL('/api/admin/auth/validate', validationOrigin)
   url.searchParams.set('mode', mode)
   return url
 }
