@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-bookworm-slim AS base
+ARG NODE_VERSION=22
+
+FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 
@@ -16,7 +18,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run db:generate && npm run build
 
-FROM node:20-bookworm-slim AS runner
+FROM node:${NODE_VERSION}-bookworm-slim AS runner
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000

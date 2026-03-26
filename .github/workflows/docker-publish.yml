@@ -18,12 +18,12 @@ jobs:
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
@@ -39,14 +39,14 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Prepare Docker smoke env
         run: |
           cat > .env.ci <<'EOF'
           JWT_SECRET=ci-docker-smoke-secret-change-me
           PORT=3300
-          ALLOWED_IPS=127.0.0.1,::1,172.16.0.0/12
+          ALLOWED_IPS=127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
           EOF
 
       - name: Build and start application via Docker Compose
@@ -103,7 +103,7 @@ jobs:
           test -n "$DOCKERHUB_TOKEN" || { echo "缺少 DOCKERHUB_TOKEN secret"; exit 1; }
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Resolve image name
         id: image

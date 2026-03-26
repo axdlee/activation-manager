@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Next.js-14-111827?logo=nextdotjs" alt="Next.js 14" />
   <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma" alt="Prisma ORM" />
   <img src="https://img.shields.io/badge/SQLite-Local%20DB-0F172A?logo=sqlite" alt="SQLite" />
-  <img src="https://img.shields.io/badge/Node.js-%3E%3D18-15803D?logo=nodedotjs" alt="Node.js >= 18" />
+  <img src="https://img.shields.io/badge/Node.js-%3E%3D22-15803D?logo=nodedotjs" alt="Node.js >= 22" />
   <img src="https://img.shields.io/badge/API-activate%20%7C%20status%20%7C%20consume-0369A1" alt="License API" />
 </p>
 
@@ -156,14 +156,19 @@
 ## 3 分钟快速开始
 
 ### 环境要求
-- Node.js `>= 18`
+- Node.js `>= 22`
 - npm
+
+> 推荐直接使用仓库根目录的 `.nvmrc` 对齐本地、CI 与 Docker 的 Node 主版本；当前完整 `quality:gate` 依赖 Node 22 的原生测试覆盖率阈值参数。
 
 ### 1）安装依赖
 
 ```bash
+nvm use
 npm install
 ```
+
+如果你本地没有 `nvm`，只要保证 `node -v` 至少为 `v22.x` 即可。
 
 ### 2）启动开发环境
 
@@ -260,6 +265,8 @@ npm run start
 
 其中 `.env.docker.example` 里除了 `JWT_SECRET`，还提供了 `ALLOWED_IPS` 示例配置。
 
+> 注意：`.env.docker.example` 更偏向**本地联调友好**，因此默认放行了常见私网段；正式部署前请务必按真实来源地址收紧。
+
 ### 方式 A：直接 `docker run`（推荐）
 
 #### 1）准备环境变量
@@ -272,7 +279,7 @@ cp .env.docker.example .env
 
 另外建议同时检查：
 
-- `ALLOWED_IPS`：Docker 本地部署默认带有 `172.16.0.0/12`，用于放行宿主机经 Docker 网桥访问后台的场景
+- `ALLOWED_IPS`：示例配置默认带有 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16` 等常见本地私网段，用于放行宿主机经 Docker / Colima / Lima / 虚拟网桥访问后台的场景
 - 如果你部署在正式服务器，请按实际来源 IP 收紧白名单，不要长期保留过宽的私网段规则
 
 #### 2）构建镜像
@@ -373,6 +380,7 @@ docker compose --env-file .env down
 - **SQLite 数据可持久化**
 - **容器重启不会重复插入种子数据**
 - **生产环境如果没提供 `JWT_SECRET`，会直接失败并提示**
+- **Docker 运行时与 CI / 本地开发统一使用 Node 22 主版本**
 
 ### 数据持久化说明
 
@@ -627,6 +635,7 @@ await client.consume({
 - 页面层与 API 层统一后台鉴权 / 白名单判断
 
 ### 工程侧
+- 通过 `.nvmrc` 统一本地、CI 与 Docker 的 Node 主版本
 - `npm run dev` 与 `npm run build` / `npm start` 使用隔离的构建产物目录
 - 开发环境自动初始化，减少首次运行成本
 - 质量门禁：`lint + coverage + build`

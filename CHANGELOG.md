@@ -1,6 +1,130 @@
 # 更新日志
 
-## [1.2.0] - 2025-01-06
+## [Unreleased] - 2026-03-26
+
+> 本节根据 `2026-03-24 ~ 2026-03-26` 的真实 `git log` 归档整理，覆盖提交范围：`64f1081..9f243cc`，以及当前工作区尚未提交的 CI / Node 版本修复。
+
+### 2026-03-24：核心能力基线落地 ✨
+- 落地多项目激活码管理系统核心能力：
+  - 项目管理（创建、编辑、启停、删除空项目）
+  - 时间型 `TIME` / 次数型 `COUNT` 双授权模型
+  - 正式接口 `activate / status / consume`
+  - 兼容接口 `/api/verify`
+- 新增公开 API 文档页与 JS/TS SDK：
+  - `src/app/docs/api/page.tsx`
+  - `src/lib/license-sdk.ts`
+  - `apidocs.md`
+- 新增后台统计与排查能力：
+  - 项目统计
+  - 消费日志
+  - 消费趋势
+  - CSV 导出
+- 新增开发环境自动初始化与联调脚本：
+  - `scripts/bootstrap-dev.ts`
+  - `scripts/smoke-license-api.sh`
+- 为核心业务链路补齐大量测试覆盖，包括：
+  - License API
+  - SDK
+  - 项目统计
+  - 消费日志与趋势
+  - 公共页面与后台页面内容
+
+### 2026-03-24：系统配置安全增强 🔐
+- 实现敏感配置脱敏展示与安全更新机制
+- 新增系统配置规则、更新标准化与后台管理测试
+- 强化后台对 `jwtSecret` 等敏感项的处理，避免明文回显
+
+### 2026-03-25：认证、授权与后端架构重构 🧱
+- 重构后台认证链路：
+  - 新增 `/api/admin/auth/validate`
+  - 中间件与后台页面鉴权解耦
+  - 登录限流与共享限流 store
+  - JWT 会话时长与 cookie 行为统一
+- 重构授权主链路，拆分领域服务：
+  - `license-activation-flow-service`
+  - `license-consume-flow-service`
+  - `license-consumption-idempotency-service`
+  - `license-binding-*`
+  - `license-transaction-*`
+  - `license-analytics-service`
+  - `license-project-service`
+- 引入授权事务前置准备服务，进一步降低 `license-service.ts` 职责耦合
+- 增加并发、幂等、绑定冲突、聚合统计等专项测试
+- 新增 GitHub Actions 质量门禁工作流 `quality-gate.yml`
+
+### 2026-03-25：后台工作区与 UI 组件体系完善 🎨
+- 将后台大页面进一步拆分为可复用工作区组件：
+  - `activation-code-workspace`
+  - `consumption-workspace`
+  - `project-workspace`
+  - `system-config-workspace`
+  - `change-password-workspace`
+  - `api-docs-workspace`
+- 新增一批统一视觉与交互组件：
+  - `WorkspaceHeroPanel`
+  - `WorkspaceTabNav`
+  - `DashboardSummaryCard`
+  - `DashboardPaginationBar`
+  - `DashboardStatusBadge`
+  - `DashboardDataTable`
+  - `DashboardActionPanel`
+  - `DashboardCodePanel`
+  - 以及多种表单/空态/加载态基础组件
+- 公共页面与文档工作区样式更新，配色与视觉层次更统一
+
+### 2026-03-26：Docker、README 与交付链路完善 🚀
+- 新增 Docker 运行与部署支持：
+  - `Dockerfile`
+  - `docker-compose.yml`
+  - `.env.docker.example`
+  - `scripts/bootstrap-runtime.ts`
+  - `scripts/docker-entrypoint.sh`
+- 新增 DockerHub 自动发布工作流：
+  - `verify -> smoke -> publish`
+  - 先过质量门禁，再做容器健康检查与 smoke 联调，最后推送多架构镜像
+- 支持 IPv4 CIDR 白名单规则
+- README 完整重构：
+  - Docker 部署说明
+  - 自动发布说明
+  - 接入流程说明
+  - Mermaid 系统图 / 客户端流程图
+  - 最新截图与功能就近配图
+- 新增并更新 `Readmeimg/validation-20260325`、`validation-20260326` 截图资产，随后清理旧截图与未使用原图，降低仓库体积
+
+### 工程修复 🔧
+- **修复 GitHub Actions 持续失败问题**：将 `quality-gate.yml` 与 `docker-publish.yml` 的 Node 版本从固定 `20` 升级为跟随仓库 `.nvmrc`
+- **统一 Node 主版本**：
+  - 新增 `.nvmrc`
+  - `package.json` 增加 `engines.node >= 22`
+  - Dockerfile 同步切换到 Node 22
+  - GitHub Actions 官方基础 Action 升级到 `actions/checkout@v5`、`actions/setup-node@v5`
+- 修复原因：当前 `test:coverage` 使用的原生覆盖率阈值参数仅 Node 22+ 支持，Node 20 在 CI 中会直接以 `exit code 9` 失败
+- **修复 Docker 本地 smoke 白名单问题**：示例环境变量与 CI smoke 环境补齐常见私网段，避免 Docker / Colima / Lima 场景下后台接口被白名单误拦
+
+### 部署与交付能力 🚀
+- 新增并完善 Docker 部署链路：
+  - `Dockerfile`
+  - `docker-compose.yml`
+  - `scripts/docker-entrypoint.sh`
+  - `scripts/bootstrap-runtime.ts`
+- GitHub Actions 新增 Docker 发布流水线：
+  - `verify -> smoke -> publish`
+  - 先执行 `quality:gate`
+  - 再做容器健康检查与 smoke 联调
+  - 最后发布 DockerHub 多架构镜像
+
+### 文档与展示优化 📚
+- README 重构为按功能模块配图展示
+- 将系统体系图与客户端验证流程图改为 Mermaid
+- 更新首页、登录页、公开 API 文档页与后台工作区截图
+- 清理历史截图目录与未使用原图，降低仓库体积并减少重复资源
+- 补充 Docker 部署、DockerHub 自动发布、Node 版本要求与工程保障说明
+
+---
+
+## [1.2.0] - 2025-06-06
+
+> 根据 `git log`，`1.2.0版本`、`修复编译报错`、`更新测试文件`、`更新文档` 均发生在 `2025-06-06`，因此该版本的发布与同日维护记录统一归档在此。
 
 ### 新增功能 ✨
 - **套餐类型系统**：支持预设套餐类型（周卡、月卡、季卡、半年卡、年卡）
@@ -25,6 +149,11 @@
 - 生成激活码页面重新设计，支持套餐类型选择
 - 激活码管理页面新增套餐类型列
 - 筛选区域优化为2x2布局，提升操作体验
+
+### 同日维护补充 🛠
+- 修复编译报错
+- 更新测试文件
+- 更新项目文档
 
 ---
 
@@ -75,4 +204,4 @@
 - 管理员后台系统
 - IP白名单访问控制
 - JWT会话管理
-- 数据统计和导出功能 
+- 数据统计和导出功能

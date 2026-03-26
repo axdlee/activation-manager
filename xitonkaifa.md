@@ -25,7 +25,7 @@
 - 认证：JWT（`jose`）
 - 密码加密：`bcryptjs`
 - UI：React + Tailwind CSS
-- 运行环境：Node.js >= 18
+- 运行环境：Node.js >= 22（仓库通过 `.nvmrc` 统一本地、CI 与 Docker 主版本）
 
 ## 当前架构重点
 
@@ -158,6 +158,25 @@ predev -> bootstrap:dev
 - `npm run dev` 使用默认 `.next`
 - `npm run build` / `npm start` 使用 `.next-build`
 - 目的是避免本地开发服务运行时，再执行生产构建导致 `.next` 互相覆盖
+
+### 6. CI / Docker Node 版本对齐
+
+- 仓库根目录提供 `.nvmrc`
+- `package.json` 通过 `engines.node` 声明 `>= 22`
+- GitHub Actions 的 `quality-gate.yml` 与 `docker-publish.yml` 统一通过 `.nvmrc` 安装 Node
+- Dockerfile 同步切到 Node 22，避免“本地通过 / CI 失败”或“CI 通过 / 容器行为不同”的版本漂移
+- 当前 `npm run test:coverage` 使用了 Node 22 的原生覆盖率阈值参数，因此如果降回 Node 20，会在 CI 中直接以 `exit code 9` 失败
+
+### 7. Docker 本地白名单约定
+
+- `.env.docker.example` 默认放行：
+  - `127.0.0.1`
+  - `::1`
+  - `10.0.0.0/8`
+  - `172.16.0.0/12`
+  - `192.168.0.0/16`
+- 目的：兼容 Docker Desktop、Colima、Lima 及常见虚拟网桥下，宿主机通过私网地址访问容器后台的场景
+- 这组配置是**本地联调默认值**，正式部署时必须按真实来源 IP 收紧
 
 ## 目录结构
 

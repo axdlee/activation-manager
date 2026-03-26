@@ -2,6 +2,9 @@
   "name": "activation-code-system",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "predev": "npm run bootstrap:dev",
     "dev": "next dev",
