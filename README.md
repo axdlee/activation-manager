@@ -252,9 +252,32 @@ npm run start
 
 ## Docker 部署
 
+这个项目 **已经提供可直接拉取的公共 Docker Hub 镜像**，并且镜像发布链路已经过：
+
+- GitHub Actions 质量门禁
+- Docker Compose smoke 联调
+- 多架构镜像构建与推送
+
+当前公共镜像仓库：
+
+- Docker Hub：`xdlee/activation-manager`
+- 仓库地址：<https://hub.docker.com/r/xdlee/activation-manager>
+
+推荐标签：
+
+- `latest`：默认分支最新稳定镜像
+- `main`：主分支镜像
+- `sha-<commit>`：按提交固定版本，适合追求可追溯部署
+
+默认发布架构：
+
+- `linux/amd64`
+- `linux/arm64`
+
 这个项目 **直接使用 Docker 就可以运行，不依赖 Docker Compose**。
 
-- 如果你只是单机部署一套服务：**推荐直接 `docker run`**
+- 如果你只是单机部署一套服务：**推荐直接拉取 Docker Hub 镜像后 `docker run`**
+- 如果你需要修改源码：再使用本地 `docker build`
 - 如果你想顺手管理 `.env`、日志、重建和停止流程：再使用 `docker compose`
 
 仓库内已经补齐：
@@ -269,7 +292,106 @@ npm run start
 
 > 注意：`.env.docker.example` 更偏向**本地联调友好**，因此默认放行了常见私网段；正式部署前请务必按真实来源地址收紧。
 
-### 方式 A：直接 `docker run`（推荐）
+### 方式 A：直接拉取 Docker Hub 镜像运行（推荐）
+
+#### 1）准备环境变量文件
+
+```bash
+cat > .env <<'EOF'
+JWT_SECRET=change-this-to-a-long-random-secret
+PORT=3000
+ALLOWED_IPS=127.0.0.1,::1
+EOF
+```
+
+至少要把 `JWT_SECRET` 改成你自己的高强度随机字符串。
+
+另外建议同时检查：
+
+- `ALLOWED_IPS`：上面示例只放行本机回环地址，适合最小暴露面部署
+- 如果你是本地 Docker / Colima / Lima 联调，也可以扩展成：
+
+  ```env
+  ALLOWED_IPS=127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+  ```
+
+- 如果你部署在正式服务器，请按实际来源 IP 收紧白名单，不要长期保留过宽的私网段规则
+
+#### 2）拉取镜像
+
+```bash
+docker pull xdlee/activation-manager:latest
+```
+
+#### 3）创建持久化卷
+
+```bash
+docker volume create activation_manager_data
+```
+
+#### 4）启动容器
+
+```bash
+docker run -d \
+  --name activation-manager \
+  --env-file .env \
+  -p 3000:3000 \
+  -v activation_manager_data:/app/data \
+  --restart unless-stopped \
+  xdlee/activation-manager:latest
+```
+
+> 如果你希望部署结果与某一次提交严格对应，可以把 `latest` 改成 `main` 或 `sha-<commit>`。
+
+> 我已经实测过：**镜像发布链路、容器健康检查和 smoke 联调均已通过**。
+
+#### 5）查看状态、日志与健康检查
+
+```bash
+docker ps
+docker logs -f activation-manager
+docker inspect --format '{{.State.Health.Status}}' activation-manager
+```
+
+#### 6）访问系统
+
+- 首页：`http://localhost:3000`
+- 管理后台登录：`http://localhost:3000/admin/login`
+- 公开 API 文档：`http://localhost:3000/docs/api`
+
+默认管理员仍为：
+
+- 用户名：`admin`
+- 密码：`123456`
+
+> 容器首次启动后会自动补齐默认管理员、默认项目与默认系统配置；请首登后立即修改密码。
+
+#### 7）可选：基于仓库源码再跑一次真实 smoke 联调
+
+```bash
+BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
+```
+
+如果你本地已经 clone 了本仓库，并且输出 `✅ 联调通过`，说明以下链路都已正常：
+
+- 容器启动
+- Prisma 初始化
+- 默认管理员和系统配置补齐
+- 后台登录
+- 项目创建
+- 次数型激活码生成 / 绑定 / 幂等扣次
+- 消费日志、统计、CSV 导出
+
+#### 8）停止与删除容器
+
+```bash
+docker stop activation-manager
+docker rm activation-manager
+```
+
+### 方式 B：从源码构建镜像（可选）
+
+如果你准备二次开发，或者想基于本地源码自行构建镜像，再使用这一方式。
 
 #### 1）准备环境变量
 
@@ -278,11 +400,6 @@ cp .env.docker.example .env
 ```
 
 至少要把 `.env` 里的 `JWT_SECRET` 改成你自己的高强度随机字符串。
-
-另外建议同时检查：
-
-- `ALLOWED_IPS`：示例配置默认带有 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16` 等常见本地私网段，用于放行宿主机经 Docker / Colima / Lima / 虚拟网桥访问后台的场景
-- 如果你部署在正式服务器，请按实际来源 IP 收紧白名单，不要长期保留过宽的私网段规则
 
 #### 2）构建镜像
 
@@ -308,55 +425,9 @@ docker run -d \
   activation-manager:local
 ```
 
-> 我已经实测过：**直接 `docker run` 后容器可正常变为 `healthy`，并且完整 smoke 联调通过。**
+### 方式 C：Docker Compose（可选）
 
-#### 5）查看状态、日志与健康检查
-
-```bash
-docker ps
-docker logs -f activation-manager
-docker inspect --format '{{.State.Health.Status}}' activation-manager
-```
-
-#### 6）访问系统
-
-- 首页：`http://localhost:3000`
-- 管理后台登录：`http://localhost:3000/admin/login`
-- 公开 API 文档：`http://localhost:3000/docs/api`
-
-默认管理员仍为：
-
-- 用户名：`admin`
-- 密码：`123456`
-
-> 容器首次启动后会自动补齐默认管理员、默认项目与默认系统配置；请首登后立即修改密码。
-
-#### 7）跑一次真实 smoke 联调
-
-```bash
-BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
-```
-
-如果输出 `✅ 联调通过`，说明以下链路都已正常：
-
-- 容器启动
-- Prisma 初始化
-- 默认管理员和系统配置补齐
-- 后台登录
-- 项目创建
-- 次数型激活码生成 / 绑定 / 幂等扣次
-- 消费日志、统计、CSV 导出
-
-#### 8）停止与删除容器
-
-```bash
-docker stop activation-manager
-docker rm activation-manager
-```
-
-### 方式 B：Docker Compose（可选）
-
-如果你更习惯用 compose 管理环境变量、日志和重建流程，可以使用：
+如果你已经 clone 了仓库，并且更习惯用 compose 管理环境变量、日志和重建流程，可以使用：
 
 ```bash
 docker compose --env-file .env up -d --build
@@ -401,7 +472,15 @@ docker compose --env-file .env down
 
 - `.github/workflows/docker-publish.yml`
 
-它会在 **每次 push** 和 **手动触发** 时自动执行：
+当前公共镜像已经发布到：
+
+- `xdlee/activation-manager:latest`
+- `xdlee/activation-manager:main`
+- `xdlee/activation-manager:sha-<commit>`
+
+对于普通使用者来说，**现在可以直接 `docker pull` 后部署，不必先 clone 仓库构建镜像**。
+
+该工作流会在 **每次 push** 和 **手动触发** 时自动执行：
 
 1. 先跑一遍 `npm run quality:gate`
 2. 再用 `docker compose` 真正拉起容器并等待 `healthy`
@@ -410,7 +489,7 @@ docker compose --env-file .env down
 
 > 这里在 CI 里使用 `docker compose`，只是为了把“启动容器、等待健康检查、执行 smoke”收口成一个稳定的流水线步骤；**项目运行本身并不依赖 compose**。
 
-### 你需要配置的 GitHub Secrets
+### 如果你要复用这套自动发布，需要配置的 GitHub Secrets
 
 在 GitHub 仓库 `Settings -> Secrets and variables -> Actions` 中新增：
 
@@ -443,7 +522,7 @@ docker compose --env-file .env down
 
 这样无论你的服务器是常见的 x86_64 云主机，还是 ARM 设备 / ARM 服务器，都可以直接拉取同一个镜像标签。
 
-### 推荐的远端发布前自检
+### 维护者推荐的远端发布前自检
 
 在你首次 push 触发自动发布前，建议本地先执行：
 
@@ -462,17 +541,16 @@ docker compose --env-file .env.docker.example down -v
 BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
 ```
 
-### 建议的 DockerHub 仓库命名
+### 当前实际发布地址
 
-例如你的 DockerHub 用户名是 `yourname`，仓库名建议配置为：
+当前这份仓库的实际公开镜像地址就是：
 
-- `activation-manager`
+- `xdlee/activation-manager:latest`
+- `xdlee/activation-manager:main`
 
-那么最终镜像就会发布到：
+如果你要固定到某次提交，也可以使用：
 
-- `yourname/activation-manager:latest`
-- `yourname/activation-manager:main`
-- `yourname/activation-manager:sha-xxxxxxx`
+- `xdlee/activation-manager:sha-<commit>`
 
 ---
 
