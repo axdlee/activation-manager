@@ -158,7 +158,7 @@
 ### 环境要求
 - Node.js `>= 22`
 - npm
-- `sqlite3` 命令行工具（仅本地 Node 模式的初始化 / 测试需要；如果直接用 Docker 运行，可不在宿主机安装）
+- `sqlite3` 与 `openssl` 命令行工具（仅本地 Node 模式的初始化 / 测试需要；如果直接用 Docker 运行，可不在宿主机安装）
 
 > 推荐直接使用仓库根目录的 `.nvmrc` 对齐本地、CI 与 Docker 的 Node 主版本；当前完整 `quality:gate` 依赖 Node 22 的原生测试覆盖率阈值参数。
 
@@ -170,7 +170,7 @@ npm install
 ```
 
 如果你本地没有 `nvm`，只要保证 `node -v` 至少为 `v22.x` 即可。
-如果你是 Linux 开发机，且后续要执行 `bootstrap:dev` / `quality:gate` / 测试，请先安装 `sqlite3`。
+如果你是 Linux 开发机，且后续要执行 `bootstrap:dev` / `quality:gate` / 测试，请先安装 `sqlite3` 与 `openssl`。
 
 ### 2）启动开发环境
 

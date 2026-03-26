@@ -153,8 +153,8 @@ predev -> bootstrap:dev
 - 默认管理员
 - 默认系统配置
 
-> 说明：当前本地 Node 模式的数据库初始化与部分测试会调用系统 `sqlite3` 命令。
-> macOS 一般默认自带；Linux 开发机如果提示 `spawnSync sqlite3 ENOENT`，请先安装 `sqlite3`，或者直接改用 Docker 运行。
+> 说明：当前本地 Node 模式的数据库初始化与部分测试会调用系统 `sqlite3`，Prisma 在 Linux 环境下还依赖系统 `openssl`。
+> macOS 一般默认具备相关依赖；Linux 开发机如果提示 `spawnSync sqlite3 ENOENT` 或 `Prisma failed to detect the libssl/openssl version`，请先安装 `sqlite3` 与 `openssl`，或者直接改用 Docker 运行。
 
 ### 5. 构建产物隔离
 

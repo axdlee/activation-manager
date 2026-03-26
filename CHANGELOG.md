@@ -100,6 +100,7 @@
   - GitHub Actions 官方基础 Action 升级到 `actions/checkout@v5`、`actions/setup-node@v5`
 - 修复原因：当前 `test:coverage` 使用的原生覆盖率阈值参数仅 Node 22+ 支持，Node 20 在 CI 中会直接以 `exit code 9` 失败
 - **修复 GitHub Actions 在 Ubuntu Runner 上缺少 `sqlite3` 导致的质量门禁失败**：为 `quality-gate.yml` 与 `docker-publish.yml` 的 verify 阶段显式安装 `sqlite3`
+- **补齐 GitHub Actions 的 `openssl` 依赖**：修复 Prisma 在 Linux Runner 中无法正确解析 OpenSSL 版本、回退到 `openssl-1.1.x` 并导致测试失败的问题
 - **修复 GitHub README 首个 Mermaid 图在仓库页渲染失败**：去除不兼容的节点写法与 HTML 标签，改为 GitHub Mermaid 可稳定解析的文本节点
 - **修复 Docker 本地 smoke 白名单问题**：示例环境变量与 CI smoke 环境补齐常见私网段，避免 Docker / Colima / Lima 场景下后台接口被白名单误拦
 
