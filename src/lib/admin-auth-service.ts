@@ -57,6 +57,11 @@ function normalizeAllowedIPs(value: unknown) {
   return []
 }
 
+function resolveAllowedIPsEnvOverride(allowedIPsEnv: string | undefined = process.env.ALLOWED_IPS) {
+  const normalizedAllowedIPs = normalizeAllowedIPs(allowedIPsEnv)
+  return normalizedAllowedIPs.length > 0 ? normalizedAllowedIPs : null
+}
+
 export function extractClientIp(request: RequestLike) {
   return (
     request.ip ||
@@ -76,6 +81,18 @@ function isIpAllowed(clientIp: string, allowedIPs: string[], nodeEnv: string) {
 
     if (!normalizedRule) {
       return false
+    }
+
+    if (normalizedRule === '*') {
+      return true
+    }
+
+    if (normalizedRule === '0.0.0.0') {
+      return isIP(clientIp) === 4
+    }
+
+    if (normalizedRule === '::') {
+      return isIP(clientIp) === 6
     }
 
     if (normalizedRule === clientIp) {
@@ -138,7 +155,8 @@ export async function authorizeAdminRequest(
 
   try {
     const clientIp = extractClientIp(request)
-    const allowedIPs = normalizeAllowedIPs(await dependencies.getAllowedIPs())
+    const allowedIPs =
+      resolveAllowedIPsEnvOverride() ?? normalizeAllowedIPs(await dependencies.getAllowedIPs())
 
     if (!isIpAllowed(clientIp, allowedIPs, nodeEnv)) {
       return buildAuthFailure('ip_not_allowed', '访问被拒绝: IP地址不在白名单中', 403)

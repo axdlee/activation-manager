@@ -125,6 +125,76 @@ test('authorizeAdminRequest 在生产环境下支持 IPv4 CIDR 白名单规则',
   })
 })
 
+test('authorizeAdminRequest 会优先使用 ALLOWED_IPS 环境变量覆盖数据库白名单配置', async () => {
+  const originalAllowedIPs = process.env.ALLOWED_IPS
+  process.env.ALLOWED_IPS = '0.0.0.0/0'
+
+  try {
+    const result = await authorizeAdminRequest(
+      createRequestLike({ ip: '203.0.113.10', token: 'valid-token' }),
+      { mode: 'protected', nodeEnv: 'production' },
+      {
+        getAllowedIPs: async () => ['127.0.0.1'],
+        verifyToken: async (token) => ({ sub: token, isAdmin: true }),
+      },
+    )
+
+    assert.deepEqual(result, {
+      success: true,
+      payload: { sub: 'valid-token', isAdmin: true },
+    })
+  } finally {
+    if (originalAllowedIPs === undefined) {
+      delete process.env.ALLOWED_IPS
+    } else {
+      process.env.ALLOWED_IPS = originalAllowedIPs
+    }
+  }
+})
+
+test('authorizeAdminRequest 支持通过 * 放行所有来源，便于反向代理场景排查', async () => {
+  const originalAllowedIPs = process.env.ALLOWED_IPS
+  process.env.ALLOWED_IPS = '*'
+
+  try {
+    const result = await authorizeAdminRequest(
+      createRequestLike({ ip: '2001:db8::10', token: 'valid-token' }),
+      { mode: 'protected', nodeEnv: 'production' },
+      {
+        getAllowedIPs: async () => ['127.0.0.1'],
+        verifyToken: async (token) => ({ sub: token, isAdmin: true }),
+      },
+    )
+
+    assert.deepEqual(result, {
+      success: true,
+      payload: { sub: 'valid-token', isAdmin: true },
+    })
+  } finally {
+    if (originalAllowedIPs === undefined) {
+      delete process.env.ALLOWED_IPS
+    } else {
+      process.env.ALLOWED_IPS = originalAllowedIPs
+    }
+  }
+})
+
+test('authorizeAdminRequest 支持将 0.0.0.0 视为放行全部 IPv4 地址的简写', async () => {
+  const result = await authorizeAdminRequest(
+    createRequestLike({ ip: '198.51.100.23', token: 'valid-token' }),
+    { mode: 'protected', nodeEnv: 'production' },
+    {
+      getAllowedIPs: async () => ['0.0.0.0'],
+      verifyToken: async (token) => ({ sub: token, isAdmin: true }),
+    },
+  )
+
+  assert.deepEqual(result, {
+    success: true,
+    payload: { sub: 'valid-token', isAdmin: true },
+  })
+})
+
 test('authorizeAdminRequest 遇到关键配置缺失时返回 500 配置错误', async () => {
   const result = await authorizeAdminRequest(
     createRequestLike({ ip: '127.0.0.1', token: 'valid-token' }),
