@@ -27,6 +27,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3
+
       - name: Install dependencies
         run: npm ci
 

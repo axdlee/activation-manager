@@ -158,6 +158,7 @@
 ### 环境要求
 - Node.js `>= 22`
 - npm
+- `sqlite3` 命令行工具（仅本地 Node 模式的初始化 / 测试需要；如果直接用 Docker 运行，可不在宿主机安装）
 
 > 推荐直接使用仓库根目录的 `.nvmrc` 对齐本地、CI 与 Docker 的 Node 主版本；当前完整 `quality:gate` 依赖 Node 22 的原生测试覆盖率阈值参数。
 
@@ -169,6 +170,7 @@ npm install
 ```
 
 如果你本地没有 `nvm`，只要保证 `node -v` 至少为 `v22.x` 即可。
+如果你是 Linux 开发机，且后续要执行 `bootstrap:dev` / `quality:gate` / 测试，请先安装 `sqlite3`。
 
 ### 2）启动开发环境
 
@@ -708,48 +710,48 @@ CI 工作流位置：
 
 ```mermaid
 flowchart TB
-    user[插件 / 客户端 / 接入方]
-    admin[管理员]
+    user["插件 / 客户端 / 接入方"]
+    admin["管理员"]
 
-    subgraph Pages[Next.js 页面层]
-        home[首页 /]
-        docs[公开 API 文档 /docs/api]
-        login[后台登录 /admin/login]
-        dashboard[后台工作区 /admin/dashboard]
+    subgraph Pages["Next.js 页面层"]
+        home["首页 /"]
+        docs["公开 API 文档 /docs/api"]
+        login["后台登录 /admin/login"]
+        dashboard["后台工作区 /admin/dashboard"]
     end
 
-    subgraph Middleware[后台访问控制]
-        mw[middleware.ts]
-        validate[/api/admin/auth/validate]
-        auth[admin-auth-service]
-        ip[IP 白名单]
-        jwt[JWT Cookie 会话]
+    subgraph Middleware["后台访问控制"]
+        mw["middleware.ts"]
+        validate["校验接口 /api/admin/auth/validate"]
+        auth["admin-auth-service"]
+        ip["IP 白名单"]
+        jwt["JWT Cookie 会话"]
     end
 
-    subgraph Api[业务 API]
-        activate[POST /api/license/activate]
-        status[POST /api/license/status]
-        consume[POST /api/license/consume]
-        verify[POST /api/verify]
-        adminApi[后台接口<br/>项目 / 发码 / 激活码 / 日志 / 配置]
+    subgraph Api["业务 API"]
+        activate["POST /api/license/activate"]
+        status["POST /api/license/status"]
+        consume["POST /api/license/consume"]
+        verify["POST /api/verify"]
+        adminApi["后台接口：项目、发码、激活码、日志、配置"]
     end
 
-    subgraph Service[领域服务]
-        licenseSvc[授权服务<br/>项目隔离 / TIME / COUNT / 设备绑定]
-        idem[requestId 幂等控制]
-        analytics[统计与日志服务]
-        configSvc[系统配置服务]
+    subgraph Service["领域服务"]
+        licenseSvc["授权服务：项目隔离、TIME、COUNT、设备绑定"]
+        idem["requestId 幂等控制"]
+        analytics["统计与日志服务"]
+        configSvc["系统配置服务"]
     end
 
-    subgraph Data[数据层]
-        prisma[Prisma Client]
-        sqlite[(SQLite / prisma/dev.db)]
+    subgraph Data["数据层"]
+        prisma["Prisma Client"]
+        sqlite[("SQLite / prisma/dev.db")]
     end
 
-    subgraph Runtime[容器 / 运行时]
-        entry[scripts/docker-entrypoint.sh]
-        bootstrap[npm run bootstrap:runtime]
-        start[next start]
+    subgraph Runtime["容器 / 运行时"]
+        entry["scripts/docker-entrypoint.sh"]
+        bootstrap["npm run bootstrap:runtime"]
+        start["next start"]
     end
 
     user --> home
