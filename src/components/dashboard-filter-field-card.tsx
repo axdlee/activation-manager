@@ -14,7 +14,7 @@ export function DashboardFilterFieldCard({
   description,
   children,
   htmlFor,
-  className = 'rounded-[24px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]',
+  className = 'rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-sm',
   bodyClassName = 'mt-4',
 }: DashboardFilterFieldCardProps) {
   return (

@@ -396,6 +396,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
             <>
               <DashboardDataTable
                 headers={['项目', '激活码', 'requestId', '机器ID', '授权类型', '剩余次数', '消费时间']}
+                tableClassName="w-full min-w-[980px] divide-y divide-gray-200"
                 bodyClassName="bg-white divide-y divide-gray-200"
               >
                 {logsView.logs.map((log) => (

@@ -19,7 +19,7 @@ test('dashboard workspace tabs 按各自工作流顺序暴露配置', () => {
       apiDocs: apiDocsWorkspaceTabs.map((tab) => tab.key),
     },
     {
-      project: ['manage', 'create'],
+      project: ['manage'],
       activationCode: ['results', 'filters'],
       consumption: ['logs', 'filters'],
       auditLogs: ['logs', 'filters'],

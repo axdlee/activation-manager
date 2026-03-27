@@ -6,6 +6,7 @@ import { ApiDocsAdminGroupCard } from '@/components/api-docs-admin-group-card'
 import { ApiDocsDebugCommandCard } from '@/components/api-docs-debug-command-card'
 import { DashboardCodePanel } from '@/components/dashboard-code-panel'
 import { DashboardSummaryCard } from '@/components/dashboard-summary-card'
+import { DashboardTableContainer } from '@/components/dashboard-table-container'
 import { buildApiDocsPageModel } from '@/lib/api-docs-ui'
 import {
   apiDocsWorkspaceTabs,
@@ -59,7 +60,7 @@ const methodBadgeClassNameMap = {
 } as const
 
 const tableContainerClassName =
-  'overflow-x-auto rounded-[24px] border border-slate-200 bg-white shadow-[0_18px_56px_-42px_rgba(15,23,42,0.16)]'
+  'border border-slate-200 bg-white shadow-[0_18px_56px_-42px_rgba(15,23,42,0.16)]'
 
 const inlineActionButtonClassName =
   'inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
@@ -346,14 +347,14 @@ export function ApiDocsWorkspace({
                   正式接口支持 camelCase / snake_case 双写法，便于不同语言和历史客户端接入。
                 </p>
               </div>
-              <div className={tableContainerClassName}>
-                <table className="min-w-full divide-y divide-slate-200">
+              <DashboardTableContainer className={tableContainerClassName}>
+                <table className="w-full min-w-max divide-y divide-slate-200">
                   <thead className="bg-slate-50/90">
                     <tr>
                       {['字段', '类型', '必填', '说明'].map((title) => (
                         <th
                           key={title}
-                          className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
                         >
                           {title}
                         </th>
@@ -377,7 +378,7 @@ export function ApiDocsWorkspace({
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </DashboardTableContainer>
             </div>
 
             <div className={`${panelClassName} p-6`}>
@@ -387,14 +388,14 @@ export function ApiDocsWorkspace({
                   正式接口会同时返回 camelCase 与 snake_case，便于浏览器插件、桌面端和脚本工具统一接入。
                 </p>
               </div>
-              <div className={tableContainerClassName}>
-                <table className="min-w-full divide-y divide-slate-200">
+              <DashboardTableContainer className={tableContainerClassName}>
+                <table className="w-full min-w-max divide-y divide-slate-200">
                   <thead className="bg-slate-50/90">
                     <tr>
                       {['字段', '类型', '返回时机', '说明'].map((title) => (
                         <th
                           key={title}
-                          className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
                         >
                           {title}
                         </th>
@@ -418,7 +419,7 @@ export function ApiDocsWorkspace({
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </DashboardTableContainer>
             </div>
           </div>
         </div>

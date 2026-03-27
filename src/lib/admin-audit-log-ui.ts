@@ -2,6 +2,7 @@ import {
   formatAutoRebindMaxCountLabel,
   formatCooldownMinutesLabel,
 } from '@/lib/license-rebind-policy'
+import { getInheritedRebindSettingLabel } from '@/lib/rebind-policy-ui'
 
 export type AdminAuditOperationTypeOption = {
   value: string
@@ -59,7 +60,43 @@ function formatAutoRebindPolicyLabel(value?: boolean | null) {
     return '禁止自助换绑'
   }
 
-  return '继承上级'
+  return '继承上级策略'
+}
+
+function getAuditInheritedRebindLabel(operationType: string) {
+  if (operationType === 'CODE_REBIND_SETTINGS_UPDATED') {
+    return getInheritedRebindSettingLabel('code')
+  }
+
+  if (operationType === 'PROJECT_REBIND_SETTINGS_UPDATED') {
+    return getInheritedRebindSettingLabel('project')
+  }
+
+  return '继承上级策略'
+}
+
+function formatAuditCooldownLabel(value: number | null | undefined, operationType: string) {
+  if (value === null || value === undefined) {
+    return getAuditInheritedRebindLabel(operationType)
+  }
+
+  return formatCooldownMinutesLabel(value)
+}
+
+function formatAuditMaxCountLabel(value: number | null | undefined, operationType: string) {
+  if (value === null || value === undefined) {
+    return getAuditInheritedRebindLabel(operationType)
+  }
+
+  return formatAutoRebindMaxCountLabel(value)
+}
+
+function formatAuditPolicyLabel(value: boolean | null | undefined, operationType: string) {
+  if (value === null || value === undefined) {
+    return getAuditInheritedRebindLabel(operationType)
+  }
+
+  return formatAutoRebindPolicyLabel(value)
 }
 
 export function getAdminOperationTypeLabel(operationType: string) {
@@ -83,10 +120,11 @@ export function buildAdminOperationDetailSummary(
     operationType === 'CODE_REBIND_SETTINGS_UPDATED' ||
     operationType === 'PROJECT_REBIND_SETTINGS_UPDATED'
   ) {
-    return `次数上限 ${formatAutoRebindMaxCountLabel(
+    return `次数上限 ${formatAuditMaxCountLabel(
       detail.autoRebindMaxCount ?? null,
-    )} / 冷却 ${formatCooldownMinutesLabel(detail.autoRebindCooldownMinutes ?? null)} / ${
-      formatAutoRebindPolicyLabel(detail.allowAutoRebind)
+      operationType,
+    )} / 冷却 ${formatAuditCooldownLabel(detail.autoRebindCooldownMinutes ?? null, operationType)} / 策略 ${
+      formatAuditPolicyLabel(detail.allowAutoRebind, operationType)
     }`
   }
 

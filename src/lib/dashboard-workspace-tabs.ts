@@ -16,12 +16,6 @@ export const projectWorkspaceTabs: Array<WorkspaceTab<ProjectWorkspaceTab>> = [
     shortLabel: '列表',
     description: '筛选、分页并维护已有项目',
   },
-  {
-    key: 'create',
-    label: '新建项目',
-    shortLabel: '新建',
-    description: '创建新的项目名称、标识与描述',
-  },
 ]
 
 export type ActivationCodeWorkspaceTab = 'results' | 'filters'
@@ -123,6 +117,12 @@ const systemConfigWorkspaceTabMetaMap: Record<
     shortLabel: '访问',
     description: '集中维护后台访问白名单与来源限制',
   },
+  rebind: {
+    key: 'rebind',
+    label: '换绑策略',
+    shortLabel: '换绑',
+    description: '维护系统级默认换绑规则，项目级与单码级可继续覆盖',
+  },
   security: {
     key: 'security',
     label: '认证与会话',
@@ -150,7 +150,7 @@ export function buildSystemConfigWorkspaceTabs(
 
   return [
     systemConfigWorkspaceOverviewTab,
-    ...(['access', 'security', 'branding', 'advanced'] as const)
+    ...(['access', 'rebind', 'security', 'branding', 'advanced'] as const)
       .filter((groupKey) => groupKeySet.has(groupKey))
       .map((groupKey) => systemConfigWorkspaceTabMetaMap[groupKey]),
   ]

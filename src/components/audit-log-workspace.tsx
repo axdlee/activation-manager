@@ -354,6 +354,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
             <>
               <DashboardDataTable
                 headers={['操作类型', '管理员', '项目', '激活码', '目标', '原因', '详情', '操作时间']}
+                tableClassName="w-full min-w-[1280px] divide-y divide-gray-200"
               >
                 {logsView.logs.map((log) => (
                   <tr key={log.id} className="transition hover:bg-slate-50/80">

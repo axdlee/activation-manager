@@ -21,6 +21,13 @@ import {
   type ActivationCodeWorkspaceTab,
 } from '@/lib/dashboard-workspace-tabs'
 import { type LicenseModeValue } from '@/lib/license-status'
+import {
+  getInheritedRebindPlaceholder,
+  getInheritedRebindPolicyOptionLabel,
+  getScopedRebindCooldownLabel,
+  getScopedRebindMaxCountLabel,
+  getScopedRebindPolicyLabel,
+} from '@/lib/rebind-policy-ui'
 
 type ActivationCodeStatusFilter = 'all' | 'unused' | 'used' | 'expired' | 'depleted'
 
@@ -251,11 +258,14 @@ function ActivationCodeManagementPanel({
         </div>
 
         <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-slate-900">单码覆盖配置</div>
+          <div className="text-sm font-semibold text-slate-900">单码级覆盖配置</div>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            这里是单码级覆盖层；若保持继承，会先回退项目级策略，项目未配置时再回退系统级策略。
+          </p>
           <div className="mt-4 space-y-4">
             <div>
               <label htmlFor="activation-code-override-policy" className="text-sm font-medium text-slate-700">
-                自助换绑策略
+                {getScopedRebindPolicyLabel('code')}
               </label>
               <select
                 id="activation-code-override-policy"
@@ -263,14 +273,14 @@ function ActivationCodeManagementPanel({
                 onChange={(event) => managementView.onOverridePolicyChange(event.target.value)}
                 className={`${compactInputClassName} mt-2`}
               >
-                <option value="inherit">继承项目 / 系统策略</option>
+                <option value="inherit">{getInheritedRebindPolicyOptionLabel('code')}</option>
                 <option value="enabled">允许自助换绑</option>
                 <option value="disabled">禁止自助换绑</option>
               </select>
             </div>
             <div>
               <label htmlFor="activation-code-override-cooldown" className="text-sm font-medium text-slate-700">
-                换绑冷却时间（分钟）
+                {getScopedRebindCooldownLabel('code')}
               </label>
               <input
                 id="activation-code-override-cooldown"
@@ -279,12 +289,12 @@ function ActivationCodeManagementPanel({
                 value={managementView.overrideCooldownMinutesValue}
                 onChange={(event) => managementView.onOverrideCooldownMinutesChange(event.target.value)}
                 className={`${compactInputClassName} mt-2`}
-                placeholder="留空则继承项目配置"
+                placeholder={getInheritedRebindPlaceholder('code', 'cooldown')}
               />
             </div>
             <div>
               <label htmlFor="activation-code-override-max-count" className="text-sm font-medium text-slate-700">
-                自助换绑次数上限
+                {getScopedRebindMaxCountLabel('code')}
               </label>
               <input
                 id="activation-code-override-max-count"
@@ -293,7 +303,7 @@ function ActivationCodeManagementPanel({
                 value={managementView.overrideMaxCountValue}
                 onChange={(event) => managementView.onOverrideMaxCountChange(event.target.value)}
                 className={`${compactInputClassName} mt-2`}
-                placeholder="0 表示不限制；留空则继承项目配置"
+                placeholder={getInheritedRebindPlaceholder('code', 'maxCount')}
               />
             </div>
             <button
@@ -302,7 +312,7 @@ function ActivationCodeManagementPanel({
               disabled={managementView.loading}
               className={`w-full ${primaryButtonClassName}`}
             >
-              保存换绑策略
+              保存单码级换绑配置
             </button>
           </div>
         </div>
@@ -312,7 +322,7 @@ function ActivationCodeManagementPanel({
         <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm xl:col-span-2">
           <div className="text-sm font-semibold text-slate-900">管理员操作说明（选填）</div>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            会随“保存换绑策略 / 强制解绑 / 强制换绑”一起写入审计日志，建议记录工单号、用户申请原因或排障背景。
+            会随“保存单码级换绑配置 / 强制解绑 / 强制换绑”一起写入审计日志，建议记录工单号、用户申请原因或排障背景。
           </p>
           <textarea
             value={managementView.adminActionReason}
@@ -688,6 +698,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                     '绑定设备 / machineId',
                     '操作',
                   ]}
+                  tableClassName="w-full min-w-[1460px] divide-y divide-gray-200"
                 >
                   {resultsView.codes.map((code) => {
                     const isSelected = resultsView.managementView?.selectedCodeId === code.id
@@ -781,7 +792,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                   ? '单码管理'
                   : `单码管理 · ${resultsView.managementView.selectedCodeTitle}`
               }
-              description="查看绑定设备、最终生效策略、单码覆盖配置与管理员操作审计。"
+              description="查看绑定设备、最终生效策略、单码级覆盖配置与管理员操作审计。"
               size="6xl"
             >
               <ActivationCodeManagementPanel

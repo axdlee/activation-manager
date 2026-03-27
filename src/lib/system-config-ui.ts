@@ -43,7 +43,7 @@ export type SystemConfigDisplayItem = {
   previewTokens?: string[]
 }
 
-export type SystemConfigGroupKey = 'access' | 'security' | 'branding' | 'advanced'
+export type SystemConfigGroupKey = 'access' | 'rebind' | 'security' | 'branding' | 'advanced'
 
 export type SystemConfigGroup = {
   key: SystemConfigGroupKey
@@ -79,6 +79,12 @@ const groupMetaMap: Record<Exclude<SystemConfigGroupKey, 'advanced'>, Omit<Syste
     description: '限定后台入口允许的访问来源，减少暴露面。',
     badge: '网络',
   },
+  rebind: {
+    key: 'rebind',
+    title: '换绑策略',
+    description: '维护系统级自助换绑默认策略；项目级与单码级可继续覆盖。',
+    badge: '策略',
+  },
   security: {
     key: 'security',
     title: '认证与会话',
@@ -101,7 +107,8 @@ const advancedGroupMeta: Omit<SystemConfigGroup, 'items'> = {
 }
 
 const groupItemOrderMap: Partial<Record<SystemConfigGroupKey, string[]>> = {
-  access: ['allowedIPs', 'allowAutoRebind', 'autoRebindCooldownMinutes', 'autoRebindMaxCount'],
+  access: ['allowedIPs'],
+  rebind: ['allowAutoRebind', 'autoRebindCooldownMinutes', 'autoRebindMaxCount'],
   security: ['jwtSecret', 'jwtExpiresIn', 'bcryptRounds'],
   branding: ['systemName'],
 }
@@ -138,7 +145,7 @@ function resolveWhitelistBadges(value: SystemConfigValue): SystemConfigBadge[] {
 
 function resolveAutoRebindBadges(value: SystemConfigValue): SystemConfigBadge[] {
   return value === true
-    ? [{ label: '允许自动换绑', tone: 'success' }]
+    ? [{ label: '允许自助换绑', tone: 'success' }]
     : [{ label: '默认禁止', tone: 'neutral' }]
 }
 
@@ -255,14 +262,14 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
     case 'allowAutoRebind':
       return {
         key: config.key,
-        label: '自动换绑',
-        description: '允许激活码在满足冷却时间时，从旧设备自动迁移到新设备。',
-        hint: '建议默认关闭；确实需要跨设备迁移时，再结合项目级或单码级策略按需开启。',
+        label: '系统级自助换绑策略',
+        description: '作为系统级默认规则，控制激活码在满足条件时是否允许从旧设备自助迁移到新设备。',
+        hint: '优先级：系统级配置 < 项目级配置 < 单码级配置。建议默认关闭，确实需要跨设备迁移时再开启。',
         value: config.value,
         inputKind: 'select',
         options: [
-          { label: '禁止自动换绑', value: 'false' },
-          { label: '允许自动换绑', value: 'true' },
+          { label: '默认禁止自助换绑', value: 'false' },
+          { label: '默认允许自助换绑', value: 'true' },
         ],
         layout: 'default',
         badges: resolveAutoRebindBadges(config.value),
@@ -270,9 +277,9 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
     case 'autoRebindCooldownMinutes':
       return {
         key: config.key,
-        label: '换绑冷却时间',
-        description: '控制同一激活码两次自动换绑之间至少间隔多久。',
-        hint: '单位为分钟；0 表示不设冷却。建议至少保留 60 分钟，降低激活码被频繁转移的风险。',
+        label: '系统级换绑冷却时间',
+        description: '作为系统级默认值，控制同一激活码两次自助换绑之间至少间隔多久。',
+        hint: '单位为分钟；0 表示不设冷却。优先级：系统级配置 < 项目级配置 < 单码级配置。建议至少保留 60 分钟。',
         value: config.value,
         inputKind: 'number',
         min: 0,
@@ -284,9 +291,9 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
     case 'autoRebindMaxCount':
       return {
         key: config.key,
-        label: '自助换绑次数上限',
-        description: '限制单个激活码最多还能自助迁移多少次设备。',
-        hint: '单位为次；0 表示不限制。建议结合冷却时间共同使用，避免激活码被频繁流转。',
+        label: '系统级自助换绑次数上限',
+        description: '作为系统级默认值，限制单个激活码最多还能自助迁移多少次设备。',
+        hint: '单位为次；0 表示不限制。优先级：系统级配置 < 项目级配置 < 单码级配置。建议结合冷却时间共同使用。',
         value: config.value,
         inputKind: 'number',
         min: 0,
@@ -373,7 +380,7 @@ function resolveGroupKey(configKey: string): SystemConfigGroupKey {
     configKey === 'autoRebindCooldownMinutes' ||
     configKey === 'autoRebindMaxCount'
   ) {
-    return 'access'
+    return 'rebind'
   }
 
   if (configKey === 'jwtSecret' || configKey === 'jwtExpiresIn' || configKey === 'bcryptRounds') {
@@ -446,8 +453,6 @@ export function buildSystemConfigPageModel(configs: SystemConfigItem[]): SystemC
   ]
 
   const allowedIPs = configs.find((config) => config.key === 'allowedIPs')?.value || []
-  const allowAutoRebind =
-    configs.find((config) => config.key === 'allowAutoRebind')?.value || false
   const jwtExpiresIn = configs.find((config) => config.key === 'jwtExpiresIn')?.value || '--'
   const bcryptRounds = configs.find((config) => config.key === 'bcryptRounds')?.value || '--'
 
@@ -460,7 +465,7 @@ export function buildSystemConfigPageModel(configs: SystemConfigItem[]): SystemC
     {
       label: '访问白名单',
       value: formatWhitelistValue(allowedIPs),
-      description: allowAutoRebind ? '后台访问与自动换绑策略同时生效' : '后台访问来源将按白名单限制',
+      description: '后台访问来源将按白名单限制',
     },
     {
       label: '登录会话',

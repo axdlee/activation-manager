@@ -82,6 +82,14 @@ import {
   type RebindOverrideSelectValue,
   type RebindPolicySource,
 } from '@/lib/license-rebind-policy'
+import {
+  getInheritedRebindPlaceholder,
+  getInheritedRebindPolicyOptionLabel,
+  getRebindPolicySourceDisplayLabel,
+  getScopedRebindCooldownLabel,
+  getScopedRebindMaxCountLabel,
+  getScopedRebindPolicyLabel,
+} from '@/lib/rebind-policy-ui'
 import { ApiDocsWorkspace } from '@/components/api-docs-workspace'
 import { ActivationCodeWorkspace } from '@/components/activation-code-workspace'
 import { AuditLogWorkspace } from '@/components/audit-log-workspace'
@@ -500,15 +508,7 @@ export default function DashboardPage() {
   }, [systemConfigs])
 
   const getRebindPolicySourceLabel = useCallback((source: RebindPolicySource) => {
-    if (source === 'code') {
-      return '单码配置'
-    }
-
-    if (source === 'project') {
-      return '项目配置'
-    }
-
-    return '系统配置'
+    return getRebindPolicySourceDisplayLabel(source)
   }, [])
 
   const fetchProjects = useCallback(async () => {
@@ -2100,15 +2100,15 @@ export default function DashboardPage() {
       )
 
       return [
-        `自助换绑：${effectivePolicy.allowAutoRebind ? '允许' : '禁止'}（来源：${getRebindPolicySourceLabel(
+        `最终自助换绑：${effectivePolicy.allowAutoRebind ? '允许' : '禁止'}（来源：${getRebindPolicySourceLabel(
           effectivePolicy.allowAutoRebindSource,
         )}）`,
-        `冷却时间：${formatCooldownMinutesLabel(
+        `最终换绑冷却时间：${formatCooldownMinutesLabel(
           effectivePolicy.autoRebindCooldownMinutes,
         )}（来源：${getRebindPolicySourceLabel(
           effectivePolicy.autoRebindCooldownMinutesSource,
         )}）`,
-        `次数上限：${formatAutoRebindMaxCountLabel(
+        `最终自助换绑次数上限：${formatAutoRebindMaxCountLabel(
           effectivePolicy.autoRebindMaxCount,
         )}（来源：${getRebindPolicySourceLabel(
           effectivePolicy.autoRebindMaxCountSource,
@@ -2599,136 +2599,149 @@ export default function DashboardPage() {
   }, [allCodes, selectedActivationCodeId, syncSelectedActivationCodeDrafts])
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#f6f8fc_42%,#eef2ff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1440px]">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <aside className="lg:sticky lg:top-6 lg:w-[300px] lg:self-start xl:w-[320px]">
-            <section className={`${shellClassName} relative overflow-hidden p-6 sm:p-7`}>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#f6f8fc_42%,#eef2ff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8">
+      <div className="mx-auto h-full w-full max-w-none">
+        <div className="flex h-full flex-col gap-6 lg:flex-row">
+          <aside className="lg:flex lg:w-[320px] lg:shrink-0 lg:self-stretch">
+            <section
+              className={`${shellClassName} relative overflow-hidden p-6 sm:p-7 lg:flex lg:h-full lg:min-h-0 lg:flex-1 lg:flex-col`}
+            >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.14),transparent_30%)]" />
-              <div className="relative space-y-6">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1 text-xs font-medium tracking-[0.18em] text-sky-700 shadow-sm backdrop-blur">
-                    <span className="h-2 w-2 rounded-full bg-sky-500" />
-                    授权运营中台
+              <div className="relative space-y-6 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0">
+                <div className="space-y-6 lg:flex-shrink-0">
+                  <div>
+                    <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1 text-xs font-medium tracking-[0.18em] text-sky-700 shadow-sm backdrop-blur">
+                      <span className="h-2 w-2 rounded-full bg-sky-500" />
+                      授权运营中台
+                    </div>
+                    <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">
+                      激活码管理后台
+                    </h1>
+                    <p className="mt-3 text-sm leading-7 text-slate-600">
+                      把项目、发码、激活码、消费、审计和 API 接入收敛到同一套左侧导航工作区，减少跨页面跳转成本。
+                    </p>
                   </div>
-                  <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">
-                    激活码管理后台
-                  </h1>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">
-                    把项目、发码、激活码、消费、审计和 API 接入收敛到同一套左侧导航工作区，减少跨页面跳转成本。
-                  </p>
                 </div>
 
-                <nav className="grid grid-cols-1 gap-3">
-                  {dashboardTabs.map((tab) => {
-                    const isActive = activeTab === tab.key
+                <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-2 dashboard-scroll-area">
+                  <div className="space-y-6">
+                    <nav className="grid grid-cols-1 gap-3">
+                      {dashboardTabs.map((tab) => {
+                        const isActive = activeTab === tab.key
 
-                    return (
-                      <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
-                        className={`group rounded-[24px] border p-4 text-left transition ${
-                          isActive
-                            ? 'border-sky-200 bg-sky-50/90 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.45)]'
-                            : 'border-white/70 bg-white/70 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white/90'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${
+                        return (
+                          <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={`group rounded-[24px] border p-4 text-left transition ${
                               isActive
-                                ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
-                                : 'bg-slate-900 text-white/90'
+                                ? 'border-sky-200 bg-sky-50/90 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.45)]'
+                                : 'border-white/70 bg-white/70 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white/90'
                             }`}
                           >
-                            {tab.shortLabel}
-                          </div>
-                          <div className="min-w-0">
-                            <div className={`text-sm font-semibold ${isActive ? 'text-sky-900' : 'text-slate-900'}`}>
-                              {tab.label}
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${
+                                  isActive
+                                    ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
+                                    : 'bg-slate-900 text-white/90'
+                                }`}
+                              >
+                                {tab.shortLabel}
+                              </div>
+                              <div className="min-w-0">
+                                <div className={`text-sm font-semibold ${isActive ? 'text-sky-900' : 'text-slate-900'}`}>
+                                  {tab.label}
+                                </div>
+                                <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
+                                  {tab.description}
+                                </div>
+                              </div>
                             </div>
-                            <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
-                              {tab.description}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </nav>
+                          </button>
+                        )
+                      })}
+                    </nav>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                  {heroMetricCards.map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-[22px] border border-white/80 bg-white/75 px-4 py-4 shadow-[0_18px_60px_-38px_rgba(15,23,42,0.3)] backdrop-blur"
-                    >
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
-                      <div className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{item.value}</div>
-                      <div className="mt-2 text-sm text-slate-500">{item.description}</div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                      {heroMetricCards.map((item) => (
+                        <div
+                          key={item.label}
+                          className="rounded-[22px] border border-white/80 bg-white/75 px-4 py-4 shadow-[0_18px_60px_-38px_rgba(15,23,42,0.3)] backdrop-blur"
+                        >
+                          <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
+                          <div className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{item.value}</div>
+                          <div className="mt-2 text-sm text-slate-500">{item.description}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
 
-                <button onClick={handleLogout} className={`w-full ${dangerButtonClassName}`}>
-                  登出
-                </button>
+                <div className="lg:flex-shrink-0 lg:pt-6">
+                  <button onClick={handleLogout} className={`w-full ${dangerButtonClassName}`}>
+                    登出
+                  </button>
+                </div>
               </div>
             </section>
           </aside>
 
-          <div className="min-w-0 flex-1 space-y-6">
-            <section className={`${shellClassName} relative overflow-hidden p-6 sm:p-8`}>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.1),transparent_28%)]" />
-              <div className="relative">
-                <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1 text-xs font-medium tracking-[0.18em] text-sky-700 shadow-sm backdrop-blur">
-                  <span className="h-2 w-2 rounded-full bg-sky-500" />
-                  当前模块 · {activeTabMeta.label}
-                </div>
-                <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="max-w-3xl">
-                    <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-                      {activeTabMeta.label}
-                    </h2>
-                    <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                      {activeTabMeta.description}
-                    </p>
+          <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-hidden">
+            <div className="space-y-6 lg:h-full lg:overflow-y-auto lg:pr-2 dashboard-scroll-area">
+              <section className={`${shellClassName} relative overflow-hidden p-6 sm:p-8`}>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.1),transparent_28%)]" />
+                <div className="relative">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1 text-xs font-medium tracking-[0.18em] text-sky-700 shadow-sm backdrop-blur">
+                    <span className="h-2 w-2 rounded-full bg-sky-500" />
+                    当前模块 · {activeTabMeta.label}
                   </div>
-                  <div className="rounded-[22px] border border-white/80 bg-white/75 px-5 py-4 text-sm leading-6 text-slate-500 shadow-[0_18px_60px_-38px_rgba(15,23,42,0.3)] backdrop-blur lg:max-w-sm">
-                    左侧主菜单固定展示，当前工作区只聚焦本模块内容，减少顶部导航占位与来回滚动。
+                  <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                    <div className="max-w-3xl">
+                      <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+                        {activeTabMeta.label}
+                      </h2>
+                      <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+                        {activeTabMeta.description}
+                      </p>
+                    </div>
+                    <div className="rounded-[22px] border border-white/80 bg-white/75 px-5 py-4 text-sm leading-6 text-slate-500 shadow-[0_18px_60px_-38px_rgba(15,23,42,0.3)] backdrop-blur xl:max-w-sm">
+                      左侧主菜单固定展示，当前工作区只聚焦本模块内容，减少顶部导航占位与来回滚动。
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
-            {message && (
-          <div
-            className={`rounded-[24px] border px-5 py-4 shadow-sm backdrop-blur ${
-              messageType === 'success'
-                ? 'border-emerald-200 bg-emerald-50/90 text-emerald-800'
-                : 'border-rose-200 bg-rose-50/90 text-rose-800'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <div
-                className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                  messageType === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-500 text-white'
-                }`}
-              >
-                {messageType === 'success' ? '✓' : '!'}
-              </div>
-              <div>
-                <div className="text-sm font-semibold">
-                  {messageType === 'success' ? '操作已完成' : '操作未完成'}
+              {message && (
+                <div
+                  className={`rounded-[24px] border px-5 py-4 shadow-sm backdrop-blur ${
+                    messageType === 'success'
+                      ? 'border-emerald-200 bg-emerald-50/90 text-emerald-800'
+                      : 'border-rose-200 bg-rose-50/90 text-rose-800'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        messageType === 'success'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-rose-500 text-white'
+                      }`}
+                    >
+                      {messageType === 'success' ? '✓' : '!'}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold">
+                        {messageType === 'success' ? '操作已完成' : '操作未完成'}
+                      </div>
+                      <div className="mt-1 text-sm">{message}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-1 text-sm">{message}</div>
-              </div>
-            </div>
-          </div>
-        )}
+              )}
 
-        {activeTab === 'stats' && (
-          <div className="space-y-6">
+              {activeTab === 'stats' && (
+                <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-3 rounded-[24px] border border-sky-200/70 bg-sky-50/85 px-5 py-4 text-sm text-sky-900 shadow-sm">
               <span className="inline-flex items-center rounded-full bg-sky-600/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-sky-700">
                 当前统计口径
@@ -2737,7 +2750,7 @@ export default function DashboardPage() {
               <span className="text-sky-700/80">顶部统计、消费趋势与导出都会跟随这个范围联动。</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
               {statsCards.map((card) => (
                 <div
                   key={card.label}
@@ -2893,7 +2906,13 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className={`grid grid-cols-1 md:grid-cols-2 ${hasComparisonConsumptionTrend ? 'xl:grid-cols-6' : 'xl:grid-cols-4'} gap-4 mb-6`}>
+                <div
+                  className={`mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 ${
+                    hasComparisonConsumptionTrend
+                      ? 'xl:grid-cols-3 2xl:grid-cols-6'
+                      : 'xl:grid-cols-4'
+                  }`}
+                >
                   {[
                     ['总扣次', consumptionTrend?.totalConsumptions ?? 0, '当前时间范围内的累计成功扣次'],
                     [consumptionTrendPeakLabel, consumptionTrendPeakValue, `当前${consumptionTrendGranularityLabel}时间桶内的最高消费次数`],
@@ -3101,7 +3120,7 @@ export default function DashboardPage() {
                   '次数剩余',
                   '次数消耗',
                 ]}
-                containerClassName="overflow-x-auto rounded-[24px] border border-slate-200/80"
+                tableClassName="w-full min-w-[1120px] divide-y divide-gray-200"
                 bodyClassName="bg-white divide-y divide-gray-200"
               >
                 {filteredProjectStats.map((project) => (
@@ -3205,7 +3224,10 @@ export default function DashboardPage() {
                     />
                   </DashboardFormField>
 
-                  <DashboardFormField label="自助换绑策略" htmlFor="generate-rebind-policy">
+                  <DashboardFormField
+                    label={getScopedRebindPolicyLabel('code')}
+                    htmlFor="generate-rebind-policy"
+                  >
                     <select
                       id="generate-rebind-policy"
                       value={generateRebindPolicy}
@@ -3214,14 +3236,14 @@ export default function DashboardPage() {
                       }
                       className={compactInputClassName}
                     >
-                      <option value="inherit">继承项目配置</option>
+                      <option value="inherit">{getInheritedRebindPolicyOptionLabel('code')}</option>
                       <option value="enabled">允许自助换绑</option>
                       <option value="disabled">禁止自助换绑</option>
                     </select>
                   </DashboardFormField>
 
                   <DashboardFormField
-                    label="换绑冷却时间（分钟）"
+                    label={getScopedRebindCooldownLabel('code')}
                     htmlFor="generate-rebind-cooldown"
                   >
                     <input
@@ -3231,12 +3253,12 @@ export default function DashboardPage() {
                       value={generateRebindCooldownMinutes}
                       onChange={(e) => setGenerateRebindCooldownMinutes(e.target.value)}
                       className={compactInputClassName}
-                      placeholder="留空则继承项目配置"
+                      placeholder={getInheritedRebindPlaceholder('code', 'cooldown')}
                     />
                   </DashboardFormField>
 
                   <DashboardFormField
-                    label="自助换绑次数上限"
+                    label={getScopedRebindMaxCountLabel('code')}
                     htmlFor="generate-rebind-max-count"
                   >
                     <input
@@ -3246,7 +3268,7 @@ export default function DashboardPage() {
                       value={generateRebindMaxCount}
                       onChange={(e) => setGenerateRebindMaxCount(e.target.value)}
                       className={compactInputClassName}
-                      placeholder="0 表示不限制；留空则继承项目配置"
+                      placeholder={getInheritedRebindPlaceholder('code', 'maxCount')}
                     />
                   </DashboardFormField>
                 </div>
@@ -3330,7 +3352,10 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                <DashboardDataTable headers={['项目', '激活码', '授权类型', '规格', '创建时间', '剩余次数', '操作']}>
+                <DashboardDataTable
+                  headers={['项目', '激活码', '授权类型', '规格', '创建时间', '剩余次数', '操作']}
+                  tableClassName="w-full min-w-[920px] divide-y divide-gray-200"
+                >
                   {generatedCodes.map((code) => (
                     <tr key={code.id} className="transition hover:bg-slate-50/80">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getProjectDisplay(code)}</td>
@@ -3457,6 +3482,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+    </div>
     </main>
   )
 }

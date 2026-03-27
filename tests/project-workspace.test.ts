@@ -79,7 +79,7 @@ function createManageView(overrides: Partial<React.ComponentProps<typeof Project
 
 function createProps(overrides: Partial<React.ComponentProps<typeof ProjectWorkspace>> = {}) {
   return {
-    activeTab: 'create' as const,
+    activeTab: 'manage' as const,
     loading: false,
     enabledProjectsCount: 1,
     disabledProjectsCount: 1,
@@ -111,24 +111,34 @@ function createProps(overrides: Partial<React.ComponentProps<typeof ProjectWorks
   }
 }
 
-test('ProjectWorkspace 在 create tab 渲染项目工作区头部、新建表单与换绑默认策略', () => {
-  const html = renderToStaticMarkup(React.createElement(ProjectWorkspace, createProps()))
+test('ProjectWorkspace 在 create 模式下通过弹框渲染新建表单与换绑默认策略', () => {
+  const html = renderToStaticMarkup(
+    React.createElement(
+      ProjectWorkspace,
+      createProps({
+        activeTab: 'create',
+      }),
+    ),
+  )
 
   assert.equal(html.includes('项目管理中心'), true)
   assert.equal(html.includes('项目工作区'), true)
   assert.equal(html.includes('新建项目'), true)
+  assert.equal(html.includes('用弹框快速创建新的 projectKey'), true)
+  assert.equal(html.includes('基础信息'), true)
+  assert.equal(html.includes('策略设置'), true)
   assert.equal(html.includes('项目标识，例如 browser-plugin'), true)
-  assert.equal(html.includes('自助换绑策略'), true)
-  assert.equal(html.includes('继承系统配置'), true)
-  assert.equal(html.includes('换绑冷却时间（分钟）'), true)
-  assert.equal(html.includes('留空则继承系统配置'), true)
-  assert.equal(html.includes('自助换绑次数上限'), true)
-  assert.equal(html.includes('0 表示不限制；留空则继承系统配置'), true)
+  assert.equal(html.includes('项目级自助换绑策略'), true)
+  assert.equal(html.includes('继承系统级策略'), true)
+  assert.equal(html.includes('项目级换绑冷却时间（分钟）'), true)
+  assert.equal(html.includes('留空则继承系统级策略'), true)
+  assert.equal(html.includes('项目级自助换绑次数上限'), true)
+  assert.equal(html.includes('0 表示不限制；留空则继承系统级策略'), true)
   assert.equal(html.includes('创建项目'), true)
   assert.equal(html.includes('browser-plugin'), true)
 })
 
-test('ProjectWorkspace 在 manage tab 渲染只读列表、弹框编辑入口与空状态提示', () => {
+test('ProjectWorkspace 在 manage tab 渲染只读列表、创建弹框入口与空状态提示', () => {
   const html = renderToStaticMarkup(
     React.createElement(
       ProjectWorkspace,
@@ -157,6 +167,8 @@ test('ProjectWorkspace 在 manage tab 渲染只读列表、弹框编辑入口与
   assert.equal(html.includes('列表只保留关键字段，所有编辑都改为弹框完成。'), true)
   assert.equal(html.includes('换绑策略'), true)
   assert.equal(html.includes('默认项目名称固定，且不可停用'), true)
+  assert.equal(html.includes('新建项目'), true)
+  assert.equal(html.match(/>新建项目</g)?.length ?? 0, 1)
   assert.equal(html.includes('显示第 0 - 0 条，共 0 条记录'), true)
   assert.equal(html.includes('暂无匹配的项目'), true)
   assert.equal(html.includes('编辑基础信息'), false)
@@ -176,11 +188,19 @@ test('ProjectWorkspace 在 manage tab 会渲染只读字段与弹框操作按钮
   assert.equal(html.includes('复制标识'), true)
   assert.equal(html.includes('编辑基础信息'), true)
   assert.equal(html.includes('编辑换绑策略'), true)
-  assert.equal(html.includes('自助换绑：允许自助换绑'), true)
-  assert.equal(html.includes('冷却时间：3 小时'), true)
-  assert.equal(html.includes('次数上限：2 次'), true)
+  assert.equal(html.includes('项目级自助换绑策略：允许自助换绑'), true)
+  assert.equal(html.includes('项目级换绑冷却时间：3 小时'), true)
+  assert.equal(html.includes('项目级自助换绑次数上限：2 次'), true)
   assert.equal(html.includes('浏览器插件授权'), true)
   assert.equal(html.includes('默认项目不可停用，也不可删除。'), true)
+  assert.equal(html.includes('保存基础信息'), false)
+  assert.equal(html.includes('保存换绑策略'), false)
+})
+
+test('ProjectWorkspace 在 manage tab 默认不直接渲染新建项目弹框内容', () => {
+  const html = renderToStaticMarkup(React.createElement(ProjectWorkspace, createProps()))
+
+  assert.equal(html.includes('用弹框快速创建新的 projectKey'), false)
   assert.equal(html.includes('保存名称'), false)
   assert.equal(html.includes('保存描述'), false)
 })

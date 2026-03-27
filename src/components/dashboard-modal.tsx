@@ -33,7 +33,7 @@ export function DashboardModal({
   onClose,
   size = 'xl',
   panelClassName =
-    'rounded-[30px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-[0_38px_120px_-52px_rgba(15,23,42,0.48)] backdrop-blur',
+    'rounded-[30px] border border-slate-200 bg-white shadow-[0_38px_120px_-52px_rgba(15,23,42,0.38)]',
   bodyClassName = 'max-h-[calc(100vh-14rem)] overflow-y-auto px-6 py-6 sm:px-7',
 }: DashboardModalProps) {
   const titleId = useId()
@@ -103,9 +103,7 @@ export function DashboardModal({
 
         <div className={bodyClassName}>{children}</div>
 
-        {footer ? (
-          <div className="border-t border-slate-200/80 bg-white/80 px-6 py-5 sm:px-7">{footer}</div>
-        ) : null}
+        {footer ? <div className="border-t border-slate-200 bg-slate-50/80 px-6 py-5 sm:px-7">{footer}</div> : null}
       </div>
     </div>
   )

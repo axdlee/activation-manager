@@ -2,10 +2,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 
-import { DashboardActionPanel } from '@/components/dashboard-action-panel'
 import { DashboardDataTable } from '@/components/dashboard-data-table'
 import { DashboardEmptyState } from '@/components/dashboard-empty-state'
 import { DashboardFilterFieldCard } from '@/components/dashboard-filter-field-card'
+import { DashboardFormField } from '@/components/dashboard-form-field'
 import { DashboardModal } from '@/components/dashboard-modal'
 import { DashboardPaginationBar } from '@/components/dashboard-pagination-bar'
 import { DashboardProjectManagementRow } from '@/components/dashboard-project-management-row'
@@ -21,6 +21,14 @@ import {
   formatAutoRebindMaxCountLabel,
   formatCooldownMinutesLabel,
 } from '@/lib/license-rebind-policy'
+import {
+  getInheritedRebindPlaceholder,
+  getInheritedRebindPolicyOptionLabel,
+  getInheritedRebindSettingLabel,
+  getScopedRebindCooldownLabel,
+  getScopedRebindMaxCountLabel,
+  getScopedRebindPolicyLabel,
+} from '@/lib/rebind-policy-ui'
 import {
   type ProjectManagementListItem,
   type ProjectManagementSortOption,
@@ -121,6 +129,11 @@ const defaultPaginationButtonClassName =
   'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
   'border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:border-sky-500 hover:bg-sky-500'
+const modalFooterClassName = 'flex flex-col-reverse gap-3 sm:flex-row sm:justify-end'
+const subtleModalSectionClassName = 'rounded-[20px] border border-slate-200 bg-slate-50 p-5'
+const modalSectionTitleClassName = 'text-base font-semibold text-slate-900'
+const modalSectionDescriptionClassName = 'mt-2 text-sm leading-6 text-slate-500'
+const modalFormFieldClassName = 'rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm'
 
 function resolveProjectRebindPolicyValue(project: ProjectManagementListItem) {
   if (project.allowAutoRebind === true) {
@@ -143,7 +156,7 @@ function resolveProjectRebindPolicyLabel(value: string) {
     return '禁止自助换绑'
   }
 
-  return '继承系统配置'
+  return getInheritedRebindSettingLabel('project')
 }
 
 function resolveProjectRebindCooldownMinutesValue(project: ProjectManagementListItem) {
@@ -170,6 +183,22 @@ function parseDraftNumber(value: string) {
   return Number.isFinite(parsedValue) ? parsedValue : null
 }
 
+function formatProjectScopedCooldownSummary(value: number | null) {
+  if (value === null) {
+    return getInheritedRebindSettingLabel('project')
+  }
+
+  return formatCooldownMinutesLabel(value)
+}
+
+function formatProjectScopedMaxCountSummary(value: number | null) {
+  if (value === null) {
+    return getInheritedRebindSettingLabel('project')
+  }
+
+  return formatAutoRebindMaxCountLabel(value)
+}
+
 export function ProjectWorkspace({
   activeTab,
   onTabChange,
@@ -186,8 +215,11 @@ export function ProjectWorkspace({
   paginationButtonClassName = defaultPaginationButtonClassName,
   paginationActiveButtonClassName = defaultPaginationActiveButtonClassName,
 }: ProjectWorkspaceProps) {
+  const normalizedActiveTab = activeTab === 'create' ? 'manage' : activeTab
   const [editingBasicsProjectId, setEditingBasicsProjectId] = useState<number | null>(null)
   const [editingRebindProjectId, setEditingRebindProjectId] = useState<number | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(activeTab === 'create')
+  const [shouldCloseCreateModalAfterSubmit, setShouldCloseCreateModalAfterSubmit] = useState(false)
 
   const paginationSummary = `显示第 ${manageView.startIndex} - ${manageView.endIndex} 条，共 ${manageView.page.totalItems} 条记录`
   const projectLookup = useMemo(
@@ -221,9 +253,13 @@ export function ProjectWorkspace({
       manageView.getProjectRebindMaxCountDraft?.(project) ?? resolveProjectRebindMaxCountValue(project)
 
     return [
-      `自助换绑：${resolveProjectRebindPolicyLabel(policyValue)}`,
-      `冷却时间：${formatCooldownMinutesLabel(parseDraftNumber(cooldownValue))}`,
-      `次数上限：${formatAutoRebindMaxCountLabel(parseDraftNumber(maxCountValue))}`,
+      `${getScopedRebindPolicyLabel('project')}：${resolveProjectRebindPolicyLabel(policyValue)}`,
+      `${getScopedRebindCooldownLabel('project', false)}：${formatProjectScopedCooldownSummary(
+        parseDraftNumber(cooldownValue),
+      )}`,
+      `${getScopedRebindMaxCountLabel('project')}：${formatProjectScopedMaxCountSummary(
+        parseDraftNumber(maxCountValue),
+      )}`,
     ]
   }
 
@@ -234,6 +270,53 @@ export function ProjectWorkspace({
   const rebindDirty =
     editingRebindProject !== null &&
     (manageView.hasProjectRebindSettingsChanged?.(editingRebindProject) ?? false)
+  const isCreateFormPristine =
+    createForm.name === '' &&
+    createForm.projectKey === '' &&
+    createForm.description === '' &&
+    (createForm.rebindPolicyValue || 'inherit') === 'inherit' &&
+    (createForm.rebindCooldownMinutesValue || '') === '' &&
+    (createForm.rebindMaxCountValue || '') === ''
+
+  useEffect(() => {
+    if (activeTab === 'create') {
+      setIsCreateModalOpen(true)
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (loading || !shouldCloseCreateModalAfterSubmit) {
+      return
+    }
+
+    if (isCreateFormPristine) {
+      setIsCreateModalOpen(false)
+      if (activeTab === 'create') {
+        onTabChange('manage')
+      }
+    }
+
+    setShouldCloseCreateModalAfterSubmit(false)
+  }, [activeTab, isCreateFormPristine, loading, onTabChange, shouldCloseCreateModalAfterSubmit])
+
+  const handleOpenCreateModal = () => {
+    setIsCreateModalOpen(true)
+    if (activeTab === 'create') {
+      onTabChange('manage')
+    }
+  }
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false)
+    if (activeTab === 'create') {
+      onTabChange('manage')
+    }
+  }
+
+  const handleSubmitCreateForm = (event: React.FormEvent<HTMLFormElement>) => {
+    setShouldCloseCreateModalAfterSubmit(true)
+    createForm.onSubmit(event)
+  }
 
   return (
     <div className="space-y-6">
@@ -260,34 +343,164 @@ export function ProjectWorkspace({
             </div>
           }
           tabs={
-            <WorkspaceTabNav
-              tabs={projectWorkspaceTabs}
-              activeTab={activeTab}
-              onChange={onTabChange}
-              badgeTextClassName="text-sm"
-            />
+            <div className="mt-6 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="min-w-0 xl:flex-1">
+                <WorkspaceTabNav
+                  tabs={projectWorkspaceTabs}
+                  activeTab={normalizedActiveTab}
+                  onChange={onTabChange}
+                  badgeTextClassName="text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleOpenCreateModal}
+                className={`w-full xl:w-auto ${primaryButtonClassName}`}
+              >
+                新建项目
+              </button>
+            </div>
           }
         />
       </div>
 
-      {activeTab === 'create' ? (
-        <div className={`${panelClassName} p-6`}>
+      <div className={`${panelClassName} p-6`}>
+        <div className="mb-5 flex flex-col gap-4">
           <DashboardSectionHeader
-            title="新建项目"
-            description="为不同产品或插件创建独立 projectKey，后续发码、统计、消费与换绑策略都能按项目隔离。"
+            title="项目列表"
+            description={`当前匹配 ${manageView.page.totalItems} / ${manageView.totalProjects} 个项目。列表只保留关键字段，所有编辑都改为弹框完成。`}
             trailing={
               <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
-                创建后会自动出现在发码与筛选器中
+                默认项目名称固定，且不可停用
               </div>
             }
             className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
           />
 
-          <form onSubmit={createForm.onSubmit} className="grid grid-cols-1 gap-4 xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <DashboardFilterFieldCard
+              label="搜索项目"
+              description="按项目名称、projectKey 或描述快速定位。"
+              htmlFor="project-management-search-term"
+            >
+              <input
+                id="project-management-search-term"
+                type="text"
+                value={manageView.searchTerm}
+                onChange={(event) => manageView.onSearchTermChange(event.target.value)}
+                className={compactInputClassName}
+                placeholder="项目名称 / projectKey / 描述"
+              />
+            </DashboardFilterFieldCard>
+            <DashboardFilterFieldCard
+              label="状态筛选"
+              description="聚焦查看启用中或已停用项目。"
+              htmlFor="project-management-status-filter"
+            >
+              <select
+                id="project-management-status-filter"
+                value={manageView.statusFilter}
+                onChange={(event) =>
+                  manageView.onStatusFilterChange(event.target.value as ProjectManagementStatusFilter)
+                }
+                className={compactInputClassName}
+              >
+                <option value="all">全部状态</option>
+                <option value="enabled">仅启用</option>
+                <option value="disabled">仅停用</option>
+              </select>
+            </DashboardFilterFieldCard>
+            <DashboardFilterFieldCard
+              label="排序方式"
+              description="根据最新创建时间或项目名称切换查看节奏。"
+              htmlFor="project-management-sort-by"
+            >
+              <select
+                id="project-management-sort-by"
+                value={manageView.sortBy}
+                onChange={(event) =>
+                  manageView.onSortByChange(event.target.value as ProjectManagementSortOption)
+                }
+                className={compactInputClassName}
+              >
+                <option value="createdAtDesc">最新创建</option>
+                <option value="createdAtAsc">最早创建</option>
+                <option value="nameAsc">名称 A-Z</option>
+                <option value="nameDesc">名称 Z-A</option>
+              </select>
+            </DashboardFilterFieldCard>
+          </div>
+        </div>
+
+        <DashboardDataTable
+          headers={['项目名称', '项目标识', '换绑策略', '状态', '操作']}
+          tableClassName="w-full min-w-[1180px] divide-y divide-gray-200"
+        >
+          {manageView.page.items.map((project) => (
+            <DashboardProjectManagementRow
+              key={project.id}
+              project={project}
+              policySummary={buildProjectPolicySummary(project)}
+              loading={loading}
+              onCopyProjectKey={() => manageView.onCopyProjectKey(project.projectKey)}
+              onEditBasics={() => setEditingBasicsProjectId(project.id)}
+              onEditRebind={() => setEditingRebindProjectId(project.id)}
+              onToggleStatus={() => manageView.onToggleProjectStatus(project)}
+              onDelete={() => manageView.onDeleteProject(project)}
+            />
+          ))}
+        </DashboardDataTable>
+
+        {manageView.page.totalItems === 0 ? (
+          <DashboardEmptyState message="暂无匹配的项目" className="mt-5" />
+        ) : null}
+
+        {manageView.page.totalPages > 1 ? (
+          <DashboardPaginationBar
+            currentPage={manageView.page.currentPage}
+            totalPages={manageView.page.totalPages}
+            summary={paginationSummary}
+            onPageChange={manageView.onPageChange}
+            buttonClassName={paginationButtonClassName}
+            activeButtonClassName={paginationActiveButtonClassName}
+          />
+        ) : (
+          <div className="mt-6 text-sm text-gray-700">{paginationSummary}</div>
+        )}
+      </div>
+
+      <DashboardModal
+        open={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        title="新建项目"
+        description="用弹框快速创建新的 projectKey，并同步设定项目级默认换绑策略；创建完成后会立即出现在发码、统计与筛选器中。"
+        size="xl"
+        footer={
+          <div className={modalFooterClassName}>
+            <button type="button" onClick={handleCloseCreateModal} className={ghostButtonClassName}>
+              取消
+            </button>
+            <button type="submit" form="create-project-form" disabled={loading} className={primaryButtonClassName}>
+              {loading ? '创建中...' : '创建项目'}
+            </button>
+          </div>
+        }
+      >
+        <form id="create-project-form" onSubmit={handleSubmitCreateForm} className="space-y-6">
+          <section className="space-y-4">
+            <div>
+              <h3 className={modalSectionTitleClassName}>基础信息</h3>
+              <p className={modalSectionDescriptionClassName}>
+                先按常规表单方式填写项目名称、projectKey 与说明，避免在弹框内左右跳读。
+              </p>
+            </div>
+
+            <DashboardFormField
               label="项目名称"
               description="面向管理员显示的主标题。"
               htmlFor="create-project-name"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
             >
               <input
                 id="create-project-name"
@@ -298,8 +511,9 @@ export function ProjectWorkspace({
                 placeholder="项目名称"
                 required
               />
-            </DashboardFilterFieldCard>
-            <DashboardFilterFieldCard
+            </DashboardFormField>
+
+            <DashboardFormField
               label="项目标识"
               description={
                 <>
@@ -307,6 +521,8 @@ export function ProjectWorkspace({
                 </>
               }
               htmlFor="create-project-key"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
             >
               <input
                 id="create-project-key"
@@ -323,25 +539,39 @@ export function ProjectWorkspace({
                 maxLength={PROJECT_KEY_MAX_LENGTH}
                 required
               />
-            </DashboardFilterFieldCard>
-            <DashboardFilterFieldCard
+            </DashboardFormField>
+
+            <DashboardFormField
               label="项目描述"
               description="可选，用于补充当前项目的用途说明。"
               htmlFor="create-project-description"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
             >
-              <input
+              <textarea
                 id="create-project-description"
-                type="text"
                 value={createForm.description}
                 onChange={(event) => createForm.onDescriptionChange(event.target.value)}
-                className={compactInputClassName}
+                className={`${compactInputClassName} min-h-[120px] resize-y`}
                 placeholder="项目描述（可选）"
               />
-            </DashboardFilterFieldCard>
-            <DashboardFilterFieldCard
-              label="自助换绑策略"
-              description="项目级默认规则；若留给单码继承，则会在发码或单码管理时继续覆盖。"
+            </DashboardFormField>
+          </section>
+
+          <section className={`${subtleModalSectionClassName} space-y-4`}>
+            <div>
+              <h3 className={modalSectionTitleClassName}>策略设置</h3>
+              <p className={modalSectionDescriptionClassName}>
+                这组设置会作为项目级默认值，被发码和单码配置继续继承或覆盖。
+              </p>
+            </div>
+
+            <DashboardFormField
+              label={getScopedRebindPolicyLabel('project')}
+              description="项目级默认规则；若单码级保持继承，会继续回退到这里；项目未配置时再回退系统级。"
               htmlFor="create-project-rebind-policy"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
             >
               <select
                 id="create-project-rebind-policy"
@@ -349,15 +579,18 @@ export function ProjectWorkspace({
                 onChange={(event) => createForm.onRebindPolicyChange?.(event.target.value)}
                 className={compactInputClassName}
               >
-                <option value="inherit">继承系统配置</option>
+                <option value="inherit">{getInheritedRebindPolicyOptionLabel('project')}</option>
                 <option value="enabled">允许自助换绑</option>
                 <option value="disabled">禁止自助换绑</option>
               </select>
-            </DashboardFilterFieldCard>
-            <DashboardFilterFieldCard
-              label="换绑冷却时间（分钟）"
-              description="留空则继承系统配置；0 表示无冷却。"
+            </DashboardFormField>
+
+            <DashboardFormField
+              label={getScopedRebindCooldownLabel('project')}
+              description="留空则继承系统级策略；0 表示无冷却。"
               htmlFor="create-project-rebind-cooldown"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
             >
               <input
                 id="create-project-rebind-cooldown"
@@ -366,13 +599,16 @@ export function ProjectWorkspace({
                 value={createForm.rebindCooldownMinutesValue || ''}
                 onChange={(event) => createForm.onRebindCooldownMinutesChange?.(event.target.value)}
                 className={compactInputClassName}
-                placeholder="留空则继承系统配置"
+                placeholder={getInheritedRebindPlaceholder('project', 'cooldown')}
               />
-            </DashboardFilterFieldCard>
-            <DashboardFilterFieldCard
-              label="自助换绑次数上限"
-              description="0 表示不限制；留空则继承系统配置。"
+            </DashboardFormField>
+
+            <DashboardFormField
+              label={getScopedRebindMaxCountLabel('project')}
+              description="0 表示不限制；留空则继承系统级策略。"
               htmlFor="create-project-rebind-max-count"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
             >
               <input
                 id="create-project-rebind-max-count"
@@ -381,364 +617,254 @@ export function ProjectWorkspace({
                 value={createForm.rebindMaxCountValue || ''}
                 onChange={(event) => createForm.onRebindMaxCountChange?.(event.target.value)}
                 className={compactInputClassName}
-                placeholder="0 表示不限制；留空则继承系统配置"
+                placeholder={getInheritedRebindPlaceholder('project', 'maxCount')}
               />
-            </DashboardFilterFieldCard>
-            <div className="xl:col-span-6">
-              <DashboardActionPanel
-                badge="创建后立即可用"
-                title="准备创建新的项目空间？"
-                description="新项目会立即出现在发码、统计和激活码筛选中，建议先确认 projectKey 命名稳定，并同步设定默认换绑规则。"
-                action={
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={`w-full lg:w-auto ${primaryButtonClassName}`}
-                  >
-                    {loading ? '创建中...' : '创建项目'}
-                  </button>
-                }
-              />
-            </div>
-          </form>
-        </div>
-      ) : (
-        <>
-          <div className={`${panelClassName} p-6`}>
-            <div className="mb-5 flex flex-col gap-4">
-              <DashboardSectionHeader
-                title="项目列表"
-                description={`当前匹配 ${manageView.page.totalItems} / ${manageView.totalProjects} 个项目。列表只保留关键字段，所有编辑都改为弹框完成。`}
-                trailing={
-                  <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
-                    默认项目名称固定，且不可停用
-                  </div>
-                }
-                className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
-              />
+            </DashboardFormField>
+          </section>
 
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <DashboardFilterFieldCard
-                  label="搜索项目"
-                  description="按项目名称、projectKey 或描述快速定位。"
-                  htmlFor="project-management-search-term"
-                >
-                  <input
-                    id="project-management-search-term"
-                    type="text"
-                    value={manageView.searchTerm}
-                    onChange={(event) => manageView.onSearchTermChange(event.target.value)}
-                    className={compactInputClassName}
-                    placeholder="项目名称 / projectKey / 描述"
-                  />
-                </DashboardFilterFieldCard>
-                <DashboardFilterFieldCard
-                  label="状态筛选"
-                  description="聚焦查看启用中或已停用项目。"
-                  htmlFor="project-management-status-filter"
-                >
-                  <select
-                    id="project-management-status-filter"
-                    value={manageView.statusFilter}
-                    onChange={(event) =>
-                      manageView.onStatusFilterChange(event.target.value as ProjectManagementStatusFilter)
-                    }
-                    className={compactInputClassName}
-                  >
-                    <option value="all">全部状态</option>
-                    <option value="enabled">仅启用</option>
-                    <option value="disabled">仅停用</option>
-                  </select>
-                </DashboardFilterFieldCard>
-                <DashboardFilterFieldCard
-                  label="排序方式"
-                  description="根据最新创建时间或项目名称切换查看节奏。"
-                  htmlFor="project-management-sort-by"
-                >
-                  <select
-                    id="project-management-sort-by"
-                    value={manageView.sortBy}
-                    onChange={(event) =>
-                      manageView.onSortByChange(event.target.value as ProjectManagementSortOption)
-                    }
-                    className={compactInputClassName}
-                  >
-                    <option value="createdAtDesc">最新创建</option>
-                    <option value="createdAtAsc">最早创建</option>
-                    <option value="nameAsc">名称 A-Z</option>
-                    <option value="nameDesc">名称 Z-A</option>
-                  </select>
-                </DashboardFilterFieldCard>
-              </div>
-            </div>
-
-            <DashboardDataTable headers={['项目名称', '项目标识', '换绑策略', '状态', '操作']}>
-              {manageView.page.items.map((project) => (
-                <DashboardProjectManagementRow
-                  key={project.id}
-                  project={project}
-                  policySummary={buildProjectPolicySummary(project)}
-                  loading={loading}
-                  onCopyProjectKey={() => manageView.onCopyProjectKey(project.projectKey)}
-                  onEditBasics={() => setEditingBasicsProjectId(project.id)}
-                  onEditRebind={() => setEditingRebindProjectId(project.id)}
-                  onToggleStatus={() => manageView.onToggleProjectStatus(project)}
-                  onDelete={() => manageView.onDeleteProject(project)}
-                />
-              ))}
-            </DashboardDataTable>
-
-            {manageView.page.totalItems === 0 ? (
-              <DashboardEmptyState message="暂无匹配的项目" className="mt-5" />
-            ) : null}
-
-            {manageView.page.totalPages > 1 ? (
-              <DashboardPaginationBar
-                currentPage={manageView.page.currentPage}
-                totalPages={manageView.page.totalPages}
-                summary={paginationSummary}
-                onPageChange={manageView.onPageChange}
-                buttonClassName={paginationButtonClassName}
-                activeButtonClassName={paginationActiveButtonClassName}
-              />
-            ) : (
-              <div className="mt-6 text-sm text-gray-700">{paginationSummary}</div>
-            )}
+          <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-6 text-slate-500">
+            创建后会立即出现在项目列表、发码页、统计页和筛选器中；建议先确认 projectKey 命名稳定后再保存。
           </div>
+        </form>
+      </DashboardModal>
 
-          <DashboardModal
-            open={editingBasicsProject !== null}
-            onClose={() => setEditingBasicsProjectId(null)}
-            title={editingBasicsProject ? `编辑基础信息 · ${editingBasicsProject.name}` : '编辑基础信息'}
-            description="项目列表中不再直接输入，基础信息统一在这里维护，避免误改并提升可读性。"
-            size="lg"
-            footer={
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setEditingBasicsProjectId(null)}
-                  className={ghostButtonClassName}
-                >
-                  关闭
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!editingBasicsProject) {
-                      return
-                    }
+      <DashboardModal
+        open={editingBasicsProject !== null}
+        onClose={() => setEditingBasicsProjectId(null)}
+        title={editingBasicsProject ? `编辑基础信息 · ${editingBasicsProject.name}` : '编辑基础信息'}
+        description="项目列表中不再直接输入，基础信息统一在这里维护，避免误改并提升可读性。"
+        size="lg"
+        footer={
+          <div className={modalFooterClassName}>
+            <button
+              type="button"
+              onClick={() => setEditingBasicsProjectId(null)}
+              className={ghostButtonClassName}
+            >
+              关闭
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!editingBasicsProject) {
+                  return
+                }
 
-                    if (manageView.hasProjectNameChanged(editingBasicsProject)) {
-                      await manageView.onSaveProjectName(editingBasicsProject)
-                    }
-                    if (manageView.hasProjectDescriptionChanged(editingBasicsProject)) {
-                      await manageView.onSaveProjectDescription(editingBasicsProject)
-                    }
-                  }}
-                  disabled={!basicsDirty || loading}
-                  className={primaryButtonClassName}
-                >
-                  保存基础信息
-                </button>
-              </div>
-            }
-          >
-            {editingBasicsProject ? (
-              <div className="space-y-4">
-                {editingBasicsProject.projectKey === 'default' ? (
-                  <div className="rounded-[22px] border border-sky-200/80 bg-sky-50/80 px-5 py-4 text-sm leading-6 text-sky-700">
-                    默认项目的名称固定，建议仅在这里维护描述说明，方便后台识别其兼容用途。
-                  </div>
-                ) : null}
-
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <DashboardFilterFieldCard
-                    label="项目名称"
-                    description="用于后台展示与筛选。"
-                    htmlFor="project-modal-name"
-                  >
-                    <input
-                      id="project-modal-name"
-                      type="text"
-                      value={manageView.getProjectNameDraft(editingBasicsProject)}
-                      onChange={(event) =>
-                        manageView.onProjectNameChange(editingBasicsProject.id, event.target.value)
-                      }
-                      className={compactInputClassName}
-                      placeholder="项目名称"
-                      disabled={loading || editingBasicsProject.projectKey === 'default'}
-                    />
-                  </DashboardFilterFieldCard>
-
-                  <DashboardFilterFieldCard
-                    label="项目标识"
-                    description="用于 API 接入、项目隔离与激活码归属。"
-                    htmlFor="project-modal-key"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <input
-                        id="project-modal-key"
-                        type="text"
-                        value={editingBasicsProject.projectKey}
-                        readOnly
-                        disabled
-                        className={compactInputClassName}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => manageView.onCopyProjectKey(editingBasicsProject.projectKey)}
-                        className={ghostButtonClassName}
-                      >
-                        复制标识
-                      </button>
-                    </div>
-                  </DashboardFilterFieldCard>
-
-                  <DashboardFilterFieldCard
-                    label="项目描述"
-                    description="补充当前项目对应的产品、插件或客户背景。"
-                    className="lg:col-span-2 rounded-[24px] border border-slate-200/80 bg-white/88 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.28)]"
-                  >
-                    <textarea
-                      value={manageView.getProjectDescriptionDraft(editingBasicsProject)}
-                      onChange={(event) =>
-                        manageView.onProjectDescriptionChange(editingBasicsProject.id, event.target.value)
-                      }
-                      className={`${compactInputClassName} min-h-[140px] resize-y`}
-                      placeholder="项目描述（可选）"
-                    />
-                  </DashboardFilterFieldCard>
-                </div>
+                if (manageView.hasProjectNameChanged(editingBasicsProject)) {
+                  await manageView.onSaveProjectName(editingBasicsProject)
+                }
+                if (manageView.hasProjectDescriptionChanged(editingBasicsProject)) {
+                  await manageView.onSaveProjectDescription(editingBasicsProject)
+                }
+              }}
+              disabled={!basicsDirty || loading}
+              className={primaryButtonClassName}
+            >
+              保存基础信息
+            </button>
+          </div>
+        }
+      >
+        {editingBasicsProject ? (
+          <div className="space-y-4">
+            {editingBasicsProject.projectKey === 'default' ? (
+              <div className="rounded-[22px] border border-sky-200/80 bg-sky-50/80 px-5 py-4 text-sm leading-6 text-sky-700">
+                默认项目的名称固定，建议仅在这里维护描述说明，方便后台识别其兼容用途。
               </div>
             ) : null}
-          </DashboardModal>
 
-          <DashboardModal
-            open={editingRebindProject !== null}
-            onClose={() => setEditingRebindProjectId(null)}
-            title={editingRebindProject ? `编辑换绑策略 · ${editingRebindProject.name}` : '编辑换绑策略'}
-            description="项目级策略会作为单码与发码默认值的上级来源，适合在这里统一约束自助换绑边界。"
-            size="xl"
-            footer={
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setEditingRebindProjectId(null)}
-                  className={ghostButtonClassName}
-                >
-                  关闭
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    editingRebindProject && manageView.onSaveProjectRebindSettings?.(editingRebindProject)
-                  }
-                  disabled={!rebindDirty || loading}
-                  className={primaryButtonClassName}
-                >
-                  保存换绑策略
-                </button>
-              </div>
-            }
-          >
-            {editingRebindProject ? (
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-                <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]">
-                  <div className="text-sm font-semibold text-slate-900">当前策略摘要</div>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    这部分会反映项目层当前正在生效或即将保存的换绑规则。
-                  </p>
-                  <div className="mt-4 space-y-3">
-                    {buildProjectPolicySummary(editingRebindProject).map((item) => (
-                      <div
-                        key={item}
-                        className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm leading-6 text-slate-600"
-                      >
-                        {item}
-                      </div>
-                    ))}
+            <DashboardFormField
+              label="项目名称"
+              description="用于后台展示与筛选。"
+              htmlFor="project-modal-name"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
+            >
+              <input
+                id="project-modal-name"
+                type="text"
+                value={manageView.getProjectNameDraft(editingBasicsProject)}
+                onChange={(event) =>
+                  manageView.onProjectNameChange(editingBasicsProject.id, event.target.value)
+                }
+                className={compactInputClassName}
+                placeholder="项目名称"
+                disabled={loading || editingBasicsProject.projectKey === 'default'}
+              />
+            </DashboardFormField>
+
+            <DashboardFormField
+              label="项目标识"
+              description="用于 API 接入、项目隔离与激活码归属。"
+              htmlFor="project-modal-key"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3 space-y-3"
+            >
+              <input
+                id="project-modal-key"
+                type="text"
+                value={editingBasicsProject.projectKey}
+                readOnly
+                disabled
+                className={compactInputClassName}
+              />
+              <button
+                type="button"
+                onClick={() => manageView.onCopyProjectKey(editingBasicsProject.projectKey)}
+                className={ghostButtonClassName}
+              >
+                复制标识
+              </button>
+            </DashboardFormField>
+
+            <DashboardFormField
+              label="项目描述"
+              description="补充当前项目对应的产品、插件或客户背景。"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
+            >
+              <textarea
+                value={manageView.getProjectDescriptionDraft(editingBasicsProject)}
+                onChange={(event) =>
+                  manageView.onProjectDescriptionChange(editingBasicsProject.id, event.target.value)
+                }
+                className={`${compactInputClassName} min-h-[140px] resize-y`}
+                placeholder="项目描述（可选）"
+              />
+            </DashboardFormField>
+          </div>
+        ) : null}
+      </DashboardModal>
+
+      <DashboardModal
+        open={editingRebindProject !== null}
+        onClose={() => setEditingRebindProjectId(null)}
+        title={
+          editingRebindProject
+            ? `编辑项目级换绑策略 · ${editingRebindProject.name}`
+            : '编辑项目级换绑策略'
+        }
+        description="项目级策略会作为单码级与发码默认值的上级来源，适合在这里统一约束自助换绑边界。"
+        size="lg"
+        footer={
+          <div className={modalFooterClassName}>
+            <button
+              type="button"
+              onClick={() => setEditingRebindProjectId(null)}
+              className={ghostButtonClassName}
+            >
+              关闭
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                editingRebindProject && manageView.onSaveProjectRebindSettings?.(editingRebindProject)
+              }
+              disabled={!rebindDirty || loading}
+              className={primaryButtonClassName}
+            >
+              保存项目级换绑策略
+            </button>
+          </div>
+        }
+      >
+        {editingRebindProject ? (
+          <div className="space-y-4">
+            <div className={subtleModalSectionClassName}>
+              <h3 className={modalSectionTitleClassName}>策略摘要</h3>
+              <p className={modalSectionDescriptionClassName}>
+                这部分会反映项目层当前正在生效或即将保存的换绑规则。
+              </p>
+              <div className="mt-4 space-y-3">
+                {buildProjectPolicySummary(editingRebindProject).map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm leading-6 text-slate-600"
+                  >
+                    {item}
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <DashboardFilterFieldCard
-                    label="自助换绑策略"
-                    description="项目级总开关，留给单码继续继承。"
-                    htmlFor="project-rebind-policy"
-                  >
-                    <select
-                      id="project-rebind-policy"
-                      value={
-                        manageView.getProjectRebindPolicyDraft?.(editingRebindProject) ??
-                        resolveProjectRebindPolicyValue(editingRebindProject)
-                      }
-                      onChange={(event) =>
-                        manageView.onProjectRebindPolicyChange?.(
-                          editingRebindProject.id,
-                          event.target.value,
-                        )
-                      }
-                      className={compactInputClassName}
-                    >
-                      <option value="inherit">继承系统配置</option>
-                      <option value="enabled">允许自助换绑</option>
-                      <option value="disabled">禁止自助换绑</option>
-                    </select>
-                  </DashboardFilterFieldCard>
-
-                  <DashboardFilterFieldCard
-                    label="换绑冷却时间（分钟）"
-                    description="留空则继承系统配置；0 表示立即允许再次换绑。"
-                    htmlFor="project-rebind-cooldown"
-                  >
-                    <input
-                      id="project-rebind-cooldown"
-                      type="number"
-                      min="0"
-                      value={
-                        manageView.getProjectRebindCooldownMinutesDraft?.(editingRebindProject) ??
-                        resolveProjectRebindCooldownMinutesValue(editingRebindProject)
-                      }
-                      onChange={(event) =>
-                        manageView.onProjectRebindCooldownMinutesChange?.(
-                          editingRebindProject.id,
-                          event.target.value,
-                        )
-                      }
-                      className={compactInputClassName}
-                      placeholder="留空则继承系统配置"
-                    />
-                  </DashboardFilterFieldCard>
-
-                  <DashboardFilterFieldCard
-                    label="自助换绑次数上限"
-                    description="0 表示不限制；留空则继承系统配置。"
-                    htmlFor="project-rebind-max-count"
-                  >
-                    <input
-                      id="project-rebind-max-count"
-                      type="number"
-                      min="0"
-                      value={
-                        manageView.getProjectRebindMaxCountDraft?.(editingRebindProject) ??
-                        resolveProjectRebindMaxCountValue(editingRebindProject)
-                      }
-                      onChange={(event) =>
-                        manageView.onProjectRebindMaxCountChange?.(
-                          editingRebindProject.id,
-                          event.target.value,
-                        )
-                      }
-                      className={compactInputClassName}
-                      placeholder="0 表示不限制；留空则继承系统配置"
-                    />
-                  </DashboardFilterFieldCard>
-                </div>
+                ))}
               </div>
-            ) : null}
-          </DashboardModal>
-        </>
-      )}
+            </div>
+
+            <DashboardFormField
+              label={getScopedRebindPolicyLabel('project')}
+              description="项目级总开关；单码级保持继承时，会继续沿用这里的规则。"
+              htmlFor="project-rebind-policy"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
+            >
+              <select
+                id="project-rebind-policy"
+                value={
+                  manageView.getProjectRebindPolicyDraft?.(editingRebindProject) ??
+                  resolveProjectRebindPolicyValue(editingRebindProject)
+                }
+                onChange={(event) =>
+                  manageView.onProjectRebindPolicyChange?.(editingRebindProject.id, event.target.value)
+                }
+                className={compactInputClassName}
+              >
+                <option value="inherit">{getInheritedRebindPolicyOptionLabel('project')}</option>
+                <option value="enabled">允许自助换绑</option>
+                <option value="disabled">禁止自助换绑</option>
+              </select>
+            </DashboardFormField>
+
+            <DashboardFormField
+              label={getScopedRebindCooldownLabel('project')}
+              description="留空则继承系统级策略；0 表示立即允许再次换绑。"
+              htmlFor="project-rebind-cooldown"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
+            >
+              <input
+                id="project-rebind-cooldown"
+                type="number"
+                min="0"
+                value={
+                  manageView.getProjectRebindCooldownMinutesDraft?.(editingRebindProject) ??
+                  resolveProjectRebindCooldownMinutesValue(editingRebindProject)
+                }
+                onChange={(event) =>
+                  manageView.onProjectRebindCooldownMinutesChange?.(
+                    editingRebindProject.id,
+                    event.target.value,
+                  )
+                }
+                className={compactInputClassName}
+                placeholder={getInheritedRebindPlaceholder('project', 'cooldown')}
+              />
+            </DashboardFormField>
+
+            <DashboardFormField
+              label={getScopedRebindMaxCountLabel('project')}
+              description="0 表示不限制；留空则继承系统级策略。"
+              htmlFor="project-rebind-max-count"
+              className={modalFormFieldClassName}
+              bodyClassName="mt-3"
+            >
+              <input
+                id="project-rebind-max-count"
+                type="number"
+                min="0"
+                value={
+                  manageView.getProjectRebindMaxCountDraft?.(editingRebindProject) ??
+                  resolveProjectRebindMaxCountValue(editingRebindProject)
+                }
+                onChange={(event) =>
+                  manageView.onProjectRebindMaxCountChange?.(
+                    editingRebindProject.id,
+                    event.target.value,
+                  )
+                }
+                className={compactInputClassName}
+                placeholder={getInheritedRebindPlaceholder('project', 'maxCount')}
+              />
+            </DashboardFormField>
+          </div>
+        ) : null}
+      </DashboardModal>
     </div>
   )
 }

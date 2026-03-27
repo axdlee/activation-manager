@@ -134,3 +134,7 @@ temp/
 # Cursor
 .cursor/
 .ace-tool/
+
+.codex-backups/
+
+artifacts/
