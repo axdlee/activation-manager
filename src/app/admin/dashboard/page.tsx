@@ -2600,83 +2600,108 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#f6f8fc_42%,#eef2ff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className={`${shellClassName} relative overflow-hidden p-6 sm:p-8`}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.14),transparent_30%)]" />
-          <div className="relative">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div className="max-w-3xl">
+      <div className="mx-auto max-w-[1440px]">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <aside className="lg:sticky lg:top-6 lg:w-[300px] lg:self-start xl:w-[320px]">
+            <section className={`${shellClassName} relative overflow-hidden p-6 sm:p-7`}>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.14),transparent_30%)]" />
+              <div className="relative space-y-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1 text-xs font-medium tracking-[0.18em] text-sky-700 shadow-sm backdrop-blur">
+                    <span className="h-2 w-2 rounded-full bg-sky-500" />
+                    授权运营中台
+                  </div>
+                  <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">
+                    激活码管理后台
+                  </h1>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">
+                    把项目、发码、激活码、消费、审计和 API 接入收敛到同一套左侧导航工作区，减少跨页面跳转成本。
+                  </p>
+                </div>
+
+                <nav className="grid grid-cols-1 gap-3">
+                  {dashboardTabs.map((tab) => {
+                    const isActive = activeTab === tab.key
+
+                    return (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        className={`group rounded-[24px] border p-4 text-left transition ${
+                          isActive
+                            ? 'border-sky-200 bg-sky-50/90 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.45)]'
+                            : 'border-white/70 bg-white/70 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white/90'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${
+                              isActive
+                                ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
+                                : 'bg-slate-900 text-white/90'
+                            }`}
+                          >
+                            {tab.shortLabel}
+                          </div>
+                          <div className="min-w-0">
+                            <div className={`text-sm font-semibold ${isActive ? 'text-sky-900' : 'text-slate-900'}`}>
+                              {tab.label}
+                            </div>
+                            <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
+                              {tab.description}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </nav>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                  {heroMetricCards.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-[22px] border border-white/80 bg-white/75 px-4 py-4 shadow-[0_18px_60px_-38px_rgba(15,23,42,0.3)] backdrop-blur"
+                    >
+                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
+                      <div className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{item.value}</div>
+                      <div className="mt-2 text-sm text-slate-500">{item.description}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <button onClick={handleLogout} className={`w-full ${dangerButtonClassName}`}>
+                  登出
+                </button>
+              </div>
+            </section>
+          </aside>
+
+          <div className="min-w-0 flex-1 space-y-6">
+            <section className={`${shellClassName} relative overflow-hidden p-6 sm:p-8`}>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.1),transparent_28%)]" />
+              <div className="relative">
                 <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1 text-xs font-medium tracking-[0.18em] text-sky-700 shadow-sm backdrop-blur">
                   <span className="h-2 w-2 rounded-full bg-sky-500" />
                   当前模块 · {activeTabMeta.label}
                 </div>
-                <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-                  激活码管理后台
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                  {activeTabMeta.description}
-                </p>
-              </div>
-
-              <button onClick={handleLogout} className={dangerButtonClassName}>
-                登出
-              </button>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-              {heroMetricCards.map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-[24px] border border-white/80 bg-white/75 px-5 py-4 shadow-[0_18px_60px_-38px_rgba(15,23,42,0.3)] backdrop-blur"
-                >
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
-                  <div className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{item.value}</div>
-                  <div className="mt-2 text-sm text-slate-500">{item.description}</div>
+                <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="max-w-3xl">
+                    <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+                      {activeTabMeta.label}
+                    </h2>
+                    <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+                      {activeTabMeta.description}
+                    </p>
+                  </div>
+                  <div className="rounded-[22px] border border-white/80 bg-white/75 px-5 py-4 text-sm leading-6 text-slate-500 shadow-[0_18px_60px_-38px_rgba(15,23,42,0.3)] backdrop-blur lg:max-w-sm">
+                    左侧主菜单固定展示，当前工作区只聚焦本模块内容，减少顶部导航占位与来回滚动。
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            </section>
 
-            <nav className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {dashboardTabs.map((tab) => {
-                const isActive = activeTab === tab.key
-
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`group rounded-[24px] border p-4 text-left transition ${
-                      isActive
-                        ? 'border-sky-200 bg-sky-50/85 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.45)]'
-                        : 'border-white/70 bg-white/65 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white/90'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${
-                          isActive
-                            ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
-                            : 'bg-slate-900 text-white/90'
-                        }`}
-                      >
-                        {tab.shortLabel}
-                      </div>
-                      <div className="min-w-0">
-                        <div className={`text-sm font-semibold ${isActive ? 'text-sky-900' : 'text-slate-900'}`}>
-                          {tab.label}
-                        </div>
-                        <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
-                          {tab.description}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
-        </section>
-
-        {message && (
+            {message && (
           <div
             className={`rounded-[24px] border px-5 py-4 shadow-sm backdrop-blur ${
               messageType === 'success'
@@ -3122,6 +3147,7 @@ export default function DashboardPage() {
             workspaceSummaryCardClassName={workspaceSummaryCardClassName}
             compactInputClassName={compactInputClassName}
             primaryButtonClassName={primaryButtonClassName}
+            ghostButtonClassName={ghostButtonClassName}
             paginationButtonClassName={paginationButtonClassName}
             paginationActiveButtonClassName={paginationActiveButtonClassName}
           />
@@ -3428,6 +3454,8 @@ export default function DashboardPage() {
             isSensitiveConfigVisible={isSensitiveConfigVisible}
           />
         )}
+          </div>
+        </div>
       </div>
     </main>
   )

@@ -1,12 +1,13 @@
 'use client'
 
-import React, { type ReactNode } from 'react'
+import React, { type ReactNode, useEffect, useState } from 'react'
 
 import { DashboardDataTable } from '@/components/dashboard-data-table'
 import { DashboardEmptyState } from '@/components/dashboard-empty-state'
 import { DashboardFilterFieldCard } from '@/components/dashboard-filter-field-card'
 import { DashboardInlineActionButton } from '@/components/dashboard-inline-action-button'
 import { DashboardLoadingState } from '@/components/dashboard-loading-state'
+import { DashboardModal } from '@/components/dashboard-modal'
 import { DashboardPaginationBar } from '@/components/dashboard-pagination-bar'
 import { DashboardSectionHeader } from '@/components/dashboard-section-header'
 import { DashboardStatTile } from '@/components/dashboard-stat-tile'
@@ -191,6 +192,221 @@ const defaultPaginationButtonClassName =
 const defaultPaginationActiveButtonClassName =
   'border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:border-sky-500 hover:bg-sky-500'
 
+type ActivationCodeManagementPanelProps = {
+  managementView: ActivationCodeManagementView
+  compactInputClassName: string
+  primaryButtonClassName: string
+  warningButtonClassName: string
+}
+
+function ActivationCodeManagementPanel({
+  managementView,
+  compactInputClassName,
+  primaryButtonClassName,
+  warningButtonClassName,
+}: ActivationCodeManagementPanelProps) {
+  if (managementView.selectedCodeId === null) {
+    return (
+      <DashboardEmptyState message="选择一条激活码后，可在弹框中查看绑定设备、最终生效策略并执行强制解绑或换绑。" />
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-[20px] border border-slate-200/80 bg-white/90 px-5 py-4 shadow-sm">
+        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">当前选中</div>
+        <div className="mt-3 text-xl font-semibold text-slate-900">{managementView.selectedCodeTitle}</div>
+        <div className="mt-2 text-sm text-slate-500">{managementView.selectedCodeSubtitle}</div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+        {[
+          ['绑定设备', managementView.bindingDeviceDisplay],
+          ['首次使用', managementView.usedAtDisplay],
+          ['最近绑定', managementView.lastBoundAtDisplay],
+          ['最近换绑', managementView.lastRebindAtDisplay],
+          ['换绑次数', managementView.rebindCountDisplay],
+          ['自助换绑次数', managementView.autoRebindCountDisplay],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="rounded-[20px] border border-slate-200/80 bg-white px-4 py-4 shadow-sm"
+          >
+            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</div>
+            <div className="mt-3 text-sm font-medium text-slate-900">{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
+        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-900">最终生效策略</div>
+          <ul className="mt-4 space-y-2 text-sm text-slate-600">
+            {managementView.effectivePolicySummary.map((item) => (
+              <li key={item} className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-900">单码覆盖配置</div>
+          <div className="mt-4 space-y-4">
+            <div>
+              <label htmlFor="activation-code-override-policy" className="text-sm font-medium text-slate-700">
+                自助换绑策略
+              </label>
+              <select
+                id="activation-code-override-policy"
+                value={managementView.overridePolicyValue}
+                onChange={(event) => managementView.onOverridePolicyChange(event.target.value)}
+                className={`${compactInputClassName} mt-2`}
+              >
+                <option value="inherit">继承项目 / 系统策略</option>
+                <option value="enabled">允许自助换绑</option>
+                <option value="disabled">禁止自助换绑</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="activation-code-override-cooldown" className="text-sm font-medium text-slate-700">
+                换绑冷却时间（分钟）
+              </label>
+              <input
+                id="activation-code-override-cooldown"
+                type="number"
+                min="0"
+                value={managementView.overrideCooldownMinutesValue}
+                onChange={(event) => managementView.onOverrideCooldownMinutesChange(event.target.value)}
+                className={`${compactInputClassName} mt-2`}
+                placeholder="留空则继承项目配置"
+              />
+            </div>
+            <div>
+              <label htmlFor="activation-code-override-max-count" className="text-sm font-medium text-slate-700">
+                自助换绑次数上限
+              </label>
+              <input
+                id="activation-code-override-max-count"
+                type="number"
+                min="0"
+                value={managementView.overrideMaxCountValue}
+                onChange={(event) => managementView.onOverrideMaxCountChange(event.target.value)}
+                className={`${compactInputClassName} mt-2`}
+                placeholder="0 表示不限制；留空则继承项目配置"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={managementView.onSaveSettings}
+              disabled={managementView.loading}
+              className={`w-full ${primaryButtonClassName}`}
+            >
+              保存换绑策略
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm xl:col-span-2">
+          <div className="text-sm font-semibold text-slate-900">管理员操作说明（选填）</div>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            会随“保存换绑策略 / 强制解绑 / 强制换绑”一起写入审计日志，建议记录工单号、用户申请原因或排障背景。
+          </p>
+          <textarea
+            value={managementView.adminActionReason}
+            onChange={(event) => managementView.onAdminActionReasonChange(event.target.value)}
+            className={`${compactInputClassName} mt-4 min-h-[104px] resize-y`}
+            placeholder="例如：用户更换电脑，已核对订单并批准迁移"
+          />
+        </div>
+
+        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-900">强制解绑</div>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            只释放当前设备绑定，不重置有效期、剩余次数或使用时间。
+          </p>
+          <button
+            type="button"
+            onClick={managementView.onForceUnbind}
+            disabled={managementView.loading}
+            className={`mt-4 w-full ${warningButtonClassName}`}
+          >
+            强制解绑
+          </button>
+        </div>
+
+        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-900">强制换绑</div>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            将当前激活码直接迁移到新设备，同时保留原有效期、次数与生命周期。
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              type="text"
+              value={managementView.targetMachineId}
+              onChange={(event) => managementView.onTargetMachineIdChange(event.target.value)}
+              className={compactInputClassName}
+              placeholder="输入目标 machineId"
+            />
+            <button
+              type="button"
+              onClick={managementView.onForceRebind}
+              disabled={managementView.loading}
+              className={primaryButtonClassName}
+            >
+              强制换绑
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-900">绑定历史</div>
+          <div className="mt-4 space-y-3">
+            {managementView.bindingHistoryEntries.length === 0 ? (
+              <p className="text-sm text-slate-500">暂无绑定历史记录</p>
+            ) : (
+              managementView.bindingHistoryEntries.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3"
+                >
+                  <div className="text-sm font-medium text-slate-900">{item.title}</div>
+                  <div className="mt-1 text-sm text-slate-600">{item.description}</div>
+                  <div className="mt-2 text-xs text-slate-400">{item.timestamp}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-900">管理员审计</div>
+          <div className="mt-4 space-y-3">
+            {managementView.adminAuditEntries.length === 0 ? (
+              <p className="text-sm text-slate-500">暂无管理员操作记录</p>
+            ) : (
+              managementView.adminAuditEntries.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3"
+                >
+                  <div className="text-sm font-medium text-slate-900">{item.title}</div>
+                  <div className="mt-1 text-sm text-slate-600">{item.description}</div>
+                  <div className="mt-2 text-xs text-slate-400">{item.timestamp}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCode>({
   activeTab,
   onTabChange,
@@ -210,13 +426,28 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
   paginationButtonClassName = defaultPaginationButtonClassName,
   paginationActiveButtonClassName = defaultPaginationActiveButtonClassName,
 }: ActivationCodeWorkspaceProps<TCode>) {
+  const [isManagementModalOpen, setIsManagementModalOpen] = useState(
+    Boolean(resultsView.managementView?.selectedCodeId),
+  )
+
+  useEffect(() => {
+    if (!resultsView.managementView || resultsView.managementView.selectedCodeId === null) {
+      setIsManagementModalOpen(false)
+    }
+  }, [resultsView.managementView, resultsView.managementView?.selectedCodeId])
+
+  const handleOpenManagement = (codeId: number) => {
+    resultsView.managementView?.onSelectCode(codeId)
+    setIsManagementModalOpen(true)
+  }
+
   return (
     <div className="space-y-6">
       <div className={panelClassName}>
         <WorkspaceHeroPanel
           badge="激活码工作区"
           title="激活码管理中心"
-          description="把筛选器、结果列表与单码管理拆开展示，避免搜索、导出、清理和绑定管理全部挤在一个长页面里。"
+          description="结果列表只负责查看关键字段，单码绑定详情、策略覆盖与管理员操作统一放入弹框，避免长页面反复滚动。"
           gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.1),transparent_30%)]"
           metrics={
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -389,379 +620,179 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
           </div>
         </div>
       ) : (
-        <div className={`${panelClassName} p-6`}>
-          <DashboardSectionHeader
-            title={`激活码列表 (${resultsView.filteredCount} 条记录)`}
-            description="当前页聚焦查看结果、执行复制/删除/清理操作，并为单码提供绑定信息与管理入口。"
-            trailing={
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => onTabChange('filters')}
-                  className={ghostButtonClassName}
-                >
-                  查看筛选器
-                </button>
-                <button
-                  type="button"
-                  onClick={resultsView.onExport}
-                  disabled={resultsView.filteredCount === 0}
-                  className={successButtonClassName}
-                >
-                  导出筛选结果
-                </button>
-                <button
-                  type="button"
-                  onClick={resultsView.onCleanup}
-                  disabled={loading}
-                  className={warningButtonClassName}
-                >
-                  清理过期绑定
-                </button>
-              </div>
-            }
-            className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
-          />
-
-          <DashboardSummaryStrip
-            leading={
-              <DashboardTokenList
-                tokens={resultsView.filterTokens}
-                emptyText="当前显示全部激活码"
-              />
-            }
-            trailing={
-              <div className="text-sm text-slate-500">
-                当前展示第 {resultsView.startIndex} - {resultsView.endIndex} 条，共{' '}
-                {resultsView.filteredCount} 条记录
-              </div>
-            }
-          />
-
-          {loading ? (
-            <DashboardLoadingState message="加载中..." />
-          ) : (
-            <>
-              <DashboardDataTable
-                headers={[
-                  '项目',
-                  '激活码',
-                  '状态',
-                  '授权类型',
-                  '规格',
-                  '创建时间',
-                  '过期时间',
-                  '剩余次数',
-                  '使用时间',
-                  '绑定设备 / machineId',
-                  '操作',
-                ]}
-              >
-                {resultsView.codes.map((code) => {
-                  const isSelected = resultsView.managementView?.selectedCodeId === code.id
-
-                  return (
-                    <tr key={code.id} className="transition hover:bg-slate-50/80">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {resultsView.getProjectDisplay(code)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                        {code.code}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {resultsView.getStatusBadge(code)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {resultsView.getLicenseModeDisplay(code.licenseMode)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {resultsView.getSpecDisplay(code)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(code.createdAt).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {resultsView.getExpiryDisplay(code)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {resultsView.getRemainingDisplay(code)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {code.usedAt ? new Date(code.usedAt).toLocaleString() : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {code.usedBy || '未绑定'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex flex-wrap gap-2">
-                          <DashboardInlineActionButton
-                            onClick={() => resultsView.onCopyCode(code.code)}
-                          >
-                            复制
-                          </DashboardInlineActionButton>
-                          <DashboardInlineActionButton
-                            onClick={() => resultsView.managementView?.onSelectCode(code.id)}
-                            className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
-                              isSelected
-                                ? 'border-sky-200 bg-sky-50 text-sky-700'
-                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                            }`}
-                          >
-                            管理
-                          </DashboardInlineActionButton>
-                          <DashboardInlineActionButton
-                            onClick={() => resultsView.onDeleteCode(code.id)}
-                          >
-                            删除
-                          </DashboardInlineActionButton>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </DashboardDataTable>
-
-              {resultsView.filteredCount === 0 ? (
-                <DashboardEmptyState
-                  message="暂无匹配的激活码记录，建议切换到“筛选与导出”检查关键词、项目或套餐条件。"
-                  className="mt-5"
-                />
-              ) : null}
-
-              <DashboardPaginationBar
-                currentPage={resultsView.currentPage}
-                totalPages={resultsView.totalPages}
-                summary={`显示第 ${resultsView.startIndex} - ${resultsView.endIndex} 条，共 ${resultsView.filteredCount} 条记录`}
-                onPageChange={resultsView.onPageChange}
-                buttonClassName={paginationButtonClassName}
-                activeButtonClassName={paginationActiveButtonClassName}
-              />
-
-              {resultsView.managementView ? (
-                <div className="mt-6 rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]">
-                  <DashboardSectionHeader
-                    title="单码管理"
-                    description="查看当前绑定设备、最终生效策略，并直接执行单码覆盖配置、强制解绑或强制换绑。"
-                    className="mb-5"
-                  />
-
-                  {resultsView.managementView.selectedCodeId === null ? (
-                    <DashboardEmptyState
-                      message="选择一条激活码后，可在此查看绑定设备、最终生效策略并执行强制解绑或换绑。"
-                    />
-                  ) : (
-                    <div className="space-y-5">
-                      <div className="rounded-[20px] border border-slate-200/80 bg-white/90 px-5 py-4 shadow-sm">
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">当前选中</div>
-                        <div className="mt-3 text-xl font-semibold text-slate-900">
-                          {resultsView.managementView.selectedCodeTitle}
-                        </div>
-                        <div className="mt-2 text-sm text-slate-500">
-                          {resultsView.managementView.selectedCodeSubtitle}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-                        {[
-                          ['绑定设备', resultsView.managementView.bindingDeviceDisplay],
-                          ['首次使用', resultsView.managementView.usedAtDisplay],
-                          ['最近绑定', resultsView.managementView.lastBoundAtDisplay],
-                          ['最近换绑', resultsView.managementView.lastRebindAtDisplay],
-                          ['换绑次数', resultsView.managementView.rebindCountDisplay],
-                          ['自助换绑次数', resultsView.managementView.autoRebindCountDisplay],
-                        ].map(([label, value]) => (
-                          <div
-                            key={label}
-                            className="rounded-[20px] border border-slate-200/80 bg-white px-4 py-4 shadow-sm"
-                          >
-                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</div>
-                            <div className="mt-3 text-sm font-medium text-slate-900">{value}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
-                        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-                          <div className="text-sm font-semibold text-slate-900">最终生效策略</div>
-                          <ul className="mt-4 space-y-2 text-sm text-slate-600">
-                            {resultsView.managementView.effectivePolicySummary.map((item) => (
-                              <li key={item} className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3">
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-                          <div className="text-sm font-semibold text-slate-900">单码覆盖配置</div>
-                          <div className="mt-4 space-y-4">
-                            <div>
-                              <label htmlFor="activation-code-override-policy" className="text-sm font-medium text-slate-700">
-                                自助换绑策略
-                              </label>
-                              <select
-                                id="activation-code-override-policy"
-                                value={resultsView.managementView.overridePolicyValue}
-                                onChange={(event) =>
-                                  resultsView.managementView?.onOverridePolicyChange(event.target.value)
-                                }
-                                className={`${compactInputClassName} mt-2`}
-                              >
-                                <option value="inherit">继承项目 / 系统策略</option>
-                                <option value="enabled">允许自助换绑</option>
-                                <option value="disabled">禁止自助换绑</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label htmlFor="activation-code-override-cooldown" className="text-sm font-medium text-slate-700">
-                                换绑冷却时间（分钟）
-                              </label>
-                              <input
-                                id="activation-code-override-cooldown"
-                                type="number"
-                                min="0"
-                                value={resultsView.managementView.overrideCooldownMinutesValue}
-                                onChange={(event) =>
-                                  resultsView.managementView?.onOverrideCooldownMinutesChange(event.target.value)
-                                }
-                                className={`${compactInputClassName} mt-2`}
-                                placeholder="留空则继承项目配置"
-                              />
-                            </div>
-                            <div>
-                              <label htmlFor="activation-code-override-max-count" className="text-sm font-medium text-slate-700">
-                                自助换绑次数上限
-                              </label>
-                              <input
-                                id="activation-code-override-max-count"
-                                type="number"
-                                min="0"
-                                value={resultsView.managementView.overrideMaxCountValue}
-                                onChange={(event) =>
-                                  resultsView.managementView?.onOverrideMaxCountChange(event.target.value)
-                                }
-                                className={`${compactInputClassName} mt-2`}
-                                placeholder="0 表示不限制；留空则继承项目配置"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={resultsView.managementView.onSaveSettings}
-                              disabled={resultsView.managementView.loading}
-                              className={`w-full ${primaryButtonClassName}`}
-                            >
-                              保存换绑策略
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-                        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm xl:col-span-2">
-                          <div className="text-sm font-semibold text-slate-900">管理员操作说明（选填）</div>
-                          <p className="mt-2 text-sm leading-6 text-slate-500">
-                            会随“保存换绑策略 / 强制解绑 / 强制换绑”一起写入审计日志，建议记录工单号、用户申请原因或排障背景。
-                          </p>
-                          <textarea
-                            value={resultsView.managementView.adminActionReason}
-                            onChange={(event) =>
-                              resultsView.managementView?.onAdminActionReasonChange(event.target.value)
-                            }
-                            className={`${compactInputClassName} mt-4 min-h-[104px] resize-y`}
-                            placeholder="例如：用户更换电脑，已核对订单并批准迁移"
-                          />
-                        </div>
-
-                        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-                          <div className="text-sm font-semibold text-slate-900">强制解绑</div>
-                          <p className="mt-2 text-sm leading-6 text-slate-500">
-                            只释放当前设备绑定，不重置有效期、剩余次数或使用时间。
-                          </p>
-                          <button
-                            type="button"
-                            onClick={resultsView.managementView.onForceUnbind}
-                            disabled={resultsView.managementView.loading}
-                            className={`mt-4 w-full ${warningButtonClassName}`}
-                          >
-                            强制解绑
-                          </button>
-                        </div>
-
-                        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-                          <div className="text-sm font-semibold text-slate-900">强制换绑</div>
-                          <p className="mt-2 text-sm leading-6 text-slate-500">
-                            将当前激活码直接迁移到新设备，同时保留原有效期、次数与生命周期。
-                          </p>
-                          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                            <input
-                              type="text"
-                              value={resultsView.managementView.targetMachineId}
-                              onChange={(event) =>
-                                resultsView.managementView?.onTargetMachineIdChange(event.target.value)
-                              }
-                              className={compactInputClassName}
-                              placeholder="输入目标 machineId"
-                            />
-                            <button
-                              type="button"
-                              onClick={resultsView.managementView.onForceRebind}
-                              disabled={resultsView.managementView.loading}
-                              className={primaryButtonClassName}
-                            >
-                              强制换绑
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-                          <div className="text-sm font-semibold text-slate-900">绑定历史</div>
-                          <div className="mt-4 space-y-3">
-                            {resultsView.managementView.bindingHistoryEntries.length === 0 ? (
-                              <p className="text-sm text-slate-500">暂无绑定历史记录</p>
-                            ) : (
-                              resultsView.managementView.bindingHistoryEntries.map((item) => (
-                                <div
-                                  key={item.id}
-                                  className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3"
-                                >
-                                  <div className="text-sm font-medium text-slate-900">{item.title}</div>
-                                  <div className="mt-1 text-sm text-slate-600">{item.description}</div>
-                                  <div className="mt-2 text-xs text-slate-400">{item.timestamp}</div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-                          <div className="text-sm font-semibold text-slate-900">管理员审计</div>
-                          <div className="mt-4 space-y-3">
-                            {resultsView.managementView.adminAuditEntries.length === 0 ? (
-                              <p className="text-sm text-slate-500">暂无管理员操作记录</p>
-                            ) : (
-                              resultsView.managementView.adminAuditEntries.map((item) => (
-                                <div
-                                  key={item.id}
-                                  className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3"
-                                >
-                                  <div className="text-sm font-medium text-slate-900">{item.title}</div>
-                                  <div className="mt-1 text-sm text-slate-600">{item.description}</div>
-                                  <div className="mt-2 text-xs text-slate-400">{item.timestamp}</div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+        <>
+          <div className={`${panelClassName} p-6`}>
+            <DashboardSectionHeader
+              title={`激活码列表 (${resultsView.filteredCount} 条记录)`}
+              description="当前页聚焦查看结果、执行复制/删除/清理操作，单码管理入口已收敛到弹框中。"
+              trailing={
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onTabChange('filters')}
+                    className={ghostButtonClassName}
+                  >
+                    查看筛选器
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resultsView.onExport}
+                    disabled={resultsView.filteredCount === 0}
+                    className={successButtonClassName}
+                  >
+                    导出筛选结果
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resultsView.onCleanup}
+                    disabled={loading}
+                    className={warningButtonClassName}
+                  >
+                    清理过期绑定
+                  </button>
                 </div>
-              ) : null}
-            </>
-          )}
-        </div>
+              }
+              className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
+            />
+
+            <DashboardSummaryStrip
+              leading={
+                <DashboardTokenList
+                  tokens={resultsView.filterTokens}
+                  emptyText="当前显示全部激活码"
+                />
+              }
+              trailing={
+                <div className="text-sm text-slate-500">
+                  当前展示第 {resultsView.startIndex} - {resultsView.endIndex} 条，共{' '}
+                  {resultsView.filteredCount} 条记录
+                </div>
+              }
+            />
+
+            {loading ? (
+              <DashboardLoadingState message="加载中..." />
+            ) : (
+              <>
+                <DashboardDataTable
+                  headers={[
+                    '项目',
+                    '激活码',
+                    '状态',
+                    '授权类型',
+                    '规格',
+                    '创建时间',
+                    '过期时间',
+                    '剩余次数',
+                    '使用时间',
+                    '绑定设备 / machineId',
+                    '操作',
+                  ]}
+                >
+                  {resultsView.codes.map((code) => {
+                    const isSelected = resultsView.managementView?.selectedCodeId === code.id
+
+                    return (
+                      <tr key={code.id} className="transition hover:bg-slate-50/80">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {resultsView.getProjectDisplay(code)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                          {code.code}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {resultsView.getStatusBadge(code)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {resultsView.getLicenseModeDisplay(code.licenseMode)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {resultsView.getSpecDisplay(code)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(code.createdAt).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {resultsView.getExpiryDisplay(code)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {resultsView.getRemainingDisplay(code)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {code.usedAt ? new Date(code.usedAt).toLocaleString() : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {code.usedBy || '未绑定'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex flex-wrap gap-2">
+                            <DashboardInlineActionButton
+                              onClick={() => resultsView.onCopyCode(code.code)}
+                            >
+                              复制
+                            </DashboardInlineActionButton>
+                            <DashboardInlineActionButton
+                              onClick={() => handleOpenManagement(code.id)}
+                              className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
+                                isSelected
+                                  ? 'border-sky-200 bg-sky-50 text-sky-700'
+                                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                              }`}
+                            >
+                              查看 / 管理
+                            </DashboardInlineActionButton>
+                            <DashboardInlineActionButton
+                              onClick={() => resultsView.onDeleteCode(code.id)}
+                            >
+                              删除
+                            </DashboardInlineActionButton>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </DashboardDataTable>
+
+                {resultsView.filteredCount === 0 ? (
+                  <DashboardEmptyState
+                    message="暂无匹配的激活码记录，建议切换到“筛选与导出”检查关键词、项目或套餐条件。"
+                    className="mt-5"
+                  />
+                ) : null}
+
+                <DashboardPaginationBar
+                  currentPage={resultsView.currentPage}
+                  totalPages={resultsView.totalPages}
+                  summary={`显示第 ${resultsView.startIndex} - ${resultsView.endIndex} 条，共 ${resultsView.filteredCount} 条记录`}
+                  onPageChange={resultsView.onPageChange}
+                  buttonClassName={paginationButtonClassName}
+                  activeButtonClassName={paginationActiveButtonClassName}
+                />
+              </>
+            )}
+          </div>
+
+          {resultsView.managementView ? (
+            <DashboardModal
+              open={isManagementModalOpen}
+              onClose={() => setIsManagementModalOpen(false)}
+              title={
+                resultsView.managementView.selectedCodeId === null
+                  ? '单码管理'
+                  : `单码管理 · ${resultsView.managementView.selectedCodeTitle}`
+              }
+              description="查看绑定设备、最终生效策略、单码覆盖配置与管理员操作审计。"
+              size="6xl"
+            >
+              <ActivationCodeManagementPanel
+                managementView={resultsView.managementView}
+                compactInputClassName={compactInputClassName}
+                primaryButtonClassName={primaryButtonClassName}
+                warningButtonClassName={warningButtonClassName}
+              />
+            </DashboardModal>
+          ) : null}
+        </>
       )}
     </div>
   )
