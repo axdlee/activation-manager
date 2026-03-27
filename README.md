@@ -1,7 +1,7 @@
 # 激活码管理系统
 
-> 面向 **多项目**、**双授权模型（TIME / COUNT）** 与 **插件 / 客户端正式接入** 场景打造的一体化授权后台。
-> 你可以用它管理项目、批量发码、追踪消费日志、查看趋势统计，也可以直接把公开 API 文档发给接入方完成联调。
+> 面向 **多项目**、**双授权模型（TIME / COUNT）** 与 **插件 / 客户端正式接入** 场景打造的一体化授权运营后台。  
+> 一套服务同时覆盖 **项目隔离、发码、激活、状态校验、按次扣减、日志排查、换绑治理与公开 API 文档**，适合浏览器插件、桌面工具与多产品授权场景。
 
 <p>
   <img src="https://img.shields.io/badge/Next.js-14-111827?logo=nextdotjs" alt="Next.js 14" />
@@ -10,6 +10,13 @@
   <img src="https://img.shields.io/badge/Node.js-%3E%3D22-15803D?logo=nodedotjs" alt="Node.js >= 22" />
   <img src="https://img.shields.io/badge/API-activate%20%7C%20status%20%7C%20consume-0369A1" alt="License API" />
 </p>
+
+## 开箱亮点
+
+- **面向真实接入而不是演示页面**：内置 `activate / status / consume` 正式接口与 `/api/verify` 兼容接口
+- **适合多产品 / 多客户并行运营**：通过 `projectKey` 隔离项目、发码空间、启停状态与治理策略
+- **对浏览器插件尤其友好**：支持次数型授权、`requestId` 幂等扣次、消费日志按请求回查
+- **交付闭环完整**：公开 API 文档、SDK、smoke 联调脚本、后台排查工作区、Docker 部署与 DockerHub 自动发布都已就绪
 
 ## 快速导航
 
@@ -97,9 +104,9 @@
 - CSV 导出（激活码、统计、消费日志、趋势）
 
 ### 5. 换绑治理与审计
-- 系统 / 项目 / 单码三级换绑策略覆盖
-- 项目列表改为只读字段展示，名称 / 描述 / 换绑策略统一通过弹框编辑
-- 激活码列表支持弹框查看绑定设备、策略来源、绑定历史与管理员审计
+- 换绑策略支持 **系统级配置 < 项目级配置 < 单码级配置** 的三级覆盖优先级
+- 项目列表改为只读字段展示，新建项目、基础信息维护与项目级换绑策略统一通过弹框编辑
+- 激活码列表支持弹框查看绑定设备、最终生效策略、单码级覆盖配置、绑定历史与管理员审计
 - 支持管理员强制解绑 / 强制换绑，并记录原因说明
 - 后台提供审计中心，可统一检索关键操作并导出 CSV
 
@@ -108,22 +115,22 @@
 - 登录限流，降低暴力破解风险
 - IP 白名单访问控制
 - 管理员密码修改
-- 系统配置管理（白名单 / JWT / bcrypt 成本 / 系统名称等）
+- 系统配置管理（白名单 / 系统级换绑策略 / JWT / bcrypt 成本 / 系统名称等）
 
 ## 能力总览
 
 | 能力模块 | 支持内容 |
 |---|---|
-| 项目管理 | 项目创建、`projectKey` 复制、搜索、筛选、排序、分页、启停、空项目删除、基础信息弹框编辑 |
-| 激活码生成 | 批量生成时间型 / 次数型激活码 |
-| 激活码管理 | 列表查看、状态判断、规格查看、单码弹框管理、删除、过期绑定清理 |
-| 换绑治理 | 系统 / 项目 / 单码三级策略、自助换绑限制、强制解绑 / 换绑 |
+| 项目管理 | 项目创建、`projectKey` 复制、搜索、筛选、排序、分页、启停、空项目删除、基础信息 / 项目级换绑策略弹框编辑 |
+| 激活码生成 | 批量生成时间型 / 次数型激活码，并支持单码级换绑覆盖参数 |
+| 激活码管理 | 列表查看、状态判断、规格查看、单码弹框管理、绑定设备查看、删除、过期绑定清理 |
+| 换绑治理 | 系统级配置 < 项目级配置 < 单码级配置、自助换绑限制、强制解绑 / 换绑 |
 | 审计中心 | 管理员操作审计、绑定历史回溯、CSV 导出 |
 | License API | `activate / status / consume / verify` |
 | SDK 与文档 | JS/TS SDK、公开 API 文档页、多语言示例 |
 | 消费日志 | 项目 / `requestId` / 机器 ID / 时间范围过滤、服务端分页、CSV 导出 |
 | 趋势统计 | 7 / 30 天趋势、按日/周/月聚合、周期对比、项目对比、非零桶筛选 |
-| 安全配置 | JWT、白名单、密码强度、管理员密码修改 |
+| 安全配置 | JWT、白名单、系统级换绑策略、密码强度、管理员密码修改 |
 
 ---
 
@@ -137,7 +144,7 @@
 - 公开 API 文档入口
 
 <p align="center">
-  <img src="./Readmeimg/validation-20260326/public-home.jpg" width="92%" alt="激活码管理系统首页（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/public-home.jpg" width="92%" alt="激活码管理系统首页（最新版 UI）" />
 </p>
 
 ---
@@ -200,7 +207,7 @@ npm run dev
 如果你是第一次部署，建议先从登录页进入后台：
 
 <p align="center">
-  <img src="./Readmeimg/validation-20260326/admin-login.jpg" width="88%" alt="管理后台登录页（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/admin-login.jpg" width="88%" alt="管理后台登录页（最新版 UI）" />
 </p>
 
 默认管理员账号：
@@ -838,7 +845,7 @@ BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
 如果你要把一个页面直接发给接入方，优先发这个公开文档页：
 
 <p align="center">
-  <img src="./Readmeimg/validation-20260326/docs-api-overview.jpg" width="92%" alt="公开 API 文档总览页（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/docs-api-overview.jpg" width="92%" alt="公开 API 文档总览页（最新版 UI）" />
 </p>
 
 ### 行为约定
@@ -885,11 +892,11 @@ await client.consume({
 - 本地运行后的公开页面：`http://localhost:3000/docs/api`
 - 仓库内详版文档：[apidocs.md](./apidocs.md)
 
-公开文档页和后台联调工作区都已经按最新版 UI 重拍：
+公开文档页和后台联调工作区都已经按 `2026-03-27` 最新 UI 重拍：
 
 <p>
-  <img src="./Readmeimg/validation-20260326/docs-api-examples.jpg" width="49%" alt="公开 API 文档多语言示例（最新版 UI）" />
-  <img src="./Readmeimg/validation-20260326/admin-api-docs.jpg" width="49%" alt="后台 API 接入工作区（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/docs-api-examples.jpg" width="49%" alt="公开 API 文档多语言示例（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/admin-api-docs.jpg" width="49%" alt="后台 API 接入工作区（最新版 UI）" />
 </p>
 
 ---
@@ -902,37 +909,39 @@ await client.consume({
 - 查看消费趋势、周期对比与项目对比
 
 <p align="center">
-  <img src="./Readmeimg/validation-20260326/admin-dashboard-stats.jpg" width="92%" alt="后台统计总览（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/admin-dashboard-stats.jpg" width="92%" alt="后台统计总览（最新版 UI）" />
 </p>
 
 ### 项目管理
 - 左侧主导航固定切换工作区，不再占用页面顶部主视觉
-- 项目列表只展示名称、标识、换绑策略、状态等关键字段
-- 项目名称 / 描述 / 换绑策略统一通过弹框编辑
+- 项目列表只展示名称、标识、项目级换绑策略、状态等关键字段
+- 新建项目、基础信息维护、项目级换绑策略统一通过弹框完成，表单改为更易读的纵向布局
 - 一键复制 `projectKey`
 - 搜索、筛选、排序、分页
 - 启用 / 停用项目
 - 删除空项目
 
 <p align="center">
-  <img src="./Readmeimg/validation-20260326/admin-project-management.jpg" width="92%" alt="项目管理页面（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/admin-project-management.jpg" width="92%" alt="项目管理页面（最新版 UI）" />
 </p>
 
 ### 发码与码管理
-- 批量生成时间型或次数型激活码
-- 查看激活码状态、规格、过期时间、剩余次数
-- 单码管理改为弹框查看，集中展示绑定设备、策略来源、绑定历史、管理员审计
+- 批量生成时间型或次数型激活码，并支持单码级自助换绑策略、冷却时间与次数上限覆盖
+- 查看激活码状态、规格、过期时间、剩余次数与绑定设备 / `machineId`
+- 单码管理改为弹框查看，集中展示绑定设备、最终生效策略、单码级覆盖配置、绑定历史与管理员审计
 - 支持单码覆盖策略、强制解绑、强制换绑
 - 删除激活码
 - 清理过期绑定
 
 <p>
-  <img src="./Readmeimg/validation-20260326/admin-generate-codes.jpg" width="49%" alt="生成激活码页面（最新版 UI）" />
-  <img src="./Readmeimg/validation-20260326/admin-activation-codes.jpg" width="49%" alt="激活码管理页面（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/admin-generate-codes.jpg" width="49%" alt="生成激活码页面（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/admin-activation-codes.jpg" width="49%" alt="激活码管理页面（最新版 UI）" />
 </p>
 
 ### 换绑治理与审计
-- 系统 / 项目 / 单码三级策略覆盖
+- 明确采用 **系统级配置 < 项目级配置 < 单码级配置** 的三级继承与覆盖优先级
+- 系统配置页新增独立“换绑策略”分区，集中维护系统级默认规则
+- 项目级与单码级都支持继承上级策略，并展示最终生效来源
 - 自助换绑冷却时间与次数上限治理
 - 管理员操作原因说明随审计日志落库
 - 审计中心统一排查项目、激活码与换绑相关动作
@@ -943,7 +952,7 @@ await client.consume({
 - 服务端分页 + CSV 导出
 
 <p align="center">
-  <img src="./Readmeimg/validation-20260326/admin-consumption-logs.jpg" width="92%" alt="消费日志页面（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/admin-consumption-logs.jpg" width="92%" alt="消费日志页面（最新版 UI）" />
 </p>
 
 ### 安全与配置
@@ -952,10 +961,11 @@ await client.consume({
 - 管理 JWT 有效期与密钥
 - 管理密码哈希成本
 - 管理系统展示名称等配置
+- 设置页已拆分为总览、访问控制、换绑策略、认证与会话、系统展示等分区，长页面操作更清晰
 
 <p>
-  <img src="./Readmeimg/validation-20260326/admin-system-config.jpg" width="49%" alt="系统配置页面（最新版 UI）" />
-  <img src="./Readmeimg/validation-20260326/admin-change-password.jpg" width="49%" alt="管理员密码修改页（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/admin-system-config.jpg" width="49%" alt="系统配置页面（最新版 UI）" />
+  <img src="./Readmeimg/validation-20260327/admin-change-password.jpg" width="49%" alt="管理员密码修改页（最新版 UI）" />
 </p>
 
 ---
@@ -1196,7 +1206,7 @@ flowchart TD
 - [数据库备份指南](./DATABASE_BACKUP_GUIDE.md)
 - [更新日志](./CHANGELOG.md)
 - [开发说明](./xitonkaifa.md)
-- [README 截图清单（最新版）](./Readmeimg/validation-20260326/README_SCREENSHOTS.md)
+- [README 截图清单（最新版）](./Readmeimg/validation-20260327/README_SCREENSHOTS.md)
 
 ---
 
