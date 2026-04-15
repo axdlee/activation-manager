@@ -1259,6 +1259,12 @@ JWT_SECRET="请替换为高强度随机字符串" npm run init-system-config
 
 ---
 
+## 鸣谢
+
+感谢 [Linux.do](https://linux.do/) 社区支持。尤其是为本项目提供免费codex 5.4 的公益佬们。
+
+---
+
 ## Stargazers over time
 
 [![Stargazers over time](https://starchart.cc/axdlee/activation-manager.svg?variant=adaptive)](https://starchart.cc/axdlee/activation-manager)
