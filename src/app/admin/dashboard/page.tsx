@@ -36,8 +36,9 @@ import {
   type LicenseModeValue,
 } from '@/lib/license-status'
 import { useConsumptionLogs } from '@/lib/use-consumption-logs'
-import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import { useAdminAuditLogs } from '@/lib/use-admin-audit-logs'
+import { useConsumptionTrend } from '@/lib/use-consumption-trend'
+import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
   getDashboardTabMeta,
@@ -168,17 +169,23 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [projectStats, setProjectStats] = useState<ProjectStats[]>([])
   const [stats, setStats] = useState<Stats>({ total: 0, used: 0, expired: 0, active: 0 })
-  const [consumptionTrend, setConsumptionTrend] = useState<ConsumptionTrend | null>(null)
-  const [comparisonConsumptionTrend, setComparisonConsumptionTrend] = useState<ConsumptionTrend | null>(null)
-  const [consumptionTrendDays, setConsumptionTrendDays] = useState<7 | 30>(7)
-  const [consumptionTrendGranularity, setConsumptionTrendGranularity] =
-    useState<'day' | 'week' | 'month'>('day')
-  const [consumptionTrendCompareProjectKey, setConsumptionTrendCompareProjectKey] =
-    useState<'none' | string>('none')
-  const [consumptionTrendHideZeroBuckets, setConsumptionTrendHideZeroBuckets] = useState(false)
-  const [consumptionTrendLoading, setConsumptionTrendLoading] = useState(false)
-  const [consumptionTrendError, setConsumptionTrendError] = useState<string | null>(null)
-  const [consumptionTrendCompareError, setConsumptionTrendCompareError] = useState<string | null>(null)
+  const trend = useConsumptionTrend()
+  const {
+    trend: consumptionTrend,
+    comparisonTrend: comparisonConsumptionTrend,
+    days: consumptionTrendDays,
+    setDays: setConsumptionTrendDays,
+    granularity: consumptionTrendGranularity,
+    setGranularity: setConsumptionTrendGranularity,
+    compareProjectKey: consumptionTrendCompareProjectKey,
+    setCompareProjectKey: setConsumptionTrendCompareProjectKey,
+    hideZeroBuckets: consumptionTrendHideZeroBuckets,
+    setHideZeroBuckets: setConsumptionTrendHideZeroBuckets,
+    loading: consumptionTrendLoading,
+    error: consumptionTrendError,
+    compareError: consumptionTrendCompareError,
+    fetchTrend: fetchConsumptionTrend,
+  } = trend
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
   const [searchTerm, setSearchTerm] = useState('')
@@ -425,7 +432,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('获取项目列表失败:', error)
     }
-  }, [consumptionTrendCompareProjectKey, selectedProjectKey, statsProjectFilter])
+  }, [consumptionTrendCompareProjectKey, selectedProjectKey, setConsumptionTrendCompareProjectKey, statsProjectFilter])
 
   const fetchStats = useCallback(async () => {
     try {
@@ -439,90 +446,6 @@ export default function DashboardPage() {
       console.error('获取统计数据失败:', error)
     }
   }, [])
-
-  const fetchConsumptionTrend = useCallback(async () => {
-    try {
-      setConsumptionTrendLoading(true)
-      setConsumptionTrendError(null)
-      setConsumptionTrendCompareError(null)
-
-      const primaryParams = new URLSearchParams({
-        days: String(consumptionTrendDays),
-        granularity: consumptionTrendGranularity,
-      })
-
-      if (statsProjectFilter !== 'all') {
-        primaryParams.set('projectKey', statsProjectFilter)
-      }
-
-      const shouldCompareTrend =
-        consumptionTrendCompareProjectKey !== 'none' &&
-        (statsProjectFilter === 'all' || consumptionTrendCompareProjectKey !== statsProjectFilter)
-
-      const compareParams = new URLSearchParams({
-        days: String(consumptionTrendDays),
-        granularity: consumptionTrendGranularity,
-      })
-
-      if (shouldCompareTrend) {
-        compareParams.set('projectKey', consumptionTrendCompareProjectKey)
-      }
-
-      const [primaryResult, compareResult] = await Promise.allSettled([
-        fetch(`/api/admin/consumptions/trend?${primaryParams.toString()}`).then((response) =>
-          response.json(),
-        ),
-        shouldCompareTrend
-          ? fetch(`/api/admin/consumptions/trend?${compareParams.toString()}`).then((response) =>
-              response.json(),
-            )
-          : Promise.resolve(null),
-      ])
-
-      if (primaryResult.status !== 'fulfilled') {
-        throw primaryResult.reason
-      }
-
-      const data = primaryResult.value
-
-      if (data.success) {
-        setConsumptionTrend(data.trend)
-        setConsumptionTrendError(null)
-      } else {
-        setConsumptionTrend(null)
-        setComparisonConsumptionTrend(null)
-        setConsumptionTrendError(data.message || '获取消费趋势失败')
-        return
-      }
-
-      if (!shouldCompareTrend) {
-        setComparisonConsumptionTrend(null)
-        setConsumptionTrendCompareError(null)
-      } else if (compareResult.status === 'fulfilled' && compareResult.value?.success) {
-        setComparisonConsumptionTrend(compareResult.value.trend)
-        setConsumptionTrendCompareError(null)
-      } else {
-        setComparisonConsumptionTrend(null)
-        setConsumptionTrendCompareError(
-          compareResult.status === 'fulfilled'
-            ? compareResult.value?.message || '获取对比项目趋势失败'
-            : '获取对比项目趋势失败',
-        )
-      }
-    } catch (error) {
-      setConsumptionTrend(null)
-      setComparisonConsumptionTrend(null)
-      setConsumptionTrendError('获取消费趋势失败')
-      console.error('获取消费趋势失败:', error)
-    } finally {
-      setConsumptionTrendLoading(false)
-    }
-  }, [
-    consumptionTrendCompareProjectKey,
-    consumptionTrendDays,
-    consumptionTrendGranularity,
-    statsProjectFilter,
-  ])
 
   const handleExportConsumptionTrend = () => {
     try {
@@ -746,8 +669,8 @@ export default function DashboardPage() {
       return
     }
 
-    void fetchConsumptionTrend()
-  }, [activeTab, fetchConsumptionTrend])
+    void fetchConsumptionTrend(statsProjectFilter)
+  }, [activeTab, fetchConsumptionTrend, statsProjectFilter])
 
   useEffect(() => {
     if (activeTab !== 'consumptions') {
