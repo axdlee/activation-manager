@@ -10,8 +10,11 @@ export type LicenseConsumptionLog = {
   remainingCountAfter: number
   createdAt: string
   activationCode: {
+    id: number
     code: string
     licenseMode: string
+    totalCount: number | null
+    remainingCount: number | null
     project: {
       name: string
       projectKey: string
