@@ -34,12 +34,12 @@ type MutableCodeAccessResult =
       result: LicenseResult
     }
 
-function resolveBoundCodeUnavailableResult(activationCode: LicenseActionCodeRecord) {
+function resolveBoundCodeUnavailableResult(activationCode: LicenseActionCodeRecord, now?: Date) {
   if (activationCode.licenseMode === 'COUNT' && (getRemainingCount(activationCode) ?? 0) <= 0) {
     return createCountExhaustedResult()
   }
 
-  if (activationCode.licenseMode !== 'COUNT' && isCodeExpired(activationCode)) {
+  if (activationCode.licenseMode !== 'COUNT' && isCodeExpired(activationCode, now)) {
     return createExpiredResult()
   }
 
@@ -75,7 +75,7 @@ export async function resolveMutableLicenseActionCodeForMachine(params: {
     }
   }
 
-  const unavailableResult = resolveBoundCodeUnavailableResult(activationCode)
+  const unavailableResult = resolveBoundCodeUnavailableResult(activationCode, now)
   if (unavailableResult) {
     return {
       result: unavailableResult,

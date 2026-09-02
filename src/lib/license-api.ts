@@ -93,16 +93,8 @@ export function createLegacyLicenseResponse(result: LicenseApiResult) {
 export function createLicenseErrorResponse(message: string, error: unknown) {
   console.error(`${message}:`, error)
 
-  if (error instanceof Error) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
-      { status: 400 },
-    )
-  }
-
+  // 内部错误（throw 的 Error）不暴露具体消息给客户端，避免泄露内部细节。
+  // 领域错误（如参数校验失败）应通过 LicenseResult 返回，不走此路径。
   return NextResponse.json(
     {
       success: false,

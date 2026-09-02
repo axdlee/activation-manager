@@ -52,6 +52,7 @@ jobs:
           JWT_SECRET=ci-docker-smoke-secret-change-me
           PORT=3300
           ALLOWED_IPS=127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+          ADMIN_INITIAL_PASSWORD=ci-smoke-admin-password
           EOF
 
       - name: Build and start application via Docker Compose

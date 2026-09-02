@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 
 async function initAdmin() {
   const username = 'admin'

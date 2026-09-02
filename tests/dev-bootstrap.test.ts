@@ -205,14 +205,53 @@ test('ensureDefaultSystemConfigs 在生产环境缺少 JWT_SECRET 且数据库�
   }
 })
 
-test('bootstrapRuntimeDatabase 在生产环境提供 JWT_SECRET 时可完成初始化', async () => {
+test('bootstrapRuntimeDatabase 在生产环境缺少 ADMIN_INITIAL_PASSWORD 且无管理员时会拒绝初始化', async () => {
   const previousNodeEnv = process.env.NODE_ENV
   const previousJwtSecret = process.env.JWT_SECRET
+  const previousAdminPassword = process.env.ADMIN_INITIAL_PASSWORD
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-bootstrap-'))
   const dbPath = path.join(tempDir, 'dev.db')
 
   process.env.NODE_ENV = 'production'
   process.env.JWT_SECRET = 'docker-runtime-secret'
+  delete process.env.ADMIN_INITIAL_PASSWORD
+
+  try {
+    await assert.rejects(
+      () => bootstrapRuntimeDatabase({ dbPath, logger: silentLogger }),
+      /ADMIN_INITIAL_PASSWORD/,
+    )
+  } finally {
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV
+    } else {
+      process.env.NODE_ENV = previousNodeEnv
+    }
+
+    if (previousJwtSecret === undefined) {
+      delete process.env.JWT_SECRET
+    } else {
+      process.env.JWT_SECRET = previousJwtSecret
+    }
+
+    if (previousAdminPassword === undefined) {
+      delete process.env.ADMIN_INITIAL_PASSWORD
+    } else {
+      process.env.ADMIN_INITIAL_PASSWORD = previousAdminPassword
+    }
+  }
+})
+
+test('bootstrapRuntimeDatabase 在生产环境提供 JWT_SECRET 时可完成初始化', async () => {
+  const previousNodeEnv = process.env.NODE_ENV
+  const previousJwtSecret = process.env.JWT_SECRET
+  const previousAdminPassword = process.env.ADMIN_INITIAL_PASSWORD
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-bootstrap-'))
+  const dbPath = path.join(tempDir, 'dev.db')
+
+  process.env.NODE_ENV = 'production'
+  process.env.JWT_SECRET = 'docker-runtime-secret'
+  process.env.ADMIN_INITIAL_PASSWORD = 'docker-admin-password'
 
   try {
     await bootstrapRuntimeDatabase({
@@ -237,6 +276,12 @@ test('bootstrapRuntimeDatabase 在生产环境提供 JWT_SECRET 时可完成初�
       delete process.env.JWT_SECRET
     } else {
       process.env.JWT_SECRET = previousJwtSecret
+    }
+
+    if (previousAdminPassword === undefined) {
+      delete process.env.ADMIN_INITIAL_PASSWORD
+    } else {
+      process.env.ADMIN_INITIAL_PASSWORD = previousAdminPassword
     }
   }
 })

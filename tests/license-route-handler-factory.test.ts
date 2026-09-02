@@ -108,10 +108,10 @@ test('createLicenseRouteHandler 在 legacyOnly 模式下只返回兼容字段', 
   assert.ok(!('isActivated' in body))
 })
 
-test('createLicenseRouteHandler 在 service 抛出 Error 时会返回统一错误响应', async () => {
+test('createLicenseRouteHandler 在 service 抛出 Error 时返回统一内部错误响应（不泄露内部消息）', async () => {
   const handler = createLicenseRouteHandler(
     async () => {
-      throw new Error('boom')
+      throw new Error('boom-internal-secret')
     },
     {
       errorMessage: '处理失败',
@@ -126,7 +126,7 @@ test('createLicenseRouteHandler 在 service 抛出 Error 时会返回统一错�
   )
   const body = await response.json()
 
-  assert.equal(response.status, 400)
+  assert.equal(response.status, 500)
   assert.equal(body.success, false)
-  assert.equal(body.message, 'boom')
+  assert.equal(body.message, '服务器内部错误')
 })
