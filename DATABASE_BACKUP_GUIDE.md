@@ -1,5 +1,30 @@
 # 数据库备份与恢复指南
 
+## 存量库迁移基线（2026-09 起的新部署指引）
+
+> 从 `2026-09` 版本开始，生产环境 bootstrap 优先使用 Prisma 版本化迁移（`migrate deploy`）。
+> **新部署**（空数据库）会自动应用 `prisma/migrations`，无需任何操作。
+> **存量部署**（升级前已用 `db push` 建过表的库）没有迁移历史，启动时 bootstrap 会识别并自动回退到 `db push` 同步 schema，**不会中断升级**。
+> 为了让存量库今后也走版本化迁移，建议手动补一条迁移基线：
+
+```bash
+# 1. 先备份（重要！）
+./scripts/backup-db.sh
+
+# 2. 为存量库标记初始迁移已应用（不执行 SQL，只记录历史）
+npx prisma migrate resolve --applied 20260902000000_init
+
+# 3. 验证迁移状态
+npx prisma migrate status
+# 应显示: Database schema is up to date!
+```
+
+补完基线后，存量库与全新部署一致：后续 schema 变更通过新增 migration 文件演进，bootstrap 会走 `migrate deploy` 而非 `db push`。
+
+> 若你的部署使用自定义 `DATABASE_URL`，执行上面的命令前先 `export DATABASE_URL="file:/path/to/your.db"`。
+
+---
+
 ## 快速开始
 
 ### 备份数据库

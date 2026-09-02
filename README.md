@@ -662,7 +662,7 @@ Internet -> HTTPS Reverse Proxy -> activation-manager container
 
 如果你已经开始正式使用，建议把数据库备份作为常规动作：
 
-- 详细指南：[`DATABASE_BACKUP_GUIDE.md`](./DATABASE_BACKUP_GUIDE.md)
+- 详细指南：[`DATABASE_BACKUP_GUIDE.md`](./DATABASE_BACKUP_GUIDE.md)（含存量库迁移基线流程）
 - 常用命令：
 
 ```bash
