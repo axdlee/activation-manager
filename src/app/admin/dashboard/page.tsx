@@ -38,6 +38,7 @@ import {
 import { useConsumptionLogs } from '@/lib/use-consumption-logs'
 import { useAdminAuditLogs } from '@/lib/use-admin-audit-logs'
 import { useConsumptionTrend } from '@/lib/use-consumption-trend'
+import { useDashboardData } from '@/lib/use-dashboard-data'
 import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
@@ -142,9 +143,7 @@ export default function DashboardPage() {
   const [licenseMode, setLicenseMode] = useState<LicenseModeValue>('TIME')
   const [totalCount, setTotalCount] = useState(10)
   const [selectedProjectKey, setSelectedProjectKey] = useState('default')
-  const [loading, setLoading] = useState(false)
   const [generatedCodes, setGeneratedCodes] = useState<ActivationCode[]>([])
-  const [allCodes, setAllCodes] = useState<ActivationCode[]>([])
   const consumption = useConsumptionLogs()
   const {
     logs: consumptionLogs,
@@ -166,7 +165,6 @@ export default function DashboardPage() {
     fetchConsumptionLogs: hookFetchConsumptionLogs,
     buildFilters: consumptionBuildFilters,
   } = consumption
-  const [projects, setProjects] = useState<Project[]>([])
   const [projectStats, setProjectStats] = useState<ProjectStats[]>([])
   const [stats, setStats] = useState<Stats>({ total: 0, used: 0, expired: 0, active: 0 })
   const trend = useConsumptionTrend()
@@ -219,7 +217,6 @@ export default function DashboardPage() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [systemConfigs, setSystemConfigs] = useState<DashboardSystemConfigItem[]>([])
   const [revealedSensitiveConfigKeys, setRevealedSensitiveConfigKeys] = useState<string[]>([])
   const [revealedPasswordFieldKeys, setRevealedPasswordFieldKeys] = useState<string[]>([])
   const [newProjectName, setNewProjectName] = useState('')
@@ -280,6 +277,21 @@ export default function DashboardPage() {
     setMessage(content)
     setMessageType(type)
   }, [])
+
+  const dashboardData = useDashboardData({ onShowMessage: showMessage })
+  const {
+    projects,
+    setProjects,
+    allCodes,
+    setAllCodes,
+    systemConfigs,
+    setSystemConfigs,
+    loading,
+    setLoading,
+    fetchProjects: hookFetchProjects,
+    fetchAllCodes: hookFetchAllCodes,
+    fetchSystemConfigs: hookFetchSystemConfigs,
+  } = dashboardData
 
   const handleCardTypeChange = (cardType: string) => {
     setSelectedCardType(cardType)
@@ -366,73 +378,66 @@ export default function DashboardPage() {
   }, [])
 
   const fetchProjects = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/projects')
-      const data = await response.json()
-      if (data.success) {
-        setProjects(data.projects)
+    const projectList = await hookFetchProjects()
+    if (projectList.length === 0) return
 
-        const nextProjectNameDrafts: Record<number, string> = {}
-        const nextProjectDescriptionDrafts: Record<number, string> = {}
-        const nextProjectRebindPolicyDrafts: Record<number, RebindOverrideSelectValue> = {}
-        const nextProjectRebindCooldownMinutesDrafts: Record<number, string> = {}
-        const nextProjectRebindMaxCountDrafts: Record<number, string> = {}
+    const nextProjectNameDrafts: Record<number, string> = {}
+    const nextProjectDescriptionDrafts: Record<number, string> = {}
+    const nextProjectRebindPolicyDrafts: Record<number, RebindOverrideSelectValue> = {}
+    const nextProjectRebindCooldownMinutesDrafts: Record<number, string> = {}
+    const nextProjectRebindMaxCountDrafts: Record<number, string> = {}
 
-        data.projects.forEach((project: Project) => {
-          nextProjectNameDrafts[project.id] = project.name
-          nextProjectDescriptionDrafts[project.id] = project.description || ''
-          nextProjectRebindPolicyDrafts[project.id] = toRebindOverrideSelectValue(
-            project.allowAutoRebind,
-          )
-          nextProjectRebindCooldownMinutesDrafts[project.id] =
-            project.autoRebindCooldownMinutes === null
-              ? ''
-              : String(project.autoRebindCooldownMinutes)
-          nextProjectRebindMaxCountDrafts[project.id] =
-            project.autoRebindMaxCount === null ? '' : String(project.autoRebindMaxCount)
-        })
+    projectList.forEach((project: Project) => {
+      nextProjectNameDrafts[project.id] = project.name
+      nextProjectDescriptionDrafts[project.id] = project.description || ''
+      nextProjectRebindPolicyDrafts[project.id] = toRebindOverrideSelectValue(
+        project.allowAutoRebind,
+      )
+      nextProjectRebindCooldownMinutesDrafts[project.id] =
+        project.autoRebindCooldownMinutes === null
+          ? ''
+          : String(project.autoRebindCooldownMinutes)
+      nextProjectRebindMaxCountDrafts[project.id] =
+        project.autoRebindMaxCount === null ? '' : String(project.autoRebindMaxCount)
+    })
 
-        setProjectNameDrafts(nextProjectNameDrafts)
-        setProjectDescriptionDrafts(nextProjectDescriptionDrafts)
-        setProjectRebindPolicyDrafts(nextProjectRebindPolicyDrafts)
-        setProjectRebindCooldownMinutesDrafts(nextProjectRebindCooldownMinutesDrafts)
-        setProjectRebindMaxCountDrafts(nextProjectRebindMaxCountDrafts)
-        const enabledProjects = data.projects.filter((project: Project) => project.isEnabled)
-        const hasSelectedEnabledProject = enabledProjects.some(
-          (project: Project) => project.projectKey === selectedProjectKey,
-        )
+    setProjectNameDrafts(nextProjectNameDrafts)
+    setProjectDescriptionDrafts(nextProjectDescriptionDrafts)
+    setProjectRebindPolicyDrafts(nextProjectRebindPolicyDrafts)
+    setProjectRebindCooldownMinutesDrafts(nextProjectRebindCooldownMinutesDrafts)
+    setProjectRebindMaxCountDrafts(nextProjectRebindMaxCountDrafts)
+    const enabledProjects = projectList.filter((project: Project) => project.isEnabled)
+    const hasSelectedEnabledProject = enabledProjects.some(
+      (project: Project) => project.projectKey === selectedProjectKey,
+    )
 
-        if (!hasSelectedEnabledProject) {
-          const fallbackProject = enabledProjects[0] || data.projects[0]
-          if (fallbackProject) {
-            setSelectedProjectKey(fallbackProject.projectKey)
-          }
-        }
-
-        const hasStatsProjectFilter = data.projects.some(
-          (project: Project) => project.projectKey === statsProjectFilter,
-        )
-
-        if (statsProjectFilter !== 'all' && !hasStatsProjectFilter) {
-          setStatsProjectFilter('all')
-        }
-
-        const hasTrendCompareProject = data.projects.some(
-          (project: Project) => project.projectKey === consumptionTrendCompareProjectKey,
-        )
-
-        if (
-          consumptionTrendCompareProjectKey !== 'none' &&
-          (!hasTrendCompareProject ||
-            (statsProjectFilter !== 'all' && consumptionTrendCompareProjectKey === statsProjectFilter))
-        ) {
-          setConsumptionTrendCompareProjectKey('none')
-        }
+    if (!hasSelectedEnabledProject) {
+      const fallbackProject = enabledProjects[0] || projectList[0]
+      if (fallbackProject) {
+        setSelectedProjectKey(fallbackProject.projectKey)
       }
-    } catch (error) {
-      console.error('获取项目列表失败:', error)
     }
-  }, [consumptionTrendCompareProjectKey, selectedProjectKey, setConsumptionTrendCompareProjectKey, statsProjectFilter])
+
+    const hasStatsProjectFilter = projectList.some(
+      (project: Project) => project.projectKey === statsProjectFilter,
+    )
+
+    if (statsProjectFilter !== 'all' && !hasStatsProjectFilter) {
+      setStatsProjectFilter('all')
+    }
+
+    const hasTrendCompareProject = projectList.some(
+      (project: Project) => project.projectKey === consumptionTrendCompareProjectKey,
+    )
+
+    if (
+      consumptionTrendCompareProjectKey !== 'none' &&
+      (!hasTrendCompareProject ||
+        (statsProjectFilter !== 'all' && consumptionTrendCompareProjectKey === statsProjectFilter))
+    ) {
+      setConsumptionTrendCompareProjectKey('none')
+    }
+  }, [hookFetchProjects, selectedProjectKey, statsProjectFilter, consumptionTrendCompareProjectKey, setConsumptionTrendCompareProjectKey])
 
   const fetchStats = useCallback(async () => {
     try {
@@ -465,42 +470,11 @@ export default function DashboardPage() {
   }
 
   const fetchSystemConfigs = useCallback(async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/admin/system-config')
-      const data = await response.json()
-      if (data.success) {
-        setSystemConfigs(data.configs)
-        setRevealedSensitiveConfigKeys([])
-      } else {
-        showMessage(data.message || '获取系统配置失败', 'error')
-      }
-    } catch (error) {
-      showMessage('网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }, [showMessage])
+    const ok = await hookFetchSystemConfigs()
+    if (ok) setRevealedSensitiveConfigKeys([])
+  }, [hookFetchSystemConfigs])
 
-  const fetchAllCodes = useCallback(async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/admin/codes/list')
-      const data = await response.json()
-      if (data.success) {
-        setAllCodes(data.codes)
-        return data.codes as ActivationCode[]
-      } else {
-        showMessage(data.message || '获取激活码列表失败', 'error')
-      }
-    } catch (error) {
-      showMessage('网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-
-    return [] as ActivationCode[]
-  }, [showMessage])
+  const fetchAllCodes = hookFetchAllCodes
 
   const syncSelectedActivationCodeDrafts = useCallback((activationCode: ActivationCode | null) => {
     if (!activationCode) {
