@@ -35,10 +35,11 @@ import {
   isCodeExpired,
   type LicenseModeValue,
 } from '@/lib/license-status'
+import { useConsumptionLogs } from '@/lib/use-consumption-logs'
+import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
   getDashboardTabMeta,
-  type DashboardTabKey,
 } from '@/lib/dashboard-tab-config'
 import {
   consumptionWorkspaceTabs,
@@ -113,188 +114,22 @@ import { SystemConfigWorkspace } from '@/components/system-config-workspace'
 import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
 import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
 import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
-
-interface Project {
-  id: number
-  name: string
-  projectKey: string
-  description: string | null
-  isEnabled: boolean
-  allowAutoRebind: boolean | null
-  autoRebindCooldownMinutes: number | null
-  autoRebindMaxCount: number | null
-  createdAt: string
-}
-
-interface ActivationCodeBindingHistoryEntry {
-  id: number
-  eventType: string
-  operatorType: string
-  operatorUsername: string | null
-  fromMachineId: string | null
-  toMachineId: string | null
-  reason: string | null
-  createdAt: string
-}
-
-interface AdminOperationAuditLogEntry {
-  id: number
-  adminUsername: string
-  operationType: string
-  targetLabel: string | null
-  reason: string | null
-  detailJson: string | null
-  createdAt: string
-  project?: {
-    id: number
-    name: string
-    projectKey: string
-  } | null
-  activationCode?: {
-    id: number
-    code: string
-  } | null
-}
-
-interface ActivationCode {
-  id: number
-  code: string
-  isUsed: boolean
-  usedAt: string | null
-  usedBy: string | null
-  createdAt: string
-  updatedAt?: string
-  expiresAt: string | null
-  validDays: number | null
-  cardType: string | null
-  projectId: number
-  licenseMode: LicenseModeValue
-  totalCount: number | null
-  remainingCount: number | null
-  consumedCount: number
-  allowAutoRebind: boolean | null
-  autoRebindCooldownMinutes: number | null
-  autoRebindMaxCount: number | null
-  lastBoundAt: string | null
-  lastRebindAt: string | null
-  rebindCount: number
-  autoRebindCount: number
-  bindingHistories?: ActivationCodeBindingHistoryEntry[]
-  adminAuditLogs?: AdminOperationAuditLogEntry[]
-  project?: {
-    id: number
-    name: string
-    projectKey: string
-    allowAutoRebind: boolean | null
-    autoRebindCooldownMinutes: number | null
-    autoRebindMaxCount: number | null
-  }
-}
-
-interface LicenseConsumptionLog {
-  id: number
-  requestId: string
-  machineId: string
-  remainingCountAfter: number
-  createdAt: string
-  activationCode: {
-    id: number
-    code: string
-    licenseMode: LicenseModeValue
-    totalCount: number | null
-    remainingCount: number | null
-    project: {
-      id: number
-      name: string
-      projectKey: string
-    }
-  }
-}
-
-interface ConsumptionPagination {
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
-
-type AuditLogQueryFilters = {
-  keyword: string
-  projectKey: 'all' | string
-  operationType: 'all' | string
-  createdFrom: string
-  createdTo: string
-}
-
-interface Stats {
-  total: number
-  used: number
-  expired: number
-  active: number
-}
-
-interface ProjectStats {
-  id: number
-  name: string
-  projectKey: string
-  isEnabled: boolean
-  totalCodes: number
-  usedCodes: number
-  expiredCodes: number
-  activeCodes: number
-  countRemainingTotal: number
-  countConsumedTotal: number
-}
-
-interface ConsumptionTrendPoint {
-  date: string
-  label: string
-  count: number
-}
-
-interface ConsumptionTrendComparison {
-  previousRangeStart: string
-  previousRangeEnd: string
-  previousTotalConsumptions: number
-  changeCount: number
-  changePercentage: number | null
-}
-
-interface ConsumptionTrend {
-  days: number
-  granularity?: 'day' | 'week' | 'month'
-  maxBucketConsumptions?: number
-  totalConsumptions: number
-  maxDailyConsumptions: number
-  comparison: ConsumptionTrendComparison
-  points: ConsumptionTrendPoint[]
-}
-
-interface CardType {
-  name: string
-  days: number
-  description: string
-}
-
-type TabType = DashboardTabKey
-type StatusFilter = 'all' | 'unused' | 'used' | 'expired' | 'depleted'
-
-const statusFilterLabelMap: Record<StatusFilter, string> = {
-  all: '全部状态',
-  unused: '未激活',
-  used: '已使用 / 使用中',
-  expired: '已过期',
-  depleted: '已耗尽',
-}
-
-const cardTypes: CardType[] = [
-  { name: '周卡', days: 7, description: '7天有效期' },
-  { name: '月卡', days: 30, description: '30天有效期' },
-  { name: '季卡', days: 90, description: '90天有效期' },
-  { name: '半年卡', days: 180, description: '180天有效期' },
-  { name: '年卡', days: 365, description: '365天有效期' },
-  { name: '自定义', days: 0, description: '自定义天数' },
-]
+import type {
+  ActivationCode,
+  ActivationCodeBindingHistoryEntry,
+  AdminOperationAuditLogEntry,
+  AuditLogQueryFilters,
+  CardType,
+  ConsumptionTrend,
+  ConsumptionTrendComparison,
+  ConsumptionTrendPoint,
+  Project,
+  ProjectStats,
+  Stats,
+  StatusFilter,
+  TabType,
+} from '@/lib/dashboard-page-types'
+import { cardTypes, statusFilterLabelMap } from '@/lib/dashboard-page-types'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabType>('stats')

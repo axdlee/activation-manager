@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 
 import type { ConsumptionRefreshSource } from './consumption-refresh-status'
 import { buildConsumptionQueryParams } from '@/lib/consumption-query-params'
+import type { LicenseModeValue } from './license-status'
 
 export type LicenseConsumptionLog = {
   id: number
@@ -12,7 +13,7 @@ export type LicenseConsumptionLog = {
   activationCode: {
     id: number
     code: string
-    licenseMode: string
+    licenseMode: LicenseModeValue
     totalCount: number | null
     remainingCount: number | null
     project: {
