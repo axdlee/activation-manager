@@ -42,9 +42,8 @@ if [ $# -eq 2 ]; then
         exit 1
     fi
     
-    # 创建当前数据库的备份
-    echo "创建当前数据库的安全备份..."
-    cp $DB_PATH ${DB_PATH}.safety_backup_$(date +%Y%m%d_%H%M%S)
+    # 创建当前数据库的安全备份（使用 .backup 保证一致性）
+    sqlite3 "$DB_PATH" ".backup '${DB_PATH}.safety_backup_$(date +%Y%m%d_%H%M%S)'"
     
     case $RESTORE_TYPE in
         "file")
