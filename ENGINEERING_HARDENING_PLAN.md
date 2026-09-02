@@ -1,6 +1,6 @@
 # 工程化加固与优化路线图
 
-> 更新时间：2026-03-25
+> 更新时间：2026-09-02
 > 目标：将当前项目持续提升到“可长期维护、可规模化、可审计、可扩展”的高规格工程水位。
 
 ## 1. 文档目的
@@ -92,6 +92,13 @@
 | P4-03 | P4 | DONE | 减少 `any` 与弱类型返回 | 提升类型安全 |
 | P4-04 | P4 | TODO | 收口 README / 开发文档 / 安全说明 | 保证文档与实现一致 |
 | P4-05 | P4 | TODO | 增加关键操作审计日志 | 提升可追踪性与合规性 |
+| P0-06 | P0 | DONE | 升级 Next.js 14.0.0 → 14.2.35 | 修复 CVE-2025-29927 中间件鉴权绕过等已知漏洞 |
+| P0-07 | P0 | DONE | 生产环境移除 `db push --accept-data-loss` | 避免 schema 变更时静默丢数据 |
+| P0-08 | P0 | DONE | 生产环境强制 `ADMIN_INITIAL_PASSWORD` | 杜绝弱口令管理员 `admin/123456` 自动创建 |
+| P1-07 | P1 | DONE | 修复 `now` 参数未透传导致的时间敏感 bug | `resolveBoundCodeUnavailableResult` 透传 `now`，消除测试随系统时钟变红 |
+| P1-08 | P1 | DONE | 修复测试并发 `database is locked` | sqlite3 CLI 增加 `.timeout 5000` 忙等待 |
+| P2-05 | P2 | DONE | 移除废弃 `crypto` npm stub 依赖 | 改用 `node:crypto` 内置模块 |
+| P2-06 | P2 | DONE | 支持 `DATABASE_URL` 环境变量 | 数据库路径可配置，减少 symlink 依赖 |
 
 ---
 
@@ -3438,3 +3445,72 @@
 3. 继续清理 `dashboard/page.tsx` 剩余重复样板与局部逻辑耦合
 
 ---
+
+### 2026-09-02 / Iteration 2026-09：安全基线补强 + 依赖漏洞修复 + 测试稳定性
+
+**目标**：清理 2026-03 之后的积压风险：框架漏洞、生产弱口令、schema 破坏性变更、时间敏感测试与测试并发抖动。
+
+**已完成**：
+
+- [x] P0-06：Next.js 14.0.0 → 14.2.35（eslint-config-next 同步），修复 CVE-2025-29927（middleware 授权绕过，影响 `/admin` 页面鉴权）、CVE-2024-34351、CVE-2024-46982 等
+- [x] P0-07：生产环境 `prisma db push` 不再传 `--accept-data-loss`，需要破坏性变更时直接报错提示，杜绝静默丢数据
+- [x] P0-08：生产环境 bootstrap 强制要求 `ADMIN_INITIAL_PASSWORD`，不再自动创建 `admin/123456`；Docker Compose / CI / README 同步更新
+- [x] P1-07：修复 `license-auto-rebind-service` 中 `now` 参数未透传到 `isCodeExpired` 的 bug（时间敏感测试随系统时钟变红的根因）
+- [x] P1-08：sqlite3 CLI 调用统一加 `.timeout 5000`，消除测试并发 `database is locked`
+- [x] P2-05：移除废弃 `crypto` npm stub 依赖，源码改用 `node:crypto`
+- [x] P2-06：`db.ts` 与 `dev-bootstrap` 支持 `DATABASE_URL` 环境变量覆盖数据库路径
+
+**验证结果**：
+
+1. `npm run lint` ✅
+2. `npm test` ✅（322 / 322 通过，新增 1 个 ADMIN_INITIAL_PASSWORD 回归测试）
+3. `npm run build` ✅（待最终确认）
+
+**备注**：
+
+- 时间敏感测试根因：`resolveMutableLicenseActionCodeForMachine` 接受 `now` 参数，但内部 `resolveBoundCodeUnavailableResult` 调用 `isCodeExpired` 时未透传，导致用真实时钟判定过期；测试数据过期时间（2026-04-25）早于系统时钟（2026-09-02）后持续变红
+- 测试并发根因：sqlite3 CLI 默认 busy timeout 为 0，遇到并发写锁立即失败
+
+**下一步**：
+
+1. 引入版本化 Prisma migration（`prisma migrate`），生产用 `migrate deploy` 替代 `db push`
+2. P3-04：优化 SDK 错误分类与 hook 错误隔离
+3. P4-05：补关键操作审计日志缺口
+4. 持续拆分 `dashboard/page.tsx`（P3-01）
+
+### 2026-09-02 / Iteration 2026-09b：版本化迁移 + 公开 API 限流 + 错误信息收敛
+
+**目标**：继续加固交付链路：引入 Prisma 版本化迁移、为公开授权接口补充基础限流、收敛内部错误信息泄露。
+
+**已完成**：
+
+- [x] P1-09：引入 Prisma 版本化迁移（`prisma/migrations/20260902000000_init`）
+  - 生产环境（`NODE_ENV=production` 且有 `prisma/migrations`）优先执行 `prisma migrate deploy`
+  - 存量库（有表但无迁移历史，P3005）自动回退 `prisma db push`，并在日志提示补建迁移基线
+  - 开发环境继续使用 `db push` 快速迭代
+- [x] P1-10：公开 License API（activate / consume / status / verify）增加内存滑动窗口限流
+  - 默认 120 次/分钟/IP/接口，超限返回 `429` + `Retry-After`
+  - 可通过 `LICENSE_API_RATE_LIMIT_MAX` / `LICENSE_API_RATE_LIMIT_WINDOW_MS` 调整
+  - 多实例部署建议在反向代理层补充限流
+- [x] P1-11：License API 内部错误不再向客户端泄露具体 Error 消息
+  - 统一返回 `500` + 通用文案；领域错误仍走 `LicenseResult` 显式返回
+  - 同步更新 `license-route-handler-factory.test.ts` 中锁定旧行为的断言
+
+**验证结果**：
+
+1. `npm run lint` ✅
+2. `npm test` ✅（328 / 328 通过，新增限流器 6 个测试）
+3. `npm run test:coverage` ✅
+4. `npm run build` ✅
+
+**备注**：
+
+- `migrate deploy` 需要 migrations 目录与 schema 文件同级，bootstrap 中通过临时 schema + 复制 migrations 实现任意 dbPath 支持
+- `extractCommandOutput` 兼容 `execFileSync` 抛错时 `stderr/stdout` 为 Buffer 或 string 两种形态，保证 P3005 识别稳定
+
+**下一步**：
+
+1. 为存量库补充 `prisma migrate resolve` 基线流程文档（DATABASE_BACKUP_GUIDE / README）
+2. P3-04：优化 SDK 错误分类与 hook 错误隔离
+3. P4-05：补关键操作审计日志缺口
+4. 持续拆分 `dashboard/page.tsx`（P3-01）

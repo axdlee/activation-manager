@@ -210,12 +210,12 @@ npm run dev
   <img src="./Readmeimg/validation-20260327/admin-login.jpg" width="88%" alt="管理后台登录页（最新版 UI）" />
 </p>
 
-默认管理员账号：
+默认管理员创建规则：
 
-- 用户名：`admin`
-- 密码：`123456`
+- **开发环境**（`NODE_ENV=development`）：自动创建 `admin / 123456`
+- **生产环境**（`NODE_ENV=production`，如 Docker 部署）：**必须**通过 `ADMIN_INITIAL_PASSWORD` 环境变量设置初始密码，没有默认值；未设置且数据库中无管理员时会直接报错退出
 
-> 首次登录后建议立即修改密码。
+> 无论哪种方式，首次登录后建议立即修改密码。
 
 ### 4）如果你想手动初始化
 
@@ -330,6 +330,7 @@ cat > .env <<'EOF'
 JWT_SECRET=change-this-to-a-long-random-secret
 PORT=3000
 ALLOWED_IPS=127.0.0.1,::1
+ADMIN_INITIAL_PASSWORD=please-set-a-strong-password
 EOF
 
 docker pull xdlee/activation-manager:latest
@@ -361,6 +362,7 @@ cat > .env <<'EOF'
 JWT_SECRET=change-this-to-a-long-random-secret
 PORT=3000
 ALLOWED_IPS=127.0.0.1,::1
+ADMIN_INITIAL_PASSWORD=please-set-a-strong-password
 EOF
 ```
 
@@ -368,6 +370,7 @@ EOF
 
 另外建议同时检查：
 
+- `ADMIN_INITIAL_PASSWORD`：**首次启动时必填**（仅当数据库中还没有管理员时使用）；用它创建初始管理员 `admin`，请登录后立即修改密码。已初始化的存量库可不设置
 - `ALLOWED_IPS`：上面示例只放行本机回环地址，适合最小暴露面部署
 - `ALLOWED_IPS` 在**运行时会优先于后台系统配置表生效**，因此生产环境应以环境变量作为最终访问控制来源，而不是依赖初始化写库
 - 如果你是本地 Docker / Colima / Lima 联调，也可以扩展成：
@@ -438,10 +441,10 @@ docker inspect --format '{{.State.Health.Status}}' activation-manager
 - 管理后台登录：`http://localhost:3000/admin/login`
 - 公开 API 文档：`http://localhost:3000/docs/api`
 
-默认管理员仍为：
+默认管理员创建规则：
 
-- 用户名：`admin`
-- 密码：`123456`
+- **开发环境**：自动创建 `admin / 123456`
+- **生产环境（Docker）**：必须通过 `ADMIN_INITIAL_PASSWORD` 环境变量提供初始密码，否则容器首次启动会报错退出（不会创建弱口令管理员）
 
 > 容器首次启动后会自动补齐默认管理员、默认项目与默认系统配置；请首登后立即修改密码。
 
@@ -588,6 +591,7 @@ docker compose --env-file .env down
 - **SQLite 数据可持久化**
 - **容器重启不会重复插入种子数据**
 - **生产环境如果没提供 `JWT_SECRET`，会直接失败并提示**
+- **生产环境首次初始化如果没提供 `ADMIN_INITIAL_PASSWORD`，会直接失败并提示（不创建弱口令管理员）**
 - **Docker 运行时与 CI / 本地开发统一使用 Node 22 主版本**
 
 ### 数据持久化说明
@@ -1002,6 +1006,8 @@ await client.consume({
 - 登录限流
 - IP 白名单访问控制
 - 页面层与 API 层统一后台鉴权 / 白名单判断
+- 公开 License API 限流（IP + 接口维度，默认 120 次/分钟，可通过 `LICENSE_API_RATE_LIMIT_MAX` / `LICENSE_API_RATE_LIMIT_WINDOW_MS` 调整）
+- 内部错误不向客户端泄露具体消息，统一返回通用错误文案
 
 ### 工程侧
 - 通过 `.nvmrc` 统一本地、CI 与 Docker 的 Node 主版本
