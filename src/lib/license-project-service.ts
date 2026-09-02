@@ -24,16 +24,24 @@ type CreateProjectInput = {
 type UpdateProjectStatusInput = {
   id: number
   isEnabled: boolean
+  adminUsername?: string
 }
 
 type UpdateProjectNameInput = {
   id: number
   name: string
+  adminUsername?: string
 }
 
 type UpdateProjectDescriptionInput = {
   id: number
   description?: string | null
+  adminUsername?: string
+}
+
+type DeleteProjectInput = {
+  id: number
+  adminUsername?: string
 }
 
 type UpdateProjectRebindSettingsInput = {
@@ -42,10 +50,6 @@ type UpdateProjectRebindSettingsInput = {
   autoRebindCooldownMinutes?: number | null
   autoRebindMaxCount?: number | null
   adminUsername?: string
-}
-
-type DeleteProjectInput = {
-  id: number
 }
 
 function normalizeOptionalText(value?: string | null) {
@@ -186,7 +190,7 @@ export async function updateProjectStatus(client: DbClient, input: UpdateProject
     throw new Error('默认项目不允许停用')
   }
 
-  return client.project.update({
+  const updatedProject = await client.project.update({
     where: {
       id: project.id,
     },
@@ -194,6 +198,20 @@ export async function updateProjectStatus(client: DbClient, input: UpdateProject
       isEnabled: input.isEnabled,
     },
   })
+
+  if (input.adminUsername) {
+    await recordAdminOperationAuditLog(client, {
+      adminUsername: input.adminUsername,
+      operationType: 'PROJECT_STATUS_UPDATED',
+      projectId: updatedProject.id,
+      targetLabel: updatedProject.projectKey,
+      detail: {
+        isEnabled: updatedProject.isEnabled,
+      },
+    })
+  }
+
+  return updatedProject
 }
 
 export async function updateProjectName(client: DbClient, input: UpdateProjectNameInput) {
@@ -213,7 +231,7 @@ export async function updateProjectName(client: DbClient, input: UpdateProjectNa
     throw new Error('项目名称不能为空')
   }
 
-  return client.project.update({
+  const updatedProject = await client.project.update({
     where: {
       id: project.id,
     },
@@ -221,6 +239,20 @@ export async function updateProjectName(client: DbClient, input: UpdateProjectNa
       name,
     },
   })
+
+  if (input.adminUsername) {
+    await recordAdminOperationAuditLog(client, {
+      adminUsername: input.adminUsername,
+      operationType: 'PROJECT_NAME_UPDATED',
+      projectId: updatedProject.id,
+      targetLabel: updatedProject.projectKey,
+      detail: {
+        name: updatedProject.name,
+      },
+    })
+  }
+
+  return updatedProject
 }
 
 export async function updateProjectDescription(client: DbClient, input: UpdateProjectDescriptionInput) {
@@ -230,7 +262,7 @@ export async function updateProjectDescription(client: DbClient, input: UpdatePr
     throw new Error('项目不存在')
   }
 
-  return client.project.update({
+  const updatedProject = await client.project.update({
     where: {
       id: project.id,
     },
@@ -238,6 +270,20 @@ export async function updateProjectDescription(client: DbClient, input: UpdatePr
       description: input.description?.trim() || null,
     },
   })
+
+  if (input.adminUsername) {
+    await recordAdminOperationAuditLog(client, {
+      adminUsername: input.adminUsername,
+      operationType: 'PROJECT_DESCRIPTION_UPDATED',
+      projectId: updatedProject.id,
+      targetLabel: updatedProject.projectKey,
+      detail: {
+        description: updatedProject.description,
+      },
+    })
+  }
+
+  return updatedProject
 }
 
 export async function updateProjectRebindSettings(
@@ -305,9 +351,25 @@ export async function deleteProject(client: DbClient, input: DeleteProjectInput)
     throw new Error('项目下仍有激活码，无法删除')
   }
 
-  return client.project.delete({
+  const deletedProject = await client.project.delete({
     where: {
       id: project.id,
     },
   })
+
+  if (input.adminUsername) {
+    await recordAdminOperationAuditLog(client, {
+      adminUsername: input.adminUsername,
+      operationType: 'PROJECT_DELETED',
+      // 项目已删除，外键 ON DELETE SET NULL 会将 projectId 自动置空
+      projectId: null,
+      targetLabel: deletedProject.projectKey,
+      detail: {
+        name: deletedProject.name,
+        projectKey: deletedProject.projectKey,
+      },
+    })
+  }
+
+  return deletedProject
 }

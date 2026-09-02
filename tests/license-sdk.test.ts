@@ -460,3 +460,164 @@ test('createLicenseClient.consume 未提供 requestId 时不会触发 onRetry ho
 
   assert.equal(onRetryCalled, false)
 })
+
+test('createLicenseClient 在服务端返回 429 时会抛出 RATE_LIMITED 错误并携带状态码', async () => {
+  const events: Array<Record<string, unknown>> = []
+
+  const client = createLicenseClient({
+    baseUrl: 'https://license.example.com',
+    onError: (event: Record<string, unknown>) => {
+      events.push(event)
+    },
+    fetch: async () =>
+      new Response(
+        JSON.stringify({
+          success: false,
+          message: '请求过于频繁，请稍后重试',
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '30',
+          },
+        },
+      ),
+  })
+
+  await assert.rejects(
+    () =>
+      client.activate({
+        code: 'RATE-001',
+        machineId: 'machine-rate-001',
+      }),
+    (error: unknown) => {
+      assert.equal(isLicenseClientError(error), true)
+      assert.equal((error as { code?: string }).code, 'RATE_LIMITED')
+      assert.equal((error as { statusCode?: number }).statusCode, 429)
+      return true
+    },
+  )
+
+  assert.equal(events.length, 1)
+  assert.equal((events[0]?.error as { code?: string }).code, 'RATE_LIMITED')
+})
+
+test('createLicenseClient 在服务端返回不可解析的 5xx 响应时抛出 HTTP_ERROR 并携带状态码', async () => {
+  const client = createLicenseClient({
+    baseUrl: 'https://license.example.com',
+    fetch: async () =>
+      new Response('<html><body>Bad Gateway</body></html>', {
+        status: 502,
+        headers: {
+          'Content-Type': 'text/html',
+        },
+      }),
+  })
+
+  await assert.rejects(
+    () =>
+      client.activate({
+        code: 'HTTP-001',
+        machineId: 'machine-http-001',
+      }),
+    (error: unknown) => {
+      assert.equal(isLicenseClientError(error), true)
+      assert.equal((error as { code?: string }).code, 'HTTP_ERROR')
+      assert.equal((error as { statusCode?: number }).statusCode, 502)
+      return true
+    },
+  )
+})
+
+test('createLicenseClient 在服务端返回带 JSON 的 5xx 响应时仍返回规范化业务响应', async () => {
+  const client = createLicenseClient({
+    baseUrl: 'https://license.example.com',
+    fetch: async () =>
+      new Response(
+        JSON.stringify({
+          success: false,
+          message: '服务器内部错误',
+        }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      ),
+  })
+
+  const result = await client.activate({
+    code: 'HTTP-JSON-001',
+    machineId: 'machine-http-json-001',
+  })
+
+  assert.equal(result.success, false)
+  assert.equal(result.status, 500)
+  assert.equal(result.message, '服务器内部错误')
+})
+
+test('createLicenseClient 在 hook 抛错时不会中断主流程', async () => {
+  const client = createLicenseClient({
+    baseUrl: 'https://license.example.com',
+    onSuccess: () => {
+      throw new Error('hook 内部出错')
+    },
+    onError: () => {
+      throw new Error('hook 内部出错')
+    },
+    fetch: async () =>
+      new Response(
+        JSON.stringify({
+          success: true,
+          message: '激活码激活成功',
+          licenseMode: 'COUNT',
+          remainingCount: 1,
+          isActivated: true,
+          valid: true,
+          idempotent: null,
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      ),
+  })
+
+  // hook 抛错不应影响请求结果
+  const result = await client.activate({
+    code: 'HOOK-THROW-001',
+    machineId: 'machine-hook-throw-001',
+  })
+
+  assert.equal(result.success, true)
+  assert.equal(result.remainingCount, 1)
+})
+
+test('createLicenseClient 在错误路径 hook 抛错时仍抛出原始 SDK 错误', async () => {
+  const client = createLicenseClient({
+    baseUrl: 'https://license.example.com',
+    onError: () => {
+      throw new Error('hook 内部出错')
+    },
+    fetch: async () => {
+      throw new Error('socket hang up')
+    },
+  })
+
+  await assert.rejects(
+    () =>
+      client.activate({
+        code: 'HOOK-ERR-THROW-001',
+        machineId: 'machine-hook-err-throw-001',
+      }),
+    (error: unknown) => {
+      assert.equal(isLicenseClientError(error), true)
+      assert.equal((error as { code?: string }).code, 'NETWORK_ERROR')
+      return true
+    },
+  )
+})

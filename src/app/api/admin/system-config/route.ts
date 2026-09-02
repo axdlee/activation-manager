@@ -1,9 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { type AdminAuthSuccessResult } from '@/lib/admin-auth-shared'
+import { prisma } from '@/lib/db'
 import { getAllConfigsWithMeta, sanitizeSystemConfigsForAdmin } from '@/lib/config-service'
 import { prepareSystemConfigUpdates } from '@/lib/system-config-updates'
 import { InvalidSystemConfigPayloadError, persistSystemConfigUpdates } from '@/lib/system-config-write'
+import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 
 // 获取所有系统配置
 export const GET = createProtectedAdminRouteHandler(
@@ -24,7 +27,7 @@ export const GET = createProtectedAdminRouteHandler(
 
 // 更新系统配置
 export const POST = createProtectedAdminRouteHandler(
-  async (request: NextRequest) => {
+  async (request: NextRequest, authResult: AdminAuthSuccessResult) => {
     const { configs } = await request.json()
 
     if (!configs || !Array.isArray(configs)) {
@@ -38,6 +41,13 @@ export const POST = createProtectedAdminRouteHandler(
     }
 
     await persistSystemConfigUpdates(prepareSystemConfigUpdates(configs))
+
+    await recordAdminOperationAuditLog(prisma, {
+      adminUsername: authResult.payload?.username ?? 'unknown',
+      operationType: 'SYSTEM_CONFIG_UPDATED',
+      projectId: null,
+      targetLabel: 'system-config',
+    })
 
     return NextResponse.json({
       success: true,

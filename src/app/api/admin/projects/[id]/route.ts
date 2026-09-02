@@ -40,7 +40,11 @@ export const PATCH = createProtectedAdminRouteHandler(
         )
       }
 
-      const project = await updateProjectName(prisma, { id, name })
+      const project = await updateProjectName(prisma, {
+        id,
+        name,
+        adminUsername: authResult.payload?.username,
+      })
 
       return NextResponse.json({
         success: true,
@@ -59,7 +63,11 @@ export const PATCH = createProtectedAdminRouteHandler(
         )
       }
 
-      const project = await updateProjectDescription(prisma, { id, description })
+      const project = await updateProjectDescription(prisma, {
+        id,
+        description,
+        adminUsername: authResult.payload?.username,
+      })
 
       return NextResponse.json({
         success: true,
@@ -97,7 +105,11 @@ export const PATCH = createProtectedAdminRouteHandler(
       )
     }
 
-    const project = await updateProjectStatus(prisma, { id, isEnabled })
+    const project = await updateProjectStatus(prisma, {
+      id,
+      isEnabled,
+      adminUsername: authResult.payload?.username,
+    })
 
     return NextResponse.json({
       success: true,
@@ -116,11 +128,14 @@ export const PATCH = createProtectedAdminRouteHandler(
 export const DELETE = createProtectedAdminRouteHandler(
   async (
     _request: NextRequest,
-    _authResult: AdminAuthSuccessResult,
+    authResult: AdminAuthSuccessResult,
     context: { params: { id: string } },
   ) => {
     const id = parseProjectId(context.params.id)
-    const project = await deleteProject(prisma, { id })
+    const project = await deleteProject(prisma, {
+      id,
+      adminUsername: authResult.payload?.username,
+    })
 
     return NextResponse.json({
       success: true,

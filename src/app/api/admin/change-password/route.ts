@@ -5,6 +5,7 @@ import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { type AdminAuthSuccessResult } from '@/lib/admin-auth-shared'
 import { prisma } from '@/lib/db'
 import { getConfigWithDefault } from '@/lib/config-service'
+import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 
 export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult: AdminAuthSuccessResult) => {
@@ -61,6 +62,13 @@ export const POST = createProtectedAdminRouteHandler(
     await prisma.admin.update({
       where: { id: admin.id },
       data: { password: newPasswordHash },
+    })
+
+    await recordAdminOperationAuditLog(prisma, {
+      adminUsername: authResult.payload?.username ?? 'unknown',
+      operationType: 'PASSWORD_CHANGED',
+      projectId: null,
+      targetLabel: authResult.payload?.username,
     })
 
     return NextResponse.json({

@@ -10,7 +10,13 @@ export type AdminOperationType =
   | 'CODE_FORCE_REBIND'
   | 'PROJECT_REBIND_SETTINGS_UPDATED'
   | 'PROJECT_CREATED'
+  | 'PROJECT_DELETED'
+  | 'PROJECT_NAME_UPDATED'
+  | 'PROJECT_DESCRIPTION_UPDATED'
+  | 'PROJECT_STATUS_UPDATED'
   | 'CODE_BATCH_GENERATED'
+  | 'SYSTEM_CONFIG_UPDATED'
+  | 'PASSWORD_CHANGED'
 
 type RecordAdminOperationAuditLogInput = {
   adminUsername: string

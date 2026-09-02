@@ -63,12 +63,19 @@ type LicenseClientOptions = {
 }
 
 type JsonRecord = Record<string, unknown>
-type LicenseClientErrorCode = 'FETCH_UNAVAILABLE' | 'TIMEOUT' | 'NETWORK_ERROR' | 'INVALID_RESPONSE'
+type LicenseClientErrorCode =
+  | 'FETCH_UNAVAILABLE'
+  | 'TIMEOUT'
+  | 'NETWORK_ERROR'
+  | 'INVALID_RESPONSE'
+  | 'HTTP_ERROR'
+  | 'RATE_LIMITED'
 
 class LicenseClientError extends Error {
   readonly code: LicenseClientErrorCode
   readonly path: string
   readonly attemptCount: number
+  readonly statusCode?: number
   readonly cause?: unknown
 
   constructor(
@@ -77,6 +84,7 @@ class LicenseClientError extends Error {
       code: LicenseClientErrorCode
       path: string
       attemptCount: number
+      statusCode?: number
       cause?: unknown
     },
   ) {
@@ -85,6 +93,7 @@ class LicenseClientError extends Error {
     this.code = options.code
     this.path = options.path
     this.attemptCount = options.attemptCount
+    this.statusCode = options.statusCode
     this.cause = options.cause
   }
 }
@@ -134,18 +143,22 @@ function buildLicenseClientError(
   path: string,
   attemptCount: number,
   cause?: unknown,
+  statusCode?: number,
 ) {
   const messages: Record<LicenseClientErrorCode, string> = {
     FETCH_UNAVAILABLE: '当前环境不支持 fetch，请手动传入 fetch 实现',
     TIMEOUT: '请求超时',
     NETWORK_ERROR: '网络请求失败',
     INVALID_RESPONSE: '接口响应格式无效',
+    HTTP_ERROR: '服务端返回错误状态码',
+    RATE_LIMITED: '请求过于频繁，已被限流',
   }
 
   return new LicenseClientError(messages[code], {
     code,
     path,
     attemptCount,
+    statusCode,
     cause,
   })
 }
@@ -170,6 +183,14 @@ function sleep(delayMs: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, delayMs)
   })
+}
+
+async function callHookSafely(hookName: string, call: () => void | Promise<void>) {
+  try {
+    await call()
+  } catch (error) {
+    console.error(`[license-sdk] hook ${hookName} 执行出错（不影响主流程）:`, error)
+  }
 }
 
 function createRequestBody(
@@ -240,10 +261,12 @@ async function requestLicenseApi(
 
   if (!fetcher) {
     const error = buildLicenseClientError('FETCH_UNAVAILABLE', path, 1)
-    await options.onError?.({
-      ...createHookContext(path, requestBody, 1, totalAttempts),
-      error,
-    })
+    await callHookSafely('onError', () =>
+      options.onError?.({
+        ...createHookContext(path, requestBody, 1, totalAttempts),
+        error,
+      }),
+    )
     throw error
   }
 
@@ -280,6 +303,58 @@ async function requestLicenseApi(
         clearTimeout(timeoutId)
       }
 
+      // HTTP 429：被限流，归类为可辨识的限流错误，调用方可据此做退避
+      if (response.status === 429) {
+        const rateLimitedError = buildLicenseClientError('RATE_LIMITED', path, attemptCount, null, 429)
+        await callHookSafely('onError', () =>
+          options.onError?.({
+            ...createHookContext(path, requestBody, attemptCount, totalAttempts),
+            error: rateLimitedError,
+          }),
+        )
+        throw rateLimitedError
+      }
+
+      // 5xx：服务端内部错误。若响应体为 JSON（业务错误语义），照常返回；
+      // 若响应体不可解析（如网关 HTML），归类为 HTTP_ERROR。
+      if (response.status >= 500) {
+        const payloadText = await response.text()
+
+        if (!payloadText) {
+          const serverError = buildLicenseClientError('HTTP_ERROR', path, attemptCount, null, response.status)
+          await callHookSafely('onError', () =>
+            options.onError?.({
+              ...createHookContext(path, requestBody, attemptCount, totalAttempts),
+              error: serverError,
+            }),
+          )
+          throw serverError
+        }
+
+        try {
+          const payload = JSON.parse(payloadText) as unknown
+          const normalizedResponse = normalizeLicenseApiResponse(payload, response.status)
+
+          await callHookSafely('onSuccess', () =>
+            options.onSuccess?.({
+              ...createHookContext(path, requestBody, attemptCount, totalAttempts),
+              response: normalizedResponse,
+            }),
+          )
+
+          return normalizedResponse
+        } catch (error) {
+          const serverError = buildLicenseClientError('HTTP_ERROR', path, attemptCount, error, response.status)
+          await callHookSafely('onError', () =>
+            options.onError?.({
+              ...createHookContext(path, requestBody, attemptCount, totalAttempts),
+              error: serverError,
+            }),
+          )
+          throw serverError
+        }
+      }
+
       let responsePayload: unknown
 
       try {
@@ -290,10 +365,12 @@ async function requestLicenseApi(
 
       const normalizedResponse = normalizeLicenseApiResponse(responsePayload, response.status)
 
-      await options.onSuccess?.({
-        ...createHookContext(path, requestBody, attemptCount, totalAttempts),
-        response: normalizedResponse,
-      })
+      await callHookSafely('onSuccess', () =>
+        options.onSuccess?.({
+          ...createHookContext(path, requestBody, attemptCount, totalAttempts),
+          response: normalizedResponse,
+        }),
+      )
 
       return normalizedResponse
     } catch (error) {
@@ -309,19 +386,31 @@ async function requestLicenseApi(
             : buildLicenseClientError('NETWORK_ERROR', path, attemptCount, error)
 
       if (attemptCount < totalAttempts && isRetryableTransportError(normalizedError)) {
-        await options.onRetry?.({
-          ...createHookContext(path, requestBody, attemptCount, totalAttempts),
-          error: normalizedError,
-          nextAttemptCount: attemptCount + 1,
-        })
+        await callHookSafely('onRetry', () =>
+          options.onRetry?.({
+            ...createHookContext(path, requestBody, attemptCount, totalAttempts),
+            error: normalizedError,
+            nextAttemptCount: attemptCount + 1,
+          }),
+        )
         await sleep(retryDelayMs)
         continue
       }
 
-      await options.onError?.({
-        ...createHookContext(path, requestBody, attemptCount, totalAttempts),
-        error: normalizedError,
-      })
+      // 已经触发过 hook 的错误（429 / HTTP_ERROR / FETCH_UNAVAILABLE 已在上层分支处理），
+      // 避免重复调用 onError。
+      if (
+        normalizedError.code === 'TIMEOUT' ||
+        normalizedError.code === 'NETWORK_ERROR' ||
+        normalizedError.code === 'INVALID_RESPONSE'
+      ) {
+        await callHookSafely('onError', () =>
+          options.onError?.({
+            ...createHookContext(path, requestBody, attemptCount, totalAttempts),
+            error: normalizedError,
+          }),
+        )
+      }
 
       throw normalizedError
     }

@@ -15,7 +15,13 @@ export const adminAuditOperationTypeOptions: AdminAuditOperationTypeOption[] = [
   { value: 'CODE_FORCE_REBIND', label: '管理员强制换绑' },
   { value: 'PROJECT_REBIND_SETTINGS_UPDATED', label: '管理员调整项目策略' },
   { value: 'PROJECT_CREATED', label: '创建项目' },
+  { value: 'PROJECT_DELETED', label: '删除项目' },
+  { value: 'PROJECT_NAME_UPDATED', label: '修改项目名称' },
+  { value: 'PROJECT_DESCRIPTION_UPDATED', label: '修改项目描述' },
+  { value: 'PROJECT_STATUS_UPDATED', label: '启停项目' },
   { value: 'CODE_BATCH_GENERATED', label: '批量生成激活码' },
+  { value: 'SYSTEM_CONFIG_UPDATED', label: '更新系统配置' },
+  { value: 'PASSWORD_CHANGED', label: '管理员修改密码' },
 ]
 
 type AdminAuditLogLike = {
@@ -37,6 +43,8 @@ type ParsedAdminAuditDetail = {
   totalCount?: number | null
   name?: string
   projectKey?: string
+  description?: string | null
+  isEnabled?: boolean | null
 }
 
 function parseAdminAuditDetail(detailJson?: string | null): ParsedAdminAuditDetail | null {
@@ -140,6 +148,24 @@ export function buildAdminOperationDetailSummary(
     return detail.name
       ? `项目 ${detail.name}${detail.projectKey ? `（${detail.projectKey}）` : ''}`
       : '已创建项目'
+  }
+
+  if (operationType === 'PROJECT_DELETED') {
+    return detail.name
+      ? `项目 ${detail.name}${detail.projectKey ? `（${detail.projectKey}）` : ''}`
+      : '已删除项目'
+  }
+
+  if (operationType === 'PROJECT_NAME_UPDATED') {
+    return `名称 → ${detail.name || '-'}`
+  }
+
+  if (operationType === 'PROJECT_DESCRIPTION_UPDATED') {
+    return `描述 → ${detail.description || '-'}`
+  }
+
+  if (operationType === 'PROJECT_STATUS_UPDATED') {
+    return detail.isEnabled === true ? '已启用' : '已停用'
   }
 
   if (operationType === 'CODE_BATCH_GENERATED') {
