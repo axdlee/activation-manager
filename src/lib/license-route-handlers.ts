@@ -15,6 +15,11 @@ import {
   verifyActivationCode,
 } from '@/lib/license-service'
 import type { LicenseResult } from '@/lib/license-result-service'
+import {
+  defaultLicenseApiRateLimiter,
+  buildLicenseApiRateLimitKey,
+  type LicenseApiRateLimiter,
+} from '@/lib/license-api-rate-limit'
 
 type LicenseRouteOptions = {
   errorMessage: string
@@ -25,7 +30,28 @@ async function executeLicenseRequest(
   request: Request,
   handler: (params: LicenseApiRequestParams) => Promise<LicenseResult>,
   options: LicenseRouteOptions,
+  rateLimiter: LicenseApiRateLimiter = defaultLicenseApiRateLimiter,
 ) {
+  const path = new URL(request.url).pathname
+  const rateLimitKey = buildLicenseApiRateLimitKey(request, path)
+  const rateLimitResult = rateLimiter.check(rateLimitKey)
+
+  if (!rateLimitResult.allowed) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: '请求过于频繁，请稍后重试',
+      }),
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfterSeconds),
+          'Content-Type': 'application/json',
+        },
+      },
+    )
+  }
+
   try {
     const result = await handler(await readLicenseRequest(request))
     return options.legacyOnly ? createLegacyLicenseResponse(result) : createLicenseResponse(result)
@@ -34,12 +60,17 @@ async function executeLicenseRequest(
   }
 }
 
+type LicenseRouteDependencies = {
+  rateLimiter?: LicenseApiRateLimiter
+}
+
 export function createLicenseRouteHandler(
   service: (
     client: PrismaClient,
     params: LicenseApiRequestParams,
   ) => Promise<LicenseResult>,
   options: LicenseRouteOptions,
+  dependencies: LicenseRouteDependencies = {},
 ) {
   return async (
     request: Request,
@@ -48,6 +79,7 @@ export function createLicenseRouteHandler(
     request,
     (params) => service(client, params),
     options,
+    dependencies.rateLimiter ?? defaultLicenseApiRateLimiter,
   )
 }
 
