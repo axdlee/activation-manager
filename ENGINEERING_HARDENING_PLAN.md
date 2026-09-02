@@ -3514,3 +3514,40 @@
 2. P3-04：优化 SDK 错误分类与 hook 错误隔离
 3. P4-05：补关键操作审计日志缺口
 4. 持续拆分 `dashboard/page.tsx`（P3-01）
+
+### 2026-09-02 / Iteration 2026-09c：SDK 错误分类、审计日志补齐、CSV 公式注入防御
+
+**目标**：完成剩余 P3/P4 项，收敛安全短板。
+
+**已完成**：
+
+- [x] P3-04：SDK 错误分类增强
+  - 新增 RATE_LIMITED / HTTP_ERROR 错误码，429 与不可解析 5xx 可区分
+  - 新增 callHookSafely 隔离 hook 错误，hook 抛错不影响主流程
+  - 新增 LicenseClientError.statusCode 属性
+  - 5 个新测试覆盖限流、HTTP_ERROR、hook 隔离等场景
+- [x] P4-05：补齐关键操作审计日志
+  - 扩展 AdminOperationType 枚举，新增 PROJECT_DELETED / PROJECT_NAME_UPDATED /
+    PROJECT_DESCRIPTION_UPDATED / PROJECT_STATUS_UPDATED / SYSTEM_CONFIG_UPDATED /
+    PASSWORD_CHANGED 共 6 种审计记录
+  - 项目删除/改名/改描述/启停、系统配置更新、密码修改均记录审计日志
+  - 审计 UI 类型标签与详情摘要同步更新
+- [x] P3 补充：CSV 公式注入防御
+  - 提取三处重复的 CSV 转义为共享 csv-utils 模块
+  - 对用户可控字符串值（以 = + - @ 开头）加 \t 前置防御
+  - 数字类型（统计差值）原样输出，不做公式前缀
+  - 7 个新测试覆盖公式注入、引号转义、数字类型
+- [x] P3-01 基础：创建 use-consumption-logs hook，为 dashboard 数据层拆分做准备
+
+**验证结果**：
+
+1. `npm run lint` ✅
+2. `npm test` ✅（339 / 339 通过，新增 12 个测试）
+3. `npm run test:coverage` ✅
+4. `npm run build` ✅
+
+**下一步**：
+
+1. 持续拆分 `dashboard/page.tsx`（P3-01）—— 3488 行，建议在有 e2e 验证环境时推进
+2. 为存量库补充 `prisma migrate resolve` 基线流程文档
+3. 检查备份脚本使用 sqlite3 .backup 命令的原子性

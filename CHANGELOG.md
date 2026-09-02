@@ -1,5 +1,32 @@
 # 更新日志
 
+## [Unreleased] - 2026-09-02
+
+> 全仓库安全基线加固与交付链路完善，覆盖提交范围：`32cdb55..HEAD`
+
+### 2026-09-02：安全基线补强与依赖漏洞修复 🔒
+- 升级 Next.js 14.0.0 → 14.2.35（eslint-config-next 同步），修复 CVE-2025-29927（middleware 授权绕过，影响 `/admin` 后台鉴权）、CVE-2024-34351（SSRF）、CVE-2024-46982（缓存投毒）等
+- 移除废弃的 `crypto` npm stub 依赖，源码改用 `node:crypto`
+- 生产环境 bootstrap 强制要求 `ADMIN_INITIAL_PASSWORD`，不再自动创建 `admin/123456` 弱口令账号
+- 生产环境 `prisma db push` 不再传 `--accept-data-loss`，破坏性变更直接报错
+- 数据库路径支持 `DATABASE_URL` 环境变量，减少 symlink 依赖
+- 修复 `license-auto-rebind-service` 中 `now` 参数未透传到 `isCodeExpired` 的时间敏感 bug
+- License API 内部错误不再向客户端泄露具体 Error 消息
+
+### 2026-09-02：版本化迁移与公开 API 限流 🚀
+- 引入 Prisma 版本化迁移（`prisma/migrations/20260902000000_init`），生产环境优先 `migrate deploy`，存量库自动回退 `db push`
+- 公开 License API 增加 IP + 接口维度内存滑动窗口限流（默认 120 次/分钟，超限 429 + Retry-After）
+- sqlite3 CLI 调用增加 `.timeout 5000`，消除测试并发 `database is locked`
+- SDK 新增 RATE_LIMITED / HTTP_ERROR 错误码，hook 错误隔离，5 个新测试
+- 补齐关键操作审计日志（项目删除/改名/改描述/启停、系统配置更新、密码修改），新增 6 种审计类型
+- 提取三处重复 CSV 转义为共享模块，增加公式注入防御（`= + - @` 前缀加 `\t`）
+
+### 2026-09-02：工程文档同步 📝
+- README 补充安全说明与限流/migration 配置
+- ENGINEERING_HARDENING_PLAN 更新任务表与三轮迭代记录
+
+---
+
 ## [Unreleased] - 2026-03-27
 
 > 本节根据 `2026-03-24 ~ 2026-03-26` 的真实 `git log` 归档整理，覆盖提交范围：`64f1081..9f243cc`，并补充当前工作区尚未提交的后台术语统一、截图刷新与文档修订。
