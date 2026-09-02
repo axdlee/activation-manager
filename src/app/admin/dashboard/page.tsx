@@ -143,7 +143,29 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [generatedCodes, setGeneratedCodes] = useState<ActivationCode[]>([])
   const [allCodes, setAllCodes] = useState<ActivationCode[]>([])
-  const [consumptionLogs, setConsumptionLogs] = useState<LicenseConsumptionLog[]>([])
+  const consumption = useConsumptionLogs()
+  const {
+    logs: consumptionLogs,
+    loading: consumptionLoading,
+    refreshSource: consumptionRefreshSource,
+    lastRefreshedAt: consumptionLastRefreshedAt,
+    refreshError: consumptionRefreshError,
+    pagination: consumptionPagination,
+    currentPage: consumptionCurrentPage,
+    setCurrentPage: setConsumptionCurrentPage,
+    searchTerm: consumptionSearchTerm,
+    setSearchTerm: setConsumptionSearchTerm,
+    projectFilter: consumptionProjectFilter,
+    setProjectFilter: setConsumptionProjectFilter,
+    createdFrom: consumptionCreatedFrom,
+    setCreatedFrom: setConsumptionCreatedFrom,
+    createdTo: consumptionCreatedTo,
+    setCreatedTo: setConsumptionCreatedTo,
+    fetchConsumptionLogs: hookFetchConsumptionLogs,
+    buildFilters: consumptionBuildFilters,
+    refresh: consumptionRefresh,
+    goToPage: consumptionGoToPage,
+  } = consumption
   const [projects, setProjects] = useState<Project[]>([])
   const [projectStats, setProjectStats] = useState<ProjectStats[]>([])
   const [stats, setStats] = useState<Stats>({ total: 0, used: 0, expired: 0, active: 0 })
@@ -165,10 +187,6 @@ export default function DashboardPage() {
   const [statsProjectFilter, setStatsProjectFilter] = useState<'all' | string>('all')
   const [cardTypeFilter, setCardTypeFilter] = useState<'all' | string>('all')
   const [projectFilter, setProjectFilter] = useState<'all' | string>('all')
-  const [consumptionSearchTerm, setConsumptionSearchTerm] = useState('')
-  const [consumptionProjectFilter, setConsumptionProjectFilter] = useState<'all' | string>('all')
-  const [consumptionCreatedFrom, setConsumptionCreatedFrom] = useState('')
-  const [consumptionCreatedTo, setConsumptionCreatedTo] = useState('')
   const [auditLogs, setAuditLogs] = useState<AdminOperationAuditLogEntry[]>([])
   const [auditLogSearchTerm, setAuditLogSearchTerm] = useState('')
   const [auditLogProjectFilter, setAuditLogProjectFilter] = useState<'all' | string>('all')
@@ -176,16 +194,6 @@ export default function DashboardPage() {
     useState<'all' | string>('all')
   const [auditLogCreatedFrom, setAuditLogCreatedFrom] = useState('')
   const [auditLogCreatedTo, setAuditLogCreatedTo] = useState('')
-  const [consumptionLoading, setConsumptionLoading] = useState(false)
-  const [consumptionRefreshSource, setConsumptionRefreshSource] = useState<ConsumptionRefreshSource>('initial')
-  const [consumptionLastRefreshedAt, setConsumptionLastRefreshedAt] = useState<string | null>(null)
-  const [consumptionRefreshError, setConsumptionRefreshError] = useState<string | null>(null)
-  const [consumptionPagination, setConsumptionPagination] = useState<ConsumptionPagination>({
-    total: 0,
-    page: 1,
-    pageSize: 10,
-    totalPages: 1,
-  })
   const [auditLogPagination, setAuditLogPagination] = useState<ConsumptionPagination>({
     total: 0,
     page: 1,
@@ -193,7 +201,6 @@ export default function DashboardPage() {
     totalPages: 1,
   })
   const [currentPage, setCurrentPage] = useState(1)
-  const [consumptionCurrentPage, setConsumptionCurrentPage] = useState(1)
   const [auditLogCurrentPage, setAuditLogCurrentPage] = useState(1)
   const [projectManagementCurrentPage, setProjectManagementCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
@@ -254,7 +261,7 @@ export default function DashboardPage() {
       overrides?: Partial<ConsumptionQueryFilters>,
       source?: ConsumptionRefreshSource,
       page?: number,
-    ) => Promise<void>)
+    ) => Promise<{ success: boolean; message?: string }>)
   >(null)
 
   const showMessage = useCallback((content: string, type: 'success' | 'error' = 'success') => {
@@ -602,17 +609,12 @@ export default function DashboardPage() {
     [allCodes, syncSelectedActivationCodeDrafts],
   )
 
-  const currentConsumptionFilters = useMemo<ConsumptionQueryFilters>(() => ({
-    projectKey: consumptionProjectFilter,
-    keyword: consumptionSearchTerm,
-    createdFrom: consumptionCreatedFrom,
-    createdTo: consumptionCreatedTo,
-  }), [
-    consumptionCreatedFrom,
-    consumptionCreatedTo,
-    consumptionProjectFilter,
-    consumptionSearchTerm,
-  ])
+  const currentConsumptionFilters = useMemo<ConsumptionQueryFilters>(
+    () => consumptionBuildFilters(),
+    // consumptionBuildFilters 由 hook 内部状态派生，这里用过滤状态作为依赖
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [consumptionCreatedFrom, consumptionCreatedTo, consumptionProjectFilter, consumptionSearchTerm],
+  )
   const consumptionAutoRefreshKey = useMemo(
     () => buildConsumptionAutoRefreshKey(currentConsumptionFilters),
     [currentConsumptionFilters],
@@ -646,49 +648,24 @@ export default function DashboardPage() {
     ...overrides,
   }), [currentAuditLogFilters])
 
+  // 消费日志 fetch 委托给 useConsumptionLogs hook，保留页面级 toast 提示
   const fetchConsumptionLogs = useCallback(async (
     overrides: Partial<ConsumptionQueryFilters> = {},
     source: ConsumptionRefreshSource = 'manual',
     page: number = consumptionCurrentPage,
   ) => {
-    try {
-      setConsumptionLoading(true)
-      setConsumptionRefreshSource(source)
-      setConsumptionRefreshError(null)
-      const params = buildConsumptionQueryParams(buildCurrentConsumptionFilters(overrides), {
-        page,
-        pageSize: itemsPerPage,
-      })
-      const requestUrl = params.toString()
-        ? `/api/admin/consumptions?${params.toString()}`
-        : '/api/admin/consumptions'
-      const response = await fetch(requestUrl)
-      const data = await response.json()
-      if (data.success) {
-        setConsumptionLogs(data.logs)
-        setConsumptionPagination(data.pagination)
-        if (data.pagination?.page !== page) {
-          setConsumptionCurrentPage(data.pagination.page)
-        }
-        setConsumptionLastRefreshedAt(new Date().toISOString())
-        setConsumptionRefreshError(null)
-      } else {
-        const errorMessage = data.message || '获取消费日志失败'
-        setConsumptionRefreshError(errorMessage)
-        if (source !== 'auto') {
-          showMessage(errorMessage, 'error')
-        }
-      }
-    } catch (error) {
-      const errorMessage = '网络错误，请重试'
-      setConsumptionRefreshError(errorMessage)
-      if (source !== 'auto') {
-        showMessage(errorMessage, 'error')
-      }
-    } finally {
-      setConsumptionLoading(false)
+    const result = await hookFetchConsumptionLogs(
+      buildCurrentConsumptionFilters(overrides),
+      page,
+      source,
+    )
+
+    if (!result.success && source !== 'auto') {
+      showMessage(result.message || '获取消费日志失败', 'error')
     }
-  }, [buildCurrentConsumptionFilters, consumptionCurrentPage, itemsPerPage, showMessage])
+
+    return result
+  }, [buildCurrentConsumptionFilters, consumptionCurrentPage, hookFetchConsumptionLogs, showMessage])
 
   const fetchAdminAuditLogs = useCallback(async (
     overrides: Partial<AuditLogQueryFilters> = {},

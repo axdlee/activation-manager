@@ -41,6 +41,11 @@ export type UseConsumptionLogsOptions = {
   pageSize?: number
 }
 
+export type ConsumptionFetchResult = {
+  success: boolean
+  message?: string
+}
+
 export function useConsumptionLogs(options: UseConsumptionLogsOptions = {}) {
   const pageSize = options.pageSize ?? 10
 
@@ -66,7 +71,7 @@ export function useConsumptionLogs(options: UseConsumptionLogsOptions = {}) {
       filters: ConsumptionFilters,
       page: number = 1,
       source: ConsumptionRefreshSource = 'manual',
-    ) => {
+    ): Promise<ConsumptionFetchResult> => {
       setLoading(true)
       setRefreshSource(source)
       setRefreshError(null)
@@ -81,13 +86,16 @@ export function useConsumptionLogs(options: UseConsumptionLogsOptions = {}) {
           setPagination(data.pagination)
           setCurrentPage(data.pagination.page)
           setLastRefreshedAt(new Date().toISOString())
-        } else {
-          setRefreshError(data.message || '加载消费日志失败')
+          return { success: true }
         }
+
+        const errorMessage = data.message || '加载消费日志失败'
+        setRefreshError(errorMessage)
+        return { success: false, message: errorMessage }
       } catch (error) {
-        setRefreshError(
-          error instanceof Error ? error.message : '加载消费日志失败',
-        )
+        const errorMessage = error instanceof Error ? error.message : '加载消费日志失败'
+        setRefreshError(errorMessage)
+        return { success: false, message: errorMessage }
       } finally {
         setLoading(false)
       }
@@ -126,6 +134,7 @@ export function useConsumptionLogs(options: UseConsumptionLogsOptions = {}) {
     refreshError,
     pagination,
     currentPage,
+    setCurrentPage,
     searchTerm,
     setSearchTerm,
     projectFilter,
