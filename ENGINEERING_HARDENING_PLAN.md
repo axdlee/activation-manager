@@ -3551,3 +3551,31 @@
 1. 持续拆分 `dashboard/page.tsx`（P3-01）—— 3488 行，建议在有 e2e 验证环境时推进
 2. 为存量库补充 `prisma migrate resolve` 基线流程文档
 3. 检查备份脚本使用 sqlite3 .backup 命令的原子性
+
+### 2026-09-02 / Iteration 2026-09d：dashboard 页面模块化拆分
+
+**目标**：继续 P3-01，将 3488 行的 dashboard 页面按领域模块拆分为独立 hook，降低维护成本。
+
+**已完成**：
+
+- [x] 类型与常量抽取：新增 `src/lib/dashboard-page-types.ts`（Project / ActivationCode / Stats / ConsumptionTrend / cardTypes / statusFilterLabelMap 等），页面改为 import
+- [x] 消费日志模块：新增 `use-consumption-logs` hook（数据获取、分页、过滤、刷新状态），页面保留适配层合并 overrides + toast
+- [x] 审计日志模块：新增 `use-admin-audit-logs` hook，同款模式接入
+- [x] 消费趋势模块：新增 `use-consumption-trend` hook，`fetchTrend(projectKey)` 与 stats 卡片共享的 `statsProjectFilter` 解耦
+
+**验证结果**：
+
+1. `npm run lint` ✅（无警告，react-hooks/exhaustive-deps 依赖已补齐）
+2. `npm test` ✅（339 / 339）
+3. `npm run build` ✅
+
+**备注**：
+
+- page.tsx 由 3488 行降至 3191 行（-297 行），三个 hook 均保持行为等价（解构别名 + 页面适配层）
+- 消费日志 fetch 返回 `{ success, message }`，页面保留非自动刷新失败的 toast 语义
+- 剩余 stats / 项目 / 激活码工作区与页面共享状态（`statsProjectFilter`、`projects`、`loading`）耦合深，后续拆分建议在 e2e 验证环境下进行
+
+**下一步**：
+
+1. stats / 项目 / 激活码工作区在有 e2e 环境时按同款模式继续拆分
+2. 存量库 `prisma migrate resolve` 基线流程已写入 DATABASE_BACKUP_GUIDE

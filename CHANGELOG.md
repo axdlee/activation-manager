@@ -25,6 +25,11 @@
 - README 补充安全说明与限流/migration 配置
 - ENGINEERING_HARDENING_PLAN 更新任务表与三轮迭代记录
 
+### 2026-09-02：dashboard 页面模块化拆分 🧩
+- 页面类型与常量抽取到 `src/lib/dashboard-page-types.ts`
+- 消费日志 / 审计日志 / 消费趋势三个模块分别抽取为独立 hook（`use-consumption-logs` / `use-admin-audit-logs` / `use-consumption-trend`）
+- 页面保留适配层与 toast 语义，行为等价；`dashboard/page.tsx` 由 3488 行降至 3191 行
+
 ---
 
 ## [Unreleased] - 2026-03-27
