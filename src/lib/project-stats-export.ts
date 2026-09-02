@@ -1,3 +1,5 @@
+import { createCsvRow } from './csv-utils'
+
 type ProjectStatsLike = {
   name: string
   projectKey: string
@@ -8,20 +10,6 @@ type ProjectStatsLike = {
   expiredCodes: number
   countRemainingTotal: number
   countConsumedTotal: number
-}
-
-function escapeCsvValue(value: string | number) {
-  const normalizedValue = String(value)
-
-  if (/[",\n]/.test(normalizedValue)) {
-    return `"${normalizedValue.replace(/"/g, '""')}"`
-  }
-
-  return normalizedValue
-}
-
-function createCsvRow(values: Array<string | number>) {
-  return values.map(escapeCsvValue).join(',')
 }
 
 export function buildProjectStatsCsv(projectStats: ProjectStatsLike[]) {

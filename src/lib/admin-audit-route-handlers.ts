@@ -9,20 +9,7 @@ import {
   listAdminOperationAuditLogsPage,
 } from '@/lib/admin-operation-audit-service'
 import { prisma } from '@/lib/db'
-
-function escapeCsvValue(value: string | number) {
-  const normalizedValue = String(value)
-
-  if (/[",\n]/.test(normalizedValue)) {
-    return `"${normalizedValue.replace(/"/g, '""')}"`
-  }
-
-  return normalizedValue
-}
-
-function createCsvRow(values: Array<string | number>) {
-  return values.map(escapeCsvValue).join(',')
-}
+import { createCsvRow } from './csv-utils'
 
 function buildAdminOperationAuditCsv(
   logs: Awaited<ReturnType<typeof listAdminOperationAuditLogs>>,

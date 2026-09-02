@@ -9,6 +9,8 @@ import {
   listLicenseConsumptionsPage,
 } from './license-consumption-service'
 
+import { createCsvRow } from './csv-utils'
+
 type LicenseConsumptionCsvLog = {
   requestId: string
   machineId: string
@@ -46,20 +48,6 @@ type LicenseConsumptionTrendComparisonCsvPoint = {
 type LicenseConsumptionTrendComparisonCsv = {
   granularity?: string
   points: LicenseConsumptionTrendComparisonCsvPoint[]
-}
-
-function escapeCsvValue(value: string | number) {
-  const normalizedValue = String(value)
-
-  if (/[",\n]/.test(normalizedValue)) {
-    return `"${normalizedValue.replace(/"/g, '""')}"`
-  }
-
-  return normalizedValue
-}
-
-function createCsvRow(values: Array<string | number>) {
-  return values.map(escapeCsvValue).join(',')
 }
 
 function getLicenseModeDisplay(mode: string) {
