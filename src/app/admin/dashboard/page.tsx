@@ -37,6 +37,7 @@ import {
 } from '@/lib/license-status'
 import { useConsumptionLogs } from '@/lib/use-consumption-logs'
 import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
+import { useAdminAuditLogs } from '@/lib/use-admin-audit-logs'
 import {
   dashboardTabs,
   getDashboardTabMeta,
@@ -163,8 +164,6 @@ export default function DashboardPage() {
     setCreatedTo: setConsumptionCreatedTo,
     fetchConsumptionLogs: hookFetchConsumptionLogs,
     buildFilters: consumptionBuildFilters,
-    refresh: consumptionRefresh,
-    goToPage: consumptionGoToPage,
   } = consumption
   const [projects, setProjects] = useState<Project[]>([])
   const [projectStats, setProjectStats] = useState<ProjectStats[]>([])
@@ -187,21 +186,27 @@ export default function DashboardPage() {
   const [statsProjectFilter, setStatsProjectFilter] = useState<'all' | string>('all')
   const [cardTypeFilter, setCardTypeFilter] = useState<'all' | string>('all')
   const [projectFilter, setProjectFilter] = useState<'all' | string>('all')
-  const [auditLogs, setAuditLogs] = useState<AdminOperationAuditLogEntry[]>([])
-  const [auditLogSearchTerm, setAuditLogSearchTerm] = useState('')
-  const [auditLogProjectFilter, setAuditLogProjectFilter] = useState<'all' | string>('all')
-  const [auditLogOperationTypeFilter, setAuditLogOperationTypeFilter] =
-    useState<'all' | string>('all')
-  const [auditLogCreatedFrom, setAuditLogCreatedFrom] = useState('')
-  const [auditLogCreatedTo, setAuditLogCreatedTo] = useState('')
-  const [auditLogPagination, setAuditLogPagination] = useState<ConsumptionPagination>({
-    total: 0,
-    page: 1,
-    pageSize: 10,
-    totalPages: 1,
-  })
+  const audit = useAdminAuditLogs()
+  const {
+    logs: auditLogs,
+    loading: auditLogLoading,
+    pagination: auditLogPagination,
+    currentPage: auditLogCurrentPage,
+    setCurrentPage: setAuditLogCurrentPage,
+    searchTerm: auditLogSearchTerm,
+    setSearchTerm: setAuditLogSearchTerm,
+    projectFilter: auditLogProjectFilter,
+    setProjectFilter: setAuditLogProjectFilter,
+    operationTypeFilter: auditLogOperationTypeFilter,
+    setOperationTypeFilter: setAuditLogOperationTypeFilter,
+    createdFrom: auditLogCreatedFrom,
+    setCreatedFrom: setAuditLogCreatedFrom,
+    createdTo: auditLogCreatedTo,
+    setCreatedTo: setAuditLogCreatedTo,
+    buildFilters: auditBuildFilters,
+    fetchAdminAuditLogs: hookFetchAdminAuditLogs,
+  } = audit
   const [currentPage, setCurrentPage] = useState(1)
-  const [auditLogCurrentPage, setAuditLogCurrentPage] = useState(1)
   const [projectManagementCurrentPage, setProjectManagementCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [currentPassword, setCurrentPassword] = useState('')
@@ -627,19 +632,11 @@ export default function DashboardPage() {
     ...overrides,
   }), [currentConsumptionFilters])
 
-  const currentAuditLogFilters = useMemo<AuditLogQueryFilters>(() => ({
-    keyword: auditLogSearchTerm,
-    projectKey: auditLogProjectFilter,
-    operationType: auditLogOperationTypeFilter,
-    createdFrom: auditLogCreatedFrom,
-    createdTo: auditLogCreatedTo,
-  }), [
-    auditLogCreatedFrom,
-    auditLogCreatedTo,
-    auditLogOperationTypeFilter,
-    auditLogProjectFilter,
-    auditLogSearchTerm,
-  ])
+  const currentAuditLogFilters = useMemo<AuditLogQueryFilters>(
+    () => auditBuildFilters(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [auditLogCreatedFrom, auditLogCreatedTo, auditLogOperationTypeFilter, auditLogProjectFilter, auditLogSearchTerm],
+  )
 
   const buildCurrentAuditLogFilters = useCallback((
     overrides: Partial<AuditLogQueryFilters> = {},
@@ -667,52 +664,22 @@ export default function DashboardPage() {
     return result
   }, [buildCurrentConsumptionFilters, consumptionCurrentPage, hookFetchConsumptionLogs, showMessage])
 
+  // 审计日志 fetch 委托给 useAdminAuditLogs hook
   const fetchAdminAuditLogs = useCallback(async (
     overrides: Partial<AuditLogQueryFilters> = {},
     page: number = auditLogCurrentPage,
   ) => {
-    try {
-      setLoading(true)
-      const filters = buildCurrentAuditLogFilters(overrides)
-      const params = new URLSearchParams()
+    const result = await hookFetchAdminAuditLogs(
+      buildCurrentAuditLogFilters(overrides),
+      page,
+    )
 
-      if (filters.projectKey !== 'all') {
-        params.set('projectKey', filters.projectKey)
-      }
-      if (filters.keyword.trim()) {
-        params.set('keyword', filters.keyword.trim())
-      }
-      if (filters.operationType !== 'all') {
-        params.set('operationType', filters.operationType)
-      }
-      if (filters.createdFrom) {
-        params.set('createdFrom', filters.createdFrom)
-      }
-      if (filters.createdTo) {
-        params.set('createdTo', filters.createdTo)
-      }
-
-      params.set('page', String(page))
-      params.set('pageSize', String(itemsPerPage))
-
-      const response = await fetch(`/api/admin/audit-logs?${params.toString()}`)
-      const data = await response.json()
-
-      if (data.success) {
-        setAuditLogs(data.logs)
-        setAuditLogPagination(data.pagination)
-        if (data.pagination?.page !== page) {
-          setAuditLogCurrentPage(data.pagination.page)
-        }
-      } else {
-        showMessage(data.message || '获取审计日志失败', 'error')
-      }
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
+    if (!result.success) {
+      showMessage(result.message || '获取审计日志失败', 'error')
     }
-  }, [auditLogCurrentPage, buildCurrentAuditLogFilters, itemsPerPage, showMessage])
+
+    return result
+  }, [auditLogCurrentPage, buildCurrentAuditLogFilters, hookFetchAdminAuditLogs, showMessage])
 
   useEffect(() => {
     fetchConsumptionLogsRef.current = fetchConsumptionLogs
@@ -770,6 +737,7 @@ export default function DashboardPage() {
     fetchProjects,
     fetchStats,
     fetchSystemConfigs,
+    setAuditLogCurrentPage,
     systemConfigs.length,
   ])
 
@@ -2374,7 +2342,7 @@ export default function DashboardPage() {
     if (consumptionCurrentPage > lastPage) {
       setConsumptionCurrentPage(lastPage)
     }
-  }, [consumptionCurrentPage, consumptionTotalPages])
+  }, [consumptionCurrentPage, consumptionTotalPages, setConsumptionCurrentPage])
 
   useEffect(() => {
     const lastPage = Math.max(auditLogTotalPages, 1)
@@ -2382,7 +2350,7 @@ export default function DashboardPage() {
     if (auditLogCurrentPage > lastPage) {
       setAuditLogCurrentPage(lastPage)
     }
-  }, [auditLogCurrentPage, auditLogTotalPages])
+  }, [auditLogCurrentPage, auditLogTotalPages, setAuditLogCurrentPage])
 
   useEffect(() => {
     if (selectedActivationCodeId === null) {
@@ -3236,7 +3204,7 @@ export default function DashboardPage() {
           <AuditLogWorkspace
             activeTab={auditLogWorkspaceTab}
             onTabChange={handleChangeAuditLogWorkspaceTab}
-            loading={loading}
+            loading={auditLogLoading}
             matchedCount={auditLogPagination.total}
             operatorCoverage={auditLogOperatorCoverage}
             projectCoverage={auditLogProjectCoverage}
