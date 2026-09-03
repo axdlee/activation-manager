@@ -131,6 +131,7 @@ import {
   parseNullableCooldownMinutesInput,
   parseNullableMaxCountInput,
 } from '@/lib/dashboard-form-utils'
+import { buildExportUrl, triggerFileDownload } from '@/lib/download-utils'
 import { cardTypes, statusFilterLabelMap } from '@/lib/dashboard-page-types'
 
 export default function DashboardPage() {
@@ -1541,15 +1542,7 @@ export default function DashboardPage() {
 
   const handleExportConsumptionLogs = () => {
     const params = buildConsumptionQueryParams(buildCurrentConsumptionFilters())
-    const exportUrl = params.toString()
-      ? `/api/admin/consumptions/export?${params.toString()}`
-      : '/api/admin/consumptions/export'
-
-    const link = document.createElement('a')
-    link.setAttribute('href', exportUrl)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    triggerFileDownload(buildExportUrl('/api/admin/consumptions/export', params))
   }
 
   const handleExportAdminAuditLogs = () => {
@@ -1572,15 +1565,7 @@ export default function DashboardPage() {
       params.set('createdTo', filters.createdTo)
     }
 
-    const exportUrl = params.toString()
-      ? `/api/admin/audit-logs/export?${params.toString()}`
-      : '/api/admin/audit-logs/export'
-
-    const link = document.createElement('a')
-    link.setAttribute('href', exportUrl)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    triggerFileDownload(buildExportUrl('/api/admin/audit-logs/export', params))
   }
 
   const applyConsumptionQuickRange = (createdFrom: string, createdTo: string) => {
