@@ -3612,3 +3612,54 @@
 
 1. 建议搭建 e2e 冒烟（登录 → 发码 → 激活 → 消费 → 审计）后冻结本轮重构
 2. 交付方式待定：推送 GitHub / 导出 patch / 归档
+
+### 2026-09-02 / Iteration 2026-09f：审计日志筛选自动刷新修复
+
+**目标**：修复审计日志筛选变更不自动刷新列表的交互缺陷。
+
+**问题**：消费日志有 `consumptionAutoRefreshKey` 驱动 debounce 自动刷新 effect；审计日志筛选（搜索、项目、操作类型、时间范围）变更只更新 state 不重新拉取，列表停留在旧数据直到切 tab / 翻页 / 重置。
+
+**已完成**：
+
+- [x] 新增 `auditLogAutoRefreshKey`（筛选 JSON 派生 key）与 debounce 自动刷新 effect（`activeTab === 'auditLogs'` 时生效）
+- [x] 新增 `hasAuditLogAutoRefreshInitializedRef` / `skipNextAuditLogAutoRefreshRef` / `fetchAdminAuditLogsRef`，与消费日志同款模式
+- [x] `handleResetAuditLogFilters` 手动拉取前置 skip 标记，避免与自动刷新重复请求
+
+**验证结果**：
+
+1. `npm run lint` ✅
+2. `npm test` ✅（350 / 350）
+3. `npm run build` ✅
+
+### 2026-09-02 / Iteration 2026-09g：e2e 冒烟测试
+
+**目标**：用 Playwright 搭建浏览器端到端冒烟，验证登录 → 发码 → 激活 → 消费 → 审计全链路后再冻结本轮重构。
+
+**已完成**：
+
+- [x] 引入 `@playwright/test` 1.62，新增 `playwright.config.ts`：独立 e2e 数据库（`DATABASE_URL=file:./e2e.db`）+ 3210 端口 dev server + `setup` / `smoke` 双 project（storageState 共享管理员会话）
+- [x] `e2e/auth.setup.ts`：登录 admin/123456 并保存 storageState
+- [x] `e2e/smoke.spec.ts` 7 项冒烟：
+  - 创建项目（UI 弹框表单）
+  - 生成次数型激活码（UI 表单 + 结果表格抓 code）
+  - 公开 API 激活 → 状态 → 消费 ×2 + 幂等重放（剩余次数 3→2→1）
+  - 后台消费日志 API 断言 + UI 搜索定位 requestId
+  - 审计中心记录「创建项目」「批量生成激活码」
+  - 审计筛选自动刷新回归（关键词 → 空态 → 重置 → 恢复）
+- [x] `test:e2e` / `test:e2e:ui` npm scripts；Playwright 产物与 auth 状态入 .gitignore
+
+**验证结果**：
+
+1. `npx playwright test` ✅（7 / 7 通过，13.9s）
+2. 单元测试与 e2e 互不干扰（`tests/**` 与 `e2e/**` 分离）
+
+**备注**：
+
+- 关键踩坑：Playwright 每个 test 默认独立 browser context，登录 cookie 不跨测试共享 → 用 setup project + storageState 解决
+- workspace 内层 tab（筛选与导出 / 日志列表）由 `WorkspaceTabNav` 渲染为 `<div>` 内 button，不能复用 `nav button` 选择器
+- 每次 e2e 运行自动删除 e2e.db，保证幂等；CI 中需先 `npx playwright install chromium`
+
+**下一步**：
+
+1. 本轮加固已覆盖：安全 → 迁移 → 限流 → 审计 → dashboard 拆分 → 交互修复 → e2e 冒烟，可冻结
+2. 交付方式待定：推送 GitHub / 导出 patch / 归档

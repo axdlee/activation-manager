@@ -32,7 +32,14 @@
 
 ### 2026-09-02：dashboard 收尾修复 🐛
 - 修复审计日志筛选重置后不刷新数据的问题：`handleResetAuditLogFilters` 仅重置状态未重新拉取列表（消费日志有自动刷新 effect 兜底、审计日志没有），现在重置后显式以空筛选重新请求第 1 页
+- 修复审计日志任意筛选变更（搜索 / 项目 / 操作类型 / 时间范围）不自动刷新列表的问题：补齐 `auditLogAutoRefreshKey` 派生 key + debounce 自动刷新 effect + initialized/skip refs，与消费日志同款模式；reset 前置 skip 标记避免重复请求
 - `handleExportProjectStats` 改用共享 `buildExportUrl` + `triggerFileDownload`，消除与消费日志 / 审计日志导出重复的内联实现
+
+### 2026-09-02：e2e 冒烟测试 🧪
+- 引入 Playwright（`@playwright/test` 1.62），新增 `playwright.config.ts`（独立 e2e 数据库 + 专用 3210 端口 dev server + setup/smoke 双 project）
+- `e2e/auth.setup.ts` 先登录管理员并保存 storageState，所有测试共享会话
+- `e2e/smoke.spec.ts` 全链路冒烟：创建项目 → 生成次数型激活码 → 公开 API 激活/状态/消费（含幂等重放）→ 后台消费日志 API + UI 验证 → 审计中心记录校验 → 审计筛选自动刷新回归（7 项全通过）
+- 新增 `test:e2e` / `test:e2e:ui` npm scripts；Playwright 产物与 auth 状态加入 .gitignore
 
 ---
 

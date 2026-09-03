@@ -24,7 +24,9 @@
     "db:backup-sql": "sqlite3 prisma/dev.db .dump > backup_$(date +%Y%m%d_%H%M%S).sql",
     "init-admin": "tsx scripts/init-admin.ts",
     "init-default-admin": "tsx scripts/init-default-admin.ts",
-    "init-system-config": "tsx scripts/init-system-config.ts"
+    "init-system-config": "tsx scripts/init-system-config.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",

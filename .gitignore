@@ -138,3 +138,10 @@ temp/
 .codex-backups/
 
 artifacts/
+# Playwright e2e
+/test-results/
+/playwright-report/
+/blob-report/
+
+# Playwright auth state
+e2e/.auth/

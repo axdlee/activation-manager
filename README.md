@@ -1030,6 +1030,21 @@ npm run test:coverage
 npm run quality:gate
 ```
 
+端到端冒烟（Playwright，浏览器全链路：登录 → 建项目 → 发码 → 激活 → 消费 → 审计）：
+
+```bash
+# 首次需安装浏览器（沙箱环境可指定 PLAYWRIGHT_BROWSERS_PATH）
+npx playwright install chromium
+
+# 运行 e2e（自动启动独立 3210 端口 dev server + 独立 e2e.db，结束后自动清理）
+npm run test:e2e
+
+# 可视化调试模式
+npm run test:e2e:ui
+```
+
+e2e 使用独立数据库（`prisma/e2e.db`），每次运行前自动重建，不影响开发数据；详细链路与断言见 `e2e/smoke.spec.ts` 与 `e2e/auth.setup.ts`。
+
 CI 工作流位置：
 
 - `.github/workflows/quality-gate.yml`
