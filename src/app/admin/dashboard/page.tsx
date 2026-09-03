@@ -41,6 +41,7 @@ import { useConsumptionTrend } from '@/lib/use-consumption-trend'
 import { useDashboardData } from '@/lib/use-dashboard-data'
 import { useDashboardStats } from '@/lib/use-dashboard-stats'
 import { useChangePassword } from '@/lib/use-change-password'
+import { useSystemConfigWorkspace } from '@/lib/use-system-config-workspace'
 import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
@@ -62,11 +63,6 @@ import {
 import { buildProjectStatsInsights } from '@/lib/project-stats-insights'
 import { filterProjectStatsByProjectKey } from '@/lib/project-stats-filter'
 import { summarizeProjectStats } from '@/lib/project-stats-summary'
-import {
-  buildSystemConfigPageModel,
-  type SystemConfigItem as DashboardSystemConfigItem,
-} from '@/lib/system-config-ui'
-import { prepareSystemConfigUpdates } from '@/lib/system-config-updates'
 import {
   getProjectKeyValidationError,
   normalizeProjectKeyInput,
@@ -213,8 +209,6 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [projectManagementCurrentPage, setProjectManagementCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
-  const [revealedSensitiveConfigKeys, setRevealedSensitiveConfigKeys] = useState<string[]>([])
-  const [revealedPasswordFieldKeys, setRevealedPasswordFieldKeys] = useState<string[]>([])
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectKey, setNewProjectKey] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
@@ -307,6 +301,28 @@ export default function DashboardPage() {
     pageModel: changePasswordPageModel,
     completedChecklistCount: completedPasswordChecklistCount,
   } = changePassword
+  const sysConfig = useSystemConfigWorkspace({
+    systemConfigs,
+    setSystemConfigs,
+    onShowMessage: showMessage,
+    onLoadingChange: setLoading,
+    onFetchSystemConfigs: hookFetchSystemConfigs,
+  })
+  const {
+    updateConfigValue,
+    handleUpdateSystemConfig,
+    togglePasswordFieldVisibility,
+    isPasswordFieldVisible,
+    toggleSensitiveConfigVisibility,
+    isSensitiveConfigVisible,
+    revealedSensitiveConfigKeys,
+    setRevealedSensitiveConfigKeys,
+    revealedPasswordFieldKeys,
+    setRevealedPasswordFieldKeys,
+    systemConfigPageModel,
+    systemConfigSensitiveCount,
+    systemConfigWhitelistEntryCount,
+  } = sysConfig
 
   const handleCardTypeChange = (cardType: string) => {
     setSelectedCardType(cardType)
@@ -474,7 +490,7 @@ export default function DashboardPage() {
   const fetchSystemConfigs = useCallback(async () => {
     const ok = await hookFetchSystemConfigs()
     if (ok) setRevealedSensitiveConfigKeys([])
-  }, [hookFetchSystemConfigs])
+  }, [hookFetchSystemConfigs, setRevealedSensitiveConfigKeys])
 
   const fetchAllCodes = hookFetchAllCodes
 
@@ -783,41 +799,6 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleUpdateSystemConfig = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage('')
-
-    try {
-      const configs = prepareSystemConfigUpdates(systemConfigs)
-      const response = await fetch('/api/admin/system-config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ configs }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        await fetchSystemConfigs()
-      } else {
-        showMessage(data.message || '系统配置更新失败', 'error')
-      }
-    } catch (error) {
-      showMessage('网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const updateConfigValue = (key: string, value: DashboardSystemConfigItem['value']) => {
-    setSystemConfigs((prev) =>
-      prev.map((config) => (config.key === key ? { ...config, value } : config)),
-    )
   }
 
   const handleGenerateCodes = async (e: React.FormEvent) => {
@@ -1360,15 +1341,6 @@ export default function DashboardPage() {
   const comparisonTrendDifferenceDescription = hasComparisonConsumptionTrend && selectedComparisonProject
     ? `${statsScopeLabel} 相比 ${selectedComparisonProject.name} 的累计扣次差值`
     : '主项目与对比项目的累计扣次差值'
-  const systemConfigPageModel = buildSystemConfigPageModel(systemConfigs)
-  const systemConfigSensitiveCount = systemConfigPageModel.groups.reduce(
-    (count, group) => count + group.items.filter((item) => item.sensitive).length,
-    0,
-  )
-  const systemConfigWhitelistEntryCount = systemConfigPageModel.groups.reduce((count, group) => {
-    const whitelistItem = group.items.find((item) => item.key === 'allowedIPs')
-    return count + (whitelistItem?.previewTokens?.length || 0)
-  }, 0)
   const activeTabMeta = getDashboardTabMeta(activeTab)
   const heroMetricCards = [
     {
@@ -1621,22 +1593,6 @@ export default function DashboardPage() {
     'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
   const paginationActiveButtonClassName =
     'border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:border-sky-500 hover:bg-sky-500'
-  const togglePasswordFieldVisibility = (key: string) => {
-    setRevealedPasswordFieldKeys((currentKeys) =>
-      currentKeys.includes(key)
-        ? currentKeys.filter((currentKey) => currentKey !== key)
-        : [...currentKeys, key],
-    )
-  }
-  const isPasswordFieldVisible = (key: string) => revealedPasswordFieldKeys.includes(key)
-  const toggleSensitiveConfigVisibility = (key: string) => {
-    setRevealedSensitiveConfigKeys((currentKeys) =>
-      currentKeys.includes(key)
-        ? currentKeys.filter((currentKey) => currentKey !== key)
-        : [...currentKeys, key],
-    )
-  }
-  const isSensitiveConfigVisible = (key: string) => revealedSensitiveConfigKeys.includes(key)
 
   const handleExportConsumptionLogs = () => {
     const params = buildConsumptionQueryParams(buildCurrentConsumptionFilters())
