@@ -28,7 +28,7 @@
 ### 2026-09-02：dashboard 页面模块化拆分 🧩
 - 页面类型与常量抽取到 `src/lib/dashboard-page-types.ts`；表单工具抽取到 `dashboard-form-utils`；导出工具抽取到 `download-utils`
 - 消费日志 / 审计日志 / 消费趋势 / stats / 密码修改 / 系统配置 / 共享数据层（projects/allCodes/systemConfigs）七个模块分别抽取为独立 hook（`use-consumption-logs` / `use-admin-audit-logs` / `use-consumption-trend`）
-- 页面保留适配层与 toast 语义，行为等价；`dashboard/page.tsx` 由 3488 行降至 3045 行（-443 行）
+- 页面保留适配层与 toast 语义，行为等价；`dashboard/page.tsx` 由 3488 行降至 3033 行（-455 行），样式常量与导出工具均收敛到 lib
 
 ---
 
