@@ -40,6 +40,7 @@ import { useAdminAuditLogs } from '@/lib/use-admin-audit-logs'
 import { useConsumptionTrend } from '@/lib/use-consumption-trend'
 import { useDashboardData } from '@/lib/use-dashboard-data'
 import { useDashboardStats } from '@/lib/use-dashboard-stats'
+import { useChangePassword } from '@/lib/use-change-password'
 import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
@@ -66,7 +67,6 @@ import {
   type SystemConfigItem as DashboardSystemConfigItem,
 } from '@/lib/system-config-ui'
 import { prepareSystemConfigUpdates } from '@/lib/system-config-updates'
-import { buildChangePasswordPageModel } from '@/lib/change-password-ui'
 import {
   getProjectKeyValidationError,
   normalizeProjectKeyInput,
@@ -213,9 +213,6 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [projectManagementCurrentPage, setProjectManagementCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [revealedSensitiveConfigKeys, setRevealedSensitiveConfigKeys] = useState<string[]>([])
   const [revealedPasswordFieldKeys, setRevealedPasswordFieldKeys] = useState<string[]>([])
   const [newProjectName, setNewProjectName] = useState('')
@@ -299,6 +296,17 @@ export default function DashboardPage() {
     setProjectStats,
     fetchStats,
   } = dashboardStats
+  const changePassword = useChangePassword()
+  const {
+    currentPassword,
+    setCurrentPassword,
+    newPassword,
+    setNewPassword,
+    confirmPassword,
+    setConfirmPassword,
+    pageModel: changePasswordPageModel,
+    completedChecklistCount: completedPasswordChecklistCount,
+  } = changePassword
 
   const handleCardTypeChange = (cardType: string) => {
     setSelectedCardType(cardType)
@@ -1352,14 +1360,6 @@ export default function DashboardPage() {
   const comparisonTrendDifferenceDescription = hasComparisonConsumptionTrend && selectedComparisonProject
     ? `${statsScopeLabel} 相比 ${selectedComparisonProject.name} 的累计扣次差值`
     : '主项目与对比项目的累计扣次差值'
-  const changePasswordPageModel = buildChangePasswordPageModel({
-    currentPassword,
-    newPassword,
-    confirmPassword,
-  })
-  const completedPasswordChecklistCount = changePasswordPageModel.checklist.filter(
-    (item) => item.satisfied,
-  ).length
   const systemConfigPageModel = buildSystemConfigPageModel(systemConfigs)
   const systemConfigSensitiveCount = systemConfigPageModel.groups.reduce(
     (count, group) => count + group.items.filter((item) => item.sensitive).length,
