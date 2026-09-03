@@ -6,17 +6,18 @@ export PORT="${PORT:-3000}"
 export APP_HOST="${APP_HOST:-0.0.0.0}"
 export APP_UID="${APP_UID:-1000}"
 export APP_GID="${APP_GID:-1000}"
+# 数据库直指数据卷，不再依赖 prisma/ 下的 symlink
+export DATABASE_URL="${DATABASE_URL:-file:/app/data/dev.db}"
 
 prepare_runtime_paths() {
-  mkdir -p "/app/data" "/app/prisma"
+  mkdir -p "/app/data"
   touch "/app/data/dev.db"
-  ln -sf "/app/data/dev.db" "/app/prisma/dev.db"
 }
 
 if [ "$(id -u)" = "0" ]; then
   prepare_runtime_paths
 
-  if ! chown -R "${APP_UID}:${APP_GID}" "/app/data" "/app/prisma"; then
+  if ! chown -R "${APP_UID}:${APP_GID}" "/app/data"; then
     echo "❌ 无法修复 /app/data 权限，请改用 Docker named volume，或预先将宿主机目录授权给 ${APP_UID}:${APP_GID}" >&2
     exit 1
   fi

@@ -41,6 +41,12 @@
 - `e2e/smoke.spec.ts` 全链路冒烟：创建项目 → 生成次数型激活码 → 公开 API 激活/状态/消费（含幂等重放）→ 后台消费日志 API + UI 验证 → 审计中心记录校验 → 审计筛选自动刷新回归（7 项全通过）
 - 新增 `test:e2e` / `test:e2e:ui` npm scripts；Playwright 产物与 auth 状态加入 .gitignore
 
+### 2026-09-02：安全头、Docker 权限与 CI e2e 收尾 🛡️
+- `next.config.js` 增加统一安全响应头：CSP（`frame-ancestors 'none'` 防点击劫持、`default-src 'self'` 等）、`X-Frame-Options: DENY`、`X-Content-Type-Options: nosniff`、`Referrer-Policy`、`Permissions-Policy`；同时关闭 `X-Powered-By`
+- Docker 交付收敛：`docker-entrypoint.sh` 直接 `export DATABASE_URL=file:/app/data/dev.db` 指向数据卷，移除 `prisma/dev.db` symlink 与 `chmod 0777` 宽权限；`Dockerfile` 同步清理
+- CI `docker-publish.yml` 新增 `e2e` job（安装 Chromium → 跑 `test:e2e`，失败上传 trace 工件），publish 依赖 verify / e2e / smoke 三道闸
+- P3-01 ~ P3-05 结构治理任务全部收口为 DONE（dashboard 拆分、license-service 领域职责、route wrapper 统一、SDK 错误模型、测试补齐），计划文档同步
+
 ---
 
 ## [Unreleased] - 2026-03-27

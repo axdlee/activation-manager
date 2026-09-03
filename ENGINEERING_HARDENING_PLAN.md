@@ -82,11 +82,11 @@
 | P2-02 | P2 | DONE | 趋势与统计逐步下推数据库聚合 | 提升大数据量下性能 |
 | P2-03 | P2 | DONE | 发码链路支持后续批量优化 | 为大批量生成预留空间 |
 | P2-04 | P2 | DONE | 登录限流状态外置化以支持多实例 | 避免多实例部署下各节点限流状态不一致 |
-| P3-01 | P3 | IN_PROGRESS | 拆分 dashboard 页面 | 降低页面级复杂度 |
-| P3-02 | P3 | IN_PROGRESS | 拆分 `license-service` 领域职责 | 提升核心服务可维护性 |
-| P3-03 | P3 | IN_PROGRESS | 统一 route wrapper / 输入校验 / 错误模型 | 统一接口风格与错误语义 |
-| P3-04 | P3 | TODO | 优化 SDK 错误分类与 hook 错误隔离 | 提升接入方可观测性 |
-| P3-05 | P3 | TODO | 补 auth / middleware / config / 并发测试 | 填平关键风险测试缺口 |
+| P3-01 | P3 | DONE | 拆分 dashboard 页面 | 降低页面级复杂度 |
+| P3-02 | P3 | DONE | 拆分 `license-service` 领域职责 | 提升核心服务可维护性 |
+| P3-03 | P3 | DONE | 统一 route wrapper / 输入校验 / 错误模型 | 统一接口风格与错误语义 |
+| P3-04 | P3 | DONE | 优化 SDK 错误分类与 hook 错误隔离 | 提升接入方可观测性 |
+| P3-05 | P3 | DONE | 补 auth / middleware / config / 并发测试 | 填平关键风险测试缺口 |
 | P4-01 | P4 | DONE | 建立 CI 质量门禁 | 形成稳定交付底线 |
 | P4-02 | P4 | DONE | 增加覆盖率门槛 | 保证核心链路质量 |
 | P4-03 | P4 | DONE | 减少 `any` 与弱类型返回 | 提升类型安全 |
@@ -130,11 +130,11 @@
 
 ### 第四阶段：结构治理包
 
-- [~] P3-01 拆 dashboard
-- [~] P3-02 拆 `license-service`
-- [~] P3-03 统一 route wrapper / 输入校验 / 错误模型
-- [ ] P3-04 优化 SDK 错误模型
-- [ ] P3-05 测试补齐
+- [x] P3-01 拆 dashboard
+- [x] P3-02 拆 `license-service`
+- [x] P3-03 统一 route wrapper / 输入校验 / 错误模型
+- [x] P3-04 优化 SDK 错误模型
+- [x] P3-05 测试补齐
 
 ### 第五阶段：工程规范包
 
@@ -3663,3 +3663,37 @@
 
 1. 本轮加固已覆盖：安全 → 迁移 → 限流 → 审计 → dashboard 拆分 → 交互修复 → e2e 冒烟，可冻结
 2. 交付方式待定：推送 GitHub / 导出 patch / 归档
+
+### 2026-09-02 / Iteration 2026-09h：安全头、Docker 权限收敛与 CI e2e 收尾
+
+**目标**：补齐剩余安全与交付链路缺口，收口 P3 结构治理任务。
+
+**已完成**：
+
+- [x] P3-01 ~ P3-05 全部收口为 DONE：
+  - dashboard 3488 → 2596 行（10 hooks + 4 libs）
+  - `license-service` 拆出 27 个领域文件，主文件降至 170 行 facade
+  - route wrapper 统一（admin-route-handler / license-route-handlers / 各领域 handlers + prisma-error-utils）
+  - SDK 错误码 6 类 + `LicenseClientError.statusCode` + `callHookSafely` 隔离
+  - 测试补齐：middleware-auth / admin-auth-service / login-rate-limit / config-service-fallback / consume-concurrency / idempotency 等
+- [x] `next.config.js` 安全响应头：CSP（frame-ancestors 'none' 等）、X-Frame-Options DENY、nosniff、Referrer-Policy、Permissions-Policy、关闭 X-Powered-By
+- [x] Docker：entrypoint `export DATABASE_URL=file:/app/data/dev.db`，移除 symlink 与 `chmod 0777`；Dockerfile 同步
+- [x] CI `docker-publish.yml` 新增 e2e job（install chromium → test:e2e → 失败上传 trace），publish 依赖三道闸
+
+**验证结果**：
+
+1. `npm run lint` ✅
+2. `npm test` ✅（350 / 350）
+3. `npm run build` ✅
+4. `npx playwright test` ✅（7 / 7，CSP 头未破坏页面）
+5. `docker build` ✅（本地验证镜像可构建）
+
+**备注**：
+
+- CSP 需放行 'unsafe-inline'（Next.js RSC 内联引导脚本）与 'unsafe-eval'（dev 模式），API JSON 响应不受影响
+- e2e CI 首次运行需安装浏览器，`--with-deps` 由 CI job 处理
+
+**下一步**：
+
+1. 若需发布：打 tag → GitHub Release（可复用 RELEASE_NOTES.md）
+2. 可选扩展：多实例部署文档、监控接入

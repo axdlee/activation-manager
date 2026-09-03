@@ -27,9 +27,7 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates sqlite3 util-linux \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /app/data /app/prisma \
-    && chmod 0777 /app/data \
-    && ln -s /app/data/dev.db /app/prisma/dev.db
+    && mkdir -p /app/data /app/prisma
 
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/.next-build ./.next-build
