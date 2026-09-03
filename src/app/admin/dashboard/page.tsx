@@ -251,6 +251,8 @@ export default function DashboardPage() {
       page?: number,
     ) => Promise<{ success: boolean; message?: string }>)
   >(null)
+  const hasCodeListInitializedRef = useRef(false)
+  const skipNextCodeListRefreshRef = useRef(false)
 
   const showMessage = useCallback((content: string, type: 'success' | 'error' = 'success') => {
     setMessage(content)
@@ -269,6 +271,8 @@ export default function DashboardPage() {
     setLoading,
     fetchProjects: hookFetchProjects,
     fetchAllCodes: hookFetchAllCodes,
+    codeList,
+    fetchCodeList,
     fetchSystemConfigs: hookFetchSystemConfigs,
   } = dashboardData
   const dashboardStats = useDashboardStats()
@@ -658,6 +662,7 @@ export default function DashboardPage() {
     }
     if (activeTab === 'list') {
       void fetchAllCodes()
+      void fetchCodeList({ keyword: searchTerm, status: statusFilter, projectKey: projectFilter, cardType: cardTypeFilter, page: currentPage, pageSize: itemsPerPage })
     }
     if (activeTab === 'consumptions') {
       void fetchConsumptionLogs({}, 'initial')
@@ -746,6 +751,38 @@ export default function DashboardPage() {
       window.clearTimeout(timer)
     }
   }, [activeTab, auditLogAutoRefreshKey])
+
+  // 激活码列表服务端分页自动刷新：筛选/翻页变化时防抖请求
+  const codeListAutoRefreshKey = useMemo(
+    () => JSON.stringify({ searchTerm, statusFilter, projectFilter, cardTypeFilter, currentPage }),
+    [searchTerm, statusFilter, projectFilter, cardTypeFilter, currentPage],
+  )
+
+  useEffect(() => {
+    if (activeTab !== 'list') {
+      hasCodeListInitializedRef.current = false
+      skipNextCodeListRefreshRef.current = false
+      return
+    }
+
+    if (!hasCodeListInitializedRef.current) {
+      hasCodeListInitializedRef.current = true
+      return
+    }
+
+    if (skipNextCodeListRefreshRef.current) {
+      skipNextCodeListRefreshRef.current = false
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void fetchCodeList({ keyword: searchTerm, status: statusFilter, projectKey: projectFilter, cardType: cardTypeFilter, page: currentPage, pageSize: itemsPerPage })
+    }, CONSUMPTION_AUTO_REFRESH_DELAY_MS)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [activeTab, codeListAutoRefreshKey, fetchCodeList, searchTerm, statusFilter, projectFilter, cardTypeFilter, currentPage, itemsPerPage])
 
   const handleLogout = async () => {
     try {
@@ -890,50 +927,8 @@ export default function DashboardPage() {
     document.body.removeChild(link)
   }
 
-  const filteredCodes = allCodes.filter((code) => {
-    const matchesSearch =
-      code.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (code.usedBy && code.usedBy.toLowerCase().includes(searchTerm.toLowerCase()))
-
-    const statusLabel = getCodeStatusLabel(code)
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'unused' && statusLabel === '未激活') ||
-      (statusFilter === 'used' && (statusLabel === '已使用' || statusLabel === '使用中')) ||
-      (statusFilter === 'expired' && statusLabel === '已过期') ||
-      (statusFilter === 'depleted' && statusLabel === '已耗尽')
-
-    const matchesCardType =
-      cardTypeFilter === 'all'
-        ? true
-        : cardTypeFilter === 'none'
-          ? !code.cardType
-          : code.cardType === cardTypeFilter
-
-    const matchesProject =
-      projectFilter === 'all' ? true : code.project?.projectKey === projectFilter
-
-    return matchesSearch && matchesStatus && matchesCardType && matchesProject
-  })
-  const activationCodeStatusSummary = filteredCodes.reduce(
-    (summary, code) => {
-      const status = getCodeStatusLabel(code)
-
-      if (status === '未激活') {
-        summary.unused += 1
-      } else if (status === '已过期' || status === '已耗尽') {
-        summary.risk += 1
-      } else {
-        summary.inUse += 1
-      }
-
-      return summary
-    },
-    { unused: 0, inUse: 0, risk: 0 },
-  )
-  const activationCodeProjectCoverage = new Set(
-    filteredCodes.map((code) => code.project?.projectKey || `project-${code.projectId}`),
-  ).size
+  const activationCodeStatusSummary = codeList.statusSummary
+  const activationCodeProjectCoverage = codeList.projectCoverage
   const activationCodeFilterTokens = [
     searchTerm.trim() ? `关键词：${searchTerm.trim()}` : null,
     statusFilter !== 'all' ? `状态：${statusFilterLabelMap[statusFilter]}` : null,
@@ -945,15 +940,12 @@ export default function DashboardPage() {
       : null,
   ].filter((token): token is string => Boolean(token))
 
-  const totalPages = Math.ceil(filteredCodes.length / itemsPerPage)
+  const totalPages = Math.max(1, codeList.totalPages)
   const activationCodeStartIndex =
-    filteredCodes.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1
+    codeList.total === 0 ? 0 : (codeList.page - 1) * (codeList.codes.length || 10) + 1
   const activationCodeEndIndex =
-    filteredCodes.length === 0 ? 0 : Math.min(currentPage * itemsPerPage, filteredCodes.length)
-  const paginatedCodes = filteredCodes.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  )
+    codeList.total === 0 ? 0 : Math.min(codeList.page * (codeList.codes.length || 10), codeList.total)
+  const paginatedCodes = codeList.codes
   const filteredProjectStats = filterProjectStatsByProjectKey(projectStats, statsProjectFilter)
   const summarizedProjectStats = summarizeProjectStats(filteredProjectStats)
   const selectedStatsProject =
@@ -1525,7 +1517,7 @@ export default function DashboardPage() {
     statusFilter,
     projectFilter,
     cardTypeFilter,
-    availableCardTypes: getAvailableCardTypes(),
+    availableCardTypes: codeList.availableCardTypes.length > 0 ? codeList.availableCardTypes : getAvailableCardTypes(),
     projectOptions: projects,
     filterTokens: activationCodeFilterTokens,
     statusSummary: activationCodeStatusSummary,
@@ -1546,18 +1538,38 @@ export default function DashboardPage() {
       setCurrentPage(1)
     },
     onReset: handleResetCodeFilters,
-    onExport: () => exportCodes(filteredCodes),
+    onExport: () => {
+      const params = new URLSearchParams()
+      if (searchTerm.trim()) params.set('keyword', searchTerm.trim())
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+      if (projectFilter !== 'all') params.set('projectKey', projectFilter)
+      if (cardTypeFilter !== 'all') params.set('cardType', cardTypeFilter)
+      void fetch(`/api/admin/codes/list?${params}`)
+        .then((r) => r.json())
+        .then((data) => { if (data.success) exportCodes(data.codes) })
+        .catch(() => showMessage('导出失败', 'error'))
+    },
   }
 
   const activationCodeResultsView = {
     filterTokens: activationCodeFilterTokens,
-    filteredCount: filteredCodes.length,
+    filteredCount: codeList.total,
     startIndex: activationCodeStartIndex,
     endIndex: activationCodeEndIndex,
     currentPage,
     totalPages,
     codes: paginatedCodes,
-    onExport: () => exportCodes(filteredCodes),
+    onExport: () => {
+      const params = new URLSearchParams()
+      if (searchTerm.trim()) params.set('keyword', searchTerm.trim())
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+      if (projectFilter !== 'all') params.set('projectKey', projectFilter)
+      if (cardTypeFilter !== 'all') params.set('cardType', cardTypeFilter)
+      void fetch(`/api/admin/codes/list?${params}`)
+        .then((r) => r.json())
+        .then((data) => { if (data.success) exportCodes(data.codes) })
+        .catch(() => showMessage('导出失败', 'error'))
+    },
     onCleanup: () => void handleCleanupExpired(),
     onPageChange: setCurrentPage,
     onCopyCode: (code: string) => void copyToClipboard(code),
@@ -2550,7 +2562,7 @@ export default function DashboardPage() {
             activeTab={activationCodeWorkspaceTab}
             onTabChange={setActivationCodeWorkspaceTab}
             loading={loading}
-            matchedCount={filteredCodes.length}
+            matchedCount={codeList.total}
             projectCoverage={activationCodeProjectCoverage}
             riskCount={activationCodeStatusSummary.risk}
             filtersView={activationCodeFiltersView}

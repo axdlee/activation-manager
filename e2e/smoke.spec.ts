@@ -217,4 +217,25 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
       page.locator('table').getByText('创建项目', { exact: true }).first(),
     ).toBeVisible({ timeout: 15_000 })
   })
+
+  test('7. 激活码列表服务端分页：筛选后可看到生成码', async ({ page }) => {
+    await gotoDashboard(page)
+    await clickDashboardTab(page, '激活码管理')
+    await expect(
+      page.locator('h2', { hasText: '激活码管理中心' }).first(),
+    ).toBeVisible({ timeout: 15_000 })
+
+    // 刚生成的激活码应出现在列表中（服务端分页第一页）
+    await expect(
+      page.locator('table').getByText(licenseCode, { exact: true }).first(),
+    ).toBeVisible({ timeout: 15_000 })
+
+    // 用不存在的关键词筛选应显示空态（搜索框在「筛选与导出」tab）
+    await page.getByRole('button', { name: /筛选与导出/ }).first().click()
+    await page.locator('#activation-code-search-term').fill(`no-such-code-${Date.now()}`)
+    await page.getByRole('button', { name: '查看结果列表' }).click()
+    await expect(
+      page.getByText(/暂无匹配的激活码记录/).first(),
+    ).toBeVisible({ timeout: 15_000 })
+  })
 })
