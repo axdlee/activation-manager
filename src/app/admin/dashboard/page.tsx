@@ -234,12 +234,20 @@ export default function DashboardPage() {
   const router = useRouter()
   const hasConsumptionAutoRefreshInitializedRef = useRef(false)
   const skipNextConsumptionAutoRefreshRef = useRef(false)
+  const hasAuditLogAutoRefreshInitializedRef = useRef(false)
+  const skipNextAuditLogAutoRefreshRef = useRef(false)
   const hasFetchedInitialProjectsRef = useRef(false)
   const lastLoadedDashboardTabRef = useRef<TabType | null>(null)
   const fetchConsumptionLogsRef = useRef<
     null | ((
       overrides?: Partial<ConsumptionQueryFilters>,
       source?: ConsumptionRefreshSource,
+      page?: number,
+    ) => Promise<{ success: boolean; message?: string }>)
+  >(null)
+  const fetchAdminAuditLogsRef = useRef<
+    null | ((
+      overrides?: Partial<AuditLogQueryFilters>,
       page?: number,
     ) => Promise<{ success: boolean; message?: string }>)
   >(null)
@@ -552,6 +560,10 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [auditLogCreatedFrom, auditLogCreatedTo, auditLogOperationTypeFilter, auditLogProjectFilter, auditLogSearchTerm],
   )
+  const auditLogAutoRefreshKey = useMemo(
+    () => JSON.stringify(currentAuditLogFilters),
+    [currentAuditLogFilters],
+  )
 
   const buildCurrentAuditLogFilters = useCallback((
     overrides: Partial<AuditLogQueryFilters> = {},
@@ -599,6 +611,10 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchConsumptionLogsRef.current = fetchConsumptionLogs
   }, [fetchConsumptionLogs])
+
+  useEffect(() => {
+    fetchAdminAuditLogsRef.current = fetchAdminAuditLogs
+  }, [fetchAdminAuditLogs])
 
   useEffect(() => {
     if (hasFetchedInitialProjectsRef.current) {
@@ -689,6 +705,32 @@ export default function DashboardPage() {
       window.clearTimeout(timer)
     }
   }, [activeTab, consumptionAutoRefreshKey])
+
+  useEffect(() => {
+    if (activeTab !== 'auditLogs') {
+      hasAuditLogAutoRefreshInitializedRef.current = false
+      skipNextAuditLogAutoRefreshRef.current = false
+      return
+    }
+
+    if (!hasAuditLogAutoRefreshInitializedRef.current) {
+      hasAuditLogAutoRefreshInitializedRef.current = true
+      return
+    }
+
+    if (skipNextAuditLogAutoRefreshRef.current) {
+      skipNextAuditLogAutoRefreshRef.current = false
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void fetchAdminAuditLogsRef.current?.({}, 1)
+    }, CONSUMPTION_AUTO_REFRESH_DELAY_MS)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [activeTab, auditLogAutoRefreshKey])
 
   const handleLogout = async () => {
     try {
@@ -1275,6 +1317,7 @@ export default function DashboardPage() {
   }
 
   const handleResetAuditLogFilters = () => {
+    skipNextAuditLogAutoRefreshRef.current = true
     setAuditLogSearchTerm('')
     setAuditLogProjectFilter('all')
     setAuditLogOperationTypeFilter('all')
