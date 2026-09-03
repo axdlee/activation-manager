@@ -3563,6 +3563,10 @@
 - [x] 审计日志模块：新增 `use-admin-audit-logs` hook，同款模式接入
 - [x] 消费趋势模块：新增 `use-consumption-trend` hook，`fetchTrend(projectKey)` 与 stats 卡片共享的 `statsProjectFilter` 解耦
 - [x] 共享数据层：新增 `use-dashboard-data` hook，统一管理 projects / allCodes / systemConfigs / loading 等跨 tab 共享数据
+- [x] 统计模块：新增 `use-dashboard-stats` hook（stats / projectStats / fetchStats）
+- [x] 密码修改模块：新增 `use-change-password` hook（三密码字段状态 + pageModel 派生）
+- [x] 系统配置工作区：新增 `use-system-config-workspace` hook（revealed keys / toggle / handleUpdateSystemConfig / pageModel）
+- [x] 表单工具：`dashboard-form-utils`（parseNullable* / normalizeOptionalAdminReason / handleCardTypeChange + 9 个测试）
 
 **验证结果**：
 
@@ -3572,7 +3576,7 @@
 
 **备注**：
 
-- page.tsx 由 3488 行降至 3165 行（-323 行），五个 hook 均保持行为等价（解构别名 + 页面适配层）
+- page.tsx 由 3488 行降至 3060 行（-428 行），全部 hook 均保持行为等价（解构别名 + 页面适配层）；新增 9 个纯函数测试
 - 消费日志 fetch 返回 `{ success, message }`，页面保留非自动刷新失败的 toast 语义
 - 审计日志与消费趋势 hook 同款模式：hook 负责数据获取与状态，页面保留副作用包装
 - 消费日志 fetch 返回 `{ success, message }`，页面保留非自动刷新失败的 toast 语义
