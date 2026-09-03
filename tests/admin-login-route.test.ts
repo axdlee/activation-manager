@@ -48,19 +48,15 @@ test('管理员登录成功时，cookie maxAge 与 jwtExpiresIn 配置保持一�
 
   adminLoginRouteDependencies.rateLimiter = createAsyncRateLimiter()
 
-  ;(prisma.admin as typeof prisma.admin & { findUnique: typeof prisma.admin.findUnique }).findUnique = async () => ({
+  prisma.admin.findUnique = (async () => ({
     id: 1,
     username: 'admin',
     password: 'hashed-password',
     createdAt: new Date('2026-03-24T00:00:00.000Z'),
     updatedAt: new Date('2026-03-24T00:00:00.000Z'),
-  })
+  })) as unknown as typeof prisma.admin.findUnique
 
-  ;(
-    prisma.systemConfig as typeof prisma.systemConfig & {
-      findUnique: typeof prisma.systemConfig.findUnique
-    }
-  ).findUnique = async ({ where }: { where: { key: string } }) => {
+  prisma.systemConfig.findUnique = (async ({ where }: { where: { key: string } }) => {
     if (where.key === 'jwtSecret') {
       return {
         id: 1,
@@ -84,17 +80,13 @@ test('管理员登录成功时，cookie maxAge 与 jwtExpiresIn 配置保持一�
     }
 
     return null
-  }
+  }) as unknown as typeof prisma.systemConfig.findUnique
 
   bcrypt.compare = async () => true
 
   t.after(async () => {
-    ;(prisma.admin as typeof prisma.admin & { findUnique: typeof prisma.admin.findUnique }).findUnique = originalFindAdmin
-    ;(
-      prisma.systemConfig as typeof prisma.systemConfig & {
-        findUnique: typeof prisma.systemConfig.findUnique
-      }
-    ).findUnique = originalFindSystemConfig
+    prisma.admin.findUnique = originalFindAdmin
+    prisma.systemConfig.findUnique = originalFindSystemConfig
     bcrypt.compare = originalCompare
     adminLoginRouteDependencies.rateLimiter = originalRateLimiter
     await prisma.$disconnect()
@@ -124,7 +116,7 @@ test('管理员登录连续输错密码超过阈值后会被限流并返回 Retr
 
   adminLoginRouteDependencies.rateLimiter = createAsyncRateLimiter()
 
-  ;(prisma.admin as typeof prisma.admin & { findUnique: typeof prisma.admin.findUnique }).findUnique = async () => {
+  prisma.admin.findUnique = (async () => {
     findAdminCallCount += 1
 
     return {
@@ -134,7 +126,7 @@ test('管理员登录连续输错密码超过阈值后会被限流并返回 Retr
       createdAt: new Date('2026-03-24T00:00:00.000Z'),
       updatedAt: new Date('2026-03-24T00:00:00.000Z'),
     }
-  }
+  }) as unknown as typeof prisma.admin.findUnique
 
   bcrypt.compare = async () => {
     compareCallCount += 1
@@ -142,7 +134,7 @@ test('管理员登录连续输错密码超过阈值后会被限流并返回 Retr
   }
 
   t.after(async () => {
-    ;(prisma.admin as typeof prisma.admin & { findUnique: typeof prisma.admin.findUnique }).findUnique = originalFindAdmin
+    prisma.admin.findUnique = originalFindAdmin
     bcrypt.compare = originalCompare
     adminLoginRouteDependencies.rateLimiter = originalRateLimiter
     await prisma.$disconnect()

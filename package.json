@@ -16,7 +16,7 @@
     "test": "node --import tsx --test \"tests/**/*.test.ts\"",
     "test:coverage": "node --experimental-test-coverage --test-coverage-exclude=\"tests/**\" --test-coverage-lines=90 --test-coverage-branches=85 --test-coverage-functions=90 --import tsx --test \"tests/**/*.test.ts\"",
     "lint": "next lint",
-    "quality:gate": "npm run lint && npm run test:coverage && npm run build",
+    "quality:gate": "npm run lint && npm run typecheck && npm run test:coverage && npm run build",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:backup": "./scripts/backup-db.sh",
@@ -26,7 +26,9 @@
     "init-default-admin": "tsx scripts/init-default-admin.ts",
     "init-system-config": "tsx scripts/init-system-config.ts",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "quality:gate:full": "npm run quality:gate && npm run test:e2e",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",

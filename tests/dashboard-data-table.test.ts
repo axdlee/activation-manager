@@ -12,12 +12,12 @@ test('DashboardDataTable 会渲染默认表格容器、表头与 tbody 内容', 
       DashboardDataTable,
       {
         headers: ['项目', '激活码', '状态'],
+        children: React.createElement(
+          'tr',
+          { className: 'row-slot' },
+          React.createElement('td', null, 'A 项目'),
+        ),
       },
-      React.createElement(
-        'tr',
-        { className: 'row-slot' },
-        React.createElement('td', null, 'A 项目'),
-      ),
     ),
   )
 
@@ -50,8 +50,8 @@ test('DashboardDataTable 支持覆盖容器、table、thead、tbody 与 th 样�
         headClassName: 'custom-head',
         bodyClassName: 'custom-body',
         headerCellClassName: 'custom-header-cell',
+        children: React.createElement('tr', null, React.createElement('td', null, 'A')),
       },
-      React.createElement('tr', null, React.createElement('td', null, 'A')),
     ),
   )
 

@@ -4,9 +4,13 @@ import test from 'node:test'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
+// tsx 运行时动态 import .tsx 会带一层 default 包装，tsc 静态类型则没有；
+// 统一按「模块可能带 default」处理取值。
+type DynamicModule = { default?: unknown } & Record<string, any>
+
 async function loadDefaultComponent(modulePath: string) {
-  const mod = await import(modulePath)
-  const component = mod.default?.default ?? mod.default
+  const mod = (await import(modulePath)) as DynamicModule
+  const component = (mod.default as DynamicModule | undefined)?.default ?? mod.default
 
   assert.equal(typeof component, 'function')
 
@@ -17,7 +21,7 @@ async function loadDefaultComponent(modulePath: string) {
 }
 
 test('首页会渲染管理后台入口与公开 API 文档入口', async () => {
-  const { component: Home } = await loadDefaultComponent('../src/app/page.tsx')
+  const { component: Home } = await loadDefaultComponent('../src/app/page')
   const html = renderToStaticMarkup(React.createElement(Home))
 
   assert.equal(html.includes('激活码管理系统'), true)
@@ -35,10 +39,10 @@ test('首页会渲染管理后台入口与公开 API 文档入口', async () => 
 })
 
 test('公开 API 文档页暴露 metadata，并渲染首页与登录入口', async () => {
-  const mod = await import('../src/app/docs/api/page.tsx')
-  const ApiDocsPage = (mod.default?.default ?? mod.default) as React.ComponentType
+  const mod = (await import('../src/app/docs/api/page')) as DynamicModule
+  const ApiDocsPage = ((mod.default as DynamicModule | undefined)?.default ?? mod.default) as React.ComponentType
   const html = renderToStaticMarkup(React.createElement(ApiDocsPage))
-  const metadata = (mod.default?.metadata ?? mod.metadata ?? {}) as {
+  const metadata = ((mod.default as DynamicModule | undefined)?.metadata ?? mod.metadata ?? {}) as {
     title?: string
     description?: string
   }
@@ -59,9 +63,10 @@ test('公开 API 文档页暴露 metadata，并渲染首页与登录入口', asy
 })
 
 test('ApiDocsWorkspace 在 public 模式下会渲染公开文档文案与默认概览内容', async () => {
-  const mod = await import('../src/components/api-docs-workspace.tsx')
+  const mod = (await import('../src/components/api-docs-workspace')) as DynamicModule
   const ApiDocsWorkspace =
-    (mod.default?.ApiDocsWorkspace ?? mod.ApiDocsWorkspace) as React.ComponentType<{
+    ((mod.default as DynamicModule | undefined)?.ApiDocsWorkspace ??
+      (mod as { ApiDocsWorkspace?: React.ComponentType<{ mode?: 'dashboard' | 'public' }> }).ApiDocsWorkspace) as React.ComponentType<{
       mode?: 'dashboard' | 'public'
     }>
 
@@ -81,9 +86,10 @@ test('ApiDocsWorkspace 在 public 模式下会渲染公开文档文案与默认�
 })
 
 test('ApiDocsWorkspace 在 dashboard 模式下会渲染后台语境文案', async () => {
-  const mod = await import('../src/components/api-docs-workspace.tsx')
+  const mod = (await import('../src/components/api-docs-workspace')) as DynamicModule
   const ApiDocsWorkspace =
-    (mod.default?.ApiDocsWorkspace ?? mod.ApiDocsWorkspace) as React.ComponentType<{
+    ((mod.default as DynamicModule | undefined)?.ApiDocsWorkspace ??
+      (mod as { ApiDocsWorkspace?: React.ComponentType<{ mode?: 'dashboard' | 'public' }> }).ApiDocsWorkspace) as React.ComponentType<{
       mode?: 'dashboard' | 'public'
     }>
 

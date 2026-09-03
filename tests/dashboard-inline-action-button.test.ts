@@ -21,7 +21,8 @@ test('DashboardInlineActionButton 支持透传 disabled 与自定义 className',
     React.createElement(DashboardInlineActionButton, {
       disabled: true,
       className: 'custom-inline-action',
-    }, '删除'),
+      children: '删除',
+    }),
   )
 
   assert.match(html, /disabled=""/)

@@ -8,7 +8,7 @@ import { ActivationCodeWorkspace } from '../src/components/activation-code-works
 
 function createProps(
   overrides: Partial<React.ComponentProps<typeof ActivationCodeWorkspace>> = {},
-) {
+): React.ComponentProps<typeof ActivationCodeWorkspace> {
   return {
     activeTab: 'filters' as const,
     onTabChange: () => {},
@@ -160,7 +160,7 @@ function createProps(
       getRemainingDisplay: () => '8 / 10',
     },
     ...overrides,
-  }
+  } as React.ComponentProps<typeof ActivationCodeWorkspace>
 }
 
 test('ActivationCodeWorkspace 在 filters tab 渲染筛选表单、当前条件与统计摘要', () => {
@@ -249,7 +249,6 @@ test('ActivationCodeWorkspace 在 results tab loading 或空数据时渲染加�
           totalPages: 0,
           codes: [],
           managementView: {
-            ...createProps().resultsView.managementView,
             selectedCodeId: null,
             selectedCodeTitle: '',
             selectedCodeSubtitle: '',
@@ -260,9 +259,23 @@ test('ActivationCodeWorkspace 在 results tab loading 或空数据时渲染加�
             rebindCountDisplay: '0 次',
             autoRebindCountDisplay: '0 次',
             effectivePolicySummary: [],
+            overridePolicyValue: 'inherit',
+            overrideCooldownMinutesValue: '',
             overrideMaxCountValue: '',
+            targetMachineId: '',
+            adminActionReason: '',
             bindingHistoryEntries: [],
             adminAuditEntries: [],
+            loading: false,
+            onSelectCode: () => {},
+            onOverridePolicyChange: () => {},
+            onOverrideCooldownMinutesChange: () => {},
+            onOverrideMaxCountChange: () => {},
+            onTargetMachineIdChange: () => {},
+            onAdminActionReasonChange: () => {},
+            onSaveSettings: () => {},
+            onForceUnbind: () => {},
+            onForceRebind: () => {},
           },
         },
       }),

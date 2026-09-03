@@ -88,6 +88,7 @@ test('激活码列表接口支持分页返回 total/totalPages', async (t) => {
     totalPages: number
     statusSummary: { unused: number; inUse: number; risk: number }
     projectCoverage: number
+    availableCardTypes: string[]
   }
   assert.equal(body.success, true)
   assert.equal(body.total, 5)

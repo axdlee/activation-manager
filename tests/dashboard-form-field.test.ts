@@ -14,8 +14,8 @@ test('DashboardFormField 会渲染默认标题样式、描述与内容区', () =
         label: '授权类型',
         description: '选择时间型或次数型。',
         htmlFor: 'license-mode',
+        children: React.createElement('select', { id: 'license-mode', className: 'control-slot' }),
       },
-      React.createElement('select', { id: 'license-mode', className: 'control-slot' }),
     ),
   )
 
@@ -36,8 +36,8 @@ test('DashboardFormField 支持覆盖容器、label 与内容区样式', () => {
         className: 'custom-shell',
         labelClassName: 'custom-label',
         bodyClassName: 'custom-body',
+        children: React.createElement('input', { className: 'field-slot' }),
       },
-      React.createElement('input', { className: 'field-slot' }),
     ),
   )
 

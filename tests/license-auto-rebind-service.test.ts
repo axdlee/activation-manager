@@ -7,6 +7,8 @@ test('resolveMutableLicenseActionCodeForMachine 在自动换绑被禁止时返�
   const result = await resolveMutableLicenseActionCodeForMachine({
     tx: {
       activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
         update: async () => {
           throw new Error('should not update')
         },
@@ -19,10 +21,11 @@ test('resolveMutableLicenseActionCodeForMachine 在自动换绑被禁止时返�
       licenseMode: 'COUNT',
       totalCount: 10,
       remainingCount: 8,
-      consumedCount: 2,
       isUsed: true,
       usedAt: new Date('2026-03-26T00:00:00.000Z'),
       usedBy: 'machine-old',
+      expiresAt: null,
+      validDays: null,
       allowAutoRebind: false,
       autoRebindCooldownMinutes: null,
       autoRebindMaxCount: null,
@@ -54,6 +57,8 @@ test('resolveMutableLicenseActionCodeForMachine 在冷却期内返回可换绑�
   const result = await resolveMutableLicenseActionCodeForMachine({
     tx: {
       activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
         update: async () => {
           throw new Error('should not update')
         },
@@ -65,10 +70,10 @@ test('resolveMutableLicenseActionCodeForMachine 在冷却期内返回可换绑�
       code: 'CODE-001',
       licenseMode: 'TIME',
       isUsed: true,
-      validDays: 30,
       usedAt: new Date('2026-03-26T00:00:00.000Z'),
-      expiresAt: new Date('2026-04-25T00:00:00.000Z'),
       usedBy: 'machine-old',
+      expiresAt: new Date('2026-04-25T00:00:00.000Z'),
+      validDays: 30,
       lastBoundAt: new Date('2026-03-26T00:00:00.000Z'),
       allowAutoRebind: true,
       autoRebindCooldownMinutes: 60,
@@ -89,7 +94,7 @@ test('resolveMutableLicenseActionCodeForMachine 在冷却期内返回可换绑�
     now: new Date('2026-03-26T00:30:00.000Z'),
   })
 
-  assert.ok('result' in result)
+  assert.ok('result' in result && result.result)
   assert.equal(result.result.status, 409)
   assert.equal(result.result.rebindAllowedAt?.toISOString(), '2026-03-26T01:00:00.000Z')
   assert.match(result.result.message, /换绑冷却期/)
@@ -99,6 +104,8 @@ test('resolveMutableLicenseActionCodeForMachine 在达到自助换绑次数上�
   const result = await resolveMutableLicenseActionCodeForMachine({
     tx: {
       activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
         update: async () => {
           throw new Error('should not update')
         },
@@ -110,10 +117,10 @@ test('resolveMutableLicenseActionCodeForMachine 在达到自助换绑次数上�
       code: 'CODE-001',
       licenseMode: 'TIME',
       isUsed: true,
-      validDays: 30,
       usedAt: new Date('2026-03-26T00:00:00.000Z'),
-      expiresAt: new Date('2026-04-25T00:00:00.000Z'),
       usedBy: 'machine-old',
+      expiresAt: new Date('2026-04-25T00:00:00.000Z'),
+      validDays: 30,
       lastBoundAt: new Date('2026-03-26T00:00:00.000Z'),
       allowAutoRebind: true,
       autoRebindCooldownMinutes: 0,
@@ -134,7 +141,7 @@ test('resolveMutableLicenseActionCodeForMachine 在达到自助换绑次数上�
     now: new Date('2026-03-26T02:00:00.000Z'),
   })
 
-  assert.ok('result' in result)
+  assert.ok('result' in result && result.result)
   assert.equal(result.result.status, 409)
   assert.match(result.result.message, /自助换绑次数上限/)
 })

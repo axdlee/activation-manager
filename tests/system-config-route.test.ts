@@ -24,11 +24,7 @@ function buildSystemConfigRecord(key: string, value: string) {
 test('系统配置接口遇到非法配置项时返回 400 与明确错误信息', async (t) => {
   const originalFindSystemConfig = prisma.systemConfig.findUnique.bind(prisma.systemConfig)
 
-  ;(
-    prisma.systemConfig as typeof prisma.systemConfig & {
-      findUnique: typeof prisma.systemConfig.findUnique
-    }
-  ).findUnique = async ({ where }: { where: { key: string } }) => {
+  prisma.systemConfig.findUnique = (async ({ where }: { where: { key: string } }) => {
     if (where.key === 'jwtSecret') {
       return buildSystemConfigRecord('jwtSecret', 'unit-test-jwt-secret')
     }
@@ -42,14 +38,10 @@ test('系统配置接口遇到非法配置项时返回 400 与明确错误信息
     }
 
     return null
-  }
+  }) as unknown as typeof prisma.systemConfig.findUnique
 
   t.after(async () => {
-    ;(
-      prisma.systemConfig as typeof prisma.systemConfig & {
-        findUnique: typeof prisma.systemConfig.findUnique
-      }
-    ).findUnique = originalFindSystemConfig
+    prisma.systemConfig.findUnique = originalFindSystemConfig
     await prisma.$disconnect()
   })
 

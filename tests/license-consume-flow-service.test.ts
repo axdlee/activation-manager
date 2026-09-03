@@ -10,6 +10,8 @@ test('consumeTimeLicense 在首次验证成功时会写入激活信息并返回�
   const updatePayloads: Array<Record<string, unknown>> = []
   const updatedCode = {
     id: 1,
+    projectId: 1,
+    code: 'TIME-CODE-001',
     licenseMode: 'TIME',
     isUsed: true,
     usedBy: 'machine-001',
@@ -22,6 +24,8 @@ test('consumeTimeLicense 在首次验证成功时会写入激活信息并返回�
   const result = await consumeTimeLicense({
     tx: {
       activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
         updateMany: async ({ data }: { data: Record<string, unknown> }) => {
           updatePayloads.push(data)
           return { count: 1 }
@@ -29,7 +33,8 @@ test('consumeTimeLicense 在首次验证成功时会写入激活信息并返回�
       },
     } as never,
     activationCode: {
-      id: 1,
+      code: 'TEST-CODE',
+      projectId: 1,      id: 1,
       licenseMode: 'TIME',
       isUsed: false,
       usedBy: null,
@@ -69,6 +74,8 @@ test('consumeCountLicense 在成功扣次后会结算 requestId 并返回次数�
   const result = await consumeCountLicense({
     tx: {
       activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
         updateMany: async ({ data }: { data: Record<string, unknown> }) => {
           if ('remainingCount' in data) {
             return { count: 1 }
@@ -80,7 +87,8 @@ test('consumeCountLicense 在成功扣次后会结算 requestId 并返回次数�
       },
     } as never,
     activationCode: {
-      id: 1,
+      code: 'TEST-CODE',
+      projectId: 1,      id: 1,
       licenseMode: 'COUNT',
       totalCount: 3,
       remainingCount: 2,
@@ -101,6 +109,8 @@ test('consumeCountLicense 在成功扣次后会结算 requestId 并返回次数�
     rollbackClaimedRequestId: async () => undefined,
     reloadActivationCode: async () => ({
       id: 1,
+      projectId: 1,
+      code: 'COUNT-CODE-001',
       licenseMode: 'COUNT',
       totalCount: 3,
       remainingCount: 1,
@@ -143,6 +153,7 @@ test('consumeCountLicense 在唯一约束冲突时会回滚已占位 requestId �
   const result = await consumeCountLicense({
     tx: {
       activationCode: {
+        projectId: 1,
         updateMany: async () => {
           throw {
             code: 'P2002',
@@ -154,7 +165,8 @@ test('consumeCountLicense 在唯一约束冲突时会回滚已占位 requestId �
       },
     } as never,
     activationCode: {
-      id: 1,
+      code: 'TEST-CODE',
+      projectId: 1,      id: 1,
       licenseMode: 'COUNT',
       totalCount: 3,
       remainingCount: 2,

@@ -15,8 +15,7 @@ test('DashboardTableContainer 会渲染默认表格容器样式与子节点', ()
   const html = renderToStaticMarkup(
     React.createElement(
       DashboardTableContainer,
-      null,
-      React.createElement('table', { className: 'table-slot' }, React.createElement('tbody', null)),
+      { children: React.createElement('table', { className: 'table-slot' }, React.createElement('tbody', null)) },
     ),
   )
 
@@ -31,8 +30,7 @@ test('DashboardTableContainer 支持覆盖外层 className', () => {
   const html = renderToStaticMarkup(
     React.createElement(
       DashboardTableContainer,
-      { className: 'custom-table-shell' },
-      React.createElement('div', null, 'content'),
+      { className: 'custom-table-shell', children: React.createElement('div', null, 'content') },
     ),
   )
 

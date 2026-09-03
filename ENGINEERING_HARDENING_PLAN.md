@@ -3728,3 +3728,31 @@
 
 1. 激活码列表服务端分页（去除 list 路由嵌套 includes 与全量加载）
 2. 持续跟踪：无 P0~P4 未完成任务（P3/P4 全 DONE）
+
+### 2026-09-02 / Iteration 2026-09j：类型检查全量恢复 + tsconfig 升级
+
+**目标**：tsconfig target es5→es2017 后暴露 tests 目录长期未做类型检查积累的 65 个错误，全部修复并将 typecheck 纳入质量门。
+
+**已完成**：
+
+- [x] tsconfig target/lib 升级 es5→es2017
+- [x] 修复 65 个 tests 类型错误（20 个文件）：
+  - Prisma mock 赋值统一 `as unknown as typeof prisma.X.findUnique`（泛型方法签名不可直接赋值）
+  - dashboard 组件测试 `React.createElement(Comp, props, children)` → `children:` 并入 props（children 必填 props）
+  - 各领域 fixture 补 LicenseActionCodeRecord 必填字段（code/projectId/expiresAt/validDays）与移除过剩字段
+  - NODE_ENV 只读（@types/node 新版）→ testEnv 索引签名绕过
+  - 其他：ProjectManagementListItem 补换绑字段、ProjectStatsLike 精简、动态 import 类型、Number 双参改 parseInt 等
+- [x] `npm run typecheck`（tsc --noEmit）纳入 `quality:gate`（lint → typecheck → coverage → build）
+
+**验证结果**：
+
+1. `npm run typecheck` ✅（0 错误）
+2. `npm run lint` ✅
+3. `npm test` ✅（360 / 360）
+4. `npm run test:coverage` ✅（92.39 / 85.73 / 90.24）
+5. `npm run build` ✅
+6. `npx playwright test` ✅（8 / 8）
+
+**备注**：
+
+- 此前 tests 目录类型错误被 tsx 运行时转译掩盖（next build 也不含 tests），tsconfig 升级后完整暴露；此类问题今后由 quality:gate 的 typecheck 步骤拦截

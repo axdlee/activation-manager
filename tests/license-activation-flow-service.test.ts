@@ -12,6 +12,8 @@ test('activateCountLicense 会在次数已耗尽时直接返回失败且不写�
   const result = await activateCountLicense({
     tx: {
       activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
         update: async () => {
           updateCalled = true
           throw new Error('should not update')
@@ -19,6 +21,8 @@ test('activateCountLicense 会在次数已耗尽时直接返回失败且不写�
       },
     } as never,
     activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
       id: 1,
       licenseMode: 'COUNT',
       totalCount: 3,
@@ -51,6 +55,8 @@ test('activateCountLicense 在首次绑定成功时会写入设备并保留已�
   const result = await activateCountLicense({
     tx: {
       activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
         update: async ({ data }: { data: Record<string, unknown> }) => {
           updatePayloads.push(data)
           return {
@@ -67,6 +73,8 @@ test('activateCountLicense 在首次绑定成功时会写入设备并保留已�
       },
     } as never,
     activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
       id: 1,
       licenseMode: 'COUNT',
       totalCount: 3,
@@ -105,6 +113,7 @@ test('activateTimeLicense 在唯一约束冲突时会调用冲突收敛器', asy
   const result = await activateTimeLicense({
     tx: {
       activationCode: {
+        projectId: 1,
         update: async () => {
           throw {
             code: 'P2002',
@@ -116,6 +125,8 @@ test('activateTimeLicense 在唯一约束冲突时会调用冲突收敛器', asy
       },
     } as never,
     activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
       id: 2,
       licenseMode: 'TIME',
       isUsed: false,

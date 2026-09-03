@@ -24,6 +24,7 @@ test('loadLicenseActionCodeForMachine 在激活码被其他设备占用时返回
     reloadActivationCode: async () => ({
       id: 1,
       code: 'CODE-001',
+      projectId: 1,
       licenseMode: 'COUNT',
       isUsed: true,
       usedAt: new Date('2026-03-25T00:00:00.000Z'),
@@ -47,6 +48,7 @@ test('loadLicenseActionCodeForMachine 在当前设备可用时返回激活码实
   const activationCode = {
     id: 1,
     code: 'CODE-001',
+      projectId: 1,
     licenseMode: 'TIME',
     isUsed: true,
     usedAt: new Date('2026-03-25T00:00:00.000Z'),
@@ -72,6 +74,7 @@ test('loadLicenseActionCodeForMachine 在时间卡已过期时优先返回过期
     reloadActivationCode: async () => ({
       id: 2,
       code: 'CODE-EXPIRED-001',
+      projectId: 1,
       licenseMode: 'TIME',
       isUsed: true,
       usedAt: new Date('2026-03-20T00:00:00.000Z'),

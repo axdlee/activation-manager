@@ -14,8 +14,8 @@ test('DashboardFilterFieldCard 会渲染默认卡片样式、标题、描述与�
         label: '项目筛选',
         description: '只看某一个项目时，更容易判断扣次波动。',
         htmlFor: 'project-filter',
+        children: React.createElement('select', { id: 'project-filter', className: 'control-slot' }),
       },
-      React.createElement('select', { id: 'project-filter', className: 'control-slot' }),
     ),
   )
 
@@ -36,8 +36,8 @@ test('DashboardFilterFieldCard 支持覆盖卡片与内容区样式', () => {
         description: '导出 CSV。',
         className: 'custom-shell',
         bodyClassName: 'custom-body',
+        children: React.createElement('button', { className: 'button-slot' }, '导出'),
       },
-      React.createElement('button', { className: 'button-slot' }, '导出'),
     ),
   )
 

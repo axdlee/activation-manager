@@ -7,6 +7,9 @@ import test from 'node:test'
 
 import bcrypt from 'bcryptjs'
 
+// @types/node 将 NODE_ENV 等声明为只读；测试需要临时改写，用索引签名绕过
+const testEnv = process.env as Record<string, string | undefined>
+
 import {
   bootstrapDevelopmentDatabase,
   bootstrapRuntimeDatabase,
@@ -177,12 +180,12 @@ test('bootstrapDevelopmentDatabase 会补齐旧版激活码表的项目与授权
 })
 
 test('ensureDefaultSystemConfigs 在生产环境缺少 JWT_SECRET 且数据库未配置 jwtSecret 时会拒绝初始化', async () => {
-  const previousNodeEnv = process.env.NODE_ENV
+  const previousNodeEnv = testEnv.NODE_ENV
   const previousJwtSecret = process.env.JWT_SECRET
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-bootstrap-'))
   const dbPath = path.join(tempDir, 'dev.db')
 
-  process.env.NODE_ENV = 'production'
+  testEnv.NODE_ENV = 'production'
   delete process.env.JWT_SECRET
 
   try {
@@ -192,9 +195,9 @@ test('ensureDefaultSystemConfigs 在生产环境缺少 JWT_SECRET 且数据库�
     )
   } finally {
     if (previousNodeEnv === undefined) {
-      delete process.env.NODE_ENV
+      delete testEnv.NODE_ENV
     } else {
-      process.env.NODE_ENV = previousNodeEnv
+      testEnv.NODE_ENV = previousNodeEnv
     }
 
     if (previousJwtSecret === undefined) {
@@ -206,13 +209,13 @@ test('ensureDefaultSystemConfigs 在生产环境缺少 JWT_SECRET 且数据库�
 })
 
 test('bootstrapRuntimeDatabase 在生产环境缺少 ADMIN_INITIAL_PASSWORD 且无管理员时会拒绝初始化', async () => {
-  const previousNodeEnv = process.env.NODE_ENV
+  const previousNodeEnv = testEnv.NODE_ENV
   const previousJwtSecret = process.env.JWT_SECRET
   const previousAdminPassword = process.env.ADMIN_INITIAL_PASSWORD
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-bootstrap-'))
   const dbPath = path.join(tempDir, 'dev.db')
 
-  process.env.NODE_ENV = 'production'
+  testEnv.NODE_ENV = 'production'
   process.env.JWT_SECRET = 'docker-runtime-secret'
   delete process.env.ADMIN_INITIAL_PASSWORD
 
@@ -223,9 +226,9 @@ test('bootstrapRuntimeDatabase 在生产环境缺少 ADMIN_INITIAL_PASSWORD 且�
     )
   } finally {
     if (previousNodeEnv === undefined) {
-      delete process.env.NODE_ENV
+      delete testEnv.NODE_ENV
     } else {
-      process.env.NODE_ENV = previousNodeEnv
+      testEnv.NODE_ENV = previousNodeEnv
     }
 
     if (previousJwtSecret === undefined) {
@@ -243,13 +246,13 @@ test('bootstrapRuntimeDatabase 在生产环境缺少 ADMIN_INITIAL_PASSWORD 且�
 })
 
 test('bootstrapRuntimeDatabase 在生产环境提供 JWT_SECRET 时可完成初始化', async () => {
-  const previousNodeEnv = process.env.NODE_ENV
+  const previousNodeEnv = testEnv.NODE_ENV
   const previousJwtSecret = process.env.JWT_SECRET
   const previousAdminPassword = process.env.ADMIN_INITIAL_PASSWORD
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-bootstrap-'))
   const dbPath = path.join(tempDir, 'dev.db')
 
-  process.env.NODE_ENV = 'production'
+  testEnv.NODE_ENV = 'production'
   process.env.JWT_SECRET = 'docker-runtime-secret'
   process.env.ADMIN_INITIAL_PASSWORD = 'docker-admin-password'
 
@@ -267,9 +270,9 @@ test('bootstrapRuntimeDatabase 在生产环境提供 JWT_SECRET 时可完成初�
     )
   } finally {
     if (previousNodeEnv === undefined) {
-      delete process.env.NODE_ENV
+      delete testEnv.NODE_ENV
     } else {
-      process.env.NODE_ENV = previousNodeEnv
+      testEnv.NODE_ENV = previousNodeEnv
     }
 
     if (previousJwtSecret === undefined) {

@@ -24,6 +24,9 @@ function createTransactionalConfigClient(options: {
   const client: PersistSystemConfigClient & {
     persisted: Map<string, PersistedConfigRecord>
     transactionCalls: number
+    systemConfig: {
+      upsert: () => Promise<never>
+    }
   } = {
     persisted,
     transactionCalls: 0,
@@ -32,7 +35,7 @@ function createTransactionalConfigClient(options: {
         throw new Error('系统配置写入必须通过事务执行')
       },
     },
-    async $transaction<T>(callback) {
+    async $transaction<T>(callback: (tx: { systemConfig: { upsert: (args: { where: { key: string }; update: { value: string; description?: string }; create: { key: string; value: string; description?: string } }) => Promise<void> } }) => Promise<T>): Promise<T> {
       transactionCalls += 1
       client.transactionCalls = transactionCalls
       const pending = new Map(persisted)
@@ -78,9 +81,9 @@ test('normalizeSystemConfigUpdates 会拒绝不在 allowlist 中的配置项', (
           description: '未知配置',
         },
       ]),
-    (error) => {
+    (error: unknown) => {
       assert.equal(error instanceof InvalidSystemConfigPayloadError, true)
-      assert.match(String(error.message), /unexpectedKey/)
+      assert.match(String((error as Error).message), /unexpectedKey/)
       return true
     },
   )
@@ -96,9 +99,9 @@ test('normalizeSystemConfigUpdates 会拒绝不符合 schema 的配置值', () =
           description: 'JWT过期时间',
         },
       ]),
-    (error) => {
+    (error: unknown) => {
       assert.equal(error instanceof InvalidSystemConfigPayloadError, true)
-      assert.match(String(error.message), /jwtExpiresIn/)
+      assert.match(String((error as Error).message), /jwtExpiresIn/)
       return true
     },
   )

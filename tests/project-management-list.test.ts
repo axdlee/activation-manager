@@ -14,6 +14,9 @@ const projects: ProjectManagementListItem[] = [
     projectKey: 'default',
     description: '系统兼容默认项目',
     isEnabled: true,
+    allowAutoRebind: null,
+    autoRebindCooldownMinutes: null,
+    autoRebindMaxCount: null,
     createdAt: '2026-03-20T08:00:00.000Z',
   },
   {
@@ -22,6 +25,9 @@ const projects: ProjectManagementListItem[] = [
     projectKey: 'browser-plugin',
     description: 'Chrome 插件项目',
     isEnabled: true,
+    allowAutoRebind: null,
+    autoRebindCooldownMinutes: null,
+    autoRebindMaxCount: null,
     createdAt: '2026-03-22T08:00:00.000Z',
   },
   {
@@ -30,6 +36,9 @@ const projects: ProjectManagementListItem[] = [
     projectKey: 'desktop-client',
     description: 'Electron 客户端',
     isEnabled: false,
+    allowAutoRebind: null,
+    autoRebindCooldownMinutes: null,
+    autoRebindMaxCount: null,
     createdAt: '2026-03-24T08:00:00.000Z',
   },
 ]
@@ -41,6 +50,9 @@ const moreProjects: ProjectManagementListItem[] = [
     projectKey: 'alpha',
     description: 'alpha project',
     isEnabled: true,
+    allowAutoRebind: null,
+    autoRebindCooldownMinutes: null,
+    autoRebindMaxCount: null,
     createdAt: '2026-03-20T08:00:00.000Z',
   },
   {
@@ -49,6 +61,9 @@ const moreProjects: ProjectManagementListItem[] = [
     projectKey: 'beta',
     description: 'beta project',
     isEnabled: true,
+    allowAutoRebind: null,
+    autoRebindCooldownMinutes: null,
+    autoRebindMaxCount: null,
     createdAt: '2026-03-21T08:00:00.000Z',
   },
   {
@@ -57,6 +72,9 @@ const moreProjects: ProjectManagementListItem[] = [
     projectKey: 'gamma',
     description: 'gamma project',
     isEnabled: false,
+    allowAutoRebind: null,
+    autoRebindCooldownMinutes: null,
+    autoRebindMaxCount: null,
     createdAt: '2026-03-22T08:00:00.000Z',
   },
   {
@@ -65,6 +83,9 @@ const moreProjects: ProjectManagementListItem[] = [
     projectKey: 'delta',
     description: 'delta project',
     isEnabled: true,
+    allowAutoRebind: null,
+    autoRebindCooldownMinutes: null,
+    autoRebindMaxCount: null,
     createdAt: '2026-03-23T08:00:00.000Z',
   },
   {
@@ -73,6 +94,9 @@ const moreProjects: ProjectManagementListItem[] = [
     projectKey: 'epsilon',
     description: 'epsilon project',
     isEnabled: false,
+    allowAutoRebind: null,
+    autoRebindCooldownMinutes: null,
+    autoRebindMaxCount: null,
     createdAt: '2026-03-24T08:00:00.000Z',
   },
 ]

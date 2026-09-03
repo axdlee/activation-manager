@@ -171,19 +171,15 @@ test('管理员登录成功会记录 ADMIN_LOGIN 审计日志', async (t) => {
 
   adminLoginRouteDependencies.rateLimiter = createAsyncRateLimiter()
 
-  ;(prisma.admin as typeof prisma.admin & { findUnique: typeof prisma.admin.findUnique }).findUnique = async () => ({
+  prisma.admin.findUnique = (async () => ({
     id: 1,
     username: 'admin',
     password: 'hashed-password',
     createdAt: new Date('2026-03-24T00:00:00.000Z'),
     updatedAt: new Date('2026-03-24T00:00:00.000Z'),
-  })
+  })) as unknown as typeof prisma.admin.findUnique
 
-  ;(
-    prisma.systemConfig as typeof prisma.systemConfig & {
-      findUnique: typeof prisma.systemConfig.findUnique
-    }
-  ).findUnique = async ({ where }: { where: { key: string } }) => {
+  prisma.systemConfig.findUnique = (async ({ where }: { where: { key: string } }) => {
     if (where.key === 'jwtSecret') {
       return {
         id: 1,
@@ -207,7 +203,7 @@ test('管理员登录成功会记录 ADMIN_LOGIN 审计日志', async (t) => {
     }
 
     return null
-  }
+  }) as unknown as typeof prisma.systemConfig.findUnique
 
   ;(bcrypt as typeof bcrypt & { compare: typeof bcrypt.compare }).compare = async () => true
 

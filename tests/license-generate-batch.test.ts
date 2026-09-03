@@ -26,7 +26,7 @@ test('generateActivationCodes 会走批量写入路径并按生成顺序返回�
           .reverse()
           .map((item) => ({
             ...item,
-            id: Number(String(item.code).slice(-2), 16),
+            id: parseInt(String(item.code).slice(-2), 16),
             isUsed: false,
             usedAt: null,
             usedBy: null,
