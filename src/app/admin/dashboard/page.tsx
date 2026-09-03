@@ -1281,6 +1281,16 @@ export default function DashboardPage() {
     setAuditLogCreatedFrom('')
     setAuditLogCreatedTo('')
     setAuditLogCurrentPage(1)
+    void fetchAdminAuditLogs(
+      {
+        keyword: '',
+        projectKey: 'all',
+        operationType: 'all',
+        createdFrom: '',
+        createdTo: '',
+      },
+      1,
+    )
   }
 
   const handleChangeAuditLogWorkspaceTab = (tab: AuditLogWorkspaceTab) => {
@@ -1399,15 +1409,7 @@ export default function DashboardPage() {
       params.set('projectKey', statsProjectFilter)
     }
 
-    const exportUrl = params.toString()
-      ? `/api/admin/codes/stats/export?${params.toString()}`
-      : '/api/admin/codes/stats/export'
-
-    const link = document.createElement('a')
-    link.setAttribute('href', exportUrl)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    triggerFileDownload(buildExportUrl('/api/admin/codes/stats/export', params))
   }
 
   const formatCodeManagementTimestamp = (value: string | null | undefined) =>

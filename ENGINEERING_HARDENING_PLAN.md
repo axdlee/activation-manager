@@ -3586,3 +3586,29 @@
 
 1. stats / 项目 / 激活码工作区在有 e2e 环境时按同款模式继续拆分
 2. 存量库 `prisma migrate resolve` 基线流程已写入 DATABASE_BACKUP_GUIDE
+
+### 2026-09-02 / Iteration 2026-09e：dashboard 收尾修复与导出统一
+
+**目标**：收尾 dashboard 拆分遗留的问题，消除行为不一致。
+
+**已完成**：
+
+- [x] 修复 `handleResetAuditLogFilters` 重置筛选后不刷新数据的问题：消费日志依赖 `consumptionAutoRefreshKey` 自动刷新 effect 兜底，而审计日志没有对应 effect，重置状态后表格仍显示旧筛选数据；现改为重置后显式以空筛选重新请求第 1 页（与消费日志 reset 一致，避免闭包读到旧筛选值）
+- [x] `handleExportProjectStats` 统一走共享 `buildExportUrl` + `triggerFileDownload`，删除内联的 `document.createElement('a')` 重复实现（与消费日志 / 审计日志导出一致）
+
+**验证结果**：
+
+1. `npm run lint` ✅
+2. `npm test` ✅（350 / 350）
+3. `npm run test:coverage` ✅（92.54 / 86.03 / 90.24）
+4. `npm run build` ✅
+
+**备注**：
+
+- 审计日志 reset 传显式空筛选对象（而非 `{}`），因为 `buildCurrentAuditLogFilters` 基于当前 state 的 useMemo，`{}` 会读到尚未更新的旧筛选值
+- 页面行数 2596 行，剩余 handler 均为纯页面编排（切 tab / 分页 / 重置），与组件 props 直接绑定，抽取收益低风险高，建议保留
+
+**下一步**：
+
+1. 建议搭建 e2e 冒烟（登录 → 发码 → 激活 → 消费 → 审计）后冻结本轮重构
+2. 交付方式待定：推送 GitHub / 导出 patch / 归档

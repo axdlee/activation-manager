@@ -30,6 +30,10 @@
 - 消费日志 / 审计日志 / 消费趋势 / stats / 密码修改 / 系统配置 / 共享数据层（projects/allCodes/systemConfigs）七个模块分别抽取为独立 hook（`use-consumption-logs` / `use-admin-audit-logs` / `use-consumption-trend`）
 - 页面保留适配层与 toast 语义，行为等价；`dashboard/page.tsx` 由 3488 行降至 3033 行（-455 行），样式常量与导出工具均收敛到 lib
 
+### 2026-09-02：dashboard 收尾修复 🐛
+- 修复审计日志筛选重置后不刷新数据的问题：`handleResetAuditLogFilters` 仅重置状态未重新拉取列表（消费日志有自动刷新 effect 兜底、审计日志没有），现在重置后显式以空筛选重新请求第 1 页
+- `handleExportProjectStats` 改用共享 `buildExportUrl` + `triggerFileDownload`，消除与消费日志 / 审计日志导出重复的内联实现
+
 ---
 
 ## [Unreleased] - 2026-03-27
