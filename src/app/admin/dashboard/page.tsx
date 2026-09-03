@@ -42,6 +42,7 @@ import { useDashboardData } from '@/lib/use-dashboard-data'
 import { useDashboardStats } from '@/lib/use-dashboard-stats'
 import { useChangePassword } from '@/lib/use-change-password'
 import { useSystemConfigWorkspace } from '@/lib/use-system-config-workspace'
+import { useProjectWorkspace } from '@/lib/use-project-workspace'
 import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
@@ -63,10 +64,6 @@ import {
 import { buildProjectStatsInsights } from '@/lib/project-stats-insights'
 import { filterProjectStatsByProjectKey } from '@/lib/project-stats-filter'
 import { summarizeProjectStats } from '@/lib/project-stats-summary'
-import {
-  getProjectKeyValidationError,
-  normalizeProjectKeyInput,
-} from '@/lib/project-key'
 import {
   DEFAULT_ALLOW_AUTO_REBIND,
   DEFAULT_AUTO_REBIND_COOLDOWN_MINUTES,
@@ -225,23 +222,7 @@ export default function DashboardPage() {
     fetchAdminAuditLogs: hookFetchAdminAuditLogs,
   } = audit
   const [currentPage, setCurrentPage] = useState(1)
-  const [projectManagementCurrentPage, setProjectManagementCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
-  const [newProjectName, setNewProjectName] = useState('')
-  const [newProjectKey, setNewProjectKey] = useState('')
-  const [newProjectDescription, setNewProjectDescription] = useState('')
-  const [newProjectRebindPolicy, setNewProjectRebindPolicy] =
-    useState<RebindOverrideSelectValue>('inherit')
-  const [newProjectRebindCooldownMinutes, setNewProjectRebindCooldownMinutes] = useState('')
-  const [newProjectRebindMaxCount, setNewProjectRebindMaxCount] = useState('')
-  const [projectNameDrafts, setProjectNameDrafts] = useState<Record<number, string>>({})
-  const [projectDescriptionDrafts, setProjectDescriptionDrafts] = useState<Record<number, string>>({})
-  const [projectRebindPolicyDrafts, setProjectRebindPolicyDrafts] =
-    useState<Record<number, RebindOverrideSelectValue>>({})
-  const [projectRebindCooldownMinutesDrafts, setProjectRebindCooldownMinutesDrafts] =
-    useState<Record<number, string>>({})
-  const [projectRebindMaxCountDrafts, setProjectRebindMaxCountDrafts] =
-    useState<Record<number, string>>({})
   const [projectManagementSearchTerm, setProjectManagementSearchTerm] = useState('')
   const [projectManagementStatusFilter, setProjectManagementStatusFilter] =
     useState<ProjectManagementStatusFilter>('all')
@@ -341,6 +322,52 @@ export default function DashboardPage() {
     systemConfigSensitiveCount,
     systemConfigWhitelistEntryCount,
   } = sysConfig
+  const fetchProjectsRef = useRef<() => Promise<void>>(async () => {})
+  const projectWorkspace = useProjectWorkspace({
+    projects,
+    onShowMessage: showMessage,
+    onLoadingChange: setLoading,
+    onFetchProjects: () => fetchProjectsRef.current(),
+    onFetchStats: fetchStats,
+    onSetProjectWorkspaceTab: (tab: string) => setProjectWorkspaceTab(tab as ProjectWorkspaceTab),
+  })
+  const {
+    newProjectName,
+    setNewProjectName,
+    newProjectKey,
+    setNewProjectKey,
+    newProjectDescription,
+    setNewProjectDescription,
+    newProjectRebindPolicy,
+    setNewProjectRebindPolicy,
+    newProjectRebindCooldownMinutes,
+    setNewProjectRebindCooldownMinutes,
+    newProjectRebindMaxCount,
+    setNewProjectRebindMaxCount,
+    projectManagementCurrentPage,
+    setProjectManagementCurrentPage,
+    projectNameDrafts,
+    setProjectNameDrafts,
+    projectDescriptionDrafts,
+    setProjectDescriptionDrafts,
+    projectRebindPolicyDrafts,
+    setProjectRebindPolicyDrafts,
+    projectRebindCooldownMinutesDrafts,
+    setProjectRebindCooldownMinutesDrafts,
+    projectRebindMaxCountDrafts,
+    setProjectRebindMaxCountDrafts,
+    handleCreateProject,
+    handleToggleProjectStatus,
+    handleProjectNameChange,
+    handleSaveProjectName,
+    handleProjectDescriptionChange,
+    handleSaveProjectDescription,
+    handleProjectRebindPolicyChange,
+    handleProjectRebindCooldownMinutesChange,
+    handleProjectRebindMaxCountChange,
+    handleSaveProjectRebindSettings,
+    handleDeleteProject,
+  } = projectWorkspace
 
   const getSystemRebindDefaults = useCallback(() => {
     const allowAutoRebindConfig = systemConfigs.find((config) => config.key === 'allowAutoRebind')
@@ -429,7 +456,11 @@ export default function DashboardPage() {
     ) {
       setConsumptionTrendCompareProjectKey('none')
     }
-  }, [hookFetchProjects, selectedProjectKey, statsProjectFilter, consumptionTrendCompareProjectKey, setConsumptionTrendCompareProjectKey])
+  }, [hookFetchProjects, selectedProjectKey, statsProjectFilter, consumptionTrendCompareProjectKey, setConsumptionTrendCompareProjectKey, setProjectNameDrafts, setProjectDescriptionDrafts, setProjectRebindPolicyDrafts, setProjectRebindCooldownMinutesDrafts, setProjectRebindMaxCountDrafts])
+
+  useEffect(() => {
+    fetchProjectsRef.current = fetchProjects
+  }, [fetchProjects])
 
   const handleExportConsumptionTrend = () => {
     try {
@@ -809,250 +840,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const normalizedProjectName = newProjectName.trim()
-    const normalizedProjectKey = normalizeProjectKeyInput(newProjectKey)
-
-    if (!normalizedProjectName || !normalizedProjectKey) {
-      showMessage('项目名称和项目标识不能为空', 'error')
-      return
-    }
-
-    const projectKeyValidationError = getProjectKeyValidationError(normalizedProjectKey)
-    if (projectKeyValidationError) {
-      showMessage(projectKeyValidationError, 'error')
-      return
-    }
-
-    try {
-      setLoading(true)
-      const response = await fetch('/api/admin/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: normalizedProjectName,
-          projectKey: normalizedProjectKey,
-          description: newProjectDescription,
-          allowAutoRebind: fromRebindOverrideSelectValue(newProjectRebindPolicy),
-          autoRebindCooldownMinutes: parseNullableCooldownMinutesInput(
-            newProjectRebindCooldownMinutes,
-          ),
-          autoRebindMaxCount: parseNullableMaxCountInput(newProjectRebindMaxCount),
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        setNewProjectName('')
-        setNewProjectKey('')
-        setNewProjectDescription('')
-        setNewProjectRebindPolicy('inherit')
-        setNewProjectRebindCooldownMinutes('')
-        setNewProjectRebindMaxCount('')
-        setProjectWorkspaceTab('manage')
-        setProjectManagementCurrentPage(1)
-        void fetchProjects()
-      } else {
-        showMessage(data.message || '项目创建失败', 'error')
-      }
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleToggleProjectStatus = async (project: Project) => {
-    const actionLabel = project.isEnabled ? '停用' : '启用'
-    if (!confirm(`确定要${actionLabel}项目「${project.name}」吗？`)) return
-
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/admin/projects/${project.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          isEnabled: !project.isEnabled,
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        fetchProjects()
-        fetchStats()
-      } else {
-        showMessage(data.message || '更新项目状态失败', 'error')
-      }
-    } catch (error) {
-      showMessage('网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleProjectNameChange = (projectId: number, value: string) => {
-    setProjectNameDrafts((currentDrafts) => ({
-      ...currentDrafts,
-      [projectId]: value,
-    }))
-  }
-
-  const handleSaveProjectName = async (project: Project) => {
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/admin/projects/${project.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: projectNameDrafts[project.id] ?? project.name,
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        await fetchProjects()
-        await fetchStats()
-      } else {
-        showMessage(data.message || '更新项目名称失败', 'error')
-      }
-    } catch (error) {
-      showMessage('网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleProjectDescriptionChange = (projectId: number, value: string) => {
-    setProjectDescriptionDrafts((currentDrafts) => ({
-      ...currentDrafts,
-      [projectId]: value,
-    }))
-  }
-
-  const handleProjectRebindPolicyChange = (
-    projectId: number,
-    value: RebindOverrideSelectValue,
-  ) => {
-    setProjectRebindPolicyDrafts((currentDrafts) => ({
-      ...currentDrafts,
-      [projectId]: value,
-    }))
-  }
-
-  const handleProjectRebindCooldownMinutesChange = (projectId: number, value: string) => {
-    setProjectRebindCooldownMinutesDrafts((currentDrafts) => ({
-      ...currentDrafts,
-      [projectId]: value,
-    }))
-  }
-
-  const handleProjectRebindMaxCountChange = (projectId: number, value: string) => {
-    setProjectRebindMaxCountDrafts((currentDrafts) => ({
-      ...currentDrafts,
-      [projectId]: value,
-    }))
-  }
-
-  const handleSaveProjectDescription = async (project: Project) => {
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/admin/projects/${project.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          description: projectDescriptionDrafts[project.id] ?? '',
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        await fetchProjects()
-      } else {
-        showMessage(data.message || '更新项目描述失败', 'error')
-      }
-    } catch (error) {
-      showMessage('网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSaveProjectRebindSettings = async (project: Project) => {
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/admin/projects/${project.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          allowAutoRebind: fromRebindOverrideSelectValue(
-            projectRebindPolicyDrafts[project.id] ??
-              toRebindOverrideSelectValue(project.allowAutoRebind),
-          ),
-          autoRebindCooldownMinutes: parseNullableCooldownMinutesInput(
-            projectRebindCooldownMinutesDrafts[project.id] ??
-              (project.autoRebindCooldownMinutes === null
-                ? ''
-                : String(project.autoRebindCooldownMinutes)),
-          ),
-          autoRebindMaxCount: parseNullableMaxCountInput(
-            projectRebindMaxCountDrafts[project.id] ??
-              (project.autoRebindMaxCount === null ? '' : String(project.autoRebindMaxCount)),
-          ),
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        await fetchProjects()
-      } else {
-        showMessage(data.message || '更新项目换绑策略失败', 'error')
-      }
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDeleteProject = async (project: Project) => {
-    if (!confirm(`确定要删除项目「${project.name}」吗？只有空项目才允许删除。`)) return
-
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/admin/projects/${project.id}`, {
-        method: 'DELETE',
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        fetchProjects()
-        fetchStats()
-      } else {
-        showMessage(data.message || '删除项目失败', 'error')
-      }
-    } catch (error) {
-      showMessage('网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const copyToClipboard = async (text: string, successMessage = '已复制到剪贴板') => {
     try {
