@@ -39,6 +39,7 @@ import { useConsumptionLogs } from '@/lib/use-consumption-logs'
 import { useAdminAuditLogs } from '@/lib/use-admin-audit-logs'
 import { useConsumptionTrend } from '@/lib/use-consumption-trend'
 import { useDashboardData } from '@/lib/use-dashboard-data'
+import { useDashboardStats } from '@/lib/use-dashboard-stats'
 import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
@@ -165,8 +166,6 @@ export default function DashboardPage() {
     fetchConsumptionLogs: hookFetchConsumptionLogs,
     buildFilters: consumptionBuildFilters,
   } = consumption
-  const [projectStats, setProjectStats] = useState<ProjectStats[]>([])
-  const [stats, setStats] = useState<Stats>({ total: 0, used: 0, expired: 0, active: 0 })
   const trend = useConsumptionTrend()
   const {
     trend: consumptionTrend,
@@ -292,6 +291,14 @@ export default function DashboardPage() {
     fetchAllCodes: hookFetchAllCodes,
     fetchSystemConfigs: hookFetchSystemConfigs,
   } = dashboardData
+  const dashboardStats = useDashboardStats()
+  const {
+    stats,
+    setStats,
+    projectStats,
+    setProjectStats,
+    fetchStats,
+  } = dashboardStats
 
   const handleCardTypeChange = (cardType: string) => {
     setSelectedCardType(cardType)
@@ -438,19 +445,6 @@ export default function DashboardPage() {
       setConsumptionTrendCompareProjectKey('none')
     }
   }, [hookFetchProjects, selectedProjectKey, statsProjectFilter, consumptionTrendCompareProjectKey, setConsumptionTrendCompareProjectKey])
-
-  const fetchStats = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/codes/stats')
-      const data = await response.json()
-      if (data.success) {
-        setStats(data.stats)
-        setProjectStats(data.projectStats || [])
-      }
-    } catch (error) {
-      console.error('获取统计数据失败:', error)
-    }
-  }, [])
 
   const handleExportConsumptionTrend = () => {
     try {
