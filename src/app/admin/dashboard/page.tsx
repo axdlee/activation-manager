@@ -43,6 +43,7 @@ import { useDashboardStats } from '@/lib/use-dashboard-stats'
 import { useChangePassword } from '@/lib/use-change-password'
 import { useSystemConfigWorkspace } from '@/lib/use-system-config-workspace'
 import { useProjectWorkspace } from '@/lib/use-project-workspace'
+import { useActivationCodeGeneration } from '@/lib/use-activation-code-generation'
 import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
@@ -148,14 +149,8 @@ import { cardTypes, statusFilterLabelMap } from '@/lib/dashboard-page-types'
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<TabType>('stats')
-  const [amount, setAmount] = useState(1)
-  const [expiryDays, setExpiryDays] = useState(30)
-  const [selectedCardType, setSelectedCardType] = useState<string>('')
-  const [customDays, setCustomDays] = useState(30)
   const [licenseMode, setLicenseMode] = useState<LicenseModeValue>('TIME')
-  const [totalCount, setTotalCount] = useState(10)
   const [selectedProjectKey, setSelectedProjectKey] = useState('default')
-  const [generatedCodes, setGeneratedCodes] = useState<ActivationCode[]>([])
   const consumption = useConsumptionLogs()
   const {
     logs: consumptionLogs,
@@ -235,10 +230,6 @@ export default function DashboardPage() {
   const [auditLogWorkspaceTab, setAuditLogWorkspaceTab] =
     useState<AuditLogWorkspaceTab>('logs')
   const [projectWorkspaceTab, setProjectWorkspaceTab] = useState<ProjectWorkspaceTab>('manage')
-  const [generateRebindPolicy, setGenerateRebindPolicy] =
-    useState<RebindOverrideSelectValue>('inherit')
-  const [generateRebindCooldownMinutes, setGenerateRebindCooldownMinutes] = useState('')
-  const [generateRebindMaxCount, setGenerateRebindMaxCount] = useState('')
   const [selectedActivationCodeId, setSelectedActivationCodeId] = useState<number | null>(null)
   const [selectedActivationCodeRebindPolicy, setSelectedActivationCodeRebindPolicy] =
     useState<RebindOverrideSelectValue>('inherit')
@@ -485,6 +476,39 @@ export default function DashboardPage() {
   }, [hookFetchSystemConfigs, setRevealedSensitiveConfigKeys])
 
   const fetchAllCodes = hookFetchAllCodes
+
+  const codeGeneration = useActivationCodeGeneration({
+    selectedProjectKey,
+    licenseMode,
+    cardTypes,
+    refreshCodesOnGenerate: activeTab === 'list',
+    isLoading: loading,
+    onShowMessage: showMessage,
+    onLoadingChange: setLoading,
+    onFetchStats: fetchStats,
+    onFetchAllCodes: fetchAllCodes,
+  })
+  const {
+    amount,
+    setAmount,
+    expiryDays,
+    setExpiryDays,
+    selectedCardType,
+    setSelectedCardType,
+    customDays,
+    setCustomDays,
+    totalCount,
+    setTotalCount,
+    generateRebindPolicy,
+    setGenerateRebindPolicy,
+    generateRebindCooldownMinutes,
+    setGenerateRebindCooldownMinutes,
+    generateRebindMaxCount,
+    setGenerateRebindMaxCount,
+    generatedCodes,
+    setGeneratedCodes,
+    handleGenerateCodes,
+  } = codeGeneration
 
   const syncSelectedActivationCodeDrafts = useCallback((activationCode: ActivationCode | null) => {
     if (!activationCode) {
@@ -792,54 +816,6 @@ export default function DashboardPage() {
       setLoading(false)
     }
   }
-
-  const handleGenerateCodes = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (loading) return
-
-    try {
-      setLoading(true)
-
-      const finalExpiryDays = selectedCardType === '自定义' ? customDays : expiryDays
-      const finalCardType = selectedCardType || null
-      const payload = {
-        amount,
-        projectKey: selectedProjectKey,
-        licenseMode,
-        expiryDays: licenseMode === 'TIME' ? finalExpiryDays : null,
-        totalCount: licenseMode === 'COUNT' ? totalCount : null,
-        cardType: licenseMode === 'TIME' ? finalCardType : null,
-        allowAutoRebind: fromRebindOverrideSelectValue(generateRebindPolicy),
-        autoRebindCooldownMinutes: parseNullableCooldownMinutesInput(generateRebindCooldownMinutes),
-        autoRebindMaxCount: parseNullableMaxCountInput(generateRebindMaxCount),
-      }
-
-      const response = await fetch('/api/admin/codes/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setGeneratedCodes(data.codes)
-        showMessage(data.message)
-        void fetchStats()
-        if (activeTab === 'list') {
-          void fetchAllCodes()
-        }
-      } else {
-        showMessage(data.message || '生成失败', 'error')
-      }
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
 
   const copyToClipboard = async (text: string, successMessage = '已复制到剪贴板') => {
     try {
