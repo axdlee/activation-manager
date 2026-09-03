@@ -13,6 +13,8 @@ export const adminAuditOperationTypeOptions: AdminAuditOperationTypeOption[] = [
   { value: 'CODE_REBIND_SETTINGS_UPDATED', label: '管理员调整单码策略' },
   { value: 'CODE_FORCE_UNBIND', label: '管理员强制解绑' },
   { value: 'CODE_FORCE_REBIND', label: '管理员强制换绑' },
+  { value: 'CODE_DELETED', label: '删除激活码' },
+  { value: 'CODE_CLEANUP_EXPIRED', label: '清理过期激活码' },
   { value: 'PROJECT_REBIND_SETTINGS_UPDATED', label: '管理员调整项目策略' },
   { value: 'PROJECT_CREATED', label: '创建项目' },
   { value: 'PROJECT_DELETED', label: '删除项目' },
@@ -20,6 +22,7 @@ export const adminAuditOperationTypeOptions: AdminAuditOperationTypeOption[] = [
   { value: 'PROJECT_DESCRIPTION_UPDATED', label: '修改项目描述' },
   { value: 'PROJECT_STATUS_UPDATED', label: '启停项目' },
   { value: 'CODE_BATCH_GENERATED', label: '批量生成激活码' },
+  { value: 'ADMIN_LOGIN', label: '管理员登录' },
   { value: 'SYSTEM_CONFIG_UPDATED', label: '更新系统配置' },
   { value: 'PASSWORD_CHANGED', label: '管理员修改密码' },
 ]

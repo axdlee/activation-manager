@@ -2,9 +2,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { prisma } from '@/lib/db'
+import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 
 export const DELETE = createProtectedAdminRouteHandler(
-  async (request: NextRequest) => {
+  async (request: NextRequest, authResult) => {
     const { id } = await request.json()
 
     if (!id) {
@@ -14,9 +15,11 @@ export const DELETE = createProtectedAdminRouteHandler(
       )
     }
 
+    const codeId = parseInt(id)
+
     // 检查激活码是否存在
     const existingCode = await prisma.activationCode.findUnique({
-      where: { id: parseInt(id) }
+      where: { id: codeId }
     })
 
     if (!existingCode) {
@@ -26,9 +29,18 @@ export const DELETE = createProtectedAdminRouteHandler(
       )
     }
 
+    // 先写审计（删除前，activationCodeId 仍可引用原记录）
+    await recordAdminOperationAuditLog(prisma, {
+      adminUsername: authResult.payload?.username ?? 'unknown',
+      operationType: 'CODE_DELETED',
+      activationCodeId: codeId,
+      projectId: existingCode.projectId,
+      targetLabel: existingCode.code,
+    })
+
     // 删除激活码
     await prisma.activationCode.delete({
-      where: { id: parseInt(id) }
+      where: { id: codeId }
     })
 
     return NextResponse.json({

@@ -9,6 +9,7 @@ import {
 } from '@/lib/admin-login-rate-limit'
 import { MissingRequiredSystemConfigError } from '@/lib/config-service'
 import { prisma } from '@/lib/db'
+import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 import { getJwtSessionCookieMaxAge } from '@/lib/jwt-session'
 import { signToken } from '@/lib/jwt'
 
@@ -77,6 +78,15 @@ export async function handleAdminLoginRequest(request: NextRequest) {
 
     const token = await signToken({ username, isAdmin: true })
     const sessionCookieMaxAge = await getJwtSessionCookieMaxAge()
+
+    await recordAdminOperationAuditLog(prisma, {
+      adminUsername: username,
+      operationType: 'ADMIN_LOGIN',
+      targetLabel: username,
+      detail: {
+        clientIp,
+      },
+    })
 
     const response = NextResponse.json({
       success: true,

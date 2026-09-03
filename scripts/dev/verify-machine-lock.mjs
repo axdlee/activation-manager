@@ -1,5 +1,8 @@
-// 简化的一机器一码测试
-const baseUrl = 'http://localhost:3000'
+// 手动验证「一机器一码」逻辑的开发脚本（一次性手工测试，非自动化用例）
+// 用法：BASE_URL=http://127.0.0.1:3000 node scripts/dev/verify-machine-lock.mjs
+// 说明：e2e 冒烟（e2e/smoke.spec.ts）已覆盖同机换码拦截主链路；此脚本保留用于人工联调。
+
+const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:3000'
 
 async function testOneCodePerMachine() {
     console.log('🧪 测试一机器一码逻辑...\n')

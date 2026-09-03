@@ -1002,19 +1002,22 @@ await client.consume({
 ### 安全侧
 - bcrypt 密码哈希（成本可配置）
 - JWT 会话管理
-- httpOnly Cookie
+- httpOnly Cookie（生产环境附加 Secure）
 - 登录限流
 - IP 白名单访问控制
 - 页面层与 API 层统一后台鉴权 / 白名单判断
 - 公开 License API 限流（IP + 接口维度，默认 120 次/分钟，可通过 `LICENSE_API_RATE_LIMIT_MAX` / `LICENSE_API_RATE_LIMIT_WINDOW_MS` 调整）
 - 内部错误不向客户端泄露具体消息，统一返回通用错误文案
+- 统一安全响应头：CSP（生产环境不含 `unsafe-eval`、`frame-ancestors 'none'`）、`X-Frame-Options: DENY`、`X-Content-Type-Options: nosniff`、`Referrer-Policy`、`Permissions-Policy`，并关闭 `X-Powered-By`
+- CSV 导出公式注入防御（`= + - @` 前缀加 `\t`）
+- 关键管理员操作全量审计：登录、项目创建/删除/改名/描述/启停、发码、单码策略调整、强制解绑/换绑、激活码删除、清理过期、系统配置更新、密码修改
 
 ### 工程侧
 - 通过 `.nvmrc` 统一本地、CI 与 Docker 的 Node 主版本
 - `npm run dev` 与 `npm run build` / `npm start` 使用隔离的构建产物目录
 - 开发环境自动初始化，减少首次运行成本
-- 质量门禁：`lint + coverage + build`
-- GitHub Actions 已配置质量门禁工作流
+- 质量门禁：`lint + coverage + build + e2e`
+- GitHub Actions 已配置质量门禁、Playwright e2e 与 Docker 冒烟三道闸
 - 已支持 Docker 镜像构建、容器启动初始化与 DockerHub 自动发布
 
 常用命令：

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { prisma } from '@/lib/db'
+import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 
 // 定义激活码类型
 interface ActivationCodeData {
@@ -16,7 +17,7 @@ interface ActivationCodeData {
 }
 
 export const POST = createProtectedAdminRouteHandler(
-  async (_request: NextRequest) => {
+  async (_request: NextRequest, authResult) => {
     const now = new Date()
 
     const usedCodes = await prisma.activationCode.findMany({
@@ -68,7 +69,14 @@ export const POST = createProtectedAdminRouteHandler(
       },
     })
 
-    console.log(`清理了 ${result.count} 个过期激活码的绑定关系`)
+    await recordAdminOperationAuditLog(prisma, {
+      adminUsername: authResult.payload?.username ?? 'unknown',
+      operationType: 'CODE_CLEANUP_EXPIRED',
+      detail: {
+        cleanedCount: result.count,
+        expiredCodeIds,
+      },
+    })
 
     return NextResponse.json({
       success: true,

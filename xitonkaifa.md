@@ -1,3 +1,7 @@
+<!-- archived -->
+> ⚠️ **归档说明**：本文档为早期开发笔记，内容与 README / ENGINEERING_HARDENING_PLAN 存在重叠，
+> 部分章节可能过时。新工作请以 README 与 ENGINEERING_HARDENING_PLAN 为准。
+
 # 激活码管理系统开发说明
 
 这是当前项目的开发者视角文档，描述系统的真实结构与核心设计。
