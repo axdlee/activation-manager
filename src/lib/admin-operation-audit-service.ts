@@ -252,17 +252,24 @@ export async function recordAdminOperationAuditLog(
     throw new Error('adminUsername 不能为空')
   }
 
-  return client.adminOperationAuditLog.create({
-    data: {
-      adminUsername,
-      operationType: input.operationType,
-      activationCodeId: input.activationCodeId ?? null,
-      projectId: input.projectId ?? null,
-      targetLabel: normalizeOptionalText(input.targetLabel),
-      reason: normalizeOptionalText(input.reason),
-      detailJson: input.detail === undefined ? null : JSON.stringify(input.detail),
-    },
-  })
+  try {
+    return await client.adminOperationAuditLog.create({
+      data: {
+        adminUsername,
+        operationType: input.operationType,
+        activationCodeId: input.activationCodeId ?? null,
+        projectId: input.projectId ?? null,
+        targetLabel: normalizeOptionalText(input.targetLabel),
+        reason: normalizeOptionalText(input.reason),
+        detailJson: input.detail === undefined ? null : JSON.stringify(input.detail),
+      },
+    })
+  } catch (error) {
+    // 审计写入失败不应阻塞业务主操作（登录/删除/清理等）。
+    // 记录错误并返回 null，调用方无需感知。
+    console.error('审计日志写入失败（已忽略，不影响业务操作）:', error)
+    return null
+  }
 }
 
 export async function listAdminOperationAuditLogs(

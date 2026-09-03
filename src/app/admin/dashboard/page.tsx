@@ -263,14 +263,11 @@ export default function DashboardPage() {
   const {
     projects,
     setProjects,
-    allCodes,
-    setAllCodes,
     systemConfigs,
     setSystemConfigs,
     loading,
     setLoading,
     fetchProjects: hookFetchProjects,
-    fetchAllCodes: hookFetchAllCodes,
     codeList,
     fetchCodeList,
     fetchSystemConfigs: hookFetchSystemConfigs,
@@ -330,11 +327,24 @@ export default function DashboardPage() {
     return null
   }, [])
 
+  // 统一的服务端激活码列表刷新：带当前筛选与页码，替代全量加载
+  const fetchCurrentCodePage = useCallback(async () => {
+    const list = await fetchCodeList({
+      keyword: searchTerm,
+      status: statusFilter,
+      projectKey: projectFilter,
+      cardType: cardTypeFilter,
+      page: currentPage,
+      pageSize: itemsPerPage,
+    })
+    return list.codes
+  }, [fetchCodeList, searchTerm, statusFilter, projectFilter, cardTypeFilter, currentPage, itemsPerPage])
+
   const codeMgmt = useActivationCodeManagement({
-    allCodes,
+    allCodes: [],
     onShowMessage: showMessage,
     onLoadingChange: setLoading,
-    onFetchAllCodes: hookFetchAllCodes,
+    onFetchAllCodes: fetchCurrentCodePage,
     onFetchActivationCodeDetail: fetchActivationCodeDetail,
     onFetchStats: fetchStats,
   })
@@ -521,8 +531,6 @@ export default function DashboardPage() {
     if (ok) setRevealedSensitiveConfigKeys([])
   }, [hookFetchSystemConfigs, setRevealedSensitiveConfigKeys])
 
-  const fetchAllCodes = hookFetchAllCodes
-
   const codeGeneration = useActivationCodeGeneration({
     selectedProjectKey,
     licenseMode,
@@ -532,7 +540,7 @@ export default function DashboardPage() {
     onShowMessage: showMessage,
     onLoadingChange: setLoading,
     onFetchStats: fetchStats,
-    onFetchAllCodes: fetchAllCodes,
+    onFetchAllCodes: fetchCurrentCodePage,
   })
   const {
     amount,
@@ -661,8 +669,7 @@ export default function DashboardPage() {
       void fetchProjects()
     }
     if (activeTab === 'list') {
-      void fetchAllCodes()
-      void fetchCodeList({ keyword: searchTerm, status: statusFilter, projectKey: projectFilter, cardType: cardTypeFilter, page: currentPage, pageSize: itemsPerPage })
+      void fetchCurrentCodePage()
     }
     if (activeTab === 'consumptions') {
       void fetchConsumptionLogs({}, 'initial')
@@ -683,8 +690,8 @@ export default function DashboardPage() {
   }, [
     activeTab,
     fetchAdminAuditLogs,
-    fetchAllCodes,
     fetchConsumptionLogs,
+    fetchCurrentCodePage,
     fetchProjects,
     fetchStats,
     fetchSystemConfigs,
@@ -776,13 +783,13 @@ export default function DashboardPage() {
     }
 
     const timer = window.setTimeout(() => {
-      void fetchCodeList({ keyword: searchTerm, status: statusFilter, projectKey: projectFilter, cardType: cardTypeFilter, page: currentPage, pageSize: itemsPerPage })
+      void fetchCurrentCodePage()
     }, CONSUMPTION_AUTO_REFRESH_DELAY_MS)
 
     return () => {
       window.clearTimeout(timer)
     }
-  }, [activeTab, codeListAutoRefreshKey, fetchCodeList, searchTerm, statusFilter, projectFilter, cardTypeFilter, currentPage, itemsPerPage])
+  }, [activeTab, codeListAutoRefreshKey, fetchCurrentCodePage])
 
   const handleLogout = async () => {
     try {
@@ -1057,7 +1064,7 @@ export default function DashboardPage() {
     },
     {
       label: '激活码总量',
-      value: stats.total || allCodes.length,
+      value: stats.total || 0,
       description: '基于全局统计汇总的发码规模',
     },
     {
@@ -1186,15 +1193,7 @@ export default function DashboardPage() {
     return <DashboardStatusBadge label="未激活" tone="info" />
   }
 
-  const getAvailableCardTypes = () => {
-    const types = new Set<string>()
-    allCodes.forEach((code) => {
-      if (code.cardType) {
-        types.add(code.cardType)
-      }
-    })
-    return Array.from(types).sort()
-  }
+  const getAvailableCardTypes = () => codeList.availableCardTypes
 
   const consumptionProjectCoverage = new Set(
     consumptionLogs.map((log) => log.activationCode.project.projectKey),
@@ -1374,9 +1373,7 @@ export default function DashboardPage() {
   }
 
   const selectedActivationCode =
-    selectedActivationCodeId === null
-      ? null
-      : (selectedActivationCodeDetail ?? allCodes.find((code) => code.id === selectedActivationCodeId)) || null
+    selectedActivationCodeId === null ? null : selectedActivationCodeDetail
 
   const buildActivationCodePolicySummary = useCallback(
     (activationCode: ActivationCode | null) => {
@@ -1751,32 +1748,6 @@ export default function DashboardPage() {
       setAuditLogCurrentPage(lastPage)
     }
   }, [auditLogCurrentPage, auditLogTotalPages, setAuditLogCurrentPage])
-
-  useEffect(() => {
-    if (selectedActivationCodeId === null) {
-      return
-    }
-
-    const matchedActivationCode = allCodes.find((code) => code.id === selectedActivationCodeId) || null
-    if (!matchedActivationCode) {
-      syncSelectedActivationCodeDrafts(null)
-      return
-    }
-
-    setSelectedActivationCodeRebindPolicy(
-      toRebindOverrideSelectValue(matchedActivationCode.allowAutoRebind),
-    )
-    setSelectedActivationCodeRebindCooldownMinutes(
-      matchedActivationCode.autoRebindCooldownMinutes === null
-        ? ''
-        : String(matchedActivationCode.autoRebindCooldownMinutes),
-    )
-    setSelectedActivationCodeRebindMaxCount(
-      matchedActivationCode.autoRebindMaxCount === null
-        ? ''
-        : String(matchedActivationCode.autoRebindMaxCount),
-    )
-  }, [allCodes, selectedActivationCodeId, syncSelectedActivationCodeDrafts, setSelectedActivationCodeRebindPolicy, setSelectedActivationCodeRebindCooldownMinutes, setSelectedActivationCodeRebindMaxCount])
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#f6f8fc_42%,#eef2ff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8">

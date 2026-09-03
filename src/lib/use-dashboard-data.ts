@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import type { ActivationCode, Project } from './dashboard-page-types'
 import type { SystemConfigItem } from '@/lib/system-config-ui'
@@ -39,7 +39,6 @@ export type CodeListFilters = {
 export function useDashboardData(options: UseDashboardDataOptions = {}) {
   const { onShowMessage } = options
   const [projects, setProjects] = useState<Project[]>([])
-  const [allCodes, setAllCodes] = useState<ActivationCode[]>([])
   const [codeList, setCodeList] = useState<CodeListData>(EMPTY_CODE_LIST)
   const [systemConfigs, setSystemConfigs] = useState<SystemConfigItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -58,7 +57,7 @@ export function useDashboardData(options: UseDashboardDataOptions = {}) {
     return [] as Project[]
   }, [])
 
-  // 服务端分页+筛选的激活码列表（新入口，dashboard 激活码 tab 使用）
+  // 服务端分页+筛选的激活码列表（dashboard 激活码 tab 使用）
   const fetchCodeList = useCallback(async (filters?: CodeListFilters) => {
     try {
       setLoading(true)
@@ -94,25 +93,6 @@ export function useDashboardData(options: UseDashboardDataOptions = {}) {
     return EMPTY_CODE_LIST
   }, [onShowMessage])
 
-  // 全量加载激活码（不含嵌套，供客户端筛选/导出/统计等既有消费方使用）
-  const fetchAllCodesAction = useCallback(async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/admin/codes/list')
-      const data = await response.json()
-      if (data.success) {
-        setAllCodes(data.codes)
-        return data.codes as ActivationCode[]
-      }
-      onShowMessage?.(data.message || '获取激活码列表失败', 'error')
-    } catch (error) {
-      onShowMessage?.('网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-    return [] as ActivationCode[]
-  }, [onShowMessage])
-
   const fetchSystemConfigsAction = useCallback(async (): Promise<boolean> => {
     try {
       setLoading(true)
@@ -132,17 +112,14 @@ export function useDashboardData(options: UseDashboardDataOptions = {}) {
 
   return {
     projects,
-    allCodes,
     codeList,
     systemConfigs,
     loading,
     setProjects,
-    setAllCodes,
     setCodeList,
     setSystemConfigs,
     setLoading,
     fetchProjects,
-    fetchAllCodes: fetchAllCodesAction,
     fetchCodeList,
     fetchSystemConfigs: fetchSystemConfigsAction,
   }
