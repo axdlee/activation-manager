@@ -312,16 +312,32 @@ export default function DashboardPage() {
     systemConfigSensitiveCount,
     systemConfigWhitelistEntryCount,
   } = sysConfig
+  const fetchProjectsRef = useRef<() => Promise<void>>(async () => {})
+  const fetchActivationCodeDetail = useCallback(async (id: number) => {
+    try {
+      const response = await fetch(`/api/admin/codes/${id}`)
+      const data = await response.json()
+      if (data.success) {
+        return data.activationCode as ActivationCode
+      }
+    } catch (error) {
+      console.error('获取激活码详情失败:', error)
+    }
+    return null
+  }, [])
+
   const codeMgmt = useActivationCodeManagement({
     allCodes,
     onShowMessage: showMessage,
     onLoadingChange: setLoading,
     onFetchAllCodes: hookFetchAllCodes,
+    onFetchActivationCodeDetail: fetchActivationCodeDetail,
     onFetchStats: fetchStats,
   })
   const {
     selectedActivationCodeId,
     setSelectedActivationCodeId,
+    selectedActivationCodeDetail,
     selectedActivationCodeRebindPolicy,
     setSelectedActivationCodeRebindPolicy,
     selectedActivationCodeRebindCooldownMinutes,
@@ -340,7 +356,6 @@ export default function DashboardPage() {
     handleDeleteCode,
     handleCleanupExpired,
   } = codeMgmt
-  const fetchProjectsRef = useRef<() => Promise<void>>(async () => {})
   const projectWorkspace = useProjectWorkspace({
     projects,
     onShowMessage: showMessage,
@@ -1369,7 +1384,7 @@ export default function DashboardPage() {
   const selectedActivationCode =
     selectedActivationCodeId === null
       ? null
-      : allCodes.find((code) => code.id === selectedActivationCodeId) || null
+      : (selectedActivationCodeDetail ?? allCodes.find((code) => code.id === selectedActivationCodeId)) || null
 
   const buildActivationCodePolicySummary = useCallback(
     (activationCode: ActivationCode | null) => {
@@ -1579,8 +1594,8 @@ export default function DashboardPage() {
       overrideMaxCountValue: selectedActivationCodeRebindMaxCount,
       targetMachineId: selectedActivationCodeTargetMachineId,
       adminActionReason: selectedActivationCodeAdminReason,
-      bindingHistoryEntries: buildBindingHistoryEntries(selectedActivationCode),
-      adminAuditEntries: buildAdminAuditEntries(selectedActivationCode),
+      bindingHistoryEntries: buildBindingHistoryEntries(selectedActivationCodeDetail ?? selectedActivationCode),
+      adminAuditEntries: buildAdminAuditEntries(selectedActivationCodeDetail ?? selectedActivationCode),
       loading,
       onSelectCode: selectActivationCodeForManagement,
       onOverridePolicyChange: (value: string) =>

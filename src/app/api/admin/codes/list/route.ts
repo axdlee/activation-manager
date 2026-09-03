@@ -1,43 +1,39 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { prisma } from '@/lib/db'
+import { listActivationCodes } from '@/lib/license-code-list-service'
+
+const VALID_STATUS_FILTERS = new Set(['all', 'unused', 'used', 'expired', 'depleted'])
 
 export const GET = createProtectedAdminRouteHandler(
-  async () => {
-    const codes = await prisma.activationCode.findMany({
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            projectKey: true,
-            allowAutoRebind: true,
-            autoRebindCooldownMinutes: true,
-            autoRebindMaxCount: true,
-          },
-        },
-        bindingHistories: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 10,
-        },
-        adminAuditLogs: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 10,
-        },
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
+  async (request: NextRequest) => {
+    const { searchParams } = new URL(request.url)
+
+    const rawStatus = searchParams.get('status') ?? 'all'
+    const status = VALID_STATUS_FILTERS.has(rawStatus)
+      ? (rawStatus as 'all' | 'unused' | 'used' | 'expired' | 'depleted')
+      : 'all'
+
+    const result = await listActivationCodes(prisma, {
+      keyword: searchParams.get('keyword') ?? undefined,
+      status,
+      projectKey: searchParams.get('projectKey') ?? undefined,
+      cardType: searchParams.get('cardType') ?? undefined,
+      page: searchParams.get('page') ? Number(searchParams.get('page')) : undefined,
+      pageSize: searchParams.get('pageSize') ? Number(searchParams.get('pageSize')) : undefined,
     })
 
     return NextResponse.json({
       success: true,
-      codes,
+      codes: result.codes,
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages,
+      statusSummary: result.statusSummary,
+      projectCoverage: result.projectCoverage,
+      availableCardTypes: result.availableCardTypes,
     })
   },
   {

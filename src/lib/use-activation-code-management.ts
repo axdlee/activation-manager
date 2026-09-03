@@ -9,13 +9,16 @@ export type UseActivationCodeManagementOptions = {
   onShowMessage?: (message: string, type?: 'success' | 'error') => void
   onLoadingChange?: (loading: boolean) => void
   onFetchAllCodes?: () => Promise<ActivationCode[]>
+  // 单码详情（含绑定历史与管理员审计），列表不再嵌套返回
+  onFetchActivationCodeDetail?: (id: number) => Promise<ActivationCode | null>
   onFetchStats?: () => Promise<void>
 }
 
 export function useActivationCodeManagement(options: UseActivationCodeManagementOptions) {
-  const { allCodes, onShowMessage, onLoadingChange, onFetchAllCodes, onFetchStats } = options
+  const { allCodes, onShowMessage, onLoadingChange, onFetchAllCodes, onFetchActivationCodeDetail, onFetchStats } = options
 
   const [selectedActivationCodeId, setSelectedActivationCodeId] = useState<number | null>(null)
+  const [selectedActivationCodeDetail, setSelectedActivationCodeDetail] = useState<ActivationCode | null>(null)
   const [selectedActivationCodeRebindPolicy, setSelectedActivationCodeRebindPolicy] = useState<string>('inherit')
   const [selectedActivationCodeRebindCooldownMinutes, setSelectedActivationCodeRebindCooldownMinutes] = useState('')
   const [selectedActivationCodeRebindMaxCount, setSelectedActivationCodeRebindMaxCount] = useState('')
@@ -25,6 +28,7 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
   const syncSelectedActivationCodeDrafts = useCallback((activationCode: ActivationCode | null) => {
     if (!activationCode) {
       setSelectedActivationCodeId(null)
+      setSelectedActivationCodeDetail(null)
       setSelectedActivationCodeRebindPolicy('inherit')
       setSelectedActivationCodeRebindCooldownMinutes('')
       setSelectedActivationCodeRebindMaxCount('')
@@ -34,6 +38,7 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
     }
 
     setSelectedActivationCodeId(activationCode.id)
+    setSelectedActivationCodeDetail(activationCode)
     setSelectedActivationCodeRebindPolicy(toRebindOverrideSelectValue(activationCode.allowAutoRebind))
     setSelectedActivationCodeRebindCooldownMinutes(
       activationCode.autoRebindCooldownMinutes === null
@@ -49,12 +54,42 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
     setSelectedActivationCodeAdminReason('')
   }, [])
 
+  // 从列表记录回退同步基础草稿（列表不含绑定历史/审计，用于打开弹框的即时态）
+  const fallbackSyncFromList = useCallback(
+    (activationCodeId: number) => {
+      const matched = allCodes.find((code) => code.id === activationCodeId) || null
+      if (!matched) {
+        return
+      }
+
+      setSelectedActivationCodeId(matched.id)
+      setSelectedActivationCodeRebindPolicy(toRebindOverrideSelectValue(matched.allowAutoRebind))
+      setSelectedActivationCodeRebindCooldownMinutes(
+        matched.autoRebindCooldownMinutes === null ? '' : String(matched.autoRebindCooldownMinutes),
+      )
+      setSelectedActivationCodeRebindMaxCount(
+        matched.autoRebindMaxCount === null ? '' : String(matched.autoRebindMaxCount),
+      )
+    },
+    [allCodes],
+  )
+
   const selectActivationCodeForManagement = useCallback(
     (activationCodeId: number) => {
-      const matchedActivationCode = allCodes.find((code) => code.id === activationCodeId) || null
-      syncSelectedActivationCodeDrafts(matchedActivationCode)
+      fallbackSyncFromList(activationCodeId)
+
+      // 异步拉取单码详情（绑定历史 + 管理员审计），完成后覆盖基础草稿
+      if (onFetchActivationCodeDetail) {
+        void onFetchActivationCodeDetail(activationCodeId)
+          .then((detail) => {
+            if (detail) {
+              syncSelectedActivationCodeDrafts(detail)
+            }
+          })
+          .catch(() => undefined)
+      }
     },
-    [allCodes, syncSelectedActivationCodeDrafts],
+    [fallbackSyncFromList, onFetchActivationCodeDetail, syncSelectedActivationCodeDrafts],
   )
 
   const refreshActivationCodesAndKeepSelection = useCallback(async () => {
@@ -64,12 +99,21 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
       return refreshedCodes
     }
 
+    // 列表不再含详情，重新拉单码详情以保持弹框数据新鲜
+    if (onFetchActivationCodeDetail) {
+      const detail = await onFetchActivationCodeDetail(selectedActivationCodeId).catch(() => null)
+      if (detail) {
+        syncSelectedActivationCodeDrafts(detail)
+        return refreshedCodes
+      }
+    }
+
     const refreshedSelectedActivationCode =
       refreshedCodes.find((code) => code.id === selectedActivationCodeId) || null
     syncSelectedActivationCodeDrafts(refreshedSelectedActivationCode)
 
     return refreshedCodes
-  }, [onFetchAllCodes, selectedActivationCodeId, syncSelectedActivationCodeDrafts])
+  }, [onFetchAllCodes, onFetchActivationCodeDetail, selectedActivationCodeId, syncSelectedActivationCodeDrafts])
 
   const handleSaveActivationCodeRebindSettings = useCallback(async () => {
     if (selectedActivationCodeId === null) {
@@ -240,6 +284,7 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
   return {
     selectedActivationCodeId,
     setSelectedActivationCodeId,
+    selectedActivationCodeDetail,
     selectedActivationCodeRebindPolicy,
     setSelectedActivationCodeRebindPolicy,
     selectedActivationCodeRebindCooldownMinutes,
