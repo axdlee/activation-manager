@@ -44,6 +44,7 @@ import { useChangePassword } from '@/lib/use-change-password'
 import { useSystemConfigWorkspace } from '@/lib/use-system-config-workspace'
 import { useProjectWorkspace } from '@/lib/use-project-workspace'
 import { useActivationCodeGeneration } from '@/lib/use-activation-code-generation'
+import { useActivationCodeManagement } from '@/lib/use-activation-code-management'
 import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
@@ -230,16 +231,6 @@ export default function DashboardPage() {
   const [auditLogWorkspaceTab, setAuditLogWorkspaceTab] =
     useState<AuditLogWorkspaceTab>('logs')
   const [projectWorkspaceTab, setProjectWorkspaceTab] = useState<ProjectWorkspaceTab>('manage')
-  const [selectedActivationCodeId, setSelectedActivationCodeId] = useState<number | null>(null)
-  const [selectedActivationCodeRebindPolicy, setSelectedActivationCodeRebindPolicy] =
-    useState<RebindOverrideSelectValue>('inherit')
-  const [selectedActivationCodeRebindCooldownMinutes, setSelectedActivationCodeRebindCooldownMinutes] =
-    useState('')
-  const [selectedActivationCodeRebindMaxCount, setSelectedActivationCodeRebindMaxCount] =
-    useState('')
-  const [selectedActivationCodeTargetMachineId, setSelectedActivationCodeTargetMachineId] =
-    useState('')
-  const [selectedActivationCodeAdminReason, setSelectedActivationCodeAdminReason] = useState('')
   const router = useRouter()
   const hasConsumptionAutoRefreshInitializedRef = useRef(false)
   const skipNextConsumptionAutoRefreshRef = useRef(false)
@@ -313,6 +304,34 @@ export default function DashboardPage() {
     systemConfigSensitiveCount,
     systemConfigWhitelistEntryCount,
   } = sysConfig
+  const codeMgmt = useActivationCodeManagement({
+    allCodes,
+    onShowMessage: showMessage,
+    onLoadingChange: setLoading,
+    onFetchAllCodes: hookFetchAllCodes,
+    onFetchStats: fetchStats,
+  })
+  const {
+    selectedActivationCodeId,
+    setSelectedActivationCodeId,
+    selectedActivationCodeRebindPolicy,
+    setSelectedActivationCodeRebindPolicy,
+    selectedActivationCodeRebindCooldownMinutes,
+    setSelectedActivationCodeRebindCooldownMinutes,
+    selectedActivationCodeRebindMaxCount,
+    setSelectedActivationCodeRebindMaxCount,
+    selectedActivationCodeTargetMachineId,
+    setSelectedActivationCodeTargetMachineId,
+    selectedActivationCodeAdminReason,
+    setSelectedActivationCodeAdminReason,
+    syncSelectedActivationCodeDrafts,
+    selectActivationCodeForManagement,
+    handleSaveActivationCodeRebindSettings,
+    handleForceUnbindActivationCode,
+    handleForceRebindActivationCode,
+    handleDeleteCode,
+    handleCleanupExpired,
+  } = codeMgmt
   const fetchProjectsRef = useRef<() => Promise<void>>(async () => {})
   const projectWorkspace = useProjectWorkspace({
     projects,
@@ -510,41 +529,6 @@ export default function DashboardPage() {
     handleGenerateCodes,
   } = codeGeneration
 
-  const syncSelectedActivationCodeDrafts = useCallback((activationCode: ActivationCode | null) => {
-    if (!activationCode) {
-      setSelectedActivationCodeId(null)
-      setSelectedActivationCodeRebindPolicy('inherit')
-      setSelectedActivationCodeRebindCooldownMinutes('')
-      setSelectedActivationCodeRebindMaxCount('')
-      setSelectedActivationCodeTargetMachineId('')
-      setSelectedActivationCodeAdminReason('')
-      return
-    }
-
-    setSelectedActivationCodeId(activationCode.id)
-    setSelectedActivationCodeRebindPolicy(toRebindOverrideSelectValue(activationCode.allowAutoRebind))
-    setSelectedActivationCodeRebindCooldownMinutes(
-      activationCode.autoRebindCooldownMinutes === null
-        ? ''
-        : String(activationCode.autoRebindCooldownMinutes),
-    )
-    setSelectedActivationCodeRebindMaxCount(
-      activationCode.autoRebindMaxCount === null
-        ? ''
-        : String(activationCode.autoRebindMaxCount),
-    )
-    setSelectedActivationCodeTargetMachineId('')
-    setSelectedActivationCodeAdminReason('')
-  }, [])
-
-  const selectActivationCodeForManagement = useCallback(
-    (activationCodeId: number) => {
-      const matchedActivationCode = allCodes.find((code) => code.id === activationCodeId) || null
-      syncSelectedActivationCodeDrafts(matchedActivationCode)
-    },
-    [allCodes, syncSelectedActivationCodeDrafts],
-  )
-
   const currentConsumptionFilters = useMemo<ConsumptionQueryFilters>(
     () => consumptionBuildFilters(),
     // consumptionBuildFilters 由 hook 内部状态派生，这里用过滤状态作为依赖
@@ -715,57 +699,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDeleteCode = async (id: number) => {
-    if (!confirm('确定要删除这个激活码吗？')) return
 
-    try {
-      const response = await fetch('/api/admin/codes/delete', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage('激活码删除成功')
-        void refreshActivationCodesAndKeepSelection()
-        void fetchStats()
-      } else {
-        showMessage(data.message || '删除失败', 'error')
-      }
-    } catch (error) {
-      showMessage('网络错误，请重试', 'error')
-    }
-  }
-
-  const handleCleanupExpired = async () => {
-    if (!confirm('确定要清理所有过期激活码的绑定关系吗？这将允许之前绑定过期激活码的机器使用新激活码。')) return
-
-    try {
-      setLoading(true)
-      const response = await fetch('/api/admin/codes/cleanup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        void refreshActivationCodesAndKeepSelection()
-        void fetchStats()
-      } else {
-        showMessage(data.message || '清理失败', 'error')
-      }
-    } catch (error) {
-      showMessage('网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1426,143 +1360,9 @@ export default function DashboardPage() {
     [getRebindPolicySourceLabel, getSystemRebindDefaults],
   )
 
-  const refreshActivationCodesAndKeepSelection = useCallback(async () => {
-    const refreshedCodes = await fetchAllCodes()
 
-    if (selectedActivationCodeId === null) {
-      return refreshedCodes
-    }
 
-    const refreshedSelectedActivationCode =
-      refreshedCodes.find((code) => code.id === selectedActivationCodeId) || null
-    syncSelectedActivationCodeDrafts(refreshedSelectedActivationCode)
 
-    return refreshedCodes
-  }, [fetchAllCodes, selectedActivationCodeId, syncSelectedActivationCodeDrafts])
-
-  const handleSaveActivationCodeRebindSettings = async () => {
-    if (selectedActivationCodeId === null) {
-      showMessage('请先选择一条激活码', 'error')
-      return
-    }
-
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/admin/codes/${selectedActivationCodeId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          allowAutoRebind: fromRebindOverrideSelectValue(selectedActivationCodeRebindPolicy),
-          autoRebindCooldownMinutes: parseNullableCooldownMinutesInput(
-            selectedActivationCodeRebindCooldownMinutes,
-          ),
-          autoRebindMaxCount: parseNullableMaxCountInput(
-            selectedActivationCodeRebindMaxCount,
-          ),
-          reason: normalizeOptionalAdminReason(selectedActivationCodeAdminReason),
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        await refreshActivationCodesAndKeepSelection()
-        setSelectedActivationCodeAdminReason('')
-      } else {
-        showMessage(data.message || '更新激活码换绑策略失败', 'error')
-      }
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleForceUnbindActivationCode = async () => {
-    if (selectedActivationCodeId === null) {
-      showMessage('请先选择一条激活码', 'error')
-      return
-    }
-
-    if (!confirm('确定要强制解绑这条激活码吗？这不会重置有效期和剩余次数。')) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/admin/codes/${selectedActivationCodeId}/binding`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'unbind',
-          reason: normalizeOptionalAdminReason(selectedActivationCodeAdminReason),
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        await refreshActivationCodesAndKeepSelection()
-        setSelectedActivationCodeAdminReason('')
-      } else {
-        showMessage(data.message || '强制解绑失败', 'error')
-      }
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleForceRebindActivationCode = async () => {
-    if (selectedActivationCodeId === null) {
-      showMessage('请先选择一条激活码', 'error')
-      return
-    }
-
-    const machineId = selectedActivationCodeTargetMachineId.trim()
-    if (!machineId) {
-      showMessage('请输入目标 machineId', 'error')
-      return
-    }
-
-    if (!confirm(`确定要将该激活码强制换绑到设备「${machineId}」吗？`)) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/admin/codes/${selectedActivationCodeId}/binding`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'rebind',
-          machineId,
-          reason: normalizeOptionalAdminReason(selectedActivationCodeAdminReason),
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        showMessage(data.message)
-        await refreshActivationCodesAndKeepSelection()
-        setSelectedActivationCodeTargetMachineId('')
-        setSelectedActivationCodeAdminReason('')
-      } else {
-        showMessage(data.message || '强制换绑失败', 'error')
-      }
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : '网络错误，请重试', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleResetConsumptionFilters = () => {
     skipNextConsumptionAutoRefreshRef.current = true
@@ -1904,7 +1704,7 @@ export default function DashboardPage() {
         ? ''
         : String(matchedActivationCode.autoRebindMaxCount),
     )
-  }, [allCodes, selectedActivationCodeId, syncSelectedActivationCodeDrafts])
+  }, [allCodes, selectedActivationCodeId, syncSelectedActivationCodeDrafts, setSelectedActivationCodeRebindPolicy, setSelectedActivationCodeRebindCooldownMinutes, setSelectedActivationCodeRebindMaxCount])
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#f6f8fc_42%,#eef2ff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8">
