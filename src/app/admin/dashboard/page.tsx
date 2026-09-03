@@ -68,10 +68,6 @@ import {
   normalizeProjectKeyInput,
 } from '@/lib/project-key'
 import {
-  AUTO_REBIND_COOLDOWN_MINUTES_MAX,
-  AUTO_REBIND_COOLDOWN_MINUTES_MIN,
-  AUTO_REBIND_MAX_COUNT_MAX,
-  AUTO_REBIND_MAX_COUNT_MIN,
   DEFAULT_ALLOW_AUTO_REBIND,
   DEFAULT_AUTO_REBIND_COOLDOWN_MINUTES,
   DEFAULT_AUTO_REBIND_MAX_COUNT,
@@ -129,6 +125,12 @@ import type {
   StatusFilter,
   TabType,
 } from '@/lib/dashboard-page-types'
+import {
+  handleCardTypeChange,
+  normalizeOptionalAdminReason,
+  parseNullableCooldownMinutesInput,
+  parseNullableMaxCountInput,
+} from '@/lib/dashboard-form-utils'
 import { cardTypes, statusFilterLabelMap } from '@/lib/dashboard-page-types'
 
 export default function DashboardPage() {
@@ -323,63 +325,6 @@ export default function DashboardPage() {
     systemConfigSensitiveCount,
     systemConfigWhitelistEntryCount,
   } = sysConfig
-
-  const handleCardTypeChange = (cardType: string) => {
-    setSelectedCardType(cardType)
-    const selectedCard = cardTypes.find((item) => item.name === cardType)
-    if (selectedCard && selectedCard.days > 0) {
-      setExpiryDays(selectedCard.days)
-    }
-  }
-
-  const parseNullableCooldownMinutesInput = useCallback((value: string) => {
-    const normalizedValue = value.trim()
-
-    if (!normalizedValue) {
-      return null
-    }
-
-    const parsedValue = Number.parseInt(normalizedValue, 10)
-
-    if (
-      Number.isNaN(parsedValue) ||
-      parsedValue < AUTO_REBIND_COOLDOWN_MINUTES_MIN ||
-      parsedValue > AUTO_REBIND_COOLDOWN_MINUTES_MAX
-    ) {
-      throw new Error(
-        `换绑冷却时间必须在 ${AUTO_REBIND_COOLDOWN_MINUTES_MIN} 到 ${AUTO_REBIND_COOLDOWN_MINUTES_MAX} 分钟之间`,
-      )
-    }
-
-    return parsedValue
-  }, [])
-
-  const parseNullableMaxCountInput = useCallback((value: string) => {
-    const normalizedValue = value.trim()
-
-    if (!normalizedValue) {
-      return null
-    }
-
-    const parsedValue = Number.parseInt(normalizedValue, 10)
-
-    if (
-      Number.isNaN(parsedValue) ||
-      parsedValue < AUTO_REBIND_MAX_COUNT_MIN ||
-      parsedValue > AUTO_REBIND_MAX_COUNT_MAX
-    ) {
-      throw new Error(
-        `自助换绑次数上限必须在 ${AUTO_REBIND_MAX_COUNT_MIN} 到 ${AUTO_REBIND_MAX_COUNT_MAX} 之间`,
-      )
-    }
-
-    return parsedValue
-  }, [])
-
-  const normalizeOptionalAdminReason = useCallback((value: string) => {
-    const normalizedValue = value.trim()
-    return normalizedValue ? normalizedValue : undefined
-  }, [])
 
   const getSystemRebindDefaults = useCallback(() => {
     const allowAutoRebindConfig = systemConfigs.find((config) => config.key === 'allowAutoRebind')
@@ -2906,7 +2851,7 @@ export default function DashboardPage() {
                       <select
                         id="generate-card-type"
                         value={selectedCardType}
-                        onChange={(e) => handleCardTypeChange(e.target.value)}
+                        onChange={(e) => handleCardTypeChange(e.target.value, setSelectedCardType, setExpiryDays, cardTypes)}
                         className={compactInputClassName}
                       >
                         <option value="">请选择套餐类型</option>
