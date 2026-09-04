@@ -57,9 +57,10 @@ test('公开 API 文档页暴露 metadata，并渲染首页与登录入口', asy
   assert.equal(html.includes('返回首页'), true)
   assert.equal(html.includes('bg-surface-50'), true)
   assert.equal(
-    html.includes('bg-gradient-to-r from-sky-600 via-cyan-500 to-indigo-500'),
+    html.includes('bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700'),
     true,
   )
+  assert.equal(html.includes('from-sky-600 via-cyan-500 to-indigo-500'), false)
 })
 
 test('ApiDocsWorkspace 在 public 模式下会渲染公开文档文案与默认概览内容', async () => {
@@ -82,7 +83,11 @@ test('ApiDocsWorkspace 在 public 模式下会渲染公开文档文案与默认�
   assert.equal(html.includes('多语言示例'), true)
   assert.equal(html.includes('联调后台'), true)
   assert.equal(html.includes('bg-ink-950 text-white/90'), false)
-  assert.equal(html.includes('bg-gradient-to-b from-white to-surface-50'), true)
+  assert.equal(html.includes('bg-gradient-to-b from-white to-surface-50'), false)
+  assert.equal(
+    html.includes('rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card'),
+    true,
+  )
 })
 
 test('ApiDocsWorkspace 在 dashboard 模式下会渲染后台语境文案', async () => {

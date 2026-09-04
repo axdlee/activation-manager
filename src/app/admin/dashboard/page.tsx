@@ -1950,7 +1950,7 @@ export default function DashboardPage() {
                   ].map(([label, value, description]) => (
                     <div
                       key={String(label)}
-                      className="rounded-lg border border-surface-200/80 bg-gradient-to-b from-surface-50 to-white px-5 py-5 shadow-card"
+                      className="rounded-lg border border-surface-200/80 bg-surface-100 px-5 py-5 shadow-card"
                     >
                       <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{label}</div>
                       <div className="mt-3 text-3xl font-semibold tracking-tight text-ink-50">{value}</div>
