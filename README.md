@@ -671,6 +671,18 @@ npm run db:backup-simple
 npm run db:backup-sql
 ```
 
+**日志保留策略**：审计日志与消费日志会随运行持续增长，SQLite 单文件数据库建议定期归档清理（如每周 cron）：
+
+```bash
+# 默认保留 180 天
+npm run db:prune
+
+# 自定义保留窗口（天）
+RETENTION_DAYS=90 bash ./scripts/prune-logs.sh
+```
+
+清理会删除保留窗口之前的审计日志与消费日志并 `VACUUM` 回收空间；数据库路径支持 `DB_PATH` / `DATABASE_URL` 覆盖。
+
 如果你是纯 Docker 镜像部署、机器上没有源码仓库，也至少要保证：
 
 - `activation_manager_data` 卷有宿主机级别快照或备份策略

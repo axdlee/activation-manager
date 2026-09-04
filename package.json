@@ -28,7 +28,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "quality:gate:full": "npm run quality:gate && npm run test:e2e",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:prune": "bash ./scripts/prune-logs.sh"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",

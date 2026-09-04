@@ -17,6 +17,15 @@ function resolveAllowedIPs(allowedIPsEnv: string | undefined = process.env.ALLOW
   return normalizedAllowedIPs.length > 0 ? normalizedAllowedIPs : DEFAULT_ALLOWED_IPS
 }
 
+// 仅开发环境的回退密钥：公开仓库中不应再存放任何可用于生产签发的固定密钥。
+// 生产环境必须通过 JWT_SECRET 环境变量或数据库 jwtSecret 配置提供真实密钥
+// （dev-bootstrap 在 NODE_ENV=production 且缺失时会直接拒绝初始化）。
+const DEV_FALLBACK_JWT_SECRET = 'dev-only-insecure-secret-do-not-use-in-production'
+
+function resolveJwtSecret(jwtSecretEnv: string | undefined = process.env.JWT_SECRET) {
+  return jwtSecretEnv?.trim() || DEV_FALLBACK_JWT_SECRET
+}
+
 export const config = {
   // 数据库配置
   database: {
@@ -25,7 +34,7 @@ export const config = {
   
   // JWT配置
   jwt: {
-    secret: "72a99ef4352d55f8c6c5bdbe8a54e0d58df60740e229318cbc2dea4154ef48dd",
+    secret: resolveJwtSecret(),
     expiresIn: "24h"
   },
   

@@ -3756,3 +3756,32 @@
 **备注**：
 
 - 此前 tests 目录类型错误被 tsx 运行时转译掩盖（next build 也不含 tests），tsconfig 升级后完整暴露；此类问题今后由 quality:gate 的 typecheck 步骤拦截
+
+### 2026-09-02 / Iteration 2026-09k：JWT 硬编码密钥清理 + 日志保留治理
+
+**目标**：清理公开仓库中的固定 JWT 密钥，补齐 SQLite 日志增长治理。
+
+**已完成**：
+
+- [x] `src/config.ts` 移除硬编码 JWT 密钥（64 位固定串，公开仓库可被任何人用于伪造 token）：
+  - 改为 `JWT_SECRET` 环境变量注入，缺失时仅 dev 使用明确标注的占位串
+  - 生产环境仍由 dev-bootstrap 强制要求 `JWT_SECRET`（缺失即拒绝初始化），安全边界不变
+- [x] 新增 `scripts/prune-logs.sh` 日志保留策略：
+  - 删除 N 天前（默认 180 天）的审计日志与消费日志，`VACUUM` 回收空间
+  - 支持 `DB_PATH` / `DATABASE_URL` / `RETENTION_DAYS` 覆盖
+  - 实测：旧数据清理、新数据保留正确
+- [x] `npm run db:prune` 脚本别名；README 备份章节补充日志保留策略说明
+
+**验证结果**：
+
+1. `npm run typecheck` ✅
+2. `npm run lint` ✅
+3. `npm test` ✅（364 / 364）
+4. `npm run test:coverage` ✅（92.38 / 85.82 / 90.49）
+5. `npm run build` ✅
+6. `npx playwright test` ✅（8 / 8，密钥改动后登录链路正常）
+
+**备注**：
+
+- 部署在旧代码下初始化过、数据库已写入旧 `jwtSecret` 配置的实例不受影响（运行时优先读取 DB 配置）
+- 若曾用默认硬编码密钥部署且数据库未显式配置 jwtSecret，建议轮换 JWT_SECRET 并使旧 token 失效（改配置 + 重启）
