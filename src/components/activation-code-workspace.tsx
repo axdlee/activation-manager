@@ -181,23 +181,23 @@ type ActivationCodeWorkspaceProps<TCode extends ActivationCodeWorkspaceCode = Ac
 }
 
 const defaultPanelClassName =
-  'rounded-[28px] border border-slate-200/70 bg-white/90 shadow-[0_24px_80px_-36px_rgba(15,23,42,0.28)] backdrop-blur'
+  'rounded-lg border border-surface-200/70 bg-white shadow-card'
 const defaultWorkspaceSummaryCardClassName =
-  'rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 shadow-sm'
+  'rounded-lg border border-surface-200 bg-white px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
-  'w-full rounded-2xl border border-slate-200 bg-white/95 px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-500'
+  'w-full rounded-md border border-surface-200 bg-white px-4 py-2.5 text-sm text-ink-900 shadow-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-surface-100 disabled:text-ink-500'
 const defaultPrimaryButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultSuccessButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultWarningButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/20 transition hover:-translate-y-0.5 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultGhostButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-white px-4 py-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationButtonClassName =
-  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-white px-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
-  'border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:border-sky-500 hover:bg-sky-500'
+  'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 
 type ActivationCodeManagementPanelProps = {
   managementView: ActivationCodeManagementView
@@ -220,10 +220,10 @@ function ActivationCodeManagementPanel({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-[20px] border border-slate-200/80 bg-white/90 px-5 py-4 shadow-sm">
-        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">当前选中</div>
-        <div className="mt-3 text-xl font-semibold text-slate-900">{managementView.selectedCodeTitle}</div>
-        <div className="mt-2 text-sm text-slate-500">{managementView.selectedCodeSubtitle}</div>
+      <div className="rounded-lg border border-surface-200 bg-white px-5 py-4 shadow-sm">
+        <div className="text-xs uppercase tracking-[0.18em] text-ink-500">当前选中</div>
+        <div className="mt-3 text-xl font-semibold text-ink-900">{managementView.selectedCodeTitle}</div>
+        <div className="mt-2 text-sm text-ink-500">{managementView.selectedCodeSubtitle}</div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
@@ -237,34 +237,34 @@ function ActivationCodeManagementPanel({
         ].map(([label, value]) => (
           <div
             key={label}
-            className="rounded-[20px] border border-slate-200/80 bg-white px-4 py-4 shadow-sm"
+            className="rounded-lg border border-surface-200 bg-white px-4 py-4 shadow-sm"
           >
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</div>
-            <div className="mt-3 text-sm font-medium text-slate-900">{value}</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{label}</div>
+            <div className="mt-3 text-sm font-medium text-ink-900">{value}</div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-slate-900">最终生效策略</div>
-          <ul className="mt-4 space-y-2 text-sm text-slate-600">
+        <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-ink-900">最终生效策略</div>
+          <ul className="mt-4 space-y-2 text-sm text-ink-600">
             {managementView.effectivePolicySummary.map((item) => (
-              <li key={item} className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3">
+              <li key={item} className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3">
                 {item}
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-slate-900">单码级覆盖配置</div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+        <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-ink-900">单码级覆盖配置</div>
+          <p className="mt-2 text-sm leading-6 text-ink-500">
             这里是单码级覆盖层；若保持继承，会先回退项目级策略，项目未配置时再回退系统级策略。
           </p>
           <div className="mt-4 space-y-4">
             <div>
-              <label htmlFor="activation-code-override-policy" className="text-sm font-medium text-slate-700">
+              <label htmlFor="activation-code-override-policy" className="text-sm font-medium text-ink-700">
                 {getScopedRebindPolicyLabel('code')}
               </label>
               <select
@@ -279,7 +279,7 @@ function ActivationCodeManagementPanel({
               </select>
             </div>
             <div>
-              <label htmlFor="activation-code-override-cooldown" className="text-sm font-medium text-slate-700">
+              <label htmlFor="activation-code-override-cooldown" className="text-sm font-medium text-ink-700">
                 {getScopedRebindCooldownLabel('code')}
               </label>
               <input
@@ -293,7 +293,7 @@ function ActivationCodeManagementPanel({
               />
             </div>
             <div>
-              <label htmlFor="activation-code-override-max-count" className="text-sm font-medium text-slate-700">
+              <label htmlFor="activation-code-override-max-count" className="text-sm font-medium text-ink-700">
                 {getScopedRebindMaxCountLabel('code')}
               </label>
               <input
@@ -319,9 +319,9 @@ function ActivationCodeManagementPanel({
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm xl:col-span-2">
-          <div className="text-sm font-semibold text-slate-900">管理员操作说明（选填）</div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+        <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-sm xl:col-span-2">
+          <div className="text-sm font-semibold text-ink-900">管理员操作说明（选填）</div>
+          <p className="mt-2 text-sm leading-6 text-ink-500">
             会随“保存单码级换绑配置 / 强制解绑 / 强制换绑”一起写入审计日志，建议记录工单号、用户申请原因或排障背景。
           </p>
           <textarea
@@ -332,9 +332,9 @@ function ActivationCodeManagementPanel({
           />
         </div>
 
-        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-slate-900">强制解绑</div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+        <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-ink-900">强制解绑</div>
+          <p className="mt-2 text-sm leading-6 text-ink-500">
             只释放当前设备绑定，不重置有效期、剩余次数或使用时间。
           </p>
           <button
@@ -347,9 +347,9 @@ function ActivationCodeManagementPanel({
           </button>
         </div>
 
-        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-slate-900">强制换绑</div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+        <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-ink-900">强制换绑</div>
+          <p className="mt-2 text-sm leading-6 text-ink-500">
             将当前激活码直接迁移到新设备，同时保留原有效期、次数与生命周期。
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -373,40 +373,40 @@ function ActivationCodeManagementPanel({
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-slate-900">绑定历史</div>
+        <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-ink-900">绑定历史</div>
           <div className="mt-4 space-y-3">
             {managementView.bindingHistoryEntries.length === 0 ? (
-              <p className="text-sm text-slate-500">暂无绑定历史记录</p>
+              <p className="text-sm text-ink-500">暂无绑定历史记录</p>
             ) : (
               managementView.bindingHistoryEntries.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3"
+                  className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3"
                 >
-                  <div className="text-sm font-medium text-slate-900">{item.title}</div>
-                  <div className="mt-1 text-sm text-slate-600">{item.description}</div>
-                  <div className="mt-2 text-xs text-slate-400">{item.timestamp}</div>
+                  <div className="text-sm font-medium text-ink-900">{item.title}</div>
+                  <div className="mt-1 text-sm text-ink-600">{item.description}</div>
+                  <div className="mt-2 text-xs text-ink-400">{item.timestamp}</div>
                 </div>
               ))
             )}
           </div>
         </div>
 
-        <div className="rounded-[20px] border border-slate-200/80 bg-white/90 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-slate-900">管理员审计</div>
+        <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-ink-900">管理员审计</div>
           <div className="mt-4 space-y-3">
             {managementView.adminAuditEntries.length === 0 ? (
-              <p className="text-sm text-slate-500">暂无管理员操作记录</p>
+              <p className="text-sm text-ink-500">暂无管理员操作记录</p>
             ) : (
               managementView.adminAuditEntries.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3"
+                  className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3"
                 >
-                  <div className="text-sm font-medium text-slate-900">{item.title}</div>
-                  <div className="mt-1 text-sm text-slate-600">{item.description}</div>
-                  <div className="mt-2 text-xs text-slate-400">{item.timestamp}</div>
+                  <div className="text-sm font-medium text-ink-900">{item.title}</div>
+                  <div className="mt-1 text-sm text-ink-600">{item.description}</div>
+                  <div className="mt-2 text-xs text-ink-400">{item.timestamp}</div>
                 </div>
               ))
             )}
@@ -610,10 +610,10 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
             </DashboardFilterFieldCard>
           </div>
 
-          <div className="mt-5 rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]">
+          <div className="mt-5 rounded-lg border border-surface-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-card">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
-                <div className="text-xs uppercase tracking-[0.18em] text-slate-500">当前生效条件</div>
+                <div className="text-xs uppercase tracking-[0.18em] text-ink-500">当前生效条件</div>
                 <DashboardTokenList
                   tokens={filtersView.filterTokens}
                   emptyText="当前未设置任何筛选条件"
@@ -673,7 +673,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                 />
               }
               trailing={
-                <div className="text-sm text-slate-500">
+                <div className="text-sm text-ink-500">
                   当前展示第 {resultsView.startIndex} - {resultsView.endIndex} 条，共{' '}
                   {resultsView.filteredCount} 条记录
                 </div>
@@ -704,7 +704,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                     const isSelected = resultsView.managementView?.selectedCodeId === code.id
 
                     return (
-                      <tr key={code.id} className="transition hover:bg-slate-50/80">
+                      <tr key={code.id} className="transition hover:bg-surface-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {resultsView.getProjectDisplay(code)}
                         </td>
@@ -746,8 +746,8 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                               onClick={() => handleOpenManagement(code.id)}
                               className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
                                 isSelected
-                                  ? 'border-sky-200 bg-sky-50 text-sky-700'
-                                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                                  ? 'border-brand-100 bg-brand-50 text-brand-700'
+                                  : 'border-surface-200 bg-white text-ink-600 hover:border-surface-300 hover:bg-surface-50'
                               }`}
                             >
                               查看 / 管理

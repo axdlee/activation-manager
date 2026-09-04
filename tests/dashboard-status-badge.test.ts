@@ -28,5 +28,5 @@ test('DashboardStatusBadge 支持自定义 className 覆盖默认 tone 样式', 
   )
 
   assert.match(html, /custom-badge/)
-  assert.doesNotMatch(html, /bg-sky-100 text-sky-700/)
+  assert.doesNotMatch(html, /bg-sky-100 text-brand-700/)
 })

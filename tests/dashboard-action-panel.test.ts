@@ -19,7 +19,7 @@ test('DashboardActionPanel 会渲染默认暗色行动卡结构、标题与操�
 
   assert.match(
     html,
-    /rounded-\[26px\] border border-slate-900\/10 bg-slate-950\/95 p-5 text-white shadow-\[0_24px_64px_-42px_rgba\(15,23,42,0\.7\)\]/,
+    /rounded-lg border border-ink-950\/10 bg-ink-950\/95 p-5 text-white shadow-card/,
   )
   assert.match(html, /flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between/)
   assert.match(
@@ -59,6 +59,6 @@ test('DashboardActionPanel 支持覆盖容器、布局与文案样式，并注�
   assert.match(html, /custom-action/)
   assert.doesNotMatch(
     html,
-    /rounded-\[26px\] border border-slate-900\/10 bg-slate-950\/95 p-5 text-white shadow-\[0_24px_64px_-42px_rgba\(15,23,42,0\.7\)\]/,
+    /rounded-lg border border-ink-950\/10 bg-ink-950\/95 p-5 text-white shadow-card/,
   )
 })

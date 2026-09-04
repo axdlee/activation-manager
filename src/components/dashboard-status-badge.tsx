@@ -10,10 +10,10 @@ type DashboardStatusBadgeProps = {
 
 const toneClassNameMap: Record<DashboardStatusBadgeTone, string> = {
   success: 'inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700',
-  neutral: 'inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700',
+  neutral: 'inline-flex items-center rounded-full bg-surface-100 px-2.5 py-1 text-xs font-medium text-ink-700',
   warning: 'inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700',
   danger: 'inline-flex items-center rounded-full bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-700',
-  info: 'inline-flex items-center rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-700',
+  info: 'inline-flex items-center rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700',
 }
 
 export function DashboardStatusBadge({

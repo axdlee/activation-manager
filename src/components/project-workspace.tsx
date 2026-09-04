@@ -116,24 +116,24 @@ type ProjectWorkspaceProps = {
 }
 
 const defaultPanelClassName =
-  'rounded-[28px] border border-slate-200/70 bg-white/90 shadow-[0_24px_80px_-36px_rgba(15,23,42,0.28)] backdrop-blur'
+  'rounded-lg border border-surface-200/70 bg-white shadow-card'
 const defaultWorkspaceSummaryCardClassName =
-  'rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 shadow-sm'
+  'rounded-lg border border-surface-200 bg-white px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
-  'w-full rounded-2xl border border-slate-200 bg-white/95 px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-500'
+  'w-full rounded-md border border-surface-200 bg-white px-4 py-2.5 text-sm text-ink-900 shadow-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-surface-100 disabled:text-ink-500'
 const defaultPrimaryButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultGhostButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-white px-4 py-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationButtonClassName =
-  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-white px-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
-  'border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:border-sky-500 hover:bg-sky-500'
+  'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 const modalFooterClassName = 'flex flex-col-reverse gap-3 sm:flex-row sm:justify-end'
-const subtleModalSectionClassName = 'rounded-[20px] border border-slate-200 bg-slate-50 p-5'
-const modalSectionTitleClassName = 'text-base font-semibold text-slate-900'
-const modalSectionDescriptionClassName = 'mt-2 text-sm leading-6 text-slate-500'
-const modalFormFieldClassName = 'rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm'
+const subtleModalSectionClassName = 'rounded-lg border border-surface-200 bg-surface-50 p-5'
+const modalSectionTitleClassName = 'text-base font-semibold text-ink-900'
+const modalSectionDescriptionClassName = 'mt-2 text-sm leading-6 text-ink-500'
+const modalFormFieldClassName = 'rounded-lg border border-surface-200 bg-white p-5 shadow-sm'
 
 function resolveProjectRebindPolicyValue(project: ProjectManagementListItem) {
   if (project.allowAutoRebind === true) {
@@ -370,7 +370,7 @@ export function ProjectWorkspace({
             title="项目列表"
             description={`当前匹配 ${manageView.page.totalItems} / ${manageView.totalProjects} 个项目。列表只保留关键字段，所有编辑都改为弹框完成。`}
             trailing={
-              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
+              <div className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
                 默认项目名称固定，且不可停用
               </div>
             }
@@ -517,7 +517,7 @@ export function ProjectWorkspace({
               label="项目标识"
               description={
                 <>
-                  {PROJECT_KEY_RULE_HINT} 例如 <span className="font-medium text-slate-700">browser-plugin</span>。
+                  {PROJECT_KEY_RULE_HINT} 例如 <span className="font-medium text-ink-700">browser-plugin</span>。
                 </>
               }
               htmlFor="create-project-key"
@@ -622,7 +622,7 @@ export function ProjectWorkspace({
             </DashboardFormField>
           </section>
 
-          <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-6 text-slate-500">
+          <div className="rounded-lg border border-dashed border-surface-200 bg-surface-50/70 px-4 py-4 text-sm leading-6 text-ink-500">
             创建后会立即出现在项目列表、发码页、统计页和筛选器中；建议先确认 projectKey 命名稳定后再保存。
           </div>
         </form>
@@ -668,7 +668,7 @@ export function ProjectWorkspace({
         {editingBasicsProject ? (
           <div className="space-y-4">
             {editingBasicsProject.projectKey === 'default' ? (
-              <div className="rounded-[22px] border border-sky-200/80 bg-sky-50/80 px-5 py-4 text-sm leading-6 text-sky-700">
+              <div className="rounded-lg border border-surface-200 bg-brand-50/80 px-5 py-4 text-sm leading-6 text-brand-700">
                 默认项目的名称固定，建议仅在这里维护描述说明，方便后台识别其兼容用途。
               </div>
             ) : null}
@@ -779,7 +779,7 @@ export function ProjectWorkspace({
                 {buildProjectPolicySummary(editingRebindProject).map((item) => (
                   <div
                     key={item}
-                    className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-sm leading-6 text-slate-600"
+                    className="rounded-md border border-surface-200 bg-white px-4 py-3 text-sm leading-6 text-ink-600"
                   >
                     {item}
                   </div>

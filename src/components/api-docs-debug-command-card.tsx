@@ -33,8 +33,8 @@ export function ApiDocsDebugCommandCard({
       headerClassName="mb-4 flex flex-col gap-4"
       header={
         <div>
-          <div className="text-sm font-semibold text-slate-900">{title}</div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+          <div className="text-sm font-semibold text-ink-900">{title}</div>
+          <p className="mt-2 text-sm leading-6 text-ink-500">{description}</p>
         </div>
       }
       action={

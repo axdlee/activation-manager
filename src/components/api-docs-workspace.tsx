@@ -29,9 +29,9 @@ type ApiDocsWorkspaceProps = {
 const summaryCardThemeMap = {
   sky: {
     panel:
-      'border-sky-200/80 bg-[linear-gradient(180deg,rgba(240,249,255,0.96),rgba(255,255,255,0.94))]',
-    accent: 'bg-sky-500',
-    value: 'text-sky-900',
+      'border-surface-200 bg-[linear-gradient(180deg,rgba(240,249,255,0.96),rgba(255,255,255,0.94))]',
+    accent: 'bg-brand-500',
+    value: 'text-brand-800',
   },
   emerald: {
     panel:
@@ -53,35 +53,35 @@ const audienceBadgeClassNameMap = {
 } as const
 
 const methodBadgeClassNameMap = {
-  GET: 'border-sky-200 bg-sky-50 text-sky-700',
+  GET: 'border-brand-100 bg-brand-50 text-brand-700',
   POST: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   PATCH: 'border-amber-200 bg-amber-50 text-amber-700',
   DELETE: 'border-rose-200 bg-rose-50 text-rose-700',
 } as const
 
 const tableContainerClassName =
-  'border border-slate-200 bg-white shadow-[0_18px_56px_-42px_rgba(15,23,42,0.16)]'
+  'rounded-lg border border-surface-200 bg-white shadow-card'
 
 const inlineActionButtonClassName =
-  'inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-full border border-surface-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 
 const publicCodeBlockClassName =
-  'overflow-x-auto rounded-[22px] border border-sky-100 bg-slate-50 px-4 py-4 font-mono text-[12px] leading-6 text-slate-800 shadow-inner shadow-sky-100/50'
+  'overflow-x-auto rounded-lg border border-brand-100 bg-surface-50 px-4 py-4 font-mono text-[12px] leading-6 text-ink-800 shadow-inner shadow-sky-100/50'
 
 const docsPublicPanelClassName =
-  'rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_-42px_rgba(15,23,42,0.16)] backdrop-blur-sm'
+  'rounded-lg border border-surface-200 bg-white shadow-card'
 
 const docsPublicFeatureCardClassName =
-  'rounded-[24px] border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.16)]'
+  'rounded-lg border border-surface-200 bg-gradient-to-b from-white to-surface-50 p-5 shadow-card'
 
 const docsPublicPillClassName =
-  'inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-sky-700 shadow-sm'
+  'inline-flex items-center gap-2 rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-700 shadow-sm'
 
 const docsPublicPrimaryButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-sky-600 via-cyan-500 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:-translate-y-0.5 hover:from-sky-500 hover:via-cyan-500 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-sky-600 via-cyan-500 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:from-sky-500 hover:via-cyan-500 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-50'
 
 const docsPublicSecondaryButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-100 hover:bg-brand-50'
 
 export function ApiDocsWorkspace({
   mode = 'dashboard',
@@ -182,26 +182,26 @@ export function ApiDocsWorkspace({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <div className={pillClassName}>
-                <span className="h-2 w-2 rounded-full bg-sky-500" />
+                <span className="h-2 w-2 rounded-full bg-brand-500" />
                 {heroContent.badge}
               </div>
-              <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">
+              <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-900">
                 {heroContent.title}
               </h2>
-              <p className="mt-2 text-sm leading-7 text-slate-500 sm:text-base">
+              <p className="mt-2 text-sm leading-7 text-ink-500 sm:text-base">
                 {heroContent.description}
               </p>
             </div>
 
-            <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-600 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.16)]">
-              <div className="font-semibold text-slate-900">{heroContent.asideTitle}</div>
-              <div className="mt-1 text-slate-500">{heroContent.asideDescription}</div>
+            <div className="rounded-lg border border-surface-200 bg-white px-4 py-4 text-sm leading-6 text-ink-600 shadow-card">
+              <div className="font-semibold text-ink-900">{heroContent.asideTitle}</div>
+              <div className="mt-1 text-ink-500">{heroContent.asideDescription}</div>
             </div>
           </div>
 
           {!onFeedback && localFeedback && (
             <div
-              className={`mt-5 rounded-[20px] border px-4 py-3 text-sm ${
+              className={`mt-5 rounded-lg border px-4 py-3 text-sm ${
                 localFeedback.type === 'error'
                   ? 'border-rose-200 bg-rose-50 text-rose-700'
                   : 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -238,19 +238,19 @@ export function ApiDocsWorkspace({
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`rounded-[24px] border p-4 text-left transition ${
+                  className={`rounded-lg border p-4 text-left transition ${
                     isActive
-                      ? 'border-sky-200 bg-sky-50/85 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.35)]'
-                      : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-sky-100 hover:bg-sky-50/60'
+                      ? 'border-brand-100 bg-brand-50/85 shadow-card'
+                      : 'border-surface-200 bg-white hover:-translate-y-0.5 hover:border-brand-100 hover:bg-brand-50/60'
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold ${
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-xs font-semibold ${
                         isActive
-                          ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
+                          ? 'bg-brand-600 text-white shadow-card'
                           : isPublicMode
-                            ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100'
+                            ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-100'
                             : 'bg-slate-900 text-white/90'
                       }`}
                     >
@@ -259,14 +259,14 @@ export function ApiDocsWorkspace({
                     <div className="min-w-0">
                       <div
                         className={`text-sm font-semibold ${
-                          isActive ? 'text-sky-900' : 'text-slate-900'
+                          isActive ? 'text-brand-800' : 'text-ink-900'
                         }`}
                       >
                         {tab.label}
                       </div>
                       <div
                         className={`mt-1 text-xs leading-6 ${
-                          isActive ? 'text-sky-700' : 'text-slate-500'
+                          isActive ? 'text-brand-700' : 'text-ink-500'
                         }`}
                       >
                         {tab.description}
@@ -284,8 +284,8 @@ export function ApiDocsWorkspace({
         <div className="space-y-6">
           <div className={`${publicPanelClassName} p-6`}>
             <div className="mb-5">
-              <h3 className="text-xl font-semibold text-slate-900">推荐调研路径</h3>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
+              <h3 className="text-xl font-semibold text-ink-900">推荐调研路径</h3>
+              <p className="mt-1 text-sm leading-6 text-ink-500">
                 建议把接口调研理解为一个业务闭环：先准备 projectKey，再绑定、查询、扣次，最后用后台日志和
                 smoke 脚本回证。
               </p>
@@ -295,18 +295,18 @@ export function ApiDocsWorkspace({
               {apiDocsPageModel.researchSteps.map((step) => (
                 <div key={step.step} className={featureCardClassName}>
                   <div className="flex items-start gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white shadow-sm">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-slate-900 text-sm font-semibold text-white shadow-sm">
                       {step.step}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-base font-semibold text-slate-900">
+                      <h4 className="text-base font-semibold text-ink-900">
                         {step.title}
                       </h4>
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                      <p className="mt-2 text-sm leading-6 text-ink-500">
                         {step.description}
                       </p>
-                      <div className="mt-3 rounded-[18px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-700">
-                        <span className="font-medium text-sky-900">你会得到：</span>{' '}
+                      <div className="mt-3 rounded-md border border-brand-100 bg-brand-50 px-4 py-3 text-sm leading-6 text-brand-700">
+                        <span className="font-medium text-brand-800">你会得到：</span>{' '}
                         {step.outcome}
                       </div>
                     </div>
@@ -319,18 +319,18 @@ export function ApiDocsWorkspace({
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             {apiDocsPageModel.licenseModels.map((card) => (
               <div key={card.badge} className={`${panelClassName} p-6`}>
-                <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-sky-700">
+                <div className="inline-flex items-center rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-brand-700">
                   {card.badge}
                 </div>
-                <h3 className="mt-4 text-xl font-semibold text-slate-900">{card.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">{card.description}</p>
+                <h3 className="mt-4 text-xl font-semibold text-ink-900">{card.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-ink-500">{card.description}</p>
                 <div className="mt-4 space-y-3">
                   {card.bullets.map((bullet) => (
                     <div
                       key={bullet}
-                      className="flex items-start gap-3 rounded-[20px] border border-slate-200/80 bg-slate-50/85 px-4 py-4 text-sm leading-6 text-slate-600"
+                      className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-6 text-ink-600"
                     >
-                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-sky-500" />
+                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-brand-500" />
                       <span>{bullet}</span>
                     </div>
                   ))}
@@ -342,19 +342,19 @@ export function ApiDocsWorkspace({
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
-                <h3 className="text-xl font-semibold text-slate-900">通用请求字段</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
+                <h3 className="text-xl font-semibold text-ink-900">通用请求字段</h3>
+                <p className="mt-1 text-sm leading-6 text-ink-500">
                   正式接口支持 camelCase / snake_case 双写法，便于不同语言和历史客户端接入。
                 </p>
               </div>
               <DashboardTableContainer className={tableContainerClassName}>
                 <table className="w-full min-w-max divide-y divide-slate-200">
-                  <thead className="bg-slate-50/90">
+                  <thead className="bg-surface-50">
                     <tr>
                       {['字段', '类型', '必填', '说明'].map((title) => (
                         <th
                           key={title}
-                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-500"
                         >
                           {title}
                         </th>
@@ -363,15 +363,15 @@ export function ApiDocsWorkspace({
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white">
                     {apiDocsPageModel.requestFields.map((field) => (
-                      <tr key={field.field} className="transition hover:bg-slate-50/80">
-                        <td className="px-6 py-4 text-sm font-mono text-slate-900">
+                      <tr key={field.field} className="transition hover:bg-surface-50">
+                        <td className="px-6 py-4 text-sm font-mono text-ink-900">
                           {field.field}
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-500">{field.type}</td>
-                        <td className="px-6 py-4 text-sm text-slate-500">
+                        <td className="px-6 py-4 text-sm text-ink-500">{field.type}</td>
+                        <td className="px-6 py-4 text-sm text-ink-500">
                           {field.required}
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-500">
+                        <td className="px-6 py-4 text-sm text-ink-500">
                           {field.description}
                         </td>
                       </tr>
@@ -383,19 +383,19 @@ export function ApiDocsWorkspace({
 
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
-                <h3 className="text-xl font-semibold text-slate-900">统一响应字段</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
+                <h3 className="text-xl font-semibold text-ink-900">统一响应字段</h3>
+                <p className="mt-1 text-sm leading-6 text-ink-500">
                   正式接口会同时返回 camelCase 与 snake_case，便于浏览器插件、桌面端和脚本工具统一接入。
                 </p>
               </div>
               <DashboardTableContainer className={tableContainerClassName}>
                 <table className="w-full min-w-max divide-y divide-slate-200">
-                  <thead className="bg-slate-50/90">
+                  <thead className="bg-surface-50">
                     <tr>
                       {['字段', '类型', '返回时机', '说明'].map((title) => (
                         <th
                           key={title}
-                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500"
+                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-500"
                         >
                           {title}
                         </th>
@@ -404,15 +404,15 @@ export function ApiDocsWorkspace({
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white">
                     {apiDocsPageModel.responseFields.map((field) => (
-                      <tr key={field.field} className="transition hover:bg-slate-50/80">
-                        <td className="px-6 py-4 text-sm font-mono text-slate-900">
+                      <tr key={field.field} className="transition hover:bg-surface-50">
+                        <td className="px-6 py-4 text-sm font-mono text-ink-900">
                           {field.field}
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-500">{field.type}</td>
-                        <td className="px-6 py-4 text-sm text-slate-500">
+                        <td className="px-6 py-4 text-sm text-ink-500">{field.type}</td>
+                        <td className="px-6 py-4 text-sm text-ink-500">
                           {field.required}
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-500">
+                        <td className="px-6 py-4 text-sm text-ink-500">
                           {field.description}
                         </td>
                       </tr>
@@ -445,20 +445,20 @@ export function ApiDocsWorkspace({
                         : '兼容旧接口'}
                     </span>
                   </div>
-                  <h3 className="mt-4 text-xl font-semibold text-slate-900">
+                  <h3 className="mt-4 text-xl font-semibold text-ink-900">
                     {endpoint.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                  <p className="mt-2 text-sm leading-6 text-ink-500">
                     {endpoint.summary}
                   </p>
-                  <div className="mt-3 rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
-                    <span className="font-medium text-slate-900">适用时机：</span>{' '}
+                  <div className="mt-3 rounded-md border border-surface-200 bg-surface-50 px-4 py-3 text-sm leading-6 text-ink-600">
+                    <span className="font-medium text-ink-900">适用时机：</span>{' '}
                     {endpoint.whenToUse}
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-sm font-mono text-slate-700 shadow-sm">
+                  <div className="rounded-lg border border-surface-200 bg-white px-4 py-3 text-sm font-mono text-ink-700 shadow-sm">
                     {endpoint.path}
                   </div>
                   <button
@@ -476,9 +476,9 @@ export function ApiDocsWorkspace({
                   {endpoint.highlights.map((highlight) => (
                     <div
                       key={highlight}
-                      className="flex items-start gap-3 rounded-[20px] border border-slate-200/80 bg-slate-50/85 px-4 py-4 text-sm leading-6 text-slate-600"
+                      className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-6 text-ink-600"
                     >
-                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-sky-500" />
+                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-brand-500" />
                       <span>{highlight}</span>
                     </div>
                   ))}
@@ -488,10 +488,10 @@ export function ApiDocsWorkspace({
                   <DashboardCodePanel
                     header={
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                        <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
                           请求示例
                         </div>
-                        <div className="mt-1 text-sm text-slate-500">
+                        <div className="mt-1 text-sm text-ink-500">
                           可直接用于 Postman、脚本或插件侧联调。
                         </div>
                       </div>
@@ -514,10 +514,10 @@ export function ApiDocsWorkspace({
                   <DashboardCodePanel
                     header={
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                        <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
                           响应示例
                         </div>
-                        <div className="mt-1 text-sm text-slate-500">
+                        <div className="mt-1 text-sm text-ink-500">
                           用于核对业务是否成功、字段是否匹配以及是否命中幂等。
                         </div>
                       </div>
@@ -552,13 +552,13 @@ export function ApiDocsWorkspace({
               headerClassName="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
               header={
                 <div className="max-w-3xl">
-                  <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-slate-600">
+                  <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-600">
                     {snippet.label}
                   </div>
-                  <h3 className="mt-4 text-xl font-semibold text-slate-900">
+                  <h3 className="mt-4 text-xl font-semibold text-ink-900">
                     {snippet.label}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                  <p className="mt-2 text-sm leading-6 text-ink-500">
                     {snippet.description}
                   </p>
                 </div>
@@ -585,10 +585,10 @@ export function ApiDocsWorkspace({
         <div className="space-y-6">
           <div className={`${panelClassName} p-6`}>
             <div className="mb-5">
-              <h3 className="text-xl font-semibold text-slate-900">
+              <h3 className="text-xl font-semibold text-ink-900">
                 联调时常用的后台接口
               </h3>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
+              <p className="mt-1 text-sm leading-6 text-ink-500">
                 当你需要生成测试码、核对 requestId、导出日志或确认项目是否启用时，可直接参考这些管理接口。
               </p>
             </div>
@@ -608,10 +608,10 @@ export function ApiDocsWorkspace({
 
           <div className={`${panelClassName} p-6`}>
             <div className="mb-5">
-              <h3 className="text-xl font-semibold text-slate-900">
+              <h3 className="text-xl font-semibold text-ink-900">
                 本地联调与排查辅助
               </h3>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
+              <p className="mt-1 text-sm leading-6 text-ink-500">
                 除了接口本身，建议同时把 smoke 脚本、SDK 源码和完整文档路径暴露给接入者，降低沟通成本。
               </p>
             </div>

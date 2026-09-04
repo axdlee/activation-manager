@@ -30,7 +30,7 @@ test('DashboardProjectManagementRow 会渲染默认项目的只读字段、策�
     }),
   )
 
-  assert.match(html, /<tr class="transition hover:bg-slate-50\/80">/)
+  assert.match(html, /<tr class="transition hover:bg-surface-50">/)
   assert.match(html, /默认项目/)
   assert.match(html, /系统默认项目/)
   assert.match(html, /默认项目不可停用，也不可删除。/)

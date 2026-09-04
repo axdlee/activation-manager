@@ -16,11 +16,11 @@ test('DashboardNumberedList 会渲染默认编号卡片列表', () => {
   assert.match(html, /space-y-3/)
   assert.match(
     html,
-    /flex items-start gap-3 rounded-\[22px\] border border-white\/80 bg-white\/80 px-4 py-4 text-sm leading-7 text-slate-600 shadow-sm/,
+    /flex items-start gap-3 rounded-lg border border-surface-200 bg-white px-4 py-4 text-sm leading-7 text-ink-600 shadow-card/,
   )
   assert.match(
     html,
-    /flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-xs font-semibold text-white shadow-sm[^>]*>01</,
+    /flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white shadow-sm[^>]*>01</,
   )
   assert.match(html, />02</)
   assert.match(html, /修改后会立即登出旧会话/)

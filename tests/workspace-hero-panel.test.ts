@@ -38,8 +38,8 @@ test('WorkspaceHeroPanel 保留统一头部视觉结构', () => {
     }),
   )
 
-  assert.match(html, /rounded-full border border-sky-200\/80 bg-white\/80/)
-  assert.match(html, /text-\[11px\] font-semibold tracking-\[0\.22em\] text-sky-700/)
-  assert.match(html, /text-2xl font-semibold tracking-tight text-slate-900/)
-  assert.match(html, /text-sm leading-7 text-slate-500 sm:text-base/)
+  assert.match(html, /rounded-full border border-brand-100 bg-white/)
+  assert.match(html, /text-\[11px\] font-semibold tracking-\[0\.22em\] text-brand-700/)
+  assert.match(html, /text-2xl font-semibold tracking-tight text-ink-900/)
+  assert.match(html, /text-sm leading-7 text-ink-500 sm:text-base/)
 })

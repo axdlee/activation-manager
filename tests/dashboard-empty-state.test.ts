@@ -14,7 +14,7 @@ test('DashboardEmptyState 会渲染默认空状态样式与文案', () => {
   )
 
   assert.match(html, /暂无匹配的激活码记录/)
-  assert.match(html, /rounded-\[24px\] border border-dashed border-slate-200 bg-slate-50\/75 px-6 py-10 text-center text-sm text-slate-500/)
+  assert.match(html, /rounded-lg border border-dashed border-surface-200 bg-surface-50\/75 px-6 py-10 text-center text-sm text-ink-500/)
 })
 
 test('DashboardEmptyState 支持追加自定义 className', () => {

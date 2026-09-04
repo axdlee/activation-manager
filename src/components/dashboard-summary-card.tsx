@@ -13,7 +13,7 @@ type DashboardSummaryCardProps = {
 }
 
 const baseClassName =
-  'relative overflow-hidden rounded-[24px] border px-5 py-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.3)]'
+  'relative overflow-hidden rounded-lg border px-5 py-5 shadow-card'
 
 export function DashboardSummaryCard({
   label,
@@ -22,9 +22,9 @@ export function DashboardSummaryCard({
   className,
   panelClassName,
   accentClassName = 'bg-slate-900',
-  labelClassName = 'text-xs uppercase tracking-[0.18em] text-slate-500',
-  valueClassName = 'mt-3 text-3xl font-semibold tracking-tight text-slate-900',
-  descriptionClassName = 'mt-2 text-sm leading-6 text-slate-500',
+  labelClassName = 'text-xs uppercase tracking-[0.18em] text-ink-500',
+  valueClassName = 'mt-3 text-3xl font-semibold tracking-tight text-ink-900',
+  descriptionClassName = 'mt-2 text-sm leading-6 text-ink-500',
 }: DashboardSummaryCardProps) {
   const containerClassName = [baseClassName, panelClassName, className].filter(Boolean).join(' ')
 

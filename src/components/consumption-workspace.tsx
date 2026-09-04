@@ -101,21 +101,21 @@ type ConsumptionWorkspaceProps<TLog extends ConsumptionWorkspaceLogLike = Consum
 }
 
 const defaultPanelClassName =
-  'rounded-[28px] border border-slate-200/70 bg-white/90 shadow-[0_24px_80px_-36px_rgba(15,23,42,0.28)] backdrop-blur'
+  'rounded-lg border border-surface-200/70 bg-white shadow-card'
 const defaultWorkspaceSummaryCardClassName =
-  'rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 shadow-sm'
+  'rounded-lg border border-surface-200 bg-white px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
-  'w-full rounded-2xl border border-slate-200 bg-white/95 px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:bg-slate-100 disabled:text-slate-500'
+  'w-full rounded-md border border-surface-200 bg-white px-4 py-2.5 text-sm text-ink-900 shadow-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-surface-100 disabled:text-ink-500'
 const defaultPrimaryButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultSuccessButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultGhostButtonClassName =
-  'inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-white px-4 py-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationButtonClassName =
-  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-white px-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
-  'border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:border-sky-500 hover:bg-sky-500'
+  'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 
 export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
   activeTab,
@@ -281,8 +281,8 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-            <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]">
-              <div className="text-xs uppercase tracking-[0.18em] text-slate-500">快捷时间范围</div>
+            <div className="rounded-lg border border-surface-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-card">
+              <div className="text-xs uppercase tracking-[0.18em] text-ink-500">快捷时间范围</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button type="button" onClick={filtersView.onApplyToday} className={ghostButtonClassName}>
                   今天
@@ -305,10 +305,10 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
               />
             </div>
 
-            <div className="rounded-[24px] border border-slate-200/80 bg-white/92 p-5 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)]">
-              <div className="text-xs uppercase tracking-[0.18em] text-slate-500">刷新状态</div>
+            <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-card">
+              <div className="text-xs uppercase tracking-[0.18em] text-ink-500">刷新状态</div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-sky-700">
+                <span className="rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-sm text-brand-700">
                   自动刷新已开启（{filtersView.autoRefreshDelayMs}ms 防抖）
                 </span>
                 <span
@@ -366,7 +366,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
           <DashboardSummaryStrip
             leading={
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm text-sky-700">
+                <span className="rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-sm text-brand-700">
                   自动刷新已开启（{logsView.autoRefreshDelayMs}ms 防抖）
                 </span>
                 <span
@@ -378,12 +378,12 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                   tokens={logsView.filterTokens}
                   emptyText="当前显示全部消费日志"
                   className="contents"
-                  tokenClassName="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-sm text-slate-600"
+                  tokenClassName="rounded-full border border-brand-100 bg-white px-3 py-1.5 text-sm text-ink-600"
                 />
               </div>
             }
             trailing={
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-ink-500">
                 当前展示第 {logsView.startIndex} - {logsView.endIndex} 条，共 {logsView.totalCount}{' '}
                 条记录
               </div>
@@ -400,26 +400,26 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                 bodyClassName="bg-white divide-y divide-gray-200"
               >
                 {logsView.logs.map((log) => (
-                  <tr key={log.id} className="transition hover:bg-slate-50/80">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
+                  <tr key={log.id} className="transition hover:bg-surface-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-700">
                       {log.activationCode.project.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-900">
                       {log.activationCode.code}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-500">
                       {log.requestId}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
                       {log.machineId}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
                       {logsView.getLicenseModeDisplay(log.activationCode.licenseMode)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-700">
                       {log.remainingCountAfter}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
                   </tr>

@@ -17,8 +17,8 @@ test('DashboardSectionHeader 会渲染标题、描述与默认布局样式', () 
   assert.match(html, /筛选与导出/)
   assert.match(html, /统一维护搜索项、状态、项目与套餐条件/)
   assert.match(html, /mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between/)
-  assert.match(html, /text-xl font-semibold text-slate-900/)
-  assert.match(html, /text-sm leading-6 text-slate-500/)
+  assert.match(html, /text-xl font-semibold text-ink-900/)
+  assert.match(html, /text-sm leading-6 text-ink-500/)
 })
 
 test('DashboardSectionHeader 会渲染 trailing 区域', () => {

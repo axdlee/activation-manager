@@ -18,7 +18,7 @@ test('WorkspaceMetricCard 会渲染标签、数值与描述', () => {
   assert.match(html, /风险项/)
   assert.match(html, />12</)
   assert.match(html, /已过期或已耗尽的记录/)
-  assert.match(html, /rounded-\[22px\]/)
+  assert.match(html, /rounded-lg/)
 })
 
 test('WorkspaceMetricCard 支持覆盖外层 className', () => {
@@ -32,5 +32,5 @@ test('WorkspaceMetricCard 支持覆盖外层 className', () => {
   )
 
   assert.match(html, /custom-metric-card/)
-  assert.doesNotMatch(html, /rounded-\[22px\]/)
+  assert.doesNotMatch(html, /rounded-lg/)
 })

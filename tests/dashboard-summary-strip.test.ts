@@ -16,7 +16,7 @@ test('DashboardSummaryStrip 会渲染默认容器样式与两侧内容', () => {
 
   assert.match(html, /leading-slot/)
   assert.match(html, /trailing-slot/)
-  assert.match(html, /mb-5 rounded-\[24px\] border border-slate-200\/80 bg-slate-50\/85 px-5 py-4/)
+  assert.match(html, /mb-5 rounded-lg border border-surface-200 bg-surface-50 px-5 py-4/)
   assert.match(html, /flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between/)
 })
 
@@ -32,5 +32,5 @@ test('DashboardSummaryStrip 支持覆盖外层与内层样式', () => {
 
   assert.match(html, /custom-outer/)
   assert.match(html, /custom-inner/)
-  assert.doesNotMatch(html, /mb-5 rounded-\[24px\] border border-slate-200\/80 bg-slate-50\/85 px-5 py-4/)
+  assert.doesNotMatch(html, /mb-5 rounded-lg border border-surface-200 bg-surface-50 px-5 py-4/)
 })

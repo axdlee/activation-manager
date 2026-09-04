@@ -29,7 +29,7 @@ test('首页会渲染管理后台入口与公开 API 文档入口', async () => 
   assert.equal(html.includes('查看 API 文档'), true)
   assert.equal(html.includes('多项目隔离'), true)
   assert.equal(
-    html.includes('rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white'),
+    html.includes('rounded-md bg-brand-600 px-4 py-2.5 text-sm font-medium text-white'),
     true,
   )
   assert.equal(
@@ -55,7 +55,7 @@ test('公开 API 文档页暴露 metadata，并渲染首页与登录入口', asy
   assert.equal(html.includes('面向插件与客户端的 API 文档中心'), true)
   assert.equal(html.includes('管理员登录'), true)
   assert.equal(html.includes('返回首页'), true)
-  assert.equal(html.includes('bg-slate-50'), true)
+  assert.equal(html.includes('bg-surface-50'), true)
   assert.equal(
     html.includes('bg-gradient-to-r from-sky-600 via-cyan-500 to-indigo-500'),
     true,
@@ -81,8 +81,8 @@ test('ApiDocsWorkspace 在 public 模式下会渲染公开文档文案与默认�
   assert.equal(html.includes('正式接口'), true)
   assert.equal(html.includes('多语言示例'), true)
   assert.equal(html.includes('联调后台'), true)
-  assert.equal(html.includes('bg-slate-900 text-white/90'), false)
-  assert.equal(html.includes('bg-gradient-to-b from-white to-slate-50'), true)
+  assert.equal(html.includes('bg-ink-950 text-white/90'), false)
+  assert.equal(html.includes('bg-gradient-to-b from-white to-surface-50'), true)
 })
 
 test('ApiDocsWorkspace 在 dashboard 模式下会渲染后台语境文案', async () => {

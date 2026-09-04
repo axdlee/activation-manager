@@ -3,37 +3,34 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: rgb(26 33 73 / 0.92);
+  background-color: #f3f5f7;
 }
 
+::selection {
+  background-color: rgb(64 85 232 / 0.14);
+  color: rgb(26 33 73);
+}
+
+/* 精细滚动条 */
 .dashboard-scroll-area {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.7) transparent;
+  scrollbar-color: rgba(26, 33, 73, 0.22) transparent;
 }
 
 .dashboard-scroll-area::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 .dashboard-scroll-area::-webkit-scrollbar-track {
@@ -41,13 +38,15 @@ body {
 }
 
 .dashboard-scroll-area::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
-  border-radius: 9999px;
-  background: linear-gradient(180deg, rgba(125, 211, 252, 0.95), rgba(99, 102, 241, 0.95));
-  background-clip: padding-box;
+  border-radius: 8px;
+  background: rgba(26, 33, 73, 0.18);
 }
 
 .dashboard-scroll-area::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(56, 189, 248, 1), rgba(79, 70, 229, 1));
-  background-clip: padding-box;
+  background: rgba(26, 33, 73, 0.32);
+}
+
+/* 数字等宽：表格中的数值列更对齐 */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

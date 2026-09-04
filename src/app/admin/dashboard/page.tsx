@@ -1269,10 +1269,10 @@ export default function DashboardPage() {
       : consumptionRefreshStatus.tone === 'success'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
         : consumptionRefreshStatus.tone === 'info'
-          ? 'border-sky-200 bg-sky-50 text-sky-700'
-          : 'border-slate-200 bg-slate-50 text-slate-500'
+          ? 'border-brand-100 bg-brand-50 text-brand-700'
+          : 'border-surface-200 bg-surface-50 text-ink-500'
   const shellClassName =
-    'rounded-[32px] border border-white/70 bg-white/75 shadow-[0_32px_120px_-48px_rgba(15,23,42,0.45)] backdrop-blur'
+    'rounded-lg border border-surface-200 bg-white shadow-card'
   const handleExportConsumptionLogs = () => {
     const params = buildConsumptionQueryParams(buildCurrentConsumptionFilters())
     triggerFileDownload(buildExportUrl('/api/admin/consumptions/export', params))
@@ -1750,86 +1750,72 @@ export default function DashboardPage() {
   }, [auditLogCurrentPage, auditLogTotalPages, setAuditLogCurrentPage])
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#f6f8fc_42%,#eef2ff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8">
+    <main className="min-h-screen bg-surface-100 px-4 py-5 text-ink-900 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8">
       <div className="mx-auto h-full w-full max-w-none">
-        <div className="flex h-full flex-col gap-6 lg:flex-row">
-          <aside className="lg:flex lg:w-[320px] lg:shrink-0 lg:self-stretch">
-            <section
-              className={`${shellClassName} relative overflow-hidden p-6 sm:p-7 lg:flex lg:h-full lg:min-h-0 lg:flex-1 lg:flex-col`}
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.14),transparent_30%)]" />
-              <div className="relative space-y-6 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0">
-                <div className="space-y-6 lg:flex-shrink-0">
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1 text-xs font-medium tracking-[0.18em] text-sky-700 shadow-sm backdrop-blur">
-                      <span className="h-2 w-2 rounded-full bg-sky-500" />
-                      授权运营中台
-                    </div>
-                    <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">
-                      激活码管理后台
-                    </h1>
-                    <p className="mt-3 text-sm leading-7 text-slate-600">
-                      把项目、发码、激活码、消费、审计和 API 接入收敛到同一套左侧导航工作区，减少跨页面跳转成本。
-                    </p>
+        <div className="flex h-full flex-col gap-5 lg:flex-row">
+          <aside className="lg:flex lg:w-[300px] lg:shrink-0 lg:self-stretch">
+            <section className={`${shellClassName} p-5 lg:flex lg:h-full lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden`}>
+              <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0">
+                <div className="shrink-0 border-b border-surface-200 pb-5">
+                  <div className="inline-flex items-center gap-2 rounded-sm border border-brand-100 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                    授权运营中台
                   </div>
+                  <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink-950">
+                    激活码管理后台
+                  </h1>
+                  <p className="mt-2 text-sm leading-6 text-ink-500">
+                    项目、发码、激活码、消费、审计与 API 接入统一工作台。
+                  </p>
                 </div>
 
-                <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-2 dashboard-scroll-area">
-                  <div className="space-y-6">
-                    <nav className="grid grid-cols-1 gap-3">
-                      {dashboardTabs.map((tab) => {
-                        const isActive = activeTab === tab.key
+                <div className="dashboard-scroll-area mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <nav className="space-y-1">
+                    {dashboardTabs.map((tab) => {
+                      const isActive = activeTab === tab.key
 
-                        return (
-                          <button
-                            key={tab.key}
-                            onClick={() => setActiveTab(tab.key)}
-                            className={`group rounded-[24px] border p-4 text-left transition ${
-                              isActive
-                                ? 'border-sky-200 bg-sky-50/90 shadow-[0_20px_60px_-40px_rgba(2,132,199,0.45)]'
-                                : 'border-white/70 bg-white/70 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white/90'
+                      return (
+                        <button
+                          key={tab.key}
+                          onClick={() => setActiveTab(tab.key)}
+                          className={`group flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-all ${
+                            isActive
+                              ? 'border-brand-100 bg-brand-50 text-brand-800'
+                              : 'border-transparent text-ink-600 hover:border-surface-200 hover:bg-surface-50 hover:text-ink-900'
+                          }`}
+                        >
+                          <span
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold ${
+                              isActive ? 'bg-brand-600 text-white' : 'bg-surface-200 text-ink-500'
                             }`}
                           >
-                            <div className="flex items-start gap-3">
-                              <div
-                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold ${
-                                  isActive
-                                    ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20'
-                                    : 'bg-slate-900 text-white/90'
-                                }`}
-                              >
-                                {tab.shortLabel}
-                              </div>
-                              <div className="min-w-0">
-                                <div className={`text-sm font-semibold ${isActive ? 'text-sky-900' : 'text-slate-900'}`}>
-                                  {tab.label}
-                                </div>
-                                <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-sky-700' : 'text-slate-500'}`}>
-                                  {tab.description}
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </nav>
+                            {tab.shortLabel}
+                          </span>
+                          <span className="min-w-0">
+                            <span className={`block text-sm font-medium ${isActive ? 'text-brand-800' : 'text-ink-800'}`}>
+                              {tab.label}
+                            </span>
+                            <span className={`mt-0.5 block truncate text-xs leading-5 ${isActive ? 'text-brand-600' : 'text-ink-400'}`}>
+                              {tab.description}
+                            </span>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </nav>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                      {heroMetricCards.map((item) => (
-                        <div
-                          key={item.label}
-                          className="rounded-[22px] border border-white/80 bg-white/75 px-4 py-4 shadow-[0_18px_60px_-38px_rgba(15,23,42,0.3)] backdrop-blur"
-                        >
-                          <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
-                          <div className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{item.value}</div>
-                          <div className="mt-2 text-sm text-slate-500">{item.description}</div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mt-5 grid grid-cols-1 gap-2.5">
+                    {heroMetricCards.map((item) => (
+                      <div key={item.label} className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3.5">
+                        <div className="text-xs font-medium text-ink-400">{item.label}</div>
+                        <div className="tabular-nums mt-1.5 text-2xl font-semibold tracking-tight text-ink-900">{item.value}</div>
+                        <div className="mt-1 text-xs leading-5 text-ink-400">{item.description}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="lg:flex-shrink-0 lg:pt-6">
+                <div className="shrink-0 pt-4">
                   <button onClick={handleLogout} className={`w-full ${dangerButtonClassName}`}>
                     登出
                   </button>
@@ -1839,44 +1825,39 @@ export default function DashboardPage() {
           </aside>
 
           <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-hidden">
-            <div className="space-y-6 lg:h-full lg:overflow-y-auto lg:pr-2 dashboard-scroll-area">
-              <section className={`${shellClassName} relative overflow-hidden p-6 sm:p-8`}>
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.1),transparent_28%)]" />
-                <div className="relative">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/70 px-3 py-1 text-xs font-medium tracking-[0.18em] text-sky-700 shadow-sm backdrop-blur">
-                    <span className="h-2 w-2 rounded-full bg-sky-500" />
-                    当前模块 · {activeTabMeta.label}
+            <div className="space-y-5 lg:h-full lg:overflow-y-auto lg:pr-2 dashboard-scroll-area">
+              <section className={`${shellClassName} p-6`}>
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                  <div className="max-w-3xl">
+                    <div className="inline-flex items-center gap-2 rounded-sm border border-brand-100 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                      当前模块 · {activeTabMeta.label}
+                    </div>
+                    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink-950">
+                      {activeTabMeta.label}
+                    </h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-7 text-ink-500">
+                      {activeTabMeta.description}
+                    </p>
                   </div>
-                  <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                    <div className="max-w-3xl">
-                      <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-                        {activeTabMeta.label}
-                      </h2>
-                      <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                        {activeTabMeta.description}
-                      </p>
-                    </div>
-                    <div className="rounded-[22px] border border-white/80 bg-white/75 px-5 py-4 text-sm leading-6 text-slate-500 shadow-[0_18px_60px_-38px_rgba(15,23,42,0.3)] backdrop-blur xl:max-w-sm">
-                      左侧主菜单固定展示，当前工作区只聚焦本模块内容，减少顶部导航占位与来回滚动。
-                    </div>
+                  <div className="max-w-sm rounded-md border border-surface-200 bg-surface-50 px-4 py-3 text-sm leading-6 text-ink-500 xl:shrink-0">
+                    左侧主菜单固定展示，当前工作区只聚焦本模块内容。
                   </div>
                 </div>
               </section>
 
               {message && (
                 <div
-                  className={`rounded-[24px] border px-5 py-4 shadow-sm backdrop-blur ${
+                  className={`rounded-md border px-4 py-3.5 ${
                     messageType === 'success'
-                      ? 'border-emerald-200 bg-emerald-50/90 text-emerald-800'
-                      : 'border-rose-200 bg-rose-50/90 text-rose-800'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : 'border-rose-200 bg-rose-50 text-rose-800'
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                        messageType === 'success'
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-rose-500 text-white'
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${
+                        messageType === 'success' ? 'bg-emerald-600' : 'bg-rose-500'
                       }`}
                     >
                       {messageType === 'success' ? '✓' : '!'}
@@ -1885,7 +1866,7 @@ export default function DashboardPage() {
                       <div className="text-sm font-semibold">
                         {messageType === 'success' ? '操作已完成' : '操作未完成'}
                       </div>
-                      <div className="mt-1 text-sm">{message}</div>
+                      <div className="mt-0.5 text-sm">{message}</div>
                     </div>
                   </div>
                 </div>
@@ -1893,31 +1874,31 @@ export default function DashboardPage() {
 
               {activeTab === 'stats' && (
                 <div className="space-y-6">
-            <div className="flex flex-wrap items-center gap-3 rounded-[24px] border border-sky-200/70 bg-sky-50/85 px-5 py-4 text-sm text-sky-900 shadow-sm">
-              <span className="inline-flex items-center rounded-full bg-sky-600/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-sky-700">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-100/70 bg-brand-50/85 px-5 py-4 text-sm text-brand-800 shadow-sm">
+              <span className="inline-flex items-center rounded-full bg-brand-600/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-brand-700">
                 当前统计口径
               </span>
               <span className="text-base font-semibold">{statsScopeLabel}</span>
-              <span className="text-sky-700/80">顶部统计、消费趋势与导出都会跟随这个范围联动。</span>
+              <span className="text-brand-700/80">顶部统计、消费趋势与导出都会跟随这个范围联动。</span>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
               {statsCards.map((card) => (
                 <div
                   key={card.label}
-                  className="group relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/90 p-5 shadow-[0_20px_60px_-36px_rgba(15,23,42,0.28)] transition hover:-translate-y-1 hover:shadow-[0_28px_90px_-40px_rgba(15,23,42,0.32)]"
+                  className="group relative overflow-hidden rounded-lg border border-surface-200/80 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-card-hover"
                 >
                   <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-cyan-400 to-indigo-400 opacity-0 transition group-hover:opacity-100" />
                   <div className="flex items-center gap-4">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${card.color} shadow-lg shadow-slate-200`}>
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-md ${card.color} shadow-card shadow-slate-200`}>
                       <span className="text-base font-semibold text-white">{card.icon}</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <dl>
-                        <dt className="truncate text-sm font-medium text-slate-500">{card.label}</dt>
-                        <dd className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{card.value}</dd>
+                        <dt className="truncate text-sm font-medium text-ink-500">{card.label}</dt>
+                        <dd className="mt-1 text-2xl font-semibold tracking-tight text-ink-900">{card.value}</dd>
                       </dl>
-                      <p className="mt-2 text-xs text-slate-400">当前口径：{statsScopeLabel}</p>
+                      <p className="mt-2 text-xs text-ink-400">当前口径：{statsScopeLabel}</p>
                     </div>
                   </div>
                 </div>
@@ -1927,8 +1908,8 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className={`${panelClassName} p-6`}>
                 <div className="mb-5">
-                  <h3 className="text-lg font-semibold text-slate-900">使用率统计</h3>
-                  <p className="mt-1 text-sm text-slate-500">从全局发码视角观察已使用、过期和可用激活码分布。</p>
+                  <h3 className="text-lg font-semibold text-ink-900">使用率统计</h3>
+                  <p className="mt-1 text-sm text-ink-500">从全局发码视角观察已使用、过期和可用激活码分布。</p>
                 </div>
                 <div className="space-y-4">
                   {[
@@ -1937,9 +1918,9 @@ export default function DashboardPage() {
                     ['可用', displayStats.active, 'bg-blue-500'],
                   ].map(([label, value, color]) => (
                     <div key={label} className={`${mutedPanelClassName} px-4 py-4`}>
-                      <div className="mb-2 flex justify-between text-sm text-slate-600">
+                      <div className="mb-2 flex justify-between text-sm text-ink-600">
                         <span>{label}</span>
-                        <span className="font-semibold text-slate-900">
+                        <span className="font-semibold text-ink-900">
                           {displayStats.total > 0 ? Math.round((Number(value) / displayStats.total) * 100) : 0}%
                         </span>
                       </div>
@@ -1951,7 +1932,7 @@ export default function DashboardPage() {
                           }}
                         />
                       </div>
-                      <div className="mt-2 text-xs text-slate-500">数量：{value} / {displayStats.total}</div>
+                      <div className="mt-2 text-xs text-ink-500">数量：{value} / {displayStats.total}</div>
                     </div>
                   ))}
                 </div>
@@ -1959,8 +1940,8 @@ export default function DashboardPage() {
 
               <div className={`${panelClassName} p-6`}>
                 <div className="mb-5">
-                  <h3 className="text-lg font-semibold text-slate-900">运营洞察</h3>
-                  <p className="mt-1 text-sm text-slate-500">提炼当前项目范围内最值得关注的次数型使用信号。</p>
+                  <h3 className="text-lg font-semibold text-ink-900">运营洞察</h3>
+                  <p className="mt-1 text-sm text-ink-500">提炼当前项目范围内最值得关注的次数型使用信号。</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
@@ -1969,18 +1950,18 @@ export default function DashboardPage() {
                   ].map(([label, value, description]) => (
                     <div
                       key={String(label)}
-                      className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.92))] px-5 py-5 shadow-[0_18px_48px_-40px_rgba(15,23,42,0.4)]"
+                      className="rounded-lg border border-surface-200/80 bg-gradient-to-b from-surface-50 to-white px-5 py-5 shadow-card"
                     >
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</div>
-                      <div className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{value}</div>
-                      <div className="mt-2 text-sm leading-6 text-slate-500">{description}</div>
+                      <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{label}</div>
+                      <div className="mt-3 text-3xl font-semibold tracking-tight text-ink-900">{value}</div>
+                      <div className="mt-2 text-sm leading-6 text-ink-500">{description}</div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-lg shadow-lg">
+            <div className="relative overflow-hidden rounded-lg shadow-card">
               <div className="absolute inset-0 bg-slate-950" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.28),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.24),transparent_42%)]" />
               <div className="relative p-6 text-white">
@@ -2001,7 +1982,7 @@ export default function DashboardPage() {
                           onClick={() => setConsumptionTrendDays(days as 7 | 30)}
                           className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                             consumptionTrendDays === days
-                              ? 'bg-white text-slate-900 shadow-sm'
+                              ? 'bg-white text-ink-900 shadow-sm'
                               : 'text-blue-100 hover:bg-white/10'
                           }`}
                         >
@@ -2015,11 +1996,11 @@ export default function DashboardPage() {
                       onChange={(e) =>
                         setConsumptionTrendGranularity(e.target.value as 'day' | 'week' | 'month')
                       }
-                      className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-white outline-none backdrop-blur"
+                      className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-white outline-none"
                     >
-                      <option value="day" className="text-slate-900">按日</option>
-                      <option value="week" className="text-slate-900">按周</option>
-                      <option value="month" className="text-slate-900">按月</option>
+                      <option value="day" className="text-ink-900">按日</option>
+                      <option value="week" className="text-ink-900">按周</option>
+                      <option value="month" className="text-ink-900">按月</option>
                     </select>
 
                     <select
@@ -2027,17 +2008,17 @@ export default function DashboardPage() {
                       onChange={(e) =>
                         setConsumptionTrendCompareProjectKey(e.target.value as 'none' | string)
                       }
-                      className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-white outline-none backdrop-blur"
+                      className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-white outline-none"
                     >
-                      <option value="none" className="text-slate-900">不对比项目</option>
+                      <option value="none" className="text-ink-900">不对比项目</option>
                       {availableConsumptionTrendCompareProjects.map((project) => (
-                        <option key={project.id} value={project.projectKey} className="text-slate-900">
+                        <option key={project.id} value={project.projectKey} className="text-ink-900">
                           对比：{project.name}
                         </option>
                       ))}
                     </select>
 
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-blue-50 backdrop-blur">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-blue-50">
                       <input
                         type="checkbox"
                         checked={consumptionTrendHideZeroBuckets}
@@ -2084,7 +2065,7 @@ export default function DashboardPage() {
                         ]
                       : []),
                   ].map(([label, value, description]) => (
-                    <div key={String(label)} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 backdrop-blur">
+                    <div key={String(label)} className="rounded-md border border-white/10 bg-white/5 px-4 py-4">
                       <div className="text-xs uppercase tracking-[0.18em] text-blue-100/60">{label}</div>
                       <div className="mt-3 text-3xl font-semibold text-white">{value}</div>
                       <div className="mt-2 text-xs text-blue-100/70">{description}</div>
@@ -2092,7 +2073,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="rounded-md border border-white/10 bg-white/5 p-4">
                   {consumptionTrendLoading ? (
                     <div className="flex h-72 items-center justify-center text-sm text-blue-100/80">
                       消费趋势加载中...
@@ -2117,13 +2098,13 @@ export default function DashboardPage() {
                       )}
 
                       {consumptionTrendCompareError && (
-                        <div className="rounded-xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+                        <div className="rounded-md border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
                           {consumptionTrendCompareError}
                         </div>
                       )}
 
                       {consumptionTrendHideZeroBuckets && hiddenZeroBucketCount > 0 && (
-                        <div className="rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50">
+                        <div className="rounded-md border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50">
                           已隐藏 {hiddenZeroBucketCount} 个 0 扣次时间桶，仅影响图表展示，不影响顶部统计指标。
                         </div>
                       )}
@@ -2155,14 +2136,14 @@ export default function DashboardPage() {
                                   <div className="flex w-full flex-1 items-end justify-center gap-1">
                                     <div
                                       title={`${statsScopeLabel} · ${point.date}：${point.primaryCount} 次`}
-                                      className={`w-full max-w-[16px] rounded-t-2xl border border-white/10 bg-gradient-to-t from-cyan-400 via-sky-400 to-indigo-300 shadow-[0_16px_40px_rgba(56,189,248,0.28)] transition-all duration-200 group-hover:brightness-110 ${
+                                      className={`w-full max-w-[16px] rounded-t-2xl border border-white/10 bg-gradient-to-t from-cyan-400 via-sky-400 to-indigo-300 shadow-card transition-all duration-200 group-hover:brightness-110 ${
                                         point.primaryCount > 0 ? 'opacity-100' : 'opacity-40'
                                       }`}
                                       style={{ height: `${primaryBarHeight}%` }}
                                     />
                                     <div
                                       title={`${selectedComparisonProject?.name || '对比项目'} · ${point.date}：${point.secondaryCount} 次`}
-                                      className={`w-full max-w-[16px] rounded-t-2xl border border-white/10 bg-gradient-to-t from-fuchsia-500 via-violet-400 to-purple-300 shadow-[0_16px_40px_rgba(217,70,239,0.24)] transition-all duration-200 group-hover:brightness-110 ${
+                                      className={`w-full max-w-[16px] rounded-t-2xl border border-white/10 bg-gradient-to-t from-fuchsia-500 via-violet-400 to-purple-300 shadow-card transition-all duration-200 group-hover:brightness-110 ${
                                         point.secondaryCount > 0 ? 'opacity-100' : 'opacity-40'
                                       }`}
                                       style={{ height: `${secondaryBarHeight}%` }}
@@ -2190,7 +2171,7 @@ export default function DashboardPage() {
                                   <div className="flex w-full flex-1 items-end justify-center">
                                     <div
                                       title={`${point.date}：${point.count} 次`}
-                                      className={`w-full max-w-[36px] rounded-t-2xl border border-white/10 bg-gradient-to-t from-cyan-400 via-sky-400 to-indigo-300 shadow-[0_16px_40px_rgba(56,189,248,0.28)] transition-all duration-200 group-hover:brightness-110 ${
+                                      className={`w-full max-w-[36px] rounded-t-2xl border border-white/10 bg-gradient-to-t from-cyan-400 via-sky-400 to-indigo-300 shadow-card transition-all duration-200 group-hover:brightness-110 ${
                                         point.count > 0 ? 'opacity-100' : 'opacity-40'
                                       }`}
                                       style={{ height: `${barHeight}%` }}
@@ -2209,11 +2190,11 @@ export default function DashboardPage() {
                       )}
 
                       {consumptionTrendHideZeroBuckets && !hasVisibleConsumptionTrendPoints ? (
-                        <div className="rounded-xl border border-dashed border-white/10 bg-white/5 px-4 py-3 text-sm text-blue-100/75">
+                        <div className="rounded-md border border-dashed border-white/10 bg-white/5 px-4 py-3 text-sm text-blue-100/75">
                           当前已隐藏所有零值时间桶，本时间范围暂无实际消费记录。你可以关闭该选项观察完整时间轴。
                         </div>
                       ) : !hasConsumptionTrendData && (
-                        <div className="rounded-xl border border-dashed border-white/10 bg-white/5 px-4 py-3 text-sm text-blue-100/75">
+                        <div className="rounded-md border border-dashed border-white/10 bg-white/5 px-4 py-3 text-sm text-blue-100/75">
                           当前时间范围暂无消费记录，可切换项目或扩大统计范围继续观察。
                         </div>
                       )}
@@ -2230,12 +2211,12 @@ export default function DashboardPage() {
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900">项目级统计</h3>
-                  <p className="mt-1 text-sm text-slate-500">按项目查看发码、激活、有效、剩余次数与累计消耗。</p>
+                  <h3 className="text-lg font-semibold text-ink-900">项目级统计</h3>
+                  <p className="mt-1 text-sm text-ink-500">按项目查看发码、激活、有效、剩余次数与累计消耗。</p>
                 </div>
                 <div className="flex w-full max-w-2xl flex-col gap-3 md:flex-row md:items-end">
                   <div className="flex-1">
-                    <label className="mb-2 block text-sm font-medium text-slate-700">项目筛选</label>
+                    <label className="mb-2 block text-sm font-medium text-ink-700">项目筛选</label>
                     <select
                       value={statsProjectFilter}
                       onChange={(e) => setStatsProjectFilter(e.target.value)}
@@ -2275,9 +2256,9 @@ export default function DashboardPage() {
                 bodyClassName="bg-white divide-y divide-gray-200"
               >
                 {filteredProjectStats.map((project) => (
-                  <tr key={project.id} className="transition hover:bg-slate-50/80">
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">{project.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-500">{project.projectKey}</td>
+                  <tr key={project.id} className="transition hover:bg-surface-50">
+                    <td className="px-6 py-4 text-sm font-medium text-ink-900">{project.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-500">{project.projectKey}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {project.isEnabled ? (
                         <DashboardStatusBadge label="启用中" tone="success" />
@@ -2285,12 +2266,12 @@ export default function DashboardPage() {
                         <DashboardStatusBadge label="已停用" tone="neutral" />
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.totalCodes}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.usedCodes}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.activeCodes}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{project.expiredCodes}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{project.countRemainingTotal}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">{project.countConsumedTotal}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">{project.totalCodes}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">{project.usedCodes}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">{project.activeCodes}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">{project.expiredCodes}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-700">{project.countRemainingTotal}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-700">{project.countConsumedTotal}</td>
                   </tr>
                 ))}
               </DashboardDataTable>
@@ -2327,8 +2308,8 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
-                <h2 className="text-xl font-semibold text-slate-900">生成激活码</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
+                <h2 className="text-xl font-semibold text-ink-900">生成激活码</h2>
+                <p className="mt-1 text-sm leading-6 text-ink-500">
                   统一使用更圆润的表单样式，减少录入压迫感，同时保持时间卡与次数卡的生成流程清晰可读。
                 </p>
               </div>
@@ -2494,7 +2475,7 @@ export default function DashboardPage() {
             {generatedCodes.length > 0 && (
               <div className={`${panelClassName} p-6`}>
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-xl font-semibold text-slate-900">本次生成的激活码</h2>
+                  <h2 className="text-xl font-semibold text-ink-900">本次生成的激活码</h2>
                   <button
                     onClick={() => exportCodes(generatedCodes)}
                     className={successButtonClassName}
@@ -2508,7 +2489,7 @@ export default function DashboardPage() {
                   tableClassName="w-full min-w-[920px] divide-y divide-gray-200"
                 >
                   {generatedCodes.map((code) => (
-                    <tr key={code.id} className="transition hover:bg-slate-50/80">
+                    <tr key={code.id} className="transition hover:bg-surface-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getProjectDisplay(code)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{code.code}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getLicenseModeDisplay(code.licenseMode)}</td>

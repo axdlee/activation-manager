@@ -14,7 +14,7 @@ type DashboardTableContainerProps = {
 }
 
 const defaultClassName =
-  'dashboard-scroll-area overflow-x-auto overflow-y-hidden touch-pan-x rounded-[24px] border border-slate-200/80 bg-white/95 shadow-[0_18px_56px_-42px_rgba(15,23,42,0.22)] cursor-grab'
+  'dashboard-scroll-area overflow-x-auto overflow-y-hidden touch-pan-x rounded-lg border border-surface-200 bg-white shadow-card cursor-grab'
 const interactiveTargetSelector =
   'button, a, input, select, textarea, label, summary, [role="button"], [role="link"], [data-disable-table-drag="true"]'
 

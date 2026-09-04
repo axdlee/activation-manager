@@ -14,10 +14,10 @@ export function DashboardStatTile({
   label,
   value,
   description,
-  className = 'rounded-[22px] border border-white/80 bg-white/80 px-4 py-4 shadow-sm',
-  labelClassName = 'text-xs uppercase tracking-[0.18em] text-slate-500',
-  valueClassName = 'mt-2 text-2xl font-semibold tracking-tight text-slate-900',
-  descriptionClassName = 'mt-1 text-sm text-slate-500',
+  className = 'rounded-lg border border-surface-200 bg-white px-4 py-4 shadow-card',
+  labelClassName = 'text-xs uppercase tracking-[0.18em] text-ink-500',
+  valueClassName = 'mt-2 text-2xl font-semibold tracking-tight text-ink-900',
+  descriptionClassName = 'mt-1 text-sm text-ink-500',
 }: DashboardStatTileProps) {
   return (
     <div className={className}>
