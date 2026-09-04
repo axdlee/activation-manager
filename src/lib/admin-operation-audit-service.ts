@@ -37,6 +37,7 @@ type ListAdminOperationAuditLogsInput = {
   operationType?: string
   createdFrom?: string | Date
   createdTo?: string | Date
+  limit?: number
 }
 
 type ListAdminOperationAuditLogsPageInput = ListAdminOperationAuditLogsInput & {
@@ -282,6 +283,7 @@ export async function listAdminOperationAuditLogs(
     where,
     include: adminOperationAuditLogInclude,
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: input?.limit,
   })
 }
 

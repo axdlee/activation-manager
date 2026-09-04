@@ -297,3 +297,45 @@ test('管理员审计日志列表处理器在项目筛选命中不存在项目�
     await prisma.$disconnect()
   }
 })
+
+test('导出审计日志超过上限时返回 400 与提示', async () => {
+  const mod = await import('../src/lib/admin-audit-route-handlers')
+  const { handleExportAdminOperationAuditLogsRequest, ADMIN_AUDIT_EXPORT_MAX_ROWS } = mod
+  const auditService = await import('../src/lib/admin-operation-audit-service')
+
+  const fakeClient = {
+    project: {
+      findUnique: async () => null,
+    },
+    adminOperationAuditLog: {
+      findMany: async (args: { take?: number }) => {
+        return Array.from({ length: args.take ?? 0 }, (_, i) => ({
+          id: i + 1,
+          adminUsername: 'admin',
+          operationType: 'PROJECT_CREATED',
+          targetLabel: '项目',
+          reason: null,
+          detailJson: null,
+          createdAt: new Date('2026-03-25T00:00:00.000Z'),
+          projectId: null,
+          activationCodeId: null,
+          project: null,
+          activationCode: null,
+        }))
+      },
+    },
+  }
+
+  const response = await handleExportAdminOperationAuditLogsRequest(
+    new Request('http://127.0.0.1:3000/api/admin/audit-logs/export', { method: 'GET' }),
+    fakeClient as never,
+  )
+
+  assert.equal(response.status, 400)
+  const body = (await response.json()) as { success: boolean; message: string }
+  assert.equal(body.success, false)
+  assert.match(body.message, /上限/)
+  assert.ok(ADMIN_AUDIT_EXPORT_MAX_ROWS > 0)
+  // 确保导出的常量可被测试访问
+  assert.equal(typeof auditService.listAdminOperationAuditLogs, 'function')
+})
