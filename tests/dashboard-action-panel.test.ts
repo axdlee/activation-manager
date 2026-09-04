@@ -24,7 +24,7 @@ test('DashboardActionPanel 会渲染默认暗色行动卡结构、标题与操�
   assert.match(html, /flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between/)
   assert.match(
     html,
-    /inline-flex items-center rounded-full border border-surface-200 bg-surface-100 px-3 py-1 text-\[11px\] font-semibold tracking-\[0\.22em\] text-ink-700/,
+    /inline-flex items-center rounded-full border border-surface-200 bg-surface-100 px-3 py-1 text-\[11px\] font-semibold tracking-\[0\.22em\] text-ink-300/,
   )
   assert.match(html, /准备创建新的项目空间？/)
   assert.match(html, /新项目会立即出现在发码、统计和激活码筛选中/)

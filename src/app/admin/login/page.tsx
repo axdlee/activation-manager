@@ -56,7 +56,7 @@ export default function LoginPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
             Admin Access
           </div>
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-950">管理后台登录</h1>
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-50">管理后台登录</h1>
           <p className="mt-2 text-sm leading-6 text-ink-500">
             登录后进入项目管理、发码、消费日志与系统配置工作台。
           </p>

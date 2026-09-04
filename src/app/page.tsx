@@ -61,7 +61,7 @@ export default function Home() {
                 <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
                 License Ops Center
               </div>
-              <h1 className="mt-5 text-4xl font-semibold tracking-tight text-ink-950 sm:text-5xl">
+              <h1 className="mt-5 text-4xl font-semibold tracking-tight text-ink-50 sm:text-5xl">
                 激活码管理系统
               </h1>
               <p className="mt-4 max-w-xl text-base leading-7 text-ink-500">

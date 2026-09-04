@@ -28,22 +28,19 @@ type ApiDocsWorkspaceProps = {
 
 const summaryCardThemeMap = {
   sky: {
-    panel:
-      'border-surface-200 bg-[linear-gradient(180deg,rgba(240,249,255,0.96),rgba(255,255,255,0.94))]',
+    panel: 'border-surface-200 bg-surface-100',
     accent: 'bg-brand-500/100/100',
     value: 'text-brand-300',
   },
   emerald: {
-    panel:
-      'border-emerald-200/80 bg-[linear-gradient(180deg,rgba(236,253,245,0.96),rgba(255,255,255,0.94))]',
+    panel: 'border-surface-200 bg-surface-100',
     accent: 'bg-emerald-500',
-    value: 'text-emerald-900',
+    value: 'text-emerald-300',
   },
   violet: {
-    panel:
-      'border-violet-200/80 bg-[linear-gradient(180deg,rgba(245,243,255,0.96),rgba(255,255,255,0.94))]',
+    panel: 'border-surface-200 bg-surface-100',
     accent: 'bg-violet-500',
-    value: 'text-violet-900',
+    value: 'text-violet-300',
   },
 } as const
 

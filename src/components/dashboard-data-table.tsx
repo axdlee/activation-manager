@@ -17,10 +17,10 @@ export function DashboardDataTable({
   headers,
   children,
   containerClassName,
-  tableClassName = 'w-full min-w-max divide-y divide-gray-200',
+  tableClassName = 'w-full min-w-max divide-y divide-surface-200',
   headClassName = 'bg-surface-50',
-  bodyClassName = 'divide-y divide-gray-200 bg-surface-100',
-  headerCellClassName = 'whitespace-nowrap px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider',
+  bodyClassName = 'divide-y divide-surface-200 bg-surface-100',
+  headerCellClassName = 'whitespace-nowrap px-6 py-3 text-left text-xs font-medium text-ink-400 uppercase tracking-wider',
   scrollHintText = '列较多时可左右拖动、Shift + 滚轮或拖动滚动条查看完整内容',
 }: DashboardDataTableProps) {
   return (

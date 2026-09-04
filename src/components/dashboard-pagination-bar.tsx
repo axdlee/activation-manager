@@ -25,7 +25,7 @@ export function DashboardPaginationBar({
 
   return (
     <div className={className}>
-      <div className="text-sm text-gray-700">{summary}</div>
+      <div className="text-sm text-ink-300">{summary}</div>
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => onPageChange(currentPage - 1)}

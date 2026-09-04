@@ -18,7 +18,7 @@ test('buildDashboardStatsCards 会返回包含次数剩余和次数消耗的 6 �
     { icon: '用', label: '已使用', value: 3, color: 'bg-green-500' },
     { icon: '期', label: '已过期', value: 1, color: 'bg-red-500' },
     { icon: '活', label: '可用激活码', value: 6, color: 'bg-purple-500' },
-    { icon: '余', label: '次数剩余', value: 18, color: 'bg-amber-500' },
+    { icon: '余', label: '次数剩余', value: 18, color: 'bg-amber-600' },
     { icon: '耗', label: '次数消耗', value: 7, color: 'bg-slate-600' },
   ])
 })

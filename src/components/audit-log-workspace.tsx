@@ -297,7 +297,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
             </DashboardFilterFieldCard>
           </div>
 
-          <div className="mt-5 rounded-lg border border-surface-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-card">
+          <div className="mt-5 rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
             <div className="text-xs uppercase tracking-[0.18em] text-ink-500">当前生效条件</div>
             <DashboardTokenList
               tokens={filtersView.filterTokens}
@@ -354,7 +354,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
             <>
               <DashboardDataTable
                 headers={['操作类型', '管理员', '项目', '激活码', '目标', '原因', '详情', '操作时间']}
-                tableClassName="w-full min-w-[1280px] divide-y divide-gray-200"
+                tableClassName="w-full min-w-[1280px] divide-y divide-surface-200"
               >
                 {logsView.logs.map((log) => (
                   <tr key={log.id} className="transition hover:bg-surface-50">

@@ -281,7 +281,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-            <div className="rounded-lg border border-surface-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-card">
+            <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
               <div className="text-xs uppercase tracking-[0.18em] text-ink-500">快捷时间范围</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button type="button" onClick={filtersView.onApplyToday} className={ghostButtonClassName}>
@@ -396,8 +396,8 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
             <>
               <DashboardDataTable
                 headers={['项目', '激活码', 'requestId', '机器ID', '授权类型', '剩余次数', '消费时间']}
-                tableClassName="w-full min-w-[980px] divide-y divide-gray-200"
-                bodyClassName="bg-surface-100 divide-y divide-gray-200"
+                tableClassName="w-full min-w-[980px] divide-y divide-surface-200"
+                bodyClassName="bg-surface-100 divide-y divide-surface-200"
               >
                 {logsView.logs.map((log) => (
                   <tr key={log.id} className="transition hover:bg-surface-50">

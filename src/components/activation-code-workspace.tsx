@@ -610,7 +610,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
             </DashboardFilterFieldCard>
           </div>
 
-          <div className="mt-5 rounded-lg border border-surface-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.94))] p-5 shadow-card">
+          <div className="mt-5 rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
                 <div className="text-xs uppercase tracking-[0.18em] text-ink-500">当前生效条件</div>
@@ -698,41 +698,41 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                     '绑定设备 / machineId',
                     '操作',
                   ]}
-                  tableClassName="w-full min-w-[1460px] divide-y divide-gray-200"
+                  tableClassName="w-full min-w-[1460px] divide-y divide-surface-200"
                 >
                   {resultsView.codes.map((code) => {
                     const isSelected = resultsView.managementView?.selectedCodeId === code.id
 
                     return (
                       <tr key={code.id} className="transition hover:bg-surface-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
                           {resultsView.getProjectDisplay(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-100">
                           {code.code}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {resultsView.getStatusBadge(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
                           {resultsView.getLicenseModeDisplay(code.licenseMode)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
                           {resultsView.getSpecDisplay(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
                           {new Date(code.createdAt).toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
                           {resultsView.getExpiryDisplay(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
                           {resultsView.getRemainingDisplay(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
                           {code.usedAt ? new Date(code.usedAt).toLocaleString() : '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
                           {code.usedBy || '未绑定'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

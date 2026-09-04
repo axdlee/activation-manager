@@ -1761,7 +1761,7 @@ export default function DashboardPage() {
                     <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
                     授权运营中台
                   </div>
-                  <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink-950">
+                  <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink-50">
                     激活码管理后台
                   </h1>
                   <p className="mt-2 text-sm leading-6 text-ink-500">
@@ -1833,7 +1833,7 @@ export default function DashboardPage() {
                       <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
                       当前模块 · {activeTabMeta.label}
                     </div>
-                    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink-950">
+                    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink-50">
                       {activeTabMeta.label}
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-7 text-ink-500">
@@ -2252,14 +2252,14 @@ export default function DashboardPage() {
                   '次数剩余',
                   '次数消耗',
                 ]}
-                tableClassName="w-full min-w-[1120px] divide-y divide-gray-200"
-                bodyClassName="bg-surface-100 divide-y divide-gray-200"
+                tableClassName="w-full min-w-[1120px] divide-y divide-surface-200"
+                bodyClassName="bg-surface-100 divide-y divide-surface-200"
               >
                 {filteredProjectStats.map((project) => (
                   <tr key={project.id} className="transition hover:bg-surface-50">
                     <td className="px-6 py-4 text-sm font-medium text-ink-50">{project.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-500">{project.projectKey}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
                       {project.isEnabled ? (
                         <DashboardStatusBadge label="启用中" tone="success" />
                       ) : (
@@ -2277,7 +2277,7 @@ export default function DashboardPage() {
               </DashboardDataTable>
 
               {filteredProjectStats.length === 0 && (
-                <div className="py-8 text-center text-gray-500">
+                <div className="py-8 text-center text-ink-400">
                   {projectStats.length === 0 ? '暂无项目统计数据' : '暂无匹配的项目统计数据'}
                 </div>
               )}
@@ -2486,16 +2486,16 @@ export default function DashboardPage() {
 
                 <DashboardDataTable
                   headers={['项目', '激活码', '授权类型', '规格', '创建时间', '剩余次数', '操作']}
-                  tableClassName="w-full min-w-[920px] divide-y divide-gray-200"
+                  tableClassName="w-full min-w-[920px] divide-y divide-surface-200"
                 >
                   {generatedCodes.map((code) => (
                     <tr key={code.id} className="transition hover:bg-surface-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getProjectDisplay(code)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{code.code}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getLicenseModeDisplay(code.licenseMode)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getSpecDisplay(code)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(code.createdAt).toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getRemainingDisplay(code)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">{getProjectDisplay(code)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-100">{code.code}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">{getLicenseModeDisplay(code.licenseMode)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">{getSpecDisplay(code)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">{new Date(code.createdAt).toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">{getRemainingDisplay(code)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <DashboardInlineActionButton onClick={() => void copyToClipboard(code.code)}>
                           复制

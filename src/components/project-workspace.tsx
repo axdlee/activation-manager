@@ -434,7 +434,7 @@ export function ProjectWorkspace({
 
         <DashboardDataTable
           headers={['项目名称', '项目标识', '换绑策略', '状态', '操作']}
-          tableClassName="w-full min-w-[1180px] divide-y divide-gray-200"
+          tableClassName="w-full min-w-[1180px] divide-y divide-surface-200"
         >
           {manageView.page.items.map((project) => (
             <DashboardProjectManagementRow
@@ -465,7 +465,7 @@ export function ProjectWorkspace({
             activeButtonClassName={paginationActiveButtonClassName}
           />
         ) : (
-          <div className="mt-6 text-sm text-gray-700">{paginationSummary}</div>
+          <div className="mt-6 text-sm text-ink-300">{paginationSummary}</div>
         )}
       </div>
 

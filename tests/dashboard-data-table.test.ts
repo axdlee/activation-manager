@@ -29,12 +29,12 @@ test('DashboardDataTable 会渲染默认表格容器、表头与 tbody 内容', 
     html,
     /dashboard-scroll-area overflow-x-auto overflow-y-hidden touch-pan-x rounded-lg border border-surface-200 bg-surface-100 shadow-card cursor-grab/u,
   )
-  assert.match(html, /w-full min-w-max divide-y divide-gray-200/)
+  assert.match(html, /w-full min-w-max divide-y divide-surface-200/)
   assert.match(html, /bg-surface-50/)
-  assert.match(html, /divide-y divide-gray-200 bg-surface-100/)
+  assert.match(html, /divide-y divide-surface-200 bg-surface-100/)
   assert.match(
     html,
-    /whitespace-nowrap px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider/u,
+    /whitespace-nowrap px-6 py-3 text-left text-xs font-medium text-ink-400 uppercase tracking-wider/u,
   )
   assert.match(html, /列较多时可左右拖动、Shift \+ 滚轮或拖动滚动条查看完整内容/)
 })
