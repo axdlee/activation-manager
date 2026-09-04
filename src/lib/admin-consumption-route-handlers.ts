@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { NextResponse } from 'next/server'
 
 import { buildConsumptionTrendComparisonSeries } from './consumption-trend-comparison'
 import { getVisibleConsumptionTrendPoints } from './consumption-trend-display'
@@ -273,12 +274,27 @@ export async function handleExportLicenseConsumptionTrendRequest(
   })
 }
 
+export const LICENSE_CONSUMPTION_EXPORT_MAX_ROWS = 100_000
+
 export async function handleExportLicenseConsumptionsRequest(
   request: Request,
   client: PrismaClient = prisma,
 ) {
-  const logs = await listLicenseConsumptions(client, readLicenseConsumptionFilters(request))
+  const logs = await listLicenseConsumptions(client, {
+    ...readLicenseConsumptionFilters(request),
+    limit: LICENSE_CONSUMPTION_EXPORT_MAX_ROWS + 1, // +1 检测是否超限
+  })
   const filename = `license_consumptions_${new Date().toISOString().slice(0, 10)}.csv`
+
+  if (logs.length > LICENSE_CONSUMPTION_EXPORT_MAX_ROWS) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: `导出数量超过上限（${LICENSE_CONSUMPTION_EXPORT_MAX_ROWS.toLocaleString()} 条），请缩小筛选范围后重试`,
+      },
+      { status: 400 },
+    )
+  }
 
   return new Response(buildLicenseConsumptionCsv(logs), {
     status: 200,

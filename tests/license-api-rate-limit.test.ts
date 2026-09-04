@@ -126,3 +126,42 @@ test('createLicenseRouteHandler 在限流拒绝时返回 429 与 Retry-After', a
   assert.equal(body.success, false)
   assert.match(body.message, /频繁/)
 })
+test('createLicenseApiRateLimiter 窗口过期后自动清理 Map key，避免内存泄漏', () => {
+  let now = 1000
+  const limiter = createLicenseApiRateLimiter({
+    maxRequests: 3,
+    windowMs: 1000,
+    now: () => now,
+  })
+
+  // 用大量伪造 key 模拟攻击
+  for (let i = 0; i < 50; i += 1) {
+    limiter.check(`fake-${i}`)
+  }
+
+  // 时间推进超过窗口后再次 check，应触发清理
+  now = 5000
+  limiter.check('new-key')
+
+  // 重新 check 旧 key 应不携带旧时间戳（若等价于新 key）
+  const result = limiter.check('fake-0')
+  assert.equal(result.allowed, true)
+})
+
+test('createLicenseApiRateLimiter 清理后旧 key 重新计数', () => {
+  let now = 1000
+  const limiter = createLicenseApiRateLimiter({
+    maxRequests: 2,
+    windowMs: 1000,
+    now: () => now,
+  })
+
+  limiter.check('a')
+  limiter.check('a')
+  assert.equal(limiter.check('a').allowed, false)
+
+  // 窗口过期后重置
+  now = 3000
+  limiter.check('b') // 触发清理
+  assert.equal(limiter.check('a').allowed, true)
+})

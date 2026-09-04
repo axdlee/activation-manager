@@ -7,6 +7,7 @@ type ListLicenseConsumptionsInput = {
   keyword?: string
   createdFrom?: string | Date
   createdTo?: string | Date
+  limit?: number
 }
 
 type ListLicenseConsumptionsPageInput = ListLicenseConsumptionsInput & {
@@ -171,6 +172,7 @@ export async function listLicenseConsumptions(
     where,
     include: licenseConsumptionInclude,
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: input?.limit,
   })
 }
 

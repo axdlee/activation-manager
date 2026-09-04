@@ -722,3 +722,57 @@ test('消费趋势处理器返回当前周期相对上一周期的对比数据',
     await prisma.$disconnect()
   }
 })
+
+test('导出消费日志超过上限时返回 400 与提示', async () => {
+  const { handleExportLicenseConsumptionsRequest, LICENSE_CONSUMPTION_EXPORT_MAX_ROWS } = await import(
+    '../src/lib/admin-consumption-route-handlers'
+  )
+  const { findProjectByProjectKey } = await import('../src/lib/license-project-service')
+
+  // fake client：findProjectByProjectKey(mock) 无项目，licenseConsumption.findMany 返回超限数量
+  const fakeClient = {
+    project: {
+      findUnique: async () => null,
+    },
+    licenseConsumption: {
+      findMany: async (args: { take?: number }) => {
+        return Array.from({ length: args.take ?? 0 }, () => ({
+          id: 1,
+          requestId: 'req-1',
+          machineId: 'm-1',
+          createdAt: new Date('2026-03-25T00:00:00.000Z'),
+          activationCode: {
+            id: 1,
+            code: 'CODE-1',
+            projectId: 1,
+            licenseMode: 'COUNT',
+            cardType: null,
+            totalCount: 3,
+            remainingCount: 2,
+            project: {
+              id: 1,
+              projectKey: 'project-key',
+              name: '项目',
+            },
+          },
+        }))
+      },
+    },
+  }
+
+  // 让 findProjectByProjectKey 使用 fakeClient 的 project.findUnique —— 直接用 fake client 传给 handler
+  const response = await handleExportLicenseConsumptionsRequest(
+    new Request('http://127.0.0.1:3000/api/admin/consumptions/export', {
+      method: 'GET',
+    }),
+    fakeClient as never, // handler 的第二个参数是 client
+  )
+
+  assert.equal(response.status, 400)
+  const body = (await response.json()) as { success: boolean; message: string }
+  assert.equal(body.success, false)
+  assert.match(body.message, /上限/)
+  assert.ok(LICENSE_CONSUMPTION_EXPORT_MAX_ROWS > 0)
+  // 纯净模块导入方法不应被改，避免产生副作用
+  assert.equal(typeof findProjectByProjectKey, 'function')
+})

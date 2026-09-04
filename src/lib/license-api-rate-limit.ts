@@ -30,10 +30,28 @@ export function createLicenseApiRateLimiter(
   const windowMs = options.windowMs ?? DEFAULT_LICENSE_API_WINDOW_MS
   const getNow = options.now ?? Date.now
   const records = new Map<string, number[]>()
+  // 清理检查粒度：windowMs 大小无关，但避免每次 check 都全表扫描
+  let lastCleanupAt = 0
+
+  function cleanupExpiredKeys(now: number) {
+    // 每 windowMs 清理一次过期 key，防止伪造 IP 导致 Map 无限增长
+    if (now - lastCleanupAt < windowMs) {
+      return
+    }
+
+    lastCleanupAt = now
+    for (const [key, timestamps] of records) {
+      if (normalizeFailures(timestamps, now, windowMs).length === 0) {
+        records.delete(key)
+      }
+    }
+  }
 
   return {
     check(key: string): LicenseApiRateLimitCheckResult {
       const now = getNow()
+      cleanupExpiredKeys(now)
+
       const timestamps = normalizeFailures(records.get(key) ?? [], now, windowMs)
       timestamps.push(now)
       records.set(key, timestamps)
