@@ -12,7 +12,7 @@ type DashboardCodePanelProps = {
 }
 
 const defaultPanelClassName =
-  'rounded-lg border border-surface-200 bg-white p-5 shadow-card'
+  'rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card'
 const defaultHeaderClassName =
   'mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'
 const defaultCodeClassName =

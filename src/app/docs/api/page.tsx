@@ -31,22 +31,22 @@ const docsHighlights = [
   },
 ]
 
-const apiDocsPageClassName = 'min-h-screen bg-surface-50 px-4 py-6 text-ink-900 sm:px-6 lg:px-8'
+const apiDocsPageClassName = 'min-h-screen bg-surface-50 px-4 py-6 text-ink-50 sm:px-6 lg:px-8'
 
 const apiDocsShellClassName =
-  'rounded-lg border border-brand-100 bg-white shadow-card'
+  'rounded-lg border border-brand-500/20 bg-surface-100 shadow-card'
 
 const apiDocsPillClassName =
-  'inline-flex items-center gap-2 rounded-full border border-brand-100 bg-brand-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-700 shadow-sm'
+  'inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-400 shadow-sm'
 
 const apiDocsPrimaryButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-sky-600 via-cyan-500 to-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:from-sky-500 hover:via-cyan-500 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-50'
 
 const apiDocsSecondaryButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-white px-5 py-3 text-sm font-semibold text-ink-700 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-100 hover:bg-brand-50'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-semibold text-ink-200 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/100/10'
 
 const apiDocsHighlightCardClassName =
-  'rounded-lg border border-surface-200 bg-white px-5 py-5 shadow-card'
+  'rounded-lg border border-surface-200 bg-surface-100 px-5 py-5 shadow-card'
 
 export default function ApiDocsPage() {
   return (
@@ -63,10 +63,10 @@ export default function ApiDocsPage() {
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <div className={apiDocsPillClassName}>
-                <span className="h-2 w-2 rounded-full bg-brand-500" />
+                <span className="h-2 w-2 rounded-full bg-brand-500/100/100" />
                 对外接入说明
               </div>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
+              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink-50 sm:text-4xl">
                 面向插件与客户端的 API 文档中心
               </h1>
               <p className="mt-3 text-sm leading-7 text-ink-500 sm:text-base">
@@ -88,7 +88,7 @@ export default function ApiDocsPage() {
                   <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
                     {item.label}
                   </div>
-                  <div className="mt-3 text-2xl font-semibold tracking-tight text-ink-900">
+                  <div className="mt-3 text-2xl font-semibold tracking-tight text-ink-50">
                     {item.value}
                   </div>
                   <div className="mt-2 text-sm leading-6 text-ink-500">

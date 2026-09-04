@@ -31,53 +31,53 @@ type SystemConfigWorkspaceProps = {
 }
 
 const systemConfigBadgeClassNameMap = {
-  info: 'border-brand-100 bg-brand-50 text-brand-700',
+  info: 'border-brand-500/20 bg-brand-500/100/10 text-brand-400',
   success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   warning: 'border-amber-200 bg-amber-50 text-amber-700',
   danger: 'border-rose-200 bg-rose-50 text-rose-600',
-  neutral: 'border-surface-200 bg-surface-50 text-ink-600',
+  neutral: 'border-surface-200 bg-surface-50 text-ink-300',
 } as const
 
 const systemConfigGroupThemeMap = {
   access: {
-    badge: 'border border-surface-200 bg-surface-50 text-ink-600',
-    dot: 'bg-brand-500',
-    title: 'text-ink-900',
-    note: 'border-surface-200 bg-surface-50 text-ink-600',
+    badge: 'border border-surface-200 bg-surface-50 text-ink-300',
+    dot: 'bg-brand-500/100/100',
+    title: 'text-ink-50',
+    note: 'border-surface-200 bg-surface-50 text-ink-300',
     divider: 'border-surface-200',
-    summaryPanel: 'border-surface-200 bg-white',
+    summaryPanel: 'border-surface-200 bg-surface-100',
   },
   rebind: {
-    badge: 'border border-surface-200 bg-surface-50 text-ink-600',
+    badge: 'border border-surface-200 bg-surface-50 text-ink-300',
     dot: 'bg-emerald-500',
-    title: 'text-ink-900',
-    note: 'border-surface-200 bg-surface-50 text-ink-600',
+    title: 'text-ink-50',
+    note: 'border-surface-200 bg-surface-50 text-ink-300',
     divider: 'border-surface-200',
-    summaryPanel: 'border-surface-200 bg-white',
+    summaryPanel: 'border-surface-200 bg-surface-100',
   },
   security: {
-    badge: 'border border-surface-200 bg-surface-50 text-ink-600',
+    badge: 'border border-surface-200 bg-surface-50 text-ink-300',
     dot: 'bg-violet-500',
-    title: 'text-ink-900',
-    note: 'border-surface-200 bg-surface-50 text-ink-600',
+    title: 'text-ink-50',
+    note: 'border-surface-200 bg-surface-50 text-ink-300',
     divider: 'border-surface-200',
-    summaryPanel: 'border-surface-200 bg-white',
+    summaryPanel: 'border-surface-200 bg-surface-100',
   },
   branding: {
-    badge: 'border border-surface-200 bg-surface-50 text-ink-600',
+    badge: 'border border-surface-200 bg-surface-50 text-ink-300',
     dot: 'bg-amber-500',
-    title: 'text-ink-900',
-    note: 'border-surface-200 bg-surface-50 text-ink-600',
+    title: 'text-ink-50',
+    note: 'border-surface-200 bg-surface-50 text-ink-300',
     divider: 'border-surface-200',
-    summaryPanel: 'border-surface-200 bg-white',
+    summaryPanel: 'border-surface-200 bg-surface-100',
   },
   advanced: {
-    badge: 'border border-surface-200 bg-surface-50 text-ink-600',
+    badge: 'border border-surface-200 bg-surface-50 text-ink-300',
     dot: 'bg-surface-500',
-    title: 'text-ink-900',
-    note: 'border-surface-200 bg-surface-50 text-ink-600',
+    title: 'text-ink-50',
+    note: 'border-surface-200 bg-surface-50 text-ink-300',
     divider: 'border-surface-200',
-    summaryPanel: 'border-surface-200 bg-white',
+    summaryPanel: 'border-surface-200 bg-surface-100',
   },
 } as const
 
@@ -97,7 +97,7 @@ const overviewChecklistItems = [
 ]
 
 const overviewActionButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-4 py-2.5 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50'
 
 function resolveInitialTab(
   initialTab: SystemConfigWorkspaceTab,
@@ -154,11 +154,11 @@ function renderGroupSection({
 
       <div className="space-y-4">
         {group.items.map((item) => (
-          <article key={item.key} className="rounded-lg border border-surface-200 bg-white p-5">
+          <article key={item.key} className="rounded-lg border border-surface-200 bg-surface-100 p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="text-base font-semibold text-ink-900">{item.label}</h4>
+                  <h4 className="text-base font-semibold text-ink-50">{item.label}</h4>
                   {item.badges?.map((badge) => (
                     <span
                       key={`${item.key}-${badge.label}`}
@@ -175,7 +175,7 @@ function renderGroupSection({
                 <button
                   type="button"
                   onClick={() => toggleSensitiveConfigVisibility(item.key)}
-                  className="inline-flex items-center justify-center rounded-md border border-surface-200 bg-white px-3 py-2 text-xs font-medium text-ink-600 shadow-sm transition hover:border-surface-300 hover:bg-surface-50"
+                  className="inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 py-2 text-xs font-medium text-ink-300 shadow-sm transition hover:border-surface-300 hover:bg-surface-50"
                 >
                   {isSensitiveConfigVisible(item.key) ? '隐藏内容' : '显示内容'}
                 </button>
@@ -261,13 +261,13 @@ function renderGroupSection({
                       item.previewTokens.map((token) => (
                         <span
                           key={`${item.key}-${token}`}
-                          className="rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700"
+                          className="rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1.5 text-xs font-medium text-brand-400"
                         >
                           {token}
                         </span>
                       ))
                     ) : (
-                      <span className="rounded-full border border-dashed border-surface-200 px-3 py-1.5 text-xs text-ink-400">
+                      <span className="rounded-full border border-dashed border-surface-200 px-3 py-1.5 text-xs text-ink-500">
                         尚未填写 IP 地址
                       </span>
                     )}
@@ -297,7 +297,7 @@ export function SystemConfigWorkspace({
   loading,
   inputClassName,
   panelClassName =
-    'rounded-lg border border-surface-200/70 bg-white shadow-card',
+    'rounded-lg border border-surface-200/70 bg-surface-100 shadow-card',
   initialTab = 'overview',
   onSubmit,
   updateConfigValue,
@@ -333,10 +333,10 @@ export function SystemConfigWorkspace({
     <div className="space-y-6 pb-10">
       <section className={`${panelClassName} p-6 sm:p-7`}>
         <div className="max-w-3xl">
-          <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-ink-600">
+          <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-ink-300">
             配置工作台
           </div>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-900">系统配置中心</h2>
+          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-50">系统配置中心</h2>
           <p className="mt-2 text-sm leading-7 text-ink-500 sm:text-base">
             改成更标准的设置工作区：上方选分区，中间只看当前分区字段，底部统一保存，减少花哨装饰对操作的干扰。
           </p>
@@ -378,10 +378,10 @@ export function SystemConfigWorkspace({
           <section className={`${panelClassName} p-5`}>
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-ink-600">
+                <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-ink-300">
                   保存后立即生效
                 </div>
-                <h3 className="mt-3 text-lg font-semibold text-ink-900">准备保存本次配置变更？</h3>
+                <h3 className="mt-3 text-lg font-semibold text-ink-50">准备保存本次配置变更？</h3>
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-500">
                   保存后会立即写入系统配置表；涉及访问控制、换绑策略与认证的变更会立刻影响后台行为。
                 </p>
@@ -401,7 +401,7 @@ export function SystemConfigWorkspace({
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
+                className="inline-flex w-full items-center justify-center rounded-md bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
               >
                 {loading ? '保存中...' : '保存配置'}
               </button>
@@ -412,10 +412,10 @@ export function SystemConfigWorkspace({
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           <section className={`${panelClassName} p-6`}>
             <div className="mb-5">
-              <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-600">
+              <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-300">
                 配置总览
               </div>
-              <h3 className="mt-4 text-xl font-semibold text-ink-900">先确认这些关键影响</h3>
+              <h3 className="mt-4 text-xl font-semibold text-ink-50">先确认这些关键影响</h3>
               <p className="mt-2 text-sm leading-6 text-ink-500">
                 设置页已改为分区工作区，但所有更改依旧属于即时生效型操作，建议先从影响面最大的项开始检查。
               </p>
@@ -425,9 +425,9 @@ export function SystemConfigWorkspace({
               {overviewChecklistItems.map((item, index) => (
                 <div
                   key={item}
-                  className="rounded-md border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-7 text-ink-600"
+                  className="rounded-md border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-7 text-ink-300"
                 >
-                  <span className="mr-2 font-semibold text-ink-900">0{index + 1}</span>
+                  <span className="mr-2 font-semibold text-ink-50">0{index + 1}</span>
                   {item}
                 </div>
               ))}
@@ -435,7 +435,7 @@ export function SystemConfigWorkspace({
 
             <div className="mt-6 border-t border-surface-200 pt-6">
               <div className="mb-5">
-                <div className="text-sm font-semibold text-ink-900">分区速览</div>
+                <div className="text-sm font-semibold text-ink-50">分区速览</div>
                 <p className="mt-2 text-sm leading-6 text-ink-500">
                   先按影响面选择要进入的分区；进入后只显示该分区字段，页面更短，定位更快。
                 </p>
@@ -488,10 +488,10 @@ export function SystemConfigWorkspace({
 
           <section className={`${panelClassName} p-6`}>
             <div>
-              <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-600">
+              <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-300">
                 保存方式
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-ink-900">按分区编辑，统一保存</h3>
+              <h3 className="mt-4 text-lg font-semibold text-ink-50">按分区编辑，统一保存</h3>
               <p className="mt-2 text-sm leading-6 text-ink-500">
                 当前总览只负责导航；进入任一分区后即可集中编辑该组字段，并使用底部保存动作一次性提交全部配置。
               </p>
@@ -511,7 +511,7 @@ export function SystemConfigWorkspace({
               <button
                 type="button"
                 onClick={() => setActiveTab(pageModel.groups[0]?.key || 'overview')}
-                className="mt-5 inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 lg:w-auto"
+                className="mt-5 inline-flex w-full items-center justify-center rounded-md bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 lg:w-auto"
               >
                 前往首个分区
               </button>

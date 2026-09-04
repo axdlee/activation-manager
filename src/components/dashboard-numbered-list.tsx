@@ -10,9 +10,9 @@ type DashboardNumberedListProps = {
 }
 
 const defaultItemClassName =
-  'flex items-start gap-3 rounded-lg border border-surface-200 bg-white px-4 py-4 text-sm leading-7 text-ink-600 shadow-card'
+  'flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 text-sm leading-7 text-ink-300 shadow-card'
 const defaultIndexClassName =
-  'flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white shadow-sm'
+  'flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-ink-900 text-xs font-semibold text-white shadow-sm'
 
 function formatDefaultIndex(index: number) {
   return String(index + 1).padStart(2, '0')

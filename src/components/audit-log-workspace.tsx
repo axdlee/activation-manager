@@ -99,21 +99,21 @@ type AuditLogWorkspaceProps<TLog extends AuditLogWorkspaceLog = AuditLogWorkspac
 }
 
 const defaultPanelClassName =
-  'rounded-lg border border-surface-200/70 bg-white shadow-card'
+  'rounded-lg border border-surface-200/70 bg-surface-100 shadow-card'
 const defaultWorkspaceSummaryCardClassName =
-  'rounded-lg border border-surface-200 bg-white px-4 py-4 shadow-sm'
+  'rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
-  'w-full rounded-md border border-surface-200 bg-white px-4 py-2.5 text-sm text-ink-900 shadow-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-surface-100 disabled:text-ink-500'
+  'w-full rounded-md border border-surface-200 bg-surface-100 px-4 py-2.5 text-sm text-ink-50 shadow-sm outline-none transition placeholder:text-ink-500 focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/10 disabled:bg-surface-100 disabled:text-ink-500'
 const defaultPrimaryButtonClassName =
-  'inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-ink-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultSuccessButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultGhostButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-white px-4 py-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-4 py-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationButtonClassName =
-  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-white px-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
-  'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
+  'border-sky-500 bg-brand-500/100/100 text-white shadow-card hover:border-sky-500 hover:bg-brand-500/100/100'
 
 export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
   activeTab,
@@ -358,7 +358,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
               >
                 {logsView.logs.map((log) => (
                   <tr key={log.id} className="transition hover:bg-surface-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-200">
                       {log.operationTypeLabel}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
@@ -367,7 +367,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
                       {log.project ? `${log.project.name} (${log.project.projectKey})` : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-50">
                       {log.activationCode?.code || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">

@@ -17,7 +17,7 @@ export function DashboardFormField({
   description,
   htmlFor,
   className,
-  labelClassName = 'mb-2 block text-sm font-medium text-ink-700',
+  labelClassName = 'mb-2 block text-sm font-medium text-ink-200',
   descriptionClassName = 'mt-1 text-sm leading-6 text-ink-500',
   bodyClassName,
 }: DashboardFormFieldProps) {

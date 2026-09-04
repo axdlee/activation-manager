@@ -22,7 +22,7 @@ test('DashboardFormField 会渲染默认标题样式、描述与内容区', () =
   assert.match(html, /授权类型/)
   assert.match(html, /选择时间型或次数型/)
   assert.match(html, /for="license-mode"/)
-  assert.match(html, /mb-2 block text-sm font-medium text-ink-700/)
+  assert.match(html, /mb-2 block text-sm font-medium text-ink-200/)
   assert.match(html, /mt-1 text-sm leading-6 text-ink-500/)
   assert.match(html, /control-slot/)
 })

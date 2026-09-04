@@ -17,7 +17,7 @@ test('DashboardTokenList 会渲染全部 token 并使用默认布局样式', () 
   assert.match(html, /项目：浏览器插件/)
   assert.match(html, /状态：已绑定/)
   assert.match(html, /flex flex-wrap gap-2/)
-  assert.match(html, /rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-sm text-brand-700/)
+  assert.match(html, /rounded-full border border-brand-500\/20 bg-brand-500\/100\/10 px-3 py-1\.5 text-sm text-brand-400/)
 })
 
 test('DashboardTokenList 在没有 token 时会渲染空状态文案', () => {
@@ -29,7 +29,7 @@ test('DashboardTokenList 在没有 token 时会渲染空状态文案', () => {
   )
 
   assert.match(html, /当前显示全部激活码/)
-  assert.match(html, /rounded-full border border-surface-200 bg-white px-3 py-1.5 text-sm text-ink-500/)
+  assert.match(html, /rounded-full border border-surface-200 bg-surface-100 px-3 py-1.5 text-sm text-ink-500/)
 })
 
 test('DashboardTokenList 支持覆盖容器、token 与空状态样式', () => {

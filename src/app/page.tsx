@@ -58,7 +58,7 @@ export default function Home() {
           <div className="flex flex-col gap-10 p-8 lg:flex-row lg:items-start lg:p-12">
             <div className="max-w-2xl flex-1">
               <div className={publicPillClassName}>
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
                 License Ops Center
               </div>
               <h1 className="mt-5 text-4xl font-semibold tracking-tight text-ink-950 sm:text-5xl">
@@ -81,10 +81,10 @@ export default function Home() {
               <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {operationCards.map((item) => (
                   <div key={item.label} className={publicStatCardClassName}>
-                    <div className="text-xs font-medium uppercase tracking-wider text-ink-400">
+                    <div className="text-xs font-medium uppercase tracking-wider text-ink-500">
                       {item.label}
                     </div>
-                    <div className="mt-2.5 text-xl font-semibold tracking-tight text-ink-900">
+                    <div className="mt-2.5 text-xl font-semibold tracking-tight text-ink-50">
                       {item.value}
                     </div>
                     <div className="mt-1.5 text-sm leading-6 text-ink-500">{item.description}</div>
@@ -97,10 +97,10 @@ export default function Home() {
               {capabilityCards.map((card) => (
                 <div key={card.title} className={publicFeatureCardClassName}>
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-md border border-brand-100 bg-brand-50 text-brand-600">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-md border border-brand-500/20 bg-brand-500/100/10 text-brand-400">
                       {card.icon}
                     </span>
-                    <span className="text-base font-semibold text-ink-900">{card.title}</span>
+                    <span className="text-base font-semibold text-ink-50">{card.title}</span>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-ink-500">{card.description}</p>
                 </div>
@@ -112,7 +112,7 @@ export default function Home() {
         {/* ===== 使用场景与快速入口 ===== */}
         <section className="grid gap-6 lg:grid-cols-2">
           <div className={`${publicShellClassName} p-8`}>
-            <h2 className="text-lg font-semibold tracking-tight text-ink-900">典型使用场景</h2>
+            <h2 className="text-lg font-semibold tracking-tight text-ink-50">典型使用场景</h2>
             <ul className="mt-6 space-y-5">
               {[
                 {
@@ -137,7 +137,7 @@ export default function Home() {
                     {index + 1}
                   </span>
                   <div>
-                    <div className="text-sm font-semibold text-ink-800">{item.title}</div>
+                    <div className="text-sm font-semibold text-ink-100">{item.title}</div>
                     <p className="mt-1 text-sm leading-6 text-ink-500">{item.text}</p>
                   </div>
                 </li>
@@ -146,7 +146,7 @@ export default function Home() {
           </div>
 
           <div className={`${publicShellClassName} p-8`}>
-            <h2 className="text-lg font-semibold tracking-tight text-ink-900">快速入口</h2>
+            <h2 className="text-lg font-semibold tracking-tight text-ink-50">快速入口</h2>
             <div className="mt-6 space-y-4">
               {[
                 {
@@ -167,7 +167,7 @@ export default function Home() {
                   className="flex flex-col gap-4 rounded-lg border border-surface-200 bg-surface-50 p-5 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <div className="text-base font-semibold text-ink-900">{item.title}</div>
+                    <div className="text-base font-semibold text-ink-50">{item.title}</div>
                     <p className="mt-1 text-sm leading-6 text-ink-500">{item.description}</p>
                   </div>
                   <Link

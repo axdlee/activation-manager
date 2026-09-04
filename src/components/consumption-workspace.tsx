@@ -101,21 +101,21 @@ type ConsumptionWorkspaceProps<TLog extends ConsumptionWorkspaceLogLike = Consum
 }
 
 const defaultPanelClassName =
-  'rounded-lg border border-surface-200/70 bg-white shadow-card'
+  'rounded-lg border border-surface-200/70 bg-surface-100 shadow-card'
 const defaultWorkspaceSummaryCardClassName =
-  'rounded-lg border border-surface-200 bg-white px-4 py-4 shadow-sm'
+  'rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
-  'w-full rounded-md border border-surface-200 bg-white px-4 py-2.5 text-sm text-ink-900 shadow-sm outline-none transition placeholder:text-ink-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 disabled:bg-surface-100 disabled:text-ink-500'
+  'w-full rounded-md border border-surface-200 bg-surface-100 px-4 py-2.5 text-sm text-ink-50 shadow-sm outline-none transition placeholder:text-ink-500 focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/10 disabled:bg-surface-100 disabled:text-ink-500'
 const defaultPrimaryButtonClassName =
-  'inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-ink-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultSuccessButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultGhostButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-white px-4 py-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-4 py-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationButtonClassName =
-  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-white px-3 text-sm font-medium text-ink-600 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
-  'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
+  'border-sky-500 bg-brand-500/100/100 text-white shadow-card hover:border-sky-500 hover:bg-brand-500/100/100'
 
 export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
   activeTab,
@@ -305,10 +305,10 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
               />
             </div>
 
-            <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-card">
+            <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
               <div className="text-xs uppercase tracking-[0.18em] text-ink-500">刷新状态</div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-sm text-brand-700">
+                <span className="rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1.5 text-sm text-brand-400">
                   自动刷新已开启（{filtersView.autoRefreshDelayMs}ms 防抖）
                 </span>
                 <span
@@ -366,7 +366,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
           <DashboardSummaryStrip
             leading={
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 text-sm text-brand-700">
+                <span className="rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1.5 text-sm text-brand-400">
                   自动刷新已开启（{logsView.autoRefreshDelayMs}ms 防抖）
                 </span>
                 <span
@@ -378,7 +378,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                   tokens={logsView.filterTokens}
                   emptyText="当前显示全部消费日志"
                   className="contents"
-                  tokenClassName="rounded-full border border-brand-100 bg-white px-3 py-1.5 text-sm text-ink-600"
+                  tokenClassName="rounded-full border border-brand-500/20 bg-surface-100 px-3 py-1.5 text-sm text-ink-300"
                 />
               </div>
             }
@@ -397,14 +397,14 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
               <DashboardDataTable
                 headers={['项目', '激活码', 'requestId', '机器ID', '授权类型', '剩余次数', '消费时间']}
                 tableClassName="w-full min-w-[980px] divide-y divide-gray-200"
-                bodyClassName="bg-white divide-y divide-gray-200"
+                bodyClassName="bg-surface-100 divide-y divide-gray-200"
               >
                 {logsView.logs.map((log) => (
                   <tr key={log.id} className="transition hover:bg-surface-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-200">
                       {log.activationCode.project.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-50">
                       {log.activationCode.code}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-500">
@@ -416,7 +416,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
                       {logsView.getLicenseModeDisplay(log.activationCode.licenseMode)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-700">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-200">
                       {log.remainingCountAfter}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">

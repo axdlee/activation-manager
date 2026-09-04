@@ -14,17 +14,17 @@ export function DashboardFilterFieldCard({
   description,
   children,
   htmlFor,
-  className = 'rounded-lg border border-surface-200 bg-white p-5 shadow-sm',
+  className = 'rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm',
   bodyClassName = 'mt-4',
 }: DashboardFilterFieldCardProps) {
   return (
     <div className={className}>
       {htmlFor ? (
-        <label htmlFor={htmlFor} className="text-sm font-semibold text-ink-900">
+        <label htmlFor={htmlFor} className="text-sm font-semibold text-ink-50">
           {label}
         </label>
       ) : (
-        <div className="text-sm font-semibold text-ink-900">{label}</div>
+        <div className="text-sm font-semibold text-ink-50">{label}</div>
       )}
       <p className="mt-2 text-sm leading-6 text-ink-500">{description}</p>
       <div className={bodyClassName}>{children}</div>

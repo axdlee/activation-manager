@@ -34,7 +34,7 @@ test('ApiDocsAdminGroupCard 会渲染后台接口分组卡与接口条目', () =
 
   assert.match(
     html,
-    /rounded-lg border border-surface-200 bg-white p-5 shadow-card/,
+    /rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card/,
   )
   assert.match(html, /项目与发码/)
   assert.match(html, /联调之前先准备 projectKey 和测试激活码/)

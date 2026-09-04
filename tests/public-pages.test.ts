@@ -29,7 +29,7 @@ test('首页会渲染管理后台入口与公开 API 文档入口', async () => 
   assert.equal(html.includes('查看 API 文档'), true)
   assert.equal(html.includes('多项目隔离'), true)
   assert.equal(
-    html.includes('rounded-md bg-brand-600 px-4 py-2.5 text-sm font-medium text-white'),
+    html.includes('bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700'),
     true,
   )
   assert.equal(

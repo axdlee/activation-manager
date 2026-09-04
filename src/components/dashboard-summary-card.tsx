@@ -21,9 +21,9 @@ export function DashboardSummaryCard({
   description,
   className,
   panelClassName,
-  accentClassName = 'bg-slate-900',
+  accentClassName = 'bg-ink-900',
   labelClassName = 'text-xs uppercase tracking-[0.18em] text-ink-500',
-  valueClassName = 'mt-3 text-3xl font-semibold tracking-tight text-ink-900',
+  valueClassName = 'mt-3 text-3xl font-semibold tracking-tight text-ink-50',
   descriptionClassName = 'mt-2 text-sm leading-6 text-ink-500',
 }: DashboardSummaryCardProps) {
   const containerClassName = [baseClassName, panelClassName, className].filter(Boolean).join(' ')

@@ -16,7 +16,7 @@ test('DashboardCodePanel 会渲染默认代码展示面板结构', () => {
 
   assert.match(
     html,
-    /rounded-lg border border-surface-200 bg-white p-5 shadow-card/,
+    /rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card/,
   )
   assert.match(
     html,

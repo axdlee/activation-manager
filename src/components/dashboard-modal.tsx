@@ -33,7 +33,7 @@ export function DashboardModal({
   onClose,
   size = 'xl',
   panelClassName =
-    'rounded-lg border border-surface-200 bg-white shadow-modal',
+    'rounded-lg border border-surface-200 bg-surface-100 shadow-modal',
   bodyClassName = 'max-h-[calc(100vh-14rem)] overflow-y-auto px-6 py-6 sm:px-7',
 }: DashboardModalProps) {
   const titleId = useId()
@@ -76,13 +76,13 @@ export function DashboardModal({
         type="button"
         aria-label="关闭弹框"
         onClick={onClose}
-        className="absolute inset-0 bg-slate-950/30-sm"
+        className="absolute inset-0 bg-ink-950/30-sm"
       />
 
       <div className={`relative z-10 w-full ${sizeClassNameMap[size]} ${panelClassName}`}>
         <div className="flex items-start justify-between gap-4 border-b border-surface-200 px-6 py-5 sm:px-7">
           <div className="min-w-0">
-            <h3 id={titleId} className="text-xl font-semibold tracking-tight text-ink-900">
+            <h3 id={titleId} className="text-xl font-semibold tracking-tight text-ink-50">
               {title}
             </h3>
             {description ? (
@@ -95,7 +95,7 @@ export function DashboardModal({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-surface-200 bg-white text-lg text-ink-500 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:text-ink-700"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-surface-200 bg-surface-100 text-lg text-ink-500 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:text-ink-200"
           >
             ×
           </button>

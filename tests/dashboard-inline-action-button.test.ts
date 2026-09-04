@@ -13,7 +13,7 @@ test('DashboardInlineActionButton 会渲染默认按钮样式并默认 type=butt
 
   assert.match(html, /复制/)
   assert.match(html, /type="button"/)
-  assert.match(html, /rounded-full border border-surface-200 bg-white px-3 py-1\.5 text-xs font-medium text-ink-600 shadow-sm transition hover:-translate-y-0\.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50/)
+  assert.match(html, /rounded-full border border-surface-200 bg-surface-100 px-3 py-1\.5 text-xs font-medium text-ink-300 shadow-sm transition hover:-translate-y-0\.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50/)
 })
 
 test('DashboardInlineActionButton 支持透传 disabled 与自定义 className', () => {

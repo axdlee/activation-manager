@@ -23,7 +23,7 @@ test('DashboardFilterFieldCard 会渲染默认卡片样式、标题、描述与�
   assert.match(html, /只看某一个项目时，更容易判断扣次波动/)
   assert.match(html, /for="project-filter"/)
   assert.match(html, /control-slot/)
-  assert.match(html, /rounded-lg border border-surface-200 bg-white p-5 shadow-sm/)
+  assert.match(html, /rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm/)
   assert.match(html, /mt-4/)
 })
 
@@ -44,6 +44,6 @@ test('DashboardFilterFieldCard 支持覆盖卡片与内容区样式', () => {
   assert.match(html, /custom-shell/)
   assert.match(html, /custom-body/)
   assert.match(html, /button-slot/)
-  assert.doesNotMatch(html, /rounded-lg border border-surface-200 bg-white p-5 shadow-sm/)
+  assert.doesNotMatch(html, /rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm/)
   assert.doesNotMatch(html, /mt-4/)
 })

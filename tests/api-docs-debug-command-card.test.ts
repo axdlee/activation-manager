@@ -18,7 +18,7 @@ test('ApiDocsDebugCommandCard 会渲染联调命令卡与默认复制按钮', ()
 
   assert.match(
     html,
-    /rounded-lg border border-surface-200 bg-white p-5 shadow-card transition-shadow hover:shadow-card-hover/,
+    /rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card transition-all hover:border-brand-500\/30 hover:shadow-card-hover/,
   )
   assert.match(html, /自动化烟雾测试/)
   assert.match(html, /自动完成整条链路验证/)

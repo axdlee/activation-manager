@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html {
@@ -13,19 +13,19 @@ html {
 }
 
 body {
-  color: rgb(26 33 73 / 0.92);
-  background-color: #f3f5f7;
+  color: #e0e2ed;
+  background-color: #0d0f1a;
 }
 
 ::selection {
-  background-color: rgb(64 85 232 / 0.14);
-  color: rgb(26 33 73);
+  background-color: rgba(91, 116, 244, 0.25);
+  color: #f0f2f8;
 }
 
-/* 精细滚动条 */
+/* 精细滚动条 - 深色版 */
 .dashboard-scroll-area {
   scrollbar-width: thin;
-  scrollbar-color: rgba(26, 33, 73, 0.22) transparent;
+  scrollbar-color: rgba(240, 242, 248, 0.15) transparent;
 }
 
 .dashboard-scroll-area::-webkit-scrollbar {
@@ -39,14 +39,23 @@ body {
 
 .dashboard-scroll-area::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  background: rgba(26, 33, 73, 0.18);
+  background: rgba(240, 242, 248, 0.12);
 }
 
 .dashboard-scroll-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(26, 33, 73, 0.32);
+  background: rgba(240, 242, 248, 0.25);
 }
 
-/* 数字等宽：表格中的数值列更对齐 */
+/* 数字等宽 */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* 输入框 autofill 深色覆盖 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f0f2f8;
+  -webkit-box-shadow: 0 0 0 1000px #1a1d30 inset;
+  caret-color: #f0f2f8;
 }

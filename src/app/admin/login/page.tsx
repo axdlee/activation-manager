@@ -53,7 +53,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md px-4">
         <section className={`${publicShellClassName} animate-fade-in-up p-8`}>
           <div className={publicPillClassName}>
-            <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
             Admin Access
           </div>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-950">管理后台登录</h1>
@@ -63,7 +63,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-ink-700">
+              <label htmlFor="username" className="block text-sm font-medium text-ink-200">
                 用户名
               </label>
               <input
@@ -79,7 +79,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-ink-700">
+              <label htmlFor="password" className="block text-sm font-medium text-ink-200">
                 密码
               </label>
               <input

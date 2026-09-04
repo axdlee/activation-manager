@@ -1269,10 +1269,10 @@ export default function DashboardPage() {
       : consumptionRefreshStatus.tone === 'success'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
         : consumptionRefreshStatus.tone === 'info'
-          ? 'border-brand-100 bg-brand-50 text-brand-700'
+          ? 'border-brand-500/20 bg-brand-500/100/10 text-brand-400'
           : 'border-surface-200 bg-surface-50 text-ink-500'
   const shellClassName =
-    'rounded-lg border border-surface-200 bg-white shadow-card'
+    'rounded-lg border border-surface-200 bg-surface-100 shadow-card'
   const handleExportConsumptionLogs = () => {
     const params = buildConsumptionQueryParams(buildCurrentConsumptionFilters())
     triggerFileDownload(buildExportUrl('/api/admin/consumptions/export', params))
@@ -1750,15 +1750,15 @@ export default function DashboardPage() {
   }, [auditLogCurrentPage, auditLogTotalPages, setAuditLogCurrentPage])
 
   return (
-    <main className="min-h-screen bg-surface-100 px-4 py-5 text-ink-900 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8">
+    <main className="min-h-screen bg-surface-100 px-4 py-5 text-ink-50 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8">
       <div className="mx-auto h-full w-full max-w-none">
         <div className="flex h-full flex-col gap-5 lg:flex-row">
           <aside className="lg:flex lg:w-[300px] lg:shrink-0 lg:self-stretch">
             <section className={`${shellClassName} p-5 lg:flex lg:h-full lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden`}>
               <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0">
                 <div className="shrink-0 border-b border-surface-200 pb-5">
-                  <div className="inline-flex items-center gap-2 rounded-sm border border-brand-100 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                  <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/100/10 px-2.5 py-1 text-xs font-medium text-brand-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
                     授权运营中台
                   </div>
                   <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink-950">
@@ -1780,8 +1780,8 @@ export default function DashboardPage() {
                           onClick={() => setActiveTab(tab.key)}
                           className={`group flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-all ${
                             isActive
-                              ? 'border-brand-100 bg-brand-50 text-brand-800'
-                              : 'border-transparent text-ink-600 hover:border-surface-200 hover:bg-surface-50 hover:text-ink-900'
+                              ? 'border-brand-500/20 bg-brand-500/100/10 text-brand-300'
+                              : 'border-transparent text-ink-300 hover:border-surface-200 hover:bg-surface-50 hover:text-ink-50'
                           }`}
                         >
                           <span
@@ -1792,10 +1792,10 @@ export default function DashboardPage() {
                             {tab.shortLabel}
                           </span>
                           <span className="min-w-0">
-                            <span className={`block text-sm font-medium ${isActive ? 'text-brand-800' : 'text-ink-800'}`}>
+                            <span className={`block text-sm font-medium ${isActive ? 'text-brand-300' : 'text-ink-100'}`}>
                               {tab.label}
                             </span>
-                            <span className={`mt-0.5 block truncate text-xs leading-5 ${isActive ? 'text-brand-600' : 'text-ink-400'}`}>
+                            <span className={`mt-0.5 block truncate text-xs leading-5 ${isActive ? 'text-brand-400' : 'text-ink-500'}`}>
                               {tab.description}
                             </span>
                           </span>
@@ -1807,9 +1807,9 @@ export default function DashboardPage() {
                   <div className="mt-5 grid grid-cols-1 gap-2.5">
                     {heroMetricCards.map((item) => (
                       <div key={item.label} className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3.5">
-                        <div className="text-xs font-medium text-ink-400">{item.label}</div>
-                        <div className="tabular-nums mt-1.5 text-2xl font-semibold tracking-tight text-ink-900">{item.value}</div>
-                        <div className="mt-1 text-xs leading-5 text-ink-400">{item.description}</div>
+                        <div className="text-xs font-medium text-ink-500">{item.label}</div>
+                        <div className="tabular-nums mt-1.5 text-2xl font-semibold tracking-tight text-ink-50">{item.value}</div>
+                        <div className="mt-1 text-xs leading-5 text-ink-500">{item.description}</div>
                       </div>
                     ))}
                   </div>
@@ -1829,8 +1829,8 @@ export default function DashboardPage() {
               <section className={`${shellClassName} p-6`}>
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                   <div className="max-w-3xl">
-                    <div className="inline-flex items-center gap-2 rounded-sm border border-brand-100 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                    <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/100/10 px-2.5 py-1 text-xs font-medium text-brand-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
                       当前模块 · {activeTabMeta.label}
                     </div>
                     <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink-950">
@@ -1874,19 +1874,19 @@ export default function DashboardPage() {
 
               {activeTab === 'stats' && (
                 <div className="space-y-6">
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-100/70 bg-brand-50/85 px-5 py-4 text-sm text-brand-800 shadow-sm">
-              <span className="inline-flex items-center rounded-full bg-brand-600/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-brand-700">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-500/20/70 bg-brand-500/100/100/10 px-5 py-4 text-sm text-brand-300 shadow-sm">
+              <span className="inline-flex items-center rounded-full bg-brand-600/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-brand-400">
                 当前统计口径
               </span>
               <span className="text-base font-semibold">{statsScopeLabel}</span>
-              <span className="text-brand-700/80">顶部统计、消费趋势与导出都会跟随这个范围联动。</span>
+              <span className="text-brand-400/80">顶部统计、消费趋势与导出都会跟随这个范围联动。</span>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
               {statsCards.map((card) => (
                 <div
                   key={card.label}
-                  className="group relative overflow-hidden rounded-lg border border-surface-200/80 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-card-hover"
+                  className="group relative overflow-hidden rounded-lg border border-surface-200/80 bg-surface-100 p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-card-hover"
                 >
                   <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-cyan-400 to-indigo-400 opacity-0 transition group-hover:opacity-100" />
                   <div className="flex items-center gap-4">
@@ -1896,9 +1896,9 @@ export default function DashboardPage() {
                     <div className="min-w-0 flex-1">
                       <dl>
                         <dt className="truncate text-sm font-medium text-ink-500">{card.label}</dt>
-                        <dd className="mt-1 text-2xl font-semibold tracking-tight text-ink-900">{card.value}</dd>
+                        <dd className="mt-1 text-2xl font-semibold tracking-tight text-ink-50">{card.value}</dd>
                       </dl>
-                      <p className="mt-2 text-xs text-ink-400">当前口径：{statsScopeLabel}</p>
+                      <p className="mt-2 text-xs text-ink-500">当前口径：{statsScopeLabel}</p>
                     </div>
                   </div>
                 </div>
@@ -1908,7 +1908,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className={`${panelClassName} p-6`}>
                 <div className="mb-5">
-                  <h3 className="text-lg font-semibold text-ink-900">使用率统计</h3>
+                  <h3 className="text-lg font-semibold text-ink-50">使用率统计</h3>
                   <p className="mt-1 text-sm text-ink-500">从全局发码视角观察已使用、过期和可用激活码分布。</p>
                 </div>
                 <div className="space-y-4">
@@ -1918,9 +1918,9 @@ export default function DashboardPage() {
                     ['可用', displayStats.active, 'bg-blue-500'],
                   ].map(([label, value, color]) => (
                     <div key={label} className={`${mutedPanelClassName} px-4 py-4`}>
-                      <div className="mb-2 flex justify-between text-sm text-ink-600">
+                      <div className="mb-2 flex justify-between text-sm text-ink-300">
                         <span>{label}</span>
-                        <span className="font-semibold text-ink-900">
+                        <span className="font-semibold text-ink-50">
                           {displayStats.total > 0 ? Math.round((Number(value) / displayStats.total) * 100) : 0}%
                         </span>
                       </div>
@@ -1940,7 +1940,7 @@ export default function DashboardPage() {
 
               <div className={`${panelClassName} p-6`}>
                 <div className="mb-5">
-                  <h3 className="text-lg font-semibold text-ink-900">运营洞察</h3>
+                  <h3 className="text-lg font-semibold text-ink-50">运营洞察</h3>
                   <p className="mt-1 text-sm text-ink-500">提炼当前项目范围内最值得关注的次数型使用信号。</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1953,7 +1953,7 @@ export default function DashboardPage() {
                       className="rounded-lg border border-surface-200/80 bg-gradient-to-b from-surface-50 to-white px-5 py-5 shadow-card"
                     >
                       <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{label}</div>
-                      <div className="mt-3 text-3xl font-semibold tracking-tight text-ink-900">{value}</div>
+                      <div className="mt-3 text-3xl font-semibold tracking-tight text-ink-50">{value}</div>
                       <div className="mt-2 text-sm leading-6 text-ink-500">{description}</div>
                     </div>
                   ))}
@@ -1962,7 +1962,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="relative overflow-hidden rounded-lg shadow-card">
-              <div className="absolute inset-0 bg-slate-950" />
+              <div className="absolute inset-0 bg-ink-950" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.28),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.24),transparent_42%)]" />
               <div className="relative p-6 text-white">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-6">
@@ -1974,7 +1974,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="inline-flex rounded-full bg-white/10 p-1">
+                    <div className="inline-flex rounded-full bg-surface-100 p-1">
                       {[7, 30].map((days) => (
                         <button
                           key={days}
@@ -1982,8 +1982,8 @@ export default function DashboardPage() {
                           onClick={() => setConsumptionTrendDays(days as 7 | 30)}
                           className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                             consumptionTrendDays === days
-                              ? 'bg-white text-ink-900 shadow-sm'
-                              : 'text-blue-100 hover:bg-white/10'
+                              ? 'bg-surface-100 text-ink-50 shadow-sm'
+                              : 'text-blue-100 hover:bg-surface-100'
                           }`}
                         >
                           近 {days} 天
@@ -1996,11 +1996,11 @@ export default function DashboardPage() {
                       onChange={(e) =>
                         setConsumptionTrendGranularity(e.target.value as 'day' | 'week' | 'month')
                       }
-                      className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-white outline-none"
+                      className="rounded-full border border-surface-200 bg-surface-100 px-4 py-2 text-sm text-white outline-none"
                     >
-                      <option value="day" className="text-ink-900">按日</option>
-                      <option value="week" className="text-ink-900">按周</option>
-                      <option value="month" className="text-ink-900">按月</option>
+                      <option value="day" className="text-ink-50">按日</option>
+                      <option value="week" className="text-ink-50">按周</option>
+                      <option value="month" className="text-ink-50">按月</option>
                     </select>
 
                     <select
@@ -2008,22 +2008,22 @@ export default function DashboardPage() {
                       onChange={(e) =>
                         setConsumptionTrendCompareProjectKey(e.target.value as 'none' | string)
                       }
-                      className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-white outline-none"
+                      className="rounded-full border border-surface-200 bg-surface-100 px-4 py-2 text-sm text-white outline-none"
                     >
-                      <option value="none" className="text-ink-900">不对比项目</option>
+                      <option value="none" className="text-ink-50">不对比项目</option>
                       {availableConsumptionTrendCompareProjects.map((project) => (
-                        <option key={project.id} value={project.projectKey} className="text-ink-900">
+                        <option key={project.id} value={project.projectKey} className="text-ink-50">
                           对比：{project.name}
                         </option>
                       ))}
                     </select>
 
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm text-blue-50">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-surface-200 bg-surface-100 px-4 py-2 text-sm text-ink-50">
                       <input
                         type="checkbox"
                         checked={consumptionTrendHideZeroBuckets}
                         onChange={(e) => setConsumptionTrendHideZeroBuckets(e.target.checked)}
-                        className="h-4 w-4 rounded border-white/20 bg-transparent text-cyan-300 focus:ring-cyan-300"
+                        className="h-4 w-4 rounded border-white/20 bg-transparent text-brand-300 focus:ring-cyan-300"
                       />
                       <span>仅显示非零桶</span>
                     </label>
@@ -2065,7 +2065,7 @@ export default function DashboardPage() {
                         ]
                       : []),
                   ].map(([label, value, description]) => (
-                    <div key={String(label)} className="rounded-md border border-white/10 bg-white/5 px-4 py-4">
+                    <div key={String(label)} className="rounded-md border border-surface-200 bg-surface-100 px-4 py-4">
                       <div className="text-xs uppercase tracking-[0.18em] text-blue-100/60">{label}</div>
                       <div className="mt-3 text-3xl font-semibold text-white">{value}</div>
                       <div className="mt-2 text-xs text-blue-100/70">{description}</div>
@@ -2073,7 +2073,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
-                <div className="rounded-md border border-white/10 bg-white/5 p-4">
+                <div className="rounded-md border border-surface-200 bg-surface-100 p-4">
                   {consumptionTrendLoading ? (
                     <div className="flex h-72 items-center justify-center text-sm text-blue-100/80">
                       消费趋势加载中...
@@ -2104,7 +2104,7 @@ export default function DashboardPage() {
                       )}
 
                       {consumptionTrendHideZeroBuckets && hiddenZeroBucketCount > 0 && (
-                        <div className="rounded-md border border-cyan-300/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50">
+                        <div className="rounded-md border border-brand-500/30/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50">
                           已隐藏 {hiddenZeroBucketCount} 个 0 扣次时间桶，仅影响图表展示，不影响顶部统计指标。
                         </div>
                       )}
@@ -2130,20 +2130,20 @@ export default function DashboardPage() {
 
                               return (
                                 <div key={point.date} className="group flex min-w-0 flex-1 flex-col items-center gap-3">
-                                  <div className="text-[11px] text-blue-100/75">
+                                  <div className="text-[11px] text-ink-300">
                                     {point.primaryCount} / {point.secondaryCount}
                                   </div>
                                   <div className="flex w-full flex-1 items-end justify-center gap-1">
                                     <div
                                       title={`${statsScopeLabel} · ${point.date}：${point.primaryCount} 次`}
-                                      className={`w-full max-w-[16px] rounded-t-2xl border border-white/10 bg-gradient-to-t from-cyan-400 via-sky-400 to-indigo-300 shadow-card transition-all duration-200 group-hover:brightness-110 ${
+                                      className={`w-full max-w-[16px] rounded-t-2xl border border-surface-200 bg-gradient-to-t from-brand-400 via-brand-500 to-brand-600 shadow-card transition-all duration-200 group-hover:brightness-110 ${
                                         point.primaryCount > 0 ? 'opacity-100' : 'opacity-40'
                                       }`}
                                       style={{ height: `${primaryBarHeight}%` }}
                                     />
                                     <div
                                       title={`${selectedComparisonProject?.name || '对比项目'} · ${point.date}：${point.secondaryCount} 次`}
-                                      className={`w-full max-w-[16px] rounded-t-2xl border border-white/10 bg-gradient-to-t from-fuchsia-500 via-violet-400 to-purple-300 shadow-card transition-all duration-200 group-hover:brightness-110 ${
+                                      className={`w-full max-w-[16px] rounded-t-2xl border border-surface-200 bg-gradient-to-t from-brand-500 via-brand-600 to-brand-700 shadow-card transition-all duration-200 group-hover:brightness-110 ${
                                         point.secondaryCount > 0 ? 'opacity-100' : 'opacity-40'
                                       }`}
                                       style={{ height: `${secondaryBarHeight}%` }}
@@ -2167,11 +2167,11 @@ export default function DashboardPage() {
 
                               return (
                                 <div key={point.date} className="group flex min-w-0 flex-1 flex-col items-center gap-3">
-                                  <div className="text-[11px] text-blue-100/75">{point.count}</div>
+                                  <div className="text-[11px] text-ink-300">{point.count}</div>
                                   <div className="flex w-full flex-1 items-end justify-center">
                                     <div
                                       title={`${point.date}：${point.count} 次`}
-                                      className={`w-full max-w-[36px] rounded-t-2xl border border-white/10 bg-gradient-to-t from-cyan-400 via-sky-400 to-indigo-300 shadow-card transition-all duration-200 group-hover:brightness-110 ${
+                                      className={`w-full max-w-[36px] rounded-t-2xl border border-surface-200 bg-gradient-to-t from-brand-400 via-brand-500 to-brand-600 shadow-card transition-all duration-200 group-hover:brightness-110 ${
                                         point.count > 0 ? 'opacity-100' : 'opacity-40'
                                       }`}
                                       style={{ height: `${barHeight}%` }}
@@ -2184,17 +2184,17 @@ export default function DashboardPage() {
                           </div>
                         )
                       ) : (
-                        <div className="flex h-72 items-center justify-center text-sm text-blue-100/75">
+                        <div className="flex h-72 items-center justify-center text-sm text-ink-300">
                           暂无可展示的趋势时间桶
                         </div>
                       )}
 
                       {consumptionTrendHideZeroBuckets && !hasVisibleConsumptionTrendPoints ? (
-                        <div className="rounded-md border border-dashed border-white/10 bg-white/5 px-4 py-3 text-sm text-blue-100/75">
+                        <div className="rounded-md border border-dashed border-surface-200 bg-surface-100 px-4 py-3 text-sm text-ink-300">
                           当前已隐藏所有零值时间桶，本时间范围暂无实际消费记录。你可以关闭该选项观察完整时间轴。
                         </div>
                       ) : !hasConsumptionTrendData && (
-                        <div className="rounded-md border border-dashed border-white/10 bg-white/5 px-4 py-3 text-sm text-blue-100/75">
+                        <div className="rounded-md border border-dashed border-surface-200 bg-surface-100 px-4 py-3 text-sm text-ink-300">
                           当前时间范围暂无消费记录，可切换项目或扩大统计范围继续观察。
                         </div>
                       )}
@@ -2211,12 +2211,12 @@ export default function DashboardPage() {
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-ink-900">项目级统计</h3>
+                  <h3 className="text-lg font-semibold text-ink-50">项目级统计</h3>
                   <p className="mt-1 text-sm text-ink-500">按项目查看发码、激活、有效、剩余次数与累计消耗。</p>
                 </div>
                 <div className="flex w-full max-w-2xl flex-col gap-3 md:flex-row md:items-end">
                   <div className="flex-1">
-                    <label className="mb-2 block text-sm font-medium text-ink-700">项目筛选</label>
+                    <label className="mb-2 block text-sm font-medium text-ink-200">项目筛选</label>
                     <select
                       value={statsProjectFilter}
                       onChange={(e) => setStatsProjectFilter(e.target.value)}
@@ -2253,11 +2253,11 @@ export default function DashboardPage() {
                   '次数消耗',
                 ]}
                 tableClassName="w-full min-w-[1120px] divide-y divide-gray-200"
-                bodyClassName="bg-white divide-y divide-gray-200"
+                bodyClassName="bg-surface-100 divide-y divide-gray-200"
               >
                 {filteredProjectStats.map((project) => (
                   <tr key={project.id} className="transition hover:bg-surface-50">
-                    <td className="px-6 py-4 text-sm font-medium text-ink-900">{project.name}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-ink-50">{project.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-500">{project.projectKey}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {project.isEnabled ? (
@@ -2270,8 +2270,8 @@ export default function DashboardPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">{project.usedCodes}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">{project.activeCodes}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">{project.expiredCodes}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-700">{project.countRemainingTotal}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-700">{project.countConsumedTotal}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-200">{project.countRemainingTotal}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-200">{project.countConsumedTotal}</td>
                   </tr>
                 ))}
               </DashboardDataTable>
@@ -2308,7 +2308,7 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
-                <h2 className="text-xl font-semibold text-ink-900">生成激活码</h2>
+                <h2 className="text-xl font-semibold text-ink-50">生成激活码</h2>
                 <p className="mt-1 text-sm leading-6 text-ink-500">
                   统一使用更圆润的表单样式，减少录入压迫感，同时保持时间卡与次数卡的生成流程清晰可读。
                 </p>
@@ -2475,7 +2475,7 @@ export default function DashboardPage() {
             {generatedCodes.length > 0 && (
               <div className={`${panelClassName} p-6`}>
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-xl font-semibold text-ink-900">本次生成的激活码</h2>
+                  <h2 className="text-xl font-semibold text-ink-50">本次生成的激活码</h2>
                   <button
                     onClick={() => exportCodes(generatedCodes)}
                     className={successButtonClassName}

@@ -82,7 +82,7 @@ export function ChangePasswordWorkspace({
   loading,
   inputClassName,
   panelClassName =
-    'rounded-lg border border-surface-200/70 bg-white shadow-card',
+    'rounded-lg border border-surface-200/70 bg-surface-100 shadow-card',
   onSubmit,
   onCurrentPasswordChange,
   onNewPasswordChange,
@@ -105,11 +105,11 @@ export function ChangePasswordWorkspace({
     <div className="space-y-6">
       <section className={`${panelClassName} p-6 sm:p-7`}>
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-ink-600">
+          <div className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-ink-300">
             <span className="h-2 w-2 rounded-full bg-surface-500" />
             凭证安全
           </div>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-900">
+          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-50">
             管理员密码工作台
           </h2>
           <p className="mt-2 text-sm leading-7 text-ink-500 sm:text-base">
@@ -130,10 +130,10 @@ export function ChangePasswordWorkspace({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.04fr)_360px]">
         <form onSubmit={onSubmit} className={`${panelClassName} p-6`}>
           <div className="mb-5">
-            <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-700">
+            <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-200">
               密码表单
             </div>
-            <h3 className="mt-4 text-xl font-semibold text-ink-900">修改管理员密码</h3>
+            <h3 className="mt-4 text-xl font-semibold text-ink-50">修改管理员密码</h3>
             <p className="mt-2 text-sm leading-6 text-ink-500">
               建议使用至少 10 位、包含数字与符号的新密码，以降低后台被撞库和弱口令命中的风险。
             </p>
@@ -141,10 +141,10 @@ export function ChangePasswordWorkspace({
 
           <div className="space-y-4">
             {changePasswordFields.map((field) => (
-              <div key={field.key} className="rounded-lg border border-surface-200 bg-white p-5">
+              <div key={field.key} className="rounded-lg border border-surface-200 bg-surface-100 p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <label htmlFor={field.key} className="text-base font-semibold text-ink-900">
+                    <label htmlFor={field.key} className="text-base font-semibold text-ink-50">
                       {field.label}
                     </label>
                     <p className="mt-2 text-sm leading-6 text-ink-500">{field.description}</p>
@@ -153,7 +153,7 @@ export function ChangePasswordWorkspace({
                   <button
                     type="button"
                     onClick={() => togglePasswordFieldVisibility(field.key)}
-                    className="inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-xs font-medium text-ink-600 transition hover:border-surface-300 hover:bg-white"
+                    className="inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-xs font-medium text-ink-300 transition hover:border-surface-300 hover:bg-surface-100"
                   >
                     {isPasswordFieldVisible(field.key) ? '隐藏内容' : '显示内容'}
                   </button>
@@ -179,7 +179,7 @@ export function ChangePasswordWorkspace({
           <div className="mt-5 rounded-lg border border-surface-200 bg-surface-50 p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h3 className="text-base font-semibold text-ink-900">确认后立即生效</h3>
+                <h3 className="text-base font-semibold text-ink-50">确认后立即生效</h3>
                 <p className="mt-1 text-sm leading-6 text-ink-500">
                   修改成功后系统会提示重新登录，并在 3 秒内自动退出当前会话。
                 </p>
@@ -187,7 +187,7 @@ export function ChangePasswordWorkspace({
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
+                className="inline-flex w-full items-center justify-center rounded-md bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
               >
                 {loading ? '修改中...' : '修改密码'}
               </button>
@@ -198,7 +198,7 @@ export function ChangePasswordWorkspace({
         <div className="space-y-6">
           <div className={`${panelClassName} p-6`}>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-ink-900">实时校验</h3>
+              <h3 className="text-lg font-semibold text-ink-50">实时校验</h3>
               <p className="text-sm leading-6 text-ink-500">
                 输入时即时反馈关键检查项，减少提交后报错的来回成本。
               </p>
@@ -215,7 +215,7 @@ export function ChangePasswordWorkspace({
                 >
                   <div
                     className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm font-semibold ${
-                      item.satisfied ? 'bg-emerald-600 text-white' : 'bg-white text-ink-400'
+                      item.satisfied ? 'bg-emerald-600 text-white' : 'bg-surface-100 text-ink-500'
                     }`}
                   >
                     {item.satisfied ? '✓' : '·'}
@@ -231,7 +231,7 @@ export function ChangePasswordWorkspace({
 
           <div className={`${panelClassName} p-6`}>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-ink-900">操作提示</h3>
+              <h3 className="text-lg font-semibold text-ink-50">操作提示</h3>
               <p className="text-sm leading-6 text-ink-500">
                 这里只保留真正会影响提交和登录态的说明，方便边改边看。
               </p>
@@ -241,9 +241,9 @@ export function ChangePasswordWorkspace({
               {passwordChangeEffects.map((effect, index) => (
                 <div
                   key={effect}
-                  className="rounded-md border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-7 text-ink-600"
+                  className="rounded-md border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-7 text-ink-300"
                 >
-                  <span className="mr-2 font-semibold text-ink-900">0{index + 1}</span>
+                  <span className="mr-2 font-semibold text-ink-50">0{index + 1}</span>
                   {effect}
                 </div>
               ))}
@@ -254,7 +254,7 @@ export function ChangePasswordWorkspace({
                 {passwordTips.map((tip) => (
                   <div
                     key={tip}
-                    className="rounded-md border border-surface-200 bg-white px-4 py-4 text-sm leading-7 text-ink-600"
+                    className="rounded-md border border-surface-200 bg-surface-100 px-4 py-4 text-sm leading-7 text-ink-300"
                   >
                     {tip}
                   </div>
