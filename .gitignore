@@ -145,3 +145,6 @@ artifacts/
 
 # Playwright auth state
 e2e/.auth/
+
+# 本地备份产物
+/backups/
