@@ -1,7 +1,7 @@
-# Release Notes — Activation Manager v2.0.0
+# Release Notes — Activation Manager v2.1.0
 
-> 全仓库安全基线加固与交付链路完善  
-> 覆盖范围：`32cdb55..7f90e63` | 31 commits | 58 files | +5,177 / -2,360
+> 安全基线加固、运维治理与交付链路完善  
+> 覆盖范围：`32cdb55..7dc5038` | 42 commits | 97 files | +7,086 / -2,611
 
 ---
 
@@ -18,147 +18,90 @@
 ### 生产环境安全策略
 
 - **弱口令消除**：生产 bootstrap 强制要求 `ADMIN_INITIAL_PASSWORD` 环境变量，不再自动创建 `admin/123456` 默认凭证
-- **数据保护**：生产环境 `prisma db push` 移除 `--accept-data-loss`，破坏性 Schema 变更直接报错，避免误操作丢数据
-- **错误信息收敛**：License API 内部错误不再向客户端泄露具体 Error 消息（降级为通用 500）
-- **CSV 公式注入防御**：`= + - @` 等公式字符前缀统一加 `\t`，消除 Excel/Google Sheets 执行恶意公式的风险
-- **依赖清理**：移除废弃 `crypto` npm stub 依赖，源码改用 `node:crypto` 原生模块
+- **JWT 密钥卫生**：移除公开仓库中硬编码的固定 JWT 密钥，改为 `JWT_SECRET` 环境变量注入；dev 仅用明确标注的占位串，生产缺失即拒绝初始化
+- **数据保护**：生产环境 `prisma db push` 移除 `--accept-data-loss`，破坏性 Schema 变更直接报错
+- **错误信息收敛**：License API 内部错误不向客户端泄露具体 Error 消息
+- **CSV 公式注入防御**：`= + - @` 前缀统一加 `\t`，消除电子表格执行恶意公式风险
+- **统一安全响应头**：CSP（生产不含 `unsafe-eval`、`frame-ancestors 'none'`）、X-Frame-Options DENY、nosniff、Referrer-Policy、Permissions-Policy，关闭 `X-Powered-By`
+- **依赖清理**：移除废弃 `crypto` npm stub，改用 `node:crypto`
 
 ---
 
 ## 🚀 可靠性提升
 
-### 基础架构
-
 | 改进 | 作用 |
 |---|---|
-| **Prisma 版本化迁移** | 新增 `prisma/migrations/20260902000000_init`，生产优先 `migrate deploy`，存量库 P3005 自动回退 `db push` |
-| **DATABASE_URL 支持** | 数据库路径统一通过环境变量配置，消除 symlink 依赖，容器/CI/本地行为一致 |
-| **SQLite 并发优化** | `sqlite3` CLI 调用增加 `.timeout 5000`，消除测试并发 `database is locked` |
-| **备份原子性** | 备份脚本改用 `sqlite3 .backup` 而非 `dump`，保证一致性，支持 `DB_PATH` 环境变量 |
+| **Prisma 版本化迁移** | `migrate deploy` 优先，存量库 P3005 自动回退 `db push` |
+| **DATABASE_URL 支持** | 数据库路径环境变量统一，容器/CI/本地行为一致 |
+| **SQLite 并发优化** | `sqlite3` CLI 增加 `.timeout 5000` |
+| **备份原子性** | 备份脚本改用 `sqlite3 .backup`，支持 `DB_PATH`；新增 `restore-db.sh` |
+| **日志保留治理** | 新增 `scripts/prune-logs.sh`：按保留窗口（默认 180 天）清理审计/消费日志并 VACUUM 回收空间；`npm run db:prune` |
+| **限流器内存治理** | 公开 License API 限流器定时清理过期 key，防伪造 IP 导致 Map 无限增长 |
+| **导出边界保护** | 消费日志与审计日志导出上限 100,000 条，超限返回 400 提示缩小范围 |
 
 ### 公开 License API 限流
 
-- IP + 接口维度**内存滑动窗口**限流器，默认 120 次/分钟/端点
-- 超限返回 `429 Too Many Requests` + `Retry-After` 头
+- IP + 接口维度内存滑动窗口，默认 120 次/分钟/端点；429 + Retry-After
 - 限流器依赖注入，测试可 mock
-- 相关测试覆盖
 
 ### SDK 与错误处理增强
 
-- 新增错误码：`RATE_LIMITED`、`TIMEOUT`、`NETWORK_ERROR`、`HTTP_ERROR`、`INVALID_RESPONSE`
-- `LicenseClientError.statusCode` 属性，按 HTTP 状态码分类
-- 429 → RATE_LIMITED，5xx 非 JSON → HTTP_ERROR，JSON 5xx 返回标准化 payload
-- Hook 错误隔离：`callHookSafely` 防止回调异常影响核心流程
+- 错误码：`RATE_LIMITED` / `TIMEOUT` / `NETWORK_ERROR` / `HTTP_ERROR` / `INVALID_RESPONSE`
+- `LicenseClientError.statusCode`；Hook 错误隔离 `callHookSafely`
 
-### 审计日志补齐
+### 审计日志（15 种操作类型全链路覆盖）
 
-新增 6 种审计操作类型，覆盖关键操作链路：
+`PROJECT_CREATED/DELETED/NAME_UPDATED/DESCRIPTION_UPDATED/STATUS_UPDATED`、`CODE_BATCH_GENERATED`、`CODE_REBIND_SETTINGS_UPDATED`、`CODE_FORCE_UNBIND/REBIND`、`PROJECT_REBIND_SETTINGS_UPDATED`、`SYSTEM_CONFIG_UPDATED`、`PASSWORD_CHANGED`、**`CODE_DELETED`**、**`CODE_CLEANUP_EXPIRED`**、**`ADMIN_LOGIN`**
 
-| 操作类型 | 标签 |
-|---|---|
-| `PROJECT_CREATED` | 创建项目 |
-| `PROJECT_DELETED` | 删除项目 |
-| `PROJECT_NAME_UPDATED` | 修改项目名称 |
-| `PROJECT_DESCRIPTION_UPDATED` | 修改项目描述 |
-| `PROJECT_STATUS_UPDATED` | 启停项目 |
-| `CODE_BATCH_GENERATED` | 批量生成激活码 |
-| `CODE_REBIND_SETTINGS_UPDATED` | 管理员调整单码策略 |
-| `CODE_FORCE_UNBIND` | 管理员强制解绑 |
-| `CODE_FORCE_REBIND` | 管理员强制换绑 |
-| `PROJECT_REBIND_SETTINGS_UPDATED` | 管理员调整项目策略 |
-| `SYSTEM_CONFIG_UPDATED` | 更新系统配置 |
-| `PASSWORD_CHANGED` | 管理员修改密码 |
-
-### 时间敏感 Bug 修复
-
-- `license-auto-rebind-service` 中 `now` 参数未透传到 `isCodeExpired`，导致换绑过期判断依赖服务器时间而非请求时间 → 已修复，测试改为确定性断言
+- 关键操作审计全覆盖（含登录成功来源 IP）
+- **审计故障隔离**：审计写入失败不再阻塞登录/删除/清理等业务主操作
 
 ---
 
-## 🧩 Dashboard 重构
+## 🧩 Dashboard 重构与服务端分页
 
-**目标**：将 3488 行的单文件页面按领域模块拆分，降低维护成本。
+**目标**：3488 行单文件页面按领域模块拆分 + 激活码列表服务端分页。
 
-### 拆分结果
-
-| 度量 | 数值 |
-|---|---|
-| 原始行数 | 3,488 |
-| 最终行数 | **2,596**（-892 行） |
-| 新增 hook | **10 个** |
-| 新增共享 lib | **4 个** |
-| 全部行为等价 | ✅ 无回归 |
-
-### 拆出模块
-
-| 模块 | 文件 |
-|---|---|
-| 页面类型 & 常量 | `src/lib/dashboard-page-types.ts` |
-| 表单工具 | `src/lib/dashboard-form-utils.ts` |
-| 导出工具 | `src/lib/download-utils.ts` |
-| 样式常量 | `src/lib/dashboard-class-names.ts` |
-| 消费日志 hook | `src/lib/use-consumption-logs.ts` |
-| 审计日志 hook | `src/lib/use-admin-audit-logs.ts` |
-| 消费趋势 hook | `src/lib/use-consumption-trend.ts` |
-| 统计模块 hook | `src/lib/use-dashboard-stats.ts` |
-| 密码修改 hook | `src/lib/use-change-password.ts` |
-| 系统配置 hook | `src/lib/use-system-config-workspace.ts` |
-| 项目工作区 hook | `src/lib/use-project-workspace.ts` |
-| 发码 hook | `src/lib/use-activation-code-generation.ts` |
-| 单码治理 hook | `src/lib/use-activation-code-management.ts` |
-| 共享数据层 hook | `src/lib/use-dashboard-data.ts` |
+- 页面由 3488 行降至 2600 行：**10 hooks + 5 共享 lib**，行为等价
+- **激活码列表服务端分页**：`/api/admin/codes/list` 支持关键词/状态/项目/套餐筛选与分页，返回 total/totalPages/statusSummary/projectCoverage/availableCardTypes；不再嵌套绑定历史/审计（消除 N+1 加载）
+- **单码详情接口** `GET /api/admin/codes/[id]`：绑定历史 + 管理员审计按需加载
+- 筛选/翻页变化触发 400ms 防抖自动请求；导出走服务端筛选
+- 移除客户端全量加载死代码；hero 卡改用 stats.total
 
 ### 交互 Bug 修复
 
-- **审计日志重置筛选不刷新**：`handleResetAuditLogFilters` 仅重置状态未重新拉取列表（消费日志有自动刷新 effect 兜底、审计日志没有），重置后显式以空筛选重新请求第 1 页
-- **审计日志任意筛选变更不刷新**：搜索 / 项目 / 操作类型 / 时间范围变更只更新 state 不触发 fetch，列表停留在旧数据。补齐 `auditLogAutoRefreshKey` + debounce 自动刷新 effect + initialized/skip refs，与消费日志同款模式
+- 审计日志重置筛选不刷新、任意筛选变更不刷新（自动刷新 effect 补齐）
+- 激活码列表 aggregate 竞态：选中码弹框数据由详情接口接管
 
 ---
 
 ## 🧪 测试体系
 
-### 单元测试
-
 | 度量 | 数值 |
 |---|---|
-| 总测试数 | **350** |
-| 通过率 | 100% |
-| 代码行覆盖率 | **92.54%** |
-| 分支覆盖率 | **86.01%** |
-| 函数覆盖率 | **90.24%** |
+| 单元测试 | **364**（100% 通过） |
+| 代码行覆盖率 | **92.38%** |
+| 分支覆盖率 | **85.82%** |
+| 函数覆盖率 | **90.49%** |
+| **TypeScript 全量检查**（`tsc --noEmit`） | 0 错误（纳入 quality:gate） |
+| **e2e 冒烟** | **8/8 通过**（登录 → 建项目 → 发码 → 激活 → 消费 → 审计 → 分页回归） |
 
-### 端到端冒烟（新增）
-
-- **框架**：Playwright 1.62
-- **配置**：独立 e2e 数据库（`DATABASE_URL=file:./e2e.db`）+ 3210 端口 dev server + setup/smoke 双 project
-- **7 项冒烟全部通过**（13.9s 跑完）：
-
-```
-✓ 管理员登录并保存会话（auth.setup）
-✓ 创建项目（UI 弹框表单 → 列表可见）
-✓ 生成次数型激活码（UI 表单 → 结果表格抓 code）
-✓ 公开 API 激活 → 状态 → 消费 ×2 + 幂等重放（剩余 3→2→1）
-✓ 后台消费日志 API 断言 2 条 + UI 搜索定位 requestId
-✓ 审计中心记录「创建项目」「批量生成激活码」
-✓ 审计筛选自动刷新回归（关键词 → 空态 → 重置 → 恢复）
-```
+- 修复 tests 目录 65 个长期隐藏的类型错误（Prisma mock、组件 children、NODE_ENV 只读等）
+- `quality:gate` = lint + typecheck + coverage + build；`quality:gate:full` 追加 e2e
 
 ---
 
 ## 📦 Docker & CI
 
-- `docker-compose.yml` 支持 `ADMIN_INITIAL_PASSWORD` 环境变量注入
-- CI 工作流（`.github/workflows/docker-publish.yml`）在构建时自动 seed 管理员密码
-- `DATABASE_URL` 容器内外一致，支持挂载持久化数据卷
+- `docker-compose.yml` 支持 `ADMIN_INITIAL_PASSWORD` / `JWT_SECRET` / `ALLOWED_IPS` 注入
+- CI 三道闸：**verify**（quality:gate）→ **e2e**（Playwright 冒烟，失败上传 trace）→ **smoke**（Docker Compose 真实容器 + 绑定挂载验证），全部通过才 publish
+- 数据卷 `activation_manager_data:/app/data`；数据库直指卷路径（移除 symlink 与 0777 宽权限）
 
 ---
 
 ## 📚 文档更新
 
-- `CHANGELOG.md`：完整记录 9 轮迭代（2026-09 ~ 2026-09g）
-- `ENGINEERING_HARDENING_PLAN.md`：任务表 + 9 轮迭代验证记录
-- `README.md`：安全说明、限流配置、migration 流程、备份指南、e2e 使用说明
-- `DATABASE_BACKUP_GUIDE.md`：存量库迁移基线流程
+- `CHANGELOG.md` / `ENGINEERING_HARDENING_PLAN.md`（Iteration 09~09k）/ `README.md` / `DATABASE_BACKUP_GUIDE.md`
 
 ---
 
@@ -172,12 +115,18 @@ npm install
 npm run dev  # 自动 bootstrap 开发数据库 + 默认 admin/123456
 
 # 测试
-npm test                # 350 单元测试
+npm test                # 364 单元测试
 npm run test:coverage   # 覆盖率门禁
-npm run test:e2e        # 7 项 e2e 冒烟
+npm run typecheck       # TypeScript 全量检查
+npm run test:e2e        # 8 项 e2e 冒烟
+npm run quality:gate    # lint + typecheck + coverage + build
+
+# 运维
+npm run db:backup       # 原子备份
+npm run db:prune        # 日志保留清理（默认 180 天）
 
 # 生产构建
 npm run build
 ```
 
-> **注意**：生产部署需设置 `ADMIN_INITIAL_PASSWORD` 环境变量，不再使用 `admin/123456` 默认凭证。
+> **注意**：生产部署需设置 `ADMIN_INITIAL_PASSWORD` 与 `JWT_SECRET` 环境变量，不再使用 `admin/123456` 默认凭证与仓库内固定密钥。
