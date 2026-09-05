@@ -1,13 +1,13 @@
 import type { ProjectStatsSummary } from '@/lib/project-stats-summary'
 
-type DashboardStatsCard = {
+export type DashboardStatsCard = {
   icon: string
   label: string
   value: number
   color: string
 }
 
-type DashboardStatsOverview = Pick<
+export type DashboardStatsOverview = Pick<
   ProjectStatsSummary,
   'total' | 'used' | 'expired' | 'active' | 'countRemainingTotal' | 'countConsumedTotal'
 >
