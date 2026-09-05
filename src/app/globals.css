@@ -4,8 +4,9 @@
 
 /* =============================================================
  * 主题令牌系统：所有颜色通过 CSS 变量定义，随 <html data-theme="..."> 切换。
- * 内置主题：dark-tech（深空科技·默认）/ midnight（午夜蓝）/
- *           graphite（石墨灰）/ aurora（极简浅色）
+ * 内置 14 套主题：深色系（dark-tech / midnight / graphite / emerald /
+ *  violet / crimson / ocean / amber）+ 浅色系（aurora / sakura / forest /
+ *  sunrise / sepia / mono）
  * ============================================================= */
 
 :root,
@@ -214,6 +215,537 @@
   --scrollbar-thumb: 145 150 176;
 }
 
+
+/* ===== 翡翠绿 · 深色科技 ===== */
+[data-theme='emerald'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 234 250 240;
+  --brand-100: 208 244 224;
+  --brand-200: 168 236 202;
+  --brand-300: 120 224 176;
+  --brand-400: 80 210 152;
+  --brand-500: 52 190 128;
+  --brand-600: 38 160 108;
+  --brand-700: 30 132 90;
+  --brand-800: 24 108 74;
+  --brand-900: 20 88 62;
+  --brand-950: 14 62 44;
+
+  /* 墨阶 */
+  --ink-50: 242 250 246;
+  --ink-100: 226 242 232;
+  --ink-200: 200 230 214;
+  --ink-300: 168 214 192;
+  --ink-400: 138 196 170;
+  --ink-500: 112 178 150;
+  --ink-600: 88 156 130;
+  --ink-700: 64 132 108;
+  --ink-800: 44 108 88;
+  --ink-900: 30 84 68;
+  --ink-950: 16 56 44;
+
+  /* 面板 */
+  --surface-50: 12 28 20;
+  --surface-100: 16 34 25;
+  --surface-200: 24 46 34;
+  --surface-300: 34 60 45;
+  --surface-400: 44 74 56;
+  --surface-500: 54 88 67;
+  --surface-600: 64 102 78;
+  --surface-700: 76 116 90;
+  --surface-800: 20 42 31;
+  --surface-900: 16 36 27;
+  --surface-950: 10 24 18;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 52 190 128;
+  --scrollbar-thumb: 226 242 232;
+}
+
+/* ===== 紫夜 · 深色赛博 ===== */
+[data-theme='violet'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 244 240 255;
+  --brand-100: 228 218 255;
+  --brand-200: 204 188 255;
+  --brand-300: 176 152 250;
+  --brand-400: 152 122 245;
+  --brand-500: 132 98 236;
+  --brand-600: 112 78 214;
+  --brand-700: 92 62 184;
+  --brand-800: 74 50 150;
+  --brand-900: 60 40 122;
+  --brand-950: 42 28 86;
+
+  /* 墨阶 */
+  --ink-50: 244 242 250;
+  --ink-100: 230 228 242;
+  --ink-200: 210 206 230;
+  --ink-300: 186 180 214;
+  --ink-400: 162 156 198;
+  --ink-500: 138 132 178;
+  --ink-600: 114 108 154;
+  --ink-700: 88 84 128;
+  --ink-800: 64 60 100;
+  --ink-900: 44 42 76;
+  --ink-950: 24 22 44;
+
+  /* 面板 */
+  --surface-50: 16 14 28;
+  --surface-100: 20 18 36;
+  --surface-200: 30 26 50;
+  --surface-300: 40 36 66;
+  --surface-400: 50 46 82;
+  --surface-500: 60 56 96;
+  --surface-600: 72 66 112;
+  --surface-700: 84 78 128;
+  --surface-800: 25 22 42;
+  --surface-900: 21 18 36;
+  --surface-950: 13 11 24;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 132 98 236;
+  --scrollbar-thumb: 230 228 242;
+}
+
+/* ===== 绯红 · 深色激情 ===== */
+[data-theme='crimson'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 255 240 242;
+  --brand-100: 255 220 224;
+  --brand-200: 250 190 198;
+  --brand-300: 242 154 166;
+  --brand-400: 235 122 140;
+  --brand-500: 224 94 116;
+  --brand-600: 200 70 96;
+  --brand-700: 172 54 78;
+  --brand-800: 142 42 62;
+  --brand-900: 114 34 50;
+  --brand-950: 80 22 36;
+
+  /* 墨阶 */
+  --ink-50: 250 242 244;
+  --ink-100: 240 226 230;
+  --ink-200: 224 202 208;
+  --ink-300: 204 174 182;
+  --ink-400: 182 150 158;
+  --ink-500: 160 126 136;
+  --ink-600: 136 104 114;
+  --ink-700: 110 82 92;
+  --ink-800: 84 60 70;
+  --ink-900: 58 40 48;
+  --ink-950: 30 20 26;
+
+  /* 面板 */
+  --surface-50: 20 14 18;
+  --surface-100: 26 18 23;
+  --surface-200: 36 26 32;
+  --surface-300: 48 34 42;
+  --surface-400: 60 42 52;
+  --surface-500: 72 50 62;
+  --surface-600: 84 58 72;
+  --surface-700: 96 68 82;
+  --surface-800: 30 21 27;
+  --surface-900: 26 18 23;
+  --surface-950: 15 10 14;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 224 94 116;
+  --scrollbar-thumb: 240 226 230;
+}
+
+/* ===== 海洋青 · 深色清新 ===== */
+[data-theme='ocean'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 238 252 250;
+  --brand-100: 212 246 242;
+  --brand-200: 176 238 230;
+  --brand-300: 134 226 214;
+  --brand-400: 96 212 196;
+  --brand-500: 62 194 178;
+  --brand-600: 46 168 154;
+  --brand-700: 36 140 128;
+  --brand-800: 28 114 104;
+  --brand-900: 24 92 84;
+  --brand-950: 16 64 58;
+
+  /* 墨阶 */
+  --ink-50: 240 250 248;
+  --ink-100: 224 242 238;
+  --ink-200: 198 230 224;
+  --ink-300: 168 214 206;
+  --ink-400: 140 196 188;
+  --ink-500: 114 176 168;
+  --ink-600: 90 154 146;
+  --ink-700: 68 130 122;
+  --ink-800: 48 104 98;
+  --ink-900: 32 82 76;
+  --ink-950: 18 56 52;
+
+  /* 面板 */
+  --surface-50: 12 30 27;
+  --surface-100: 16 38 34;
+  --surface-200: 24 52 47;
+  --surface-300: 34 68 62;
+  --surface-400: 44 84 77;
+  --surface-500: 54 100 92;
+  --surface-600: 64 116 107;
+  --surface-700: 76 132 122;
+  --surface-800: 20 44 40;
+  --surface-900: 16 38 34;
+  --surface-950: 10 24 22;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 62 194 178;
+  --scrollbar-thumb: 224 242 238;
+}
+
+/* ===== 琥珀金 · 深色奢雅 ===== */
+[data-theme='amber'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 255 248 235;
+  --brand-100: 255 240 212;
+  --brand-200: 252 226 178;
+  --brand-300: 246 206 138;
+  --brand-400: 238 184 100;
+  --brand-500: 228 164 68;
+  --brand-600: 204 142 50;
+  --brand-700: 176 120 40;
+  --brand-800: 146 100 32;
+  --brand-900: 118 82 26;
+  --brand-950: 84 58 18;
+
+  /* 墨阶 */
+  --ink-50: 250 247 240;
+  --ink-100: 240 236 226;
+  --ink-200: 226 218 202;
+  --ink-300: 206 196 176;
+  --ink-400: 184 174 152;
+  --ink-500: 162 152 130;
+  --ink-600: 138 128 108;
+  --ink-700: 112 104 86;
+  --ink-800: 86 80 66;
+  --ink-900: 60 56 46;
+  --ink-950: 34 30 24;
+
+  /* 面板 */
+  --surface-50: 22 20 16;
+  --surface-100: 28 25 20;
+  --surface-200: 40 36 29;
+  --surface-300: 54 48 39;
+  --surface-400: 68 60 49;
+  --surface-500: 82 72 59;
+  --surface-600: 96 84 69;
+  --surface-700: 110 96 80;
+  --surface-800: 33 30 24;
+  --surface-900: 28 25 20;
+  --surface-950: 16 15 12;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 228 164 68;
+  --scrollbar-thumb: 240 236 226;
+}
+
+/* ===== 樱花粉 · 浅色温柔 ===== */
+[data-theme='sakura'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 255 244 248;
+  --brand-100: 255 230 238;
+  --brand-200: 252 206 222;
+  --brand-300: 246 178 204;
+  --brand-400: 238 148 184;
+  --brand-500: 228 118 162;
+  --brand-600: 206 92 142;
+  --brand-700: 180 70 120;
+  --brand-800: 150 52 98;
+  --brand-900: 122 40 80;
+  --brand-950: 86 26 56;
+
+  /* 墨阶 */
+  --ink-50: 86 44 70;
+  --ink-100: 114 62 94;
+  --ink-200: 146 84 122;
+  --ink-300: 176 108 148;
+  --ink-400: 200 132 170;
+  --ink-500: 218 158 190;
+  --ink-600: 232 184 208;
+  --ink-700: 242 208 224;
+  --ink-800: 249 228 238;
+  --ink-900: 253 242 248;
+  --ink-950: 254 250 252;
+
+  /* 面板 */
+  --surface-50: 254 250 252;
+  --surface-100: 255 253 254;
+  --surface-200: 248 238 244;
+  --surface-300: 240 224 234;
+  --surface-400: 230 210 222;
+  --surface-500: 220 196 210;
+  --surface-600: 210 182 198;
+  --surface-700: 200 168 186;
+  --surface-800: 252 244 249;
+  --surface-900: 249 240 246;
+  --surface-950: 253 251 253;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 228 118 162;
+  --scrollbar-thumb: 200 132 170;
+}
+
+/* ===== 森林绿 · 浅色自然 ===== */
+[data-theme='forest'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 240 250 244;
+  --brand-100: 222 244 230;
+  --brand-200: 196 236 210;
+  --brand-300: 162 224 186;
+  --brand-400: 128 210 160;
+  --brand-500: 96 194 136;
+  --brand-600: 76 172 116;
+  --brand-700: 60 148 98;
+  --brand-800: 48 122 80;
+  --brand-900: 38 100 66;
+  --brand-950: 26 70 46;
+
+  /* 墨阶 */
+  --ink-50: 50 74 62;
+  --ink-100: 72 100 86;
+  --ink-200: 96 126 110;
+  --ink-300: 120 152 134;
+  --ink-400: 142 174 156;
+  --ink-500: 162 194 178;
+  --ink-600: 182 212 198;
+  --ink-700: 202 228 216;
+  --ink-800: 222 240 232;
+  --ink-900: 238 248 243;
+  --ink-950: 250 253 251;
+
+  /* 面板 */
+  --surface-50: 250 253 251;
+  --surface-100: 253 255 253;
+  --surface-200: 238 246 240;
+  --surface-300: 226 240 230;
+  --surface-400: 212 232 220;
+  --surface-500: 198 224 210;
+  --surface-600: 184 214 200;
+  --surface-700: 170 204 190;
+  --surface-800: 245 250 247;
+  --surface-900: 240 247 242;
+  --surface-950: 251 254 252;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 96 194 136;
+  --scrollbar-thumb: 182 212 198;
+}
+
+/* ===== 朝霞橙 · 浅色活力 ===== */
+[data-theme='sunrise'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 255 247 240;
+  --brand-100: 255 236 222;
+  --brand-200: 255 218 192;
+  --brand-300: 252 194 156;
+  --brand-400: 246 168 120;
+  --brand-500: 238 142 88;
+  --brand-600: 218 118 66;
+  --brand-700: 194 98 52;
+  --brand-800: 168 80 42;
+  --brand-900: 140 66 34;
+  --brand-950: 98 46 24;
+
+  /* 墨阶 */
+  --ink-50: 92 58 44;
+  --ink-100: 120 80 62;
+  --ink-200: 152 104 82;
+  --ink-300: 182 128 102;
+  --ink-400: 206 150 122;
+  --ink-500: 224 170 144;
+  --ink-600: 236 190 168;
+  --ink-700: 245 208 190;
+  --ink-800: 251 226 214;
+  --ink-900: 254 240 233;
+  --ink-950: 255 250 247;
+
+  /* 面板 */
+  --surface-50: 255 250 247;
+  --surface-100: 255 253 251;
+  --surface-200: 250 242 234;
+  --surface-300: 244 232 220;
+  --surface-400: 236 222 208;
+  --surface-500: 228 212 196;
+  --surface-600: 220 202 184;
+  --surface-700: 212 192 174;
+  --surface-800: 252 246 240;
+  --surface-900: 250 242 234;
+  --surface-950: 254 252 250;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 238 142 88;
+  --scrollbar-thumb: 224 170 144;
+}
+
+/* ===== 复古纸 · 浅色怀旧 ===== */
+[data-theme='sepia'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 250 247 240;
+  --brand-100: 244 238 224;
+  --brand-200: 236 226 202;
+  --brand-300: 224 210 178;
+  --brand-400: 210 192 154;
+  --brand-500: 194 174 132;
+  --brand-600: 174 154 112;
+  --brand-700: 152 132 94;
+  --brand-800: 130 112 78;
+  --brand-900: 108 94 64;
+  --brand-950: 76 66 46;
+
+  /* 墨阶 */
+  --ink-50: 74 62 46;
+  --ink-100: 100 86 66;
+  --ink-200: 128 112 88;
+  --ink-300: 154 138 110;
+  --ink-400: 176 160 132;
+  --ink-500: 194 180 154;
+  --ink-600: 210 198 176;
+  --ink-700: 224 214 196;
+  --ink-800: 236 228 214;
+  --ink-900: 246 240 230;
+  --ink-950: 252 249 244;
+
+  /* 面板 */
+  --surface-50: 252 249 244;
+  --surface-100: 254 252 248;
+  --surface-200: 244 238 228;
+  --surface-300: 236 228 214;
+  --surface-400: 226 216 200;
+  --surface-500: 216 204 186;
+  --surface-600: 206 192 174;
+  --surface-700: 196 180 162;
+  --surface-800: 249 245 237;
+  --surface-900: 245 240 230;
+  --surface-950: 253 251 247;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 194 174 132;
+  --scrollbar-thumb: 210 198 176;
+}
+
+/* ===== 黑白极简 · 浅色 ===== */
+[data-theme='mono'] {
+  color-scheme: dark;
+
+  /* 品牌色阶 */
+  --brand-50: 245 245 245;
+  --brand-100: 232 232 232;
+  --brand-200: 214 214 214;
+  --brand-300: 192 192 192;
+  --brand-400: 168 168 168;
+  --brand-500: 142 142 142;
+  --brand-600: 116 116 116;
+  --brand-700: 92 92 92;
+  --brand-800: 70 70 70;
+  --brand-900: 50 50 50;
+  --brand-950: 28 28 28;
+
+  /* 墨阶 */
+  --ink-50: 28 28 28;
+  --ink-100: 52 52 52;
+  --ink-200: 78 78 78;
+  --ink-300: 106 106 106;
+  --ink-400: 130 130 130;
+  --ink-500: 152 152 152;
+  --ink-600: 174 174 174;
+  --ink-700: 196 196 196;
+  --ink-800: 218 218 218;
+  --ink-900: 236 236 236;
+  --ink-950: 250 250 250;
+
+  /* 面板 */
+  --surface-50: 250 250 250;
+  --surface-100: 255 255 255;
+  --surface-200: 238 238 238;
+  --surface-300: 226 226 226;
+  --surface-400: 214 214 214;
+  --surface-500: 202 202 202;
+  --surface-600: 190 190 190;
+  --surface-700: 178 178 178;
+  --surface-800: 244 244 244;
+  --surface-900: 238 238 238;
+  --surface-950: 252 252 252;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(255 255 255 / 0.06);
+  --shadow-glow: 0 0 20px rgba(255 255 255 / 0.08), 0 0 40px -8px rgba(255 255 255 / 0.05);
+  --shadow-glow-lg: 0 0 30px rgba(255 255 255 / 0.12), 0 0 60px -12px rgba(255 255 255 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(255 255 255 / 0.05);
+
+  --selection-bg: 142 142 142;
+  --scrollbar-thumb: 174 174 174;
+}
+
 /* ===== 基础样式（随主题变量）===== */
 
 html {
@@ -278,4 +810,20 @@ input:-webkit-autofill:focus {
     border-color 300ms ease,
     color 300ms ease,
     box-shadow 300ms ease !important;
+}
+
+/* 主题切换下拉滚动条 */
+.theme-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--scrollbar-thumb) / 0.2) transparent;
+}
+.theme-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.theme-scroll::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: rgb(var(--scrollbar-thumb) / 0.2);
+}
+.theme-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }

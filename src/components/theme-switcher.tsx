@@ -64,7 +64,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
         <div
           role="listbox"
           aria-label="选择主题"
-          className="absolute bottom-full left-0 z-50 mb-2 w-64 overflow-hidden rounded-lg border border-surface-200 bg-surface-100 p-1.5 shadow-modal animate-fade-in-up"
+          className="absolute bottom-full left-0 z-50 mb-2 w-64 max-h-[min(70vh,26rem)] overflow-y-auto rounded-lg border border-surface-200 bg-surface-100 p-1.5 shadow-modal animate-fade-in-up theme-scroll"
         >
           {THEMES.map((item) => {
             const isActive = item.id === theme

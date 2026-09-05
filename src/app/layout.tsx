@@ -19,7 +19,7 @@ const themeInitScript = `
 (function () {
   try {
     var theme = localStorage.getItem('activation-manager-theme')
-    if (theme && ['dark-tech', 'midnight', 'graphite', 'aurora'].indexOf(theme) !== -1) {
+    if (theme && ['dark-tech','midnight','graphite','aurora','emerald','violet','crimson','ocean','amber','sakura','forest','sunrise','sepia','mono'].indexOf(theme) !== -1) {
       document.documentElement.setAttribute('data-theme', theme)
     }
   } catch (e) {}
