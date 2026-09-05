@@ -47,8 +47,6 @@ test('normalizeOptionalAdminReason 对非空值返回 trim 后字符串', () => 
 })
 
 test('handleCardTypeChange 会设置选中卡片与天数', () => {
-  const setSelectedCardType = (value: string) => { selected.set(value) }
-  const setExpiryDays = (days: number) => { daysSet.set(days) }
   const selected = { set: (v: string) => { selected.value = v }, value: '' }
   const daysSet = { set: (v: number) => { daysSet.value = v }, value: 0 }
 

@@ -63,7 +63,7 @@ async function seedCodes(projectId: number, count: number) {
 test('激活码列表接口支持分页返回 total/totalPages', async (t) => {
   const projectKey = createUniqueProjectKey('route-page-project')
   const project = await createProject(prisma, { name: '分页项目', projectKey })
-  const created = await seedCodes(project.id, 5)
+  await seedCodes(project.id, 5)
 
   t.after(async () => {
     await prisma.adminOperationAuditLog.deleteMany({ where: { projectId: project.id } })
@@ -181,7 +181,7 @@ test('激活码详情接口返回绑定历史与管理员审计', async (t) => {
   assert.equal(body.activationCode.project?.projectKey, projectKey)
 })
 
-test('激活码详情接口对不存在 id 返回 404', async (t) => {
+test('激活码详情接口对不存在 id 返回 404', async () => {
   const response = await detailGET(
     new NextRequest('http://127.0.0.1:3000/api/admin/codes/99999999', {
       headers: { cookie: await createAuthCookie() },

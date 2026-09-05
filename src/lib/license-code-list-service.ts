@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 
-import { isCodeExpired, isCountCodeDepleted, type LicenseStatusLike } from './license-status'
+import { isCodeExpired, type LicenseStatusLike } from './license-status'
 
 export type ActivationCodeListFilters = {
   keyword?: string

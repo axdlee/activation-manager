@@ -31,8 +31,6 @@ import {
   getActualExpiresAt,
   getCodeStatusLabel,
   getRemainingCount,
-  isCountCodeDepleted,
-  isCodeExpired,
   type LicenseModeValue,
 } from '@/lib/license-status'
 import { useConsumptionLogs } from '@/lib/use-consumption-logs'
@@ -45,13 +43,11 @@ import { useSystemConfigWorkspace } from '@/lib/use-system-config-workspace'
 import { useProjectWorkspace } from '@/lib/use-project-workspace'
 import { useActivationCodeGeneration } from '@/lib/use-activation-code-generation'
 import { useActivationCodeManagement } from '@/lib/use-activation-code-management'
-import type { ConsumptionPagination, LicenseConsumptionLog } from '@/lib/use-consumption-logs'
 import {
   dashboardTabs,
   getDashboardTabMeta,
 } from '@/lib/dashboard-tab-config'
 import {
-  consumptionWorkspaceTabs,
   type AuditLogWorkspaceTab,
   type ActivationCodeWorkspaceTab,
   type ConsumptionWorkspaceTab,
@@ -72,7 +68,6 @@ import {
   DEFAULT_AUTO_REBIND_MAX_COUNT,
   formatAutoRebindMaxCountLabel,
   formatCooldownMinutesLabel,
-  fromRebindOverrideSelectValue,
   resolveEffectiveRebindPolicy,
   toRebindOverrideSelectValue,
   type RebindOverrideSelectValue,
@@ -91,52 +86,27 @@ import { ActivationCodeWorkspace } from '@/components/activation-code-workspace'
 import { AuditLogWorkspace } from '@/components/audit-log-workspace'
 import { ChangePasswordWorkspace } from '@/components/change-password-workspace'
 import { ConsumptionWorkspace } from '@/components/consumption-workspace'
-import { DashboardActionPanel } from '@/components/dashboard-action-panel'
 import { DashboardDataTable } from '@/components/dashboard-data-table'
-import { DashboardEmptyState } from '@/components/dashboard-empty-state'
-import { DashboardFilterFieldCard } from '@/components/dashboard-filter-field-card'
 import { DashboardFormField } from '@/components/dashboard-form-field'
 import { DashboardInlineActionButton } from '@/components/dashboard-inline-action-button'
-import { DashboardLoadingState } from '@/components/dashboard-loading-state'
-import { DashboardPaginationBar } from '@/components/dashboard-pagination-bar'
-import { DashboardSectionHeader } from '@/components/dashboard-section-header'
 import { DashboardStatusBadge } from '@/components/dashboard-status-badge'
 import { DashboardSubmitField } from '@/components/dashboard-submit-field'
-import { DashboardSummaryStrip } from '@/components/dashboard-summary-strip'
-import { DashboardTokenList } from '@/components/dashboard-token-list'
 import { ProjectWorkspace } from '@/components/project-workspace'
 import { SystemConfigWorkspace } from '@/components/system-config-workspace'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useToast } from '@/components/toast-provider'
 import { AppInput } from '@/components/ui/app-input'
 import { AppSelect } from '@/components/ui/app-select'
-import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
-import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
-import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
 import type {
   ActivationCode,
-  ActivationCodeBindingHistoryEntry,
-  AdminOperationAuditLogEntry,
   AuditLogQueryFilters,
-  CardType,
-  ConsumptionTrend,
-  ConsumptionTrendComparison,
-  ConsumptionTrendPoint,
   Project,
-  ProjectStats,
-  Stats,
   StatusFilter,
   TabType,
 } from '@/lib/dashboard-page-types'
-import {
-  handleCardTypeChange,
-  normalizeOptionalAdminReason,
-  parseNullableCooldownMinutesInput,
-  parseNullableMaxCountInput,
-} from '@/lib/dashboard-form-utils'
+import { handleCardTypeChange } from '@/lib/dashboard-form-utils'
 import { buildExportUrl, triggerFileDownload } from '@/lib/download-utils'
 import {
-  codeBlockClassName,
   compactInputClassName,
   dangerButtonClassName,
   ghostButtonClassName,
@@ -271,7 +241,6 @@ export default function DashboardPage() {
   const dashboardData = useDashboardData({ onShowMessage: showMessage })
   const {
     projects,
-    setProjects,
     systemConfigs,
     setSystemConfigs,
     loading,
@@ -284,9 +253,7 @@ export default function DashboardPage() {
   const dashboardStats = useDashboardStats()
   const {
     stats,
-    setStats,
     projectStats,
-    setProjectStats,
     fetchStats,
   } = dashboardStats
   const changePassword = useChangePassword()
@@ -314,9 +281,7 @@ export default function DashboardPage() {
     isPasswordFieldVisible,
     toggleSensitiveConfigVisibility,
     isSensitiveConfigVisible,
-    revealedSensitiveConfigKeys,
     setRevealedSensitiveConfigKeys,
-    revealedPasswordFieldKeys,
     setRevealedPasswordFieldKeys,
     systemConfigPageModel,
     systemConfigSensitiveCount,
@@ -359,7 +324,6 @@ export default function DashboardPage() {
   })
   const {
     selectedActivationCodeId,
-    setSelectedActivationCodeId,
     selectedActivationCodeDetail,
     selectedActivationCodeRebindPolicy,
     setSelectedActivationCodeRebindPolicy,
@@ -371,7 +335,6 @@ export default function DashboardPage() {
     setSelectedActivationCodeTargetMachineId,
     selectedActivationCodeAdminReason,
     setSelectedActivationCodeAdminReason,
-    syncSelectedActivationCodeDrafts,
     selectActivationCodeForManagement,
     handleSaveActivationCodeRebindSettings,
     handleForceUnbindActivationCode,
@@ -380,7 +343,6 @@ export default function DashboardPage() {
     handleCleanupExpired,
   } = codeMgmt
   const projectWorkspace = useProjectWorkspace({
-    projects,
     onShowMessage: showMessage,
     onLoadingChange: setLoading,
     onFetchProjects: () => fetchProjectsRef.current(),
@@ -569,7 +531,6 @@ export default function DashboardPage() {
     generateRebindMaxCount,
     setGenerateRebindMaxCount,
     generatedCodes,
-    setGeneratedCodes,
     handleGenerateCodes,
   } = codeGeneration
 
@@ -1088,7 +1049,6 @@ export default function DashboardPage() {
     page: projectManagementCurrentPage,
     pageSize: itemsPerPage,
   })
-  const paginatedManageProjects = projectManagementPage.items
   const enabledProjectsCount = projects.filter((project) => project.isEnabled).length
   const disabledProjectsCount = projects.length - enabledProjectsCount
   const projectManagementStartIndex =

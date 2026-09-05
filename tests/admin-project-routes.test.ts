@@ -198,14 +198,6 @@ test('项目更新接口支持通过路由参数更新描述', async (t) => {
       id: project.id,
     },
   })
-  const adminLogs = await prisma.adminOperationAuditLog.findMany({
-    where: {
-      projectId: project.id,
-    },
-    orderBy: {
-      id: 'asc',
-    },
-  })
 
   assert.equal(response.status, 200)
   assert.deepEqual(

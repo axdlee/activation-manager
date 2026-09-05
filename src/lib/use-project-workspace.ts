@@ -4,10 +4,8 @@ import type { Project } from './dashboard-page-types'
 import { parseNullableCooldownMinutesInput, parseNullableMaxCountInput } from './dashboard-form-utils'
 import { fromRebindOverrideSelectValue, toRebindOverrideSelectValue } from './license-rebind-policy'
 import { normalizeProjectKeyInput, getProjectKeyValidationError } from './project-key'
-import { cardTypes } from './dashboard-page-types'
 
 export type UseProjectWorkspaceOptions = {
-  projects: Project[]
   onShowMessage?: (message: string, type?: 'success' | 'error') => void
   onLoadingChange?: (loading: boolean) => void
   onFetchProjects?: () => Promise<void>
@@ -20,7 +18,6 @@ export type UseProjectWorkspaceOptions = {
 
 export function useProjectWorkspace(options: UseProjectWorkspaceOptions) {
   const {
-    projects,
     onShowMessage,
     onLoadingChange,
     onFetchProjects,
