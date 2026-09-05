@@ -7,6 +7,7 @@ import { ApiDocsDebugCommandCard } from '@/components/api-docs-debug-command-car
 import { DashboardCodePanel } from '@/components/dashboard-code-panel'
 import { DashboardSummaryCard } from '@/components/dashboard-summary-card'
 import { DashboardTableContainer } from '@/components/dashboard-table-container'
+import { useOptionalToast } from '@/components/toast-provider'
 import { buildApiDocsPageModel } from '@/lib/api-docs-ui'
 import {
   apiDocsWorkspaceTabs,
@@ -29,7 +30,7 @@ type ApiDocsWorkspaceProps = {
 const summaryCardThemeMap = {
   sky: {
     panel: 'border-surface-200 bg-surface-100',
-    accent: 'bg-brand-500/100/100',
+    accent: 'bg-brand-500',
     value: 'text-brand-300',
   },
   emerald: {
@@ -50,7 +51,7 @@ const audienceBadgeClassNameMap = {
 } as const
 
 const methodBadgeClassNameMap = {
-  GET: 'border-brand-500/20 bg-brand-500/100/10 text-brand-400',
+  GET: 'border-brand-500/20 bg-brand-500/10 text-brand-400',
   POST: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   PATCH: 'border-amber-200 bg-amber-50 text-amber-700',
   DELETE: 'border-rose-200 bg-rose-50 text-rose-700',
@@ -72,13 +73,13 @@ const docsPublicFeatureCardClassName =
   'rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card transition-all hover:border-brand-500/30 hover:shadow-card-hover'
 
 const docsPublicPillClassName =
-  'inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-400 shadow-sm'
+  'inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-400 shadow-sm'
 
 const docsPublicPrimaryButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-glow transition-all hover:from-brand-400 hover:via-brand-500 hover:to-brand-600 disabled:cursor-not-allowed disabled:opacity-50'
 
 const docsPublicSecondaryButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-semibold text-ink-200 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/100/10'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-semibold text-ink-200 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/10'
 
 export function ApiDocsWorkspace({
   mode = 'dashboard',
@@ -104,6 +105,7 @@ export function ApiDocsWorkspace({
   } | null>(null)
   const feedbackTimerRef = useRef<number | null>(null)
   const apiDocsPageModel = useMemo(() => buildApiDocsPageModel(), [])
+  const { toast } = useOptionalToast()
 
   useEffect(() => {
     return () => {
@@ -116,6 +118,15 @@ export function ApiDocsWorkspace({
   const notify = (content: string, type: 'success' | 'error' = 'success') => {
     if (onFeedback) {
       onFeedback(content, type)
+      return
+    }
+
+    if (toast) {
+      if (type === 'error') {
+        toast.error(content)
+      } else {
+        toast.success(content)
+      }
       return
     }
 
@@ -179,7 +190,7 @@ export function ApiDocsWorkspace({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <div className={pillClassName}>
-                <span className="h-2 w-2 rounded-full bg-brand-500/100/100" />
+                <span className="h-2 w-2 rounded-full bg-brand-500" />
                 {heroContent.badge}
               </div>
               <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-50">
@@ -237,8 +248,8 @@ export function ApiDocsWorkspace({
                   onClick={() => setActiveTab(tab.key)}
                   className={`rounded-lg border p-4 text-left transition ${
                     isActive
-                      ? 'border-brand-500/20 bg-brand-500/100/100/10 shadow-card'
-                      : 'border-surface-200 bg-surface-100 hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/100/10/60'
+                      ? 'border-brand-500/20 bg-brand-500/10 shadow-card'
+                      : 'border-surface-200 bg-surface-100 hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/60'
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -247,7 +258,7 @@ export function ApiDocsWorkspace({
                         isActive
                           ? 'bg-brand-600 text-white shadow-card'
                           : isPublicMode
-                            ? 'bg-brand-500/100/10 text-brand-400 ring-1 ring-brand-100'
+                            ? 'bg-brand-500/10 text-brand-400 ring-1 ring-brand-100'
                             : 'bg-ink-900 text-white/90'
                       }`}
                     >
@@ -302,7 +313,7 @@ export function ApiDocsWorkspace({
                       <p className="mt-2 text-sm leading-6 text-ink-500">
                         {step.description}
                       </p>
-                      <div className="mt-3 rounded-md border border-brand-500/20 bg-brand-500/100/10 px-4 py-3 text-sm leading-6 text-brand-400">
+                      <div className="mt-3 rounded-md border border-brand-500/20 bg-brand-500/10 px-4 py-3 text-sm leading-6 text-brand-400">
                         <span className="font-medium text-brand-300">你会得到：</span>{' '}
                         {step.outcome}
                       </div>
@@ -316,7 +327,7 @@ export function ApiDocsWorkspace({
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             {apiDocsPageModel.licenseModels.map((card) => (
               <div key={card.badge} className={`${panelClassName} p-6`}>
-                <div className="inline-flex items-center rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-brand-400">
+                <div className="inline-flex items-center rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-brand-400">
                   {card.badge}
                 </div>
                 <h3 className="mt-4 text-xl font-semibold text-ink-50">{card.title}</h3>
@@ -327,7 +338,7 @@ export function ApiDocsWorkspace({
                       key={bullet}
                       className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-6 text-ink-300"
                     >
-                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-brand-500/100/100" />
+                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-brand-500" />
                       <span>{bullet}</span>
                     </div>
                   ))}
@@ -475,7 +486,7 @@ export function ApiDocsWorkspace({
                       key={highlight}
                       className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-6 text-ink-300"
                     >
-                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-brand-500/100/100" />
+                      <span className="mt-1 h-2.5 w-2.5 rounded-full bg-brand-500" />
                       <span>{highlight}</span>
                     </div>
                   ))}

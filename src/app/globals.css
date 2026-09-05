@@ -2,9 +2,219 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* =============================================================
+ * 主题令牌系统：所有颜色通过 CSS 变量定义，随 <html data-theme="..."> 切换。
+ * 内置主题：dark-tech（深空科技·默认）/ midnight（午夜蓝）/
+ *           graphite（石墨灰）/ aurora（极简浅色）
+ * ============================================================= */
+
+:root,
+[data-theme='dark-tech'] {
   color-scheme: dark;
+
+  /* 品牌蓝 */
+  --brand-50: 238 240 255;
+  --brand-100: 217 221 255;
+  --brand-200: 183 190 255;
+  --brand-300: 140 150 255;
+  --brand-400: 107 118 249;
+  --brand-500: 91 116 244;
+  --brand-600: 64 85 232;
+  --brand-700: 51 67 205;
+  --brand-800: 43 57 164;
+  --brand-900: 41 52 130;
+  --brand-950: 26 33 73;
+
+  /* 墨阶 */
+  --ink-50: 240 242 248;
+  --ink-100: 224 226 237;
+  --ink-200: 196 200 220;
+  --ink-300: 164 169 194;
+  --ink-400: 133 139 167;
+  --ink-500: 107 113 142;
+  --ink-600: 82 87 114;
+  --ink-700: 60 64 88;
+  --ink-800: 40 44 66;
+  --ink-900: 26 29 48;
+  --ink-950: 13 15 26;
+
+  /* 面板 */
+  --surface-50: 13 15 26;
+  --surface-100: 17 20 32;
+  --surface-200: 26 29 48;
+  --surface-300: 37 41 64;
+  --surface-400: 48 53 82;
+  --surface-500: 58 63 96;
+  --surface-600: 70 75 112;
+  --surface-700: 82 88 130;
+  --surface-800: 23 26 44;
+  --surface-900: 19 22 38;
+  --surface-950: 10 12 20;
+
+  /* 阴影 */
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(91 116 244 / 0.08);
+  --shadow-glow: 0 0 20px rgba(91 116 244 / 0.12), 0 0 40px -8px rgba(91 116 244 / 0.08);
+  --shadow-glow-lg: 0 0 30px rgba(91 116 244 / 0.18), 0 0 60px -12px rgba(91 116 244 / 0.1);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(91 116 244 / 0.06);
+
+  /* 全局辅助色 */
+  --selection-bg: 91 116 244;
+  --scrollbar-thumb: 240 242 248;
 }
+
+/* ===== 午夜蓝：更冷的蓝黑底，低饱和品牌光晕 ===== */
+[data-theme='midnight'] {
+  color-scheme: dark;
+
+  --brand-50: 234 238 255;
+  --brand-100: 209 217 255;
+  --brand-200: 170 184 255;
+  --brand-300: 126 146 255;
+  --brand-400: 96 118 246;
+  --brand-500: 79 100 232;
+  --brand-600: 58 78 202;
+  --brand-700: 47 64 166;
+  --brand-800: 39 53 134;
+  --brand-900: 35 47 111;
+  --brand-950: 22 30 72;
+
+  --ink-50: 236 240 250;
+  --ink-100: 218 224 240;
+  --ink-200: 190 198 220;
+  --ink-300: 158 168 196;
+  --ink-400: 128 138 170;
+  --ink-500: 104 113 146;
+  --ink-600: 80 88 118;
+  --ink-700: 59 66 92;
+  --ink-800: 40 46 68;
+  --ink-900: 26 31 50;
+  --ink-950: 12 15 28;
+
+  --surface-50: 12 15 28;
+  --surface-100: 16 20 38;
+  --surface-200: 24 29 52;
+  --surface-300: 34 41 70;
+  --surface-400: 44 52 88;
+  --surface-500: 54 64 106;
+  --surface-600: 66 77 126;
+  --surface-700: 78 90 146;
+  --surface-800: 21 26 46;
+  --surface-900: 18 22 40;
+  --surface-950: 9 11 22;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.35), 0 1px 3px 0 rgb(0 0 0 / 0.4);
+  --shadow-card-hover: 0 4px 14px -2px rgb(0 0 0 / 0.45), 0 2px 4px -1px rgb(0 0 0 / 0.35), 0 0 0 1px rgba(96 118 246 / 0.08);
+  --shadow-glow: 0 0 20px rgba(79 100 232 / 0.14), 0 0 40px -8px rgba(79 100 232 / 0.1);
+  --shadow-glow-lg: 0 0 30px rgba(79 100 232 / 0.2), 0 0 60px -12px rgba(79 100 232 / 0.12);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.65), 0 0 0 1px rgba(96 118 246 / 0.06);
+
+  --selection-bg: 79 100 232;
+  --scrollbar-thumb: 218 224 240;
+}
+
+/* ===== 石墨灰：中性冷灰，克制商务感 ===== */
+[data-theme='graphite'] {
+  color-scheme: dark;
+
+  --brand-50: 235 239 255;
+  --brand-100: 210 219 255;
+  --brand-200: 172 186 250;
+  --brand-300: 131 150 240;
+  --brand-400: 104 124 226;
+  --brand-500: 88 106 206;
+  --brand-600: 68 84 176;
+  --brand-700: 55 68 144;
+  --brand-800: 46 56 116;
+  --brand-900: 40 49 96;
+  --brand-950: 26 32 64;
+
+  --ink-50: 242 243 247;
+  --ink-100: 227 229 236;
+  --ink-200: 202 205 216;
+  --ink-300: 171 175 190;
+  --ink-400: 140 145 162;
+  --ink-500: 114 119 136;
+  --ink-600: 90 95 112;
+  --ink-700: 67 71 86;
+  --ink-800: 46 50 62;
+  --ink-900: 30 33 42;
+  --ink-950: 15 17 23;
+
+  --surface-50: 15 17 23;
+  --surface-100: 20 22 30;
+  --surface-200: 29 32 43;
+  --surface-300: 40 44 58;
+  --surface-400: 51 56 72;
+  --surface-500: 62 68 86;
+  --surface-600: 74 80 100;
+  --surface-700: 87 94 116;
+  --surface-800: 26 29 38;
+  --surface-900: 22 25 33;
+  --surface-950: 12 13 18;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.32);
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(104 124 226 / 0.08);
+  --shadow-glow: 0 0 20px rgba(88 106 206 / 0.12), 0 0 40px -8px rgba(88 106 206 / 0.08);
+  --shadow-glow-lg: 0 0 30px rgba(88 106 206 / 0.18), 0 0 60px -12px rgba(88 106 206 / 0.1);
+  --shadow-modal: 0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(104 124 226 / 0.06);
+
+  --selection-bg: 104 124 226;
+  --scrollbar-thumb: 227 229 236;
+}
+
+/* ===== 极简浅色：白底深字，适合日间办公 ===== */
+[data-theme='aurora'] {
+  color-scheme: light;
+
+  --brand-50: 239 242 255;
+  --brand-100: 219 226 255;
+  --brand-200: 185 198 255;
+  --brand-300: 143 163 255;
+  --brand-400: 107 129 245;
+  --brand-500: 82 106 235;
+  --brand-600: 66 84 210;
+  --brand-700: 55 69 172;
+  --brand-800: 46 57 138;
+  --brand-900: 40 49 112;
+  --brand-950: 26 33 74;
+
+  /* 浅色主题：墨阶反转 —— 50 为最深文字，950 为最浅背景 */
+  --ink-50: 26 29 48;
+  --ink-100: 43 47 70;
+  --ink-200: 66 71 98;
+  --ink-300: 96 102 132;
+  --ink-400: 121 127 156;
+  --ink-500: 145 150 176;
+  --ink-600: 172 176 198;
+  --ink-700: 201 204 220;
+  --ink-800: 224 226 236;
+  --ink-900: 238 239 245;
+  --ink-950: 247 248 252;
+
+  --surface-50: 247 248 252;
+  --surface-100: 255 255 255;
+  --surface-200: 229 232 242;
+  --surface-300: 211 215 229;
+  --surface-400: 193 198 216;
+  --surface-500: 175 181 203;
+  --surface-600: 157 164 190;
+  --surface-700: 139 147 177;
+  --surface-800: 243 244 250;
+  --surface-900: 236 238 246;
+  --surface-950: 240 242 249;
+
+  --shadow-card: 0 1px 2px 0 rgb(15 18 30 / 0.06), 0 1px 3px 0 rgb(15 18 30 / 0.08);
+  --shadow-card-hover: 0 6px 16px -4px rgb(15 18 30 / 0.12), 0 2px 4px -1px rgb(15 18 30 / 0.08), 0 0 0 1px rgba(82 106 235 / 0.06);
+  --shadow-glow: 0 0 20px rgba(82 106 235 / 0.1), 0 0 40px -8px rgba(82 106 235 / 0.06);
+  --shadow-glow-lg: 0 0 30px rgba(82 106 235 / 0.14), 0 0 60px -12px rgba(82 106 235 / 0.08);
+  --shadow-modal: 0 24px 64px -12px rgb(15 18 30 / 0.25), 0 0 0 1px rgba(82 106 235 / 0.04);
+
+  --selection-bg: 82 106 235;
+  --scrollbar-thumb: 145 150 176;
+}
+
+/* ===== 基础样式（随主题变量）===== */
 
 html {
   -webkit-font-smoothing: antialiased;
@@ -13,19 +223,19 @@ html {
 }
 
 body {
-  color: #e0e2ed;
-  background-color: #0d0f1a;
+  color: rgb(var(--ink-100));
+  background-color: rgb(var(--surface-50));
 }
 
 ::selection {
-  background-color: rgba(91, 116, 244, 0.25);
-  color: #f0f2f8;
+  background-color: rgb(var(--selection-bg) / 0.25);
+  color: rgb(var(--ink-50));
 }
 
-/* 精细滚动条 - 深色版 */
+/* 精细滚动条 */
 .dashboard-scroll-area {
   scrollbar-width: thin;
-  scrollbar-color: rgba(240, 242, 248, 0.15) transparent;
+  scrollbar-color: rgb(var(--scrollbar-thumb) / 0.15) transparent;
 }
 
 .dashboard-scroll-area::-webkit-scrollbar {
@@ -39,11 +249,11 @@ body {
 
 .dashboard-scroll-area::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  background: rgba(240, 242, 248, 0.12);
+  background: rgb(var(--scrollbar-thumb) / 0.12);
 }
 
 .dashboard-scroll-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(240, 242, 248, 0.25);
+  background: rgb(var(--scrollbar-thumb) / 0.25);
 }
 
 /* 数字等宽 */
@@ -51,11 +261,21 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* 输入框 autofill 深色覆盖 */
+/* 输入框 autofill 覆盖 */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #f0f2f8;
-  -webkit-box-shadow: 0 0 0 1000px #1a1d30 inset;
-  caret-color: #f0f2f8;
+  -webkit-text-fill-color: rgb(var(--ink-50));
+  -webkit-box-shadow: 0 0 0 1000px rgb(var(--surface-800)) inset;
+  caret-color: rgb(var(--ink-50));
+}
+
+/* ===== 主题切换过渡 ===== */
+.theme-transition,
+.theme-transition * {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    box-shadow 300ms ease !important;
 }

@@ -7,39 +7,46 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // ===== 深色科技风色板 =====
+      // ===== 主题色板：颜色值全部引用 CSS 变量（class 名不变，随 data-theme 换肤）=====
       colors: {
         brand: {
-          50: '#eef0ff',
-          100: '#d9ddff',
-          200: '#b7beff',
-          300: '#8c96ff',
-          400: '#6b76f9',
-          500: '#5b74f4', // 主品牌蓝（保持不变）
-          600: '#4055e8',
-          700: '#3343cd',
-          800: '#2b39a4',
-          900: '#293482',
-          950: '#1a2149',
+          50: 'rgb(var(--brand-50) / <alpha-value>)',
+          100: 'rgb(var(--brand-100) / <alpha-value>)',
+          200: 'rgb(var(--brand-200) / <alpha-value>)',
+          300: 'rgb(var(--brand-300) / <alpha-value>)',
+          400: 'rgb(var(--brand-400) / <alpha-value>)',
+          500: 'rgb(var(--brand-500) / <alpha-value>)',
+          600: 'rgb(var(--brand-600) / <alpha-value>)',
+          700: 'rgb(var(--brand-700) / <alpha-value>)',
+          800: 'rgb(var(--brand-800) / <alpha-value>)',
+          900: 'rgb(var(--brand-900) / <alpha-value>)',
+          950: 'rgb(var(--brand-950) / <alpha-value>)',
         },
         ink: {
-          50: '#f0f2f8',  // 主文字
-          100: '#e0e2ed',
-          200: '#c4c8dc',
-          300: '#a4a9c2',
-          400: '#858ba7',
-          500: '#6b718e', // 次要文字
-          600: '#525772',
-          700: '#3c4058',
-          800: '#282c42',
-          900: '#1a1d30',
-          950: '#0d0f1a', // 页面背景
+          50: 'rgb(var(--ink-50) / <alpha-value>)',
+          100: 'rgb(var(--ink-100) / <alpha-value>)',
+          200: 'rgb(var(--ink-200) / <alpha-value>)',
+          300: 'rgb(var(--ink-300) / <alpha-value>)',
+          400: 'rgb(var(--ink-400) / <alpha-value>)',
+          500: 'rgb(var(--ink-500) / <alpha-value>)',
+          600: 'rgb(var(--ink-600) / <alpha-value>)',
+          700: 'rgb(var(--ink-700) / <alpha-value>)',
+          800: 'rgb(var(--ink-800) / <alpha-value>)',
+          900: 'rgb(var(--ink-900) / <alpha-value>)',
+          950: 'rgb(var(--ink-950) / <alpha-value>)',
         },
         surface: {
-          50: '#0d0f1a',  // 页面背景
-          100: '#111420', // 卡片背景
-          200: '#1a1d30', // 卡片边框
-          300: '#252940', // 输入框边框
+          50: 'rgb(var(--surface-50) / <alpha-value>)',
+          100: 'rgb(var(--surface-100) / <alpha-value>)',
+          200: 'rgb(var(--surface-200) / <alpha-value>)',
+          300: 'rgb(var(--surface-300) / <alpha-value>)',
+          400: 'rgb(var(--surface-400) / <alpha-value>)',
+          500: 'rgb(var(--surface-500) / <alpha-value>)',
+          600: 'rgb(var(--surface-600) / <alpha-value>)',
+          700: 'rgb(var(--surface-700) / <alpha-value>)',
+          800: 'rgb(var(--surface-800) / <alpha-value>)',
+          900: 'rgb(var(--surface-900) / <alpha-value>)',
+          950: 'rgb(var(--surface-950) / <alpha-value>)',
         },
       },
       // ===== 圆角 =====
@@ -52,11 +59,11 @@ module.exports = {
       },
       // ===== 阴影 + 发光 =====
       boxShadow: {
-        card: '0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.35)',
-        'card-hover': '0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(91 116 244 / 0.08)',
-        glow: '0 0 20px rgba(91 116 244 / 0.12), 0 0 40px -8px rgba(91 116 244 / 0.08)',
-        'glow-lg': '0 0 30px rgba(91 116 244 / 0.18), 0 0 60px -12px rgba(91 116 244 / 0.1)',
-        modal: '0 24px 64px -12px rgb(0 0 0 / 0.6), 0 0 0 1px rgba(91 116 244 / 0.06)',
+        card: 'var(--shadow-card)',
+        'card-hover': 'var(--shadow-card-hover)',
+        glow: 'var(--shadow-glow)',
+        'glow-lg': 'var(--shadow-glow-lg)',
+        modal: 'var(--shadow-modal)',
       },
       // ===== 动效 =====
       transitionTimingFunction: {
@@ -67,13 +74,24 @@ module.exports = {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'toast-in': {
+          '0%': { opacity: '0', transform: 'translateX(16px) scale(0.97)' },
+          '100%': { opacity: '1', transform: 'translateX(0) scale(1)' },
+        },
         'glow-pulse': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(91 116 244 / 0.12), 0 0 40px -8px rgba(91 116 244 / 0.08)' },
-          '50%': { boxShadow: '0 0 25px rgba(91 116 244 / 0.22), 0 0 50px -8px rgba(91 116 244 / 0.15)' },
+          '0%, 100%': { boxShadow: 'var(--shadow-glow)' },
+          '50%': { boxShadow: 'var(--shadow-glow-lg)' },
         },
       },
       animation: {
         'fade-in-up': 'fade-in-up 400ms cubic-bezier(0.4, 0, 0.2, 1) both',
+        'fade-in': 'fade-in 300ms cubic-bezier(0.4, 0, 0.2, 1) both',
+        'toast-in': 'toast-in 260ms cubic-bezier(0.4, 0, 0.2, 1) both',
+        'glow-pulse': 'glow-pulse 2.4s ease-in-out infinite',
       },
     },
   },

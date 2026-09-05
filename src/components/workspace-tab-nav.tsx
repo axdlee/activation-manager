@@ -32,7 +32,7 @@ export function WorkspaceTabNav<T extends string>({
             onClick={() => onChange(tab.key)}
             className={`rounded-lg border p-4 text-left transition ${
               isActive
-                ? 'border-brand-500/20 bg-brand-500/100/100/10 shadow-card'
+                ? 'border-brand-500/20 bg-brand-500/10 shadow-card'
                 : 'border-surface-200 bg-surface-100 hover:-translate-y-0.5 hover:border-ink-300 hover:bg-surface-50'
             }`}
           >

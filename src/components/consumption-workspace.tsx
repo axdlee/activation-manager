@@ -115,7 +115,7 @@ const defaultGhostButtonClassName =
 const defaultPaginationButtonClassName =
   'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
-  'border-sky-500 bg-brand-500/100/100 text-white shadow-card hover:border-sky-500 hover:bg-brand-500/100/100'
+  'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 
 export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
   activeTab,
@@ -308,7 +308,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
             <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
               <div className="text-xs uppercase tracking-[0.18em] text-ink-500">刷新状态</div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1.5 text-sm text-brand-400">
+                <span className="rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-sm text-brand-400">
                   自动刷新已开启（{filtersView.autoRefreshDelayMs}ms 防抖）
                 </span>
                 <span
@@ -366,7 +366,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
           <DashboardSummaryStrip
             leading={
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1.5 text-sm text-brand-400">
+                <span className="rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-sm text-brand-400">
                   自动刷新已开启（{logsView.autoRefreshDelayMs}ms 防抖）
                 </span>
                 <span

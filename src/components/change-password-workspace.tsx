@@ -2,6 +2,7 @@
 
 import React from 'react'
 
+import { AppInput } from '@/components/ui/app-input'
 import { type ChangePasswordPageModel } from '@/lib/change-password-ui'
 
 type ChangePasswordWorkspaceProps = {
@@ -160,7 +161,7 @@ export function ChangePasswordWorkspace({
                 </div>
 
                 <div className="mt-4">
-                  <input
+                  <AppInput
                     type={isPasswordFieldVisible(field.key) ? 'text' : 'password'}
                     id={field.key}
                     value={fieldValueMap[field.key]}

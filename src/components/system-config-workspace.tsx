@@ -5,6 +5,9 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { DashboardEmptyState } from '@/components/dashboard-empty-state'
 import { DashboardLoadingState } from '@/components/dashboard-loading-state'
 import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
+import { AppInput } from '@/components/ui/app-input'
+import { AppSelect } from '@/components/ui/app-select'
+import { AppTextarea } from '@/components/ui/app-textarea'
 import {
   buildSystemConfigWorkspaceTabs,
   type SystemConfigWorkspaceTab,
@@ -31,7 +34,7 @@ type SystemConfigWorkspaceProps = {
 }
 
 const systemConfigBadgeClassNameMap = {
-  info: 'border-brand-500/20 bg-brand-500/100/10 text-brand-400',
+  info: 'border-brand-500/20 bg-brand-500/10 text-brand-400',
   success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   warning: 'border-amber-200 bg-amber-50 text-amber-700',
   danger: 'border-rose-200 bg-rose-50 text-rose-600',
@@ -41,7 +44,7 @@ const systemConfigBadgeClassNameMap = {
 const systemConfigGroupThemeMap = {
   access: {
     badge: 'border border-surface-200 bg-surface-50 text-ink-300',
-    dot: 'bg-brand-500/100/100',
+    dot: 'bg-brand-500',
     title: 'text-ink-50',
     note: 'border-surface-200 bg-surface-50 text-ink-300',
     divider: 'border-surface-200',
@@ -184,7 +187,7 @@ function renderGroupSection({
 
             <div className="mt-4 space-y-4">
               {item.inputKind === 'textarea' ? (
-                <textarea
+                <AppTextarea
                   value={Array.isArray(item.value) ? item.value.join('\n') : String(item.value || '')}
                   onChange={(event) => {
                     const ips = event.target.value
@@ -198,7 +201,7 @@ function renderGroupSection({
                   placeholder={item.placeholder}
                 />
               ) : item.inputKind === 'number' ? (
-                <input
+                <AppInput
                   type="number"
                   min={item.min}
                   max={item.max}
@@ -215,7 +218,7 @@ function renderGroupSection({
                   className={inputClassName}
                 />
               ) : item.inputKind === 'select' ? (
-                <select
+                <AppSelect
                   value={String(item.value)}
                   onChange={(event) =>
                     updateConfigValue(
@@ -234,9 +237,9 @@ function renderGroupSection({
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               ) : (
-                <input
+                <AppInput
                   type={
                     item.inputKind === 'password'
                       ? isSensitiveConfigVisible(item.key)
@@ -261,7 +264,7 @@ function renderGroupSection({
                       item.previewTokens.map((token) => (
                         <span
                           key={`${item.key}-${token}`}
-                          className="rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1.5 text-xs font-medium text-brand-400"
+                          className="rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400"
                         >
                           {token}
                         </span>

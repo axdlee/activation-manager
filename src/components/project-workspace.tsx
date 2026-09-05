@@ -128,7 +128,7 @@ const defaultGhostButtonClassName =
 const defaultPaginationButtonClassName =
   'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
-  'border-sky-500 bg-brand-500/100/100 text-white shadow-card hover:border-sky-500 hover:bg-brand-500/100/100'
+  'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 const modalFooterClassName = 'flex flex-col-reverse gap-3 sm:flex-row sm:justify-end'
 const subtleModalSectionClassName = 'rounded-lg border border-surface-200 bg-surface-50 p-5'
 const modalSectionTitleClassName = 'text-base font-semibold text-ink-50'
@@ -668,7 +668,7 @@ export function ProjectWorkspace({
         {editingBasicsProject ? (
           <div className="space-y-4">
             {editingBasicsProject.projectKey === 'default' ? (
-              <div className="rounded-lg border border-surface-200 bg-brand-500/100/10/80 px-5 py-4 text-sm leading-6 text-brand-400">
+              <div className="rounded-lg border border-surface-200 bg-brand-500/80 px-5 py-4 text-sm leading-6 text-brand-400">
                 默认项目的名称固定，建议仅在这里维护描述说明，方便后台识别其兼容用途。
               </div>
             ) : null}

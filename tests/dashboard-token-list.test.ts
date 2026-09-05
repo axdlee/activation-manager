@@ -17,7 +17,7 @@ test('DashboardTokenList 会渲染全部 token 并使用默认布局样式', () 
   assert.match(html, /项目：浏览器插件/)
   assert.match(html, /状态：已绑定/)
   assert.match(html, /flex flex-wrap gap-2/)
-  assert.match(html, /rounded-full border border-brand-500\/20 bg-brand-500\/100\/10 px-3 py-1\.5 text-sm text-brand-400/)
+  assert.match(html, /rounded-full border border-brand-500\/20 bg-brand-500\/10 px-3 py-1\.5 text-sm text-brand-400/)
 })
 
 test('DashboardTokenList 在没有 token 时会渲染空状态文案', () => {

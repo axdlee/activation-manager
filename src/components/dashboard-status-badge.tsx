@@ -13,7 +13,7 @@ const toneClassNameMap: Record<DashboardStatusBadgeTone, string> = {
   neutral: 'inline-flex items-center rounded-full bg-surface-100 px-2.5 py-1 text-xs font-medium text-ink-200',
   warning: 'inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700',
   danger: 'inline-flex items-center rounded-full bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-700',
-  info: 'inline-flex items-center rounded-full bg-brand-500/100/10 px-2.5 py-1 text-xs font-medium text-brand-400',
+  info: 'inline-flex items-center rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400',
 }
 
 export function DashboardStatusBadge({

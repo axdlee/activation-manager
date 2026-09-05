@@ -37,13 +37,13 @@ const apiDocsShellClassName =
   'rounded-lg border border-brand-500/20 bg-surface-100 shadow-card'
 
 const apiDocsPillClassName =
-  'inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/100/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-400 shadow-sm'
+  'inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-400 shadow-sm'
 
 const apiDocsPrimaryButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-glow transition-all hover:from-brand-400 hover:via-brand-500 hover:to-brand-600 disabled:cursor-not-allowed disabled:opacity-50'
 
 const apiDocsSecondaryButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-semibold text-ink-200 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/100/10'
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-semibold text-ink-200 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/10'
 
 const apiDocsHighlightCardClassName =
   'rounded-lg border border-surface-200 bg-surface-100 px-5 py-5 shadow-card'
@@ -63,7 +63,7 @@ export default function ApiDocsPage() {
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <div className={apiDocsPillClassName}>
-                <span className="h-2 w-2 rounded-full bg-brand-500/100/100" />
+                <span className="h-2 w-2 rounded-full bg-brand-500" />
                 对外接入说明
               </div>
               <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink-50 sm:text-4xl">

@@ -38,4 +38,4 @@ export const paginationButtonClassName =
   'inline-flex h-9 min-w-9 items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition-all hover:border-brand-500/30 hover:text-ink-50 disabled:cursor-not-allowed disabled:opacity-50'
 
 export const paginationActiveButtonClassName =
-  'border-brand-500 bg-brand-600 text-white shadow-glow hover:border-brand-500 hover:bg-brand-500/100/100'
+  'border-brand-500 bg-brand-600 text-white shadow-glow hover:border-brand-500 hover:bg-brand-500'

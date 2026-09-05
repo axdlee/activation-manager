@@ -39,7 +39,7 @@ export function DashboardProjectManagementRow({
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-ink-50">{project.name}</span>
             {isDefaultProject ? (
-              <span className="inline-flex items-center rounded-full border border-brand-500/20 bg-brand-500/100/10 px-2.5 py-1 text-[11px] font-medium text-brand-400">
+              <span className="inline-flex items-center rounded-full border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-[11px] font-medium text-brand-400">
                 默认项目
               </span>
             ) : null}

@@ -58,7 +58,7 @@ export default function Home() {
           <div className="flex flex-col gap-10 p-8 lg:flex-row lg:items-start lg:p-12">
             <div className="max-w-2xl flex-1">
               <div className={publicPillClassName}>
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
                 License Ops Center
               </div>
               <h1 className="mt-5 text-4xl font-semibold tracking-tight text-ink-50 sm:text-5xl">
@@ -97,7 +97,7 @@ export default function Home() {
               {capabilityCards.map((card) => (
                 <div key={card.title} className={publicFeatureCardClassName}>
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-md border border-brand-500/20 bg-brand-500/100/10 text-brand-400">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-md border border-brand-500/20 bg-brand-500/10 text-brand-400">
                       {card.icon}
                     </span>
                     <span className="text-base font-semibold text-ink-50">{card.title}</span>

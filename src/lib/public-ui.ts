@@ -22,7 +22,7 @@ export const publicStatCardClassName =
   'rounded-lg border border-surface-200 bg-surface-100 px-5 py-5 shadow-card'
 
 export const publicPillClassName =
-  'inline-flex items-center gap-1.5 rounded-sm border border-brand-500/20 bg-brand-500/100/100/10 px-2.5 py-1 text-xs font-medium text-brand-400'
+  'inline-flex items-center gap-1.5 rounded-sm border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400'
 
 export const publicPrimaryButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 px-4 py-2.5 text-sm font-medium text-white shadow-glow transition-all hover:from-brand-400 hover:via-brand-500 hover:to-brand-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50'

@@ -113,7 +113,7 @@ const defaultGhostButtonClassName =
 const defaultPaginationButtonClassName =
   'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
-  'border-sky-500 bg-brand-500/100/100 text-white shadow-card hover:border-sky-500 hover:bg-brand-500/100/100'
+  'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 
 export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
   activeTab,

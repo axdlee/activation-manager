@@ -12,6 +12,8 @@ import {
   publicSecondaryButtonClassName,
   publicShellClassName,
 } from '@/lib/public-ui'
+import { ThemeSwitcher } from '@/components/theme-switcher'
+import { AppInput } from '@/components/ui/app-input'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -49,11 +51,14 @@ export default function LoginPage() {
   }
 
   return (
-    <main className={`${publicPageClassName} flex min-h-screen items-center justify-center`}>
+    <main className={`${publicPageClassName} relative flex min-h-screen items-center justify-center`}>
+      <div className="absolute right-5 top-5 w-56">
+        <ThemeSwitcher />
+      </div>
       <div className="w-full max-w-md px-4">
         <section className={`${publicShellClassName} animate-fade-in-up p-8`}>
           <div className={publicPillClassName}>
-            <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
             Admin Access
           </div>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-50">管理后台登录</h1>
@@ -66,15 +71,20 @@ export default function LoginPage() {
               <label htmlFor="username" className="block text-sm font-medium text-ink-200">
                 用户名
               </label>
-              <input
+              <AppInput
                 type="text"
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className={`mt-2 ${publicInputClassName}`}
+                className="mt-2"
                 placeholder="请输入管理员用户名"
                 autoComplete="username"
                 required
+                leadingIcon={
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+                    <path d="M10 10a3 3 0 100-6 3 3 0 000 6zM4.5 16a5.5 5.5 0 0111 0" strokeLinecap="round" />
+                  </svg>
+                }
               />
             </div>
 
@@ -82,15 +92,21 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-medium text-ink-200">
                 密码
               </label>
-              <input
+              <AppInput
                 type="password"
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`mt-2 ${publicInputClassName}`}
+                className="mt-2"
                 placeholder="请输入登录密码"
                 autoComplete="current-password"
                 required
+                leadingIcon={
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-4 w-4">
+                    <rect x="4" y="8.5" width="12" height="8" rx="1.5" />
+                    <path d="M6.5 8.5V6a3.5 3.5 0 017 0v2.5" />
+                  </svg>
+                }
               />
             </div>
 

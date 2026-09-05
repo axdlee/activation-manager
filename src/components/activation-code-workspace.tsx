@@ -197,7 +197,7 @@ const defaultGhostButtonClassName =
 const defaultPaginationButtonClassName =
   'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
-  'border-sky-500 bg-brand-500/100/100 text-white shadow-card hover:border-sky-500 hover:bg-brand-500/100/100'
+  'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 
 type ActivationCodeManagementPanelProps = {
   managementView: ActivationCodeManagementView
@@ -746,7 +746,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                               onClick={() => handleOpenManagement(code.id)}
                               className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
                                 isSelected
-                                  ? 'border-brand-500/20 bg-brand-500/100/10 text-brand-400'
+                                  ? 'border-brand-500/20 bg-brand-500/10 text-brand-400'
                                   : 'border-surface-200 bg-surface-100 text-ink-300 hover:border-surface-300 hover:bg-surface-50'
                               }`}
                             >

@@ -106,6 +106,10 @@ import { DashboardSummaryStrip } from '@/components/dashboard-summary-strip'
 import { DashboardTokenList } from '@/components/dashboard-token-list'
 import { ProjectWorkspace } from '@/components/project-workspace'
 import { SystemConfigWorkspace } from '@/components/system-config-workspace'
+import { ThemeSwitcher } from '@/components/theme-switcher'
+import { useToast } from '@/components/toast-provider'
+import { AppInput } from '@/components/ui/app-input'
+import { AppSelect } from '@/components/ui/app-select'
 import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
 import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
 import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
@@ -190,8 +194,7 @@ export default function DashboardPage() {
     compareError: consumptionTrendCompareError,
     fetchTrend: fetchConsumptionTrend,
   } = trend
-  const [message, setMessage] = useState('')
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success')
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [statsProjectFilter, setStatsProjectFilter] = useState<'all' | string>('all')
@@ -254,10 +257,16 @@ export default function DashboardPage() {
   const hasCodeListInitializedRef = useRef(false)
   const skipNextCodeListRefreshRef = useRef(false)
 
-  const showMessage = useCallback((content: string, type: 'success' | 'error' = 'success') => {
-    setMessage(content)
-    setMessageType(type)
-  }, [])
+  const showMessage = useCallback(
+    (content: string, type: 'success' | 'error' = 'success') => {
+      if (type === 'error') {
+        toast.error(content)
+      } else {
+        toast.success(content)
+      }
+    },
+    [toast],
+  )
 
   const dashboardData = useDashboardData({ onShowMessage: showMessage })
   const {
@@ -804,7 +813,6 @@ export default function DashboardPage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    setMessage('')
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       showMessage('请填写所有密码字段', 'error')
@@ -1269,7 +1277,7 @@ export default function DashboardPage() {
       : consumptionRefreshStatus.tone === 'success'
         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
         : consumptionRefreshStatus.tone === 'info'
-          ? 'border-brand-500/20 bg-brand-500/100/10 text-brand-400'
+          ? 'border-brand-500/20 bg-brand-500/10 text-brand-400'
           : 'border-surface-200 bg-surface-50 text-ink-500'
   const shellClassName =
     'rounded-lg border border-surface-200 bg-surface-100 shadow-card'
@@ -1757,8 +1765,8 @@ export default function DashboardPage() {
             <section className={`${shellClassName} p-5 lg:flex lg:h-full lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden`}>
               <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0">
                 <div className="shrink-0 border-b border-surface-200 pb-5">
-                  <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/100/10 px-2.5 py-1 text-xs font-medium text-brand-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
+                  <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100" />
                     授权运营中台
                   </div>
                   <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink-50">
@@ -1780,7 +1788,7 @@ export default function DashboardPage() {
                           onClick={() => setActiveTab(tab.key)}
                           className={`group flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-all ${
                             isActive
-                              ? 'border-brand-500/20 bg-brand-500/100/10 text-brand-300'
+                              ? 'border-brand-500/20 bg-brand-500/10 text-brand-300'
                               : 'border-transparent text-ink-300 hover:border-surface-200 hover:bg-surface-50 hover:text-ink-50'
                           }`}
                         >
@@ -1815,7 +1823,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="shrink-0 pt-4">
+                <div className="shrink-0 space-y-2 pt-4">
+                  <ThemeSwitcher />
                   <button onClick={handleLogout} className={`w-full ${dangerButtonClassName}`}>
                     登出
                   </button>
@@ -1829,8 +1838,8 @@ export default function DashboardPage() {
               <section className={`${shellClassName} p-6`}>
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                   <div className="max-w-3xl">
-                    <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/100/10 px-2.5 py-1 text-xs font-medium text-brand-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100/100" />
+                    <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100" />
                       当前模块 · {activeTabMeta.label}
                     </div>
                     <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink-50">
@@ -1846,35 +1855,9 @@ export default function DashboardPage() {
                 </div>
               </section>
 
-              {message && (
-                <div
-                  className={`rounded-md border px-4 py-3.5 ${
-                    messageType === 'success'
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                      : 'border-rose-200 bg-rose-50 text-rose-800'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${
-                        messageType === 'success' ? 'bg-emerald-600' : 'bg-rose-500'
-                      }`}
-                    >
-                      {messageType === 'success' ? '✓' : '!'}
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold">
-                        {messageType === 'success' ? '操作已完成' : '操作未完成'}
-                      </div>
-                      <div className="mt-0.5 text-sm">{message}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {activeTab === 'stats' && (
                 <div className="space-y-6">
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-500/20/70 bg-brand-500/100/100/10 px-5 py-4 text-sm text-brand-300 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-500/20 bg-brand-500/10 px-5 py-4 text-sm text-brand-300 shadow-sm">
               <span className="inline-flex items-center rounded-full bg-brand-600/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-brand-400">
                 当前统计口径
               </span>
@@ -1991,7 +1974,7 @@ export default function DashboardPage() {
                       ))}
                     </div>
 
-                    <select
+                    <AppSelect
                       value={consumptionTrendGranularity}
                       onChange={(e) =>
                         setConsumptionTrendGranularity(e.target.value as 'day' | 'week' | 'month')
@@ -2001,9 +1984,9 @@ export default function DashboardPage() {
                       <option value="day" className="text-ink-50">按日</option>
                       <option value="week" className="text-ink-50">按周</option>
                       <option value="month" className="text-ink-50">按月</option>
-                    </select>
+                    </AppSelect>
 
-                    <select
+                    <AppSelect
                       value={consumptionTrendCompareProjectKey}
                       onChange={(e) =>
                         setConsumptionTrendCompareProjectKey(e.target.value as 'none' | string)
@@ -2016,7 +1999,7 @@ export default function DashboardPage() {
                           对比：{project.name}
                         </option>
                       ))}
-                    </select>
+                    </AppSelect>
 
                     <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-surface-200 bg-surface-100 px-4 py-2 text-sm text-ink-50">
                       <input
@@ -2104,7 +2087,7 @@ export default function DashboardPage() {
                       )}
 
                       {consumptionTrendHideZeroBuckets && hiddenZeroBucketCount > 0 && (
-                        <div className="rounded-md border border-brand-500/30/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50">
+                        <div className="rounded-md border border-brand-500/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50">
                           已隐藏 {hiddenZeroBucketCount} 个 0 扣次时间桶，仅影响图表展示，不影响顶部统计指标。
                         </div>
                       )}
@@ -2217,7 +2200,7 @@ export default function DashboardPage() {
                 <div className="flex w-full max-w-2xl flex-col gap-3 md:flex-row md:items-end">
                   <div className="flex-1">
                     <label className="mb-2 block text-sm font-medium text-ink-200">项目筛选</label>
-                    <select
+                    <AppSelect
                       value={statsProjectFilter}
                       onChange={(e) => setStatsProjectFilter(e.target.value)}
                       className={inputClassName}
@@ -2228,7 +2211,7 @@ export default function DashboardPage() {
                           {project.name}
                         </option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </div>
                   <button
                     onClick={handleExportProjectStats}
@@ -2317,7 +2300,7 @@ export default function DashboardPage() {
               <form onSubmit={handleGenerateCodes} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
                   <DashboardFormField label="所属项目" htmlFor="generate-selected-project-key">
-                    <select
+                    <AppSelect
                       id="generate-selected-project-key"
                       value={selectedProjectKey}
                       onChange={(e) => setSelectedProjectKey(e.target.value)}
@@ -2328,11 +2311,11 @@ export default function DashboardPage() {
                           {project.name} ({project.projectKey}){project.isEnabled ? '' : ' - 已停用'}
                         </option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </DashboardFormField>
 
                   <DashboardFormField label="授权类型" htmlFor="generate-license-mode">
-                    <select
+                    <AppSelect
                       id="generate-license-mode"
                       value={licenseMode}
                       onChange={(e) => setLicenseMode(e.target.value as LicenseModeValue)}
@@ -2340,11 +2323,11 @@ export default function DashboardPage() {
                     >
                       <option value="TIME">时间型</option>
                       <option value="COUNT">次数型</option>
-                    </select>
+                    </AppSelect>
                   </DashboardFormField>
 
                   <DashboardFormField label="生成数量" htmlFor="generate-amount">
-                    <input
+                    <AppInput
                       id="generate-amount"
                       type="number"
                       min="1"
@@ -2360,7 +2343,7 @@ export default function DashboardPage() {
                     label={getScopedRebindPolicyLabel('code')}
                     htmlFor="generate-rebind-policy"
                   >
-                    <select
+                    <AppSelect
                       id="generate-rebind-policy"
                       value={generateRebindPolicy}
                       onChange={(e) =>
@@ -2371,14 +2354,14 @@ export default function DashboardPage() {
                       <option value="inherit">{getInheritedRebindPolicyOptionLabel('code')}</option>
                       <option value="enabled">允许自助换绑</option>
                       <option value="disabled">禁止自助换绑</option>
-                    </select>
+                    </AppSelect>
                   </DashboardFormField>
 
                   <DashboardFormField
                     label={getScopedRebindCooldownLabel('code')}
                     htmlFor="generate-rebind-cooldown"
                   >
-                    <input
+                    <AppInput
                       id="generate-rebind-cooldown"
                       type="number"
                       min="0"
@@ -2393,7 +2376,7 @@ export default function DashboardPage() {
                     label={getScopedRebindMaxCountLabel('code')}
                     htmlFor="generate-rebind-max-count"
                   >
-                    <input
+                    <AppInput
                       id="generate-rebind-max-count"
                       type="number"
                       min="0"
@@ -2408,7 +2391,7 @@ export default function DashboardPage() {
                 {licenseMode === 'TIME' ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <DashboardFormField label="套餐类型" htmlFor="generate-card-type">
-                      <select
+                      <AppSelect
                         id="generate-card-type"
                         value={selectedCardType}
                         onChange={(e) => handleCardTypeChange(e.target.value, setSelectedCardType, setExpiryDays, cardTypes)}
@@ -2420,10 +2403,10 @@ export default function DashboardPage() {
                             {cardType.name} ({cardType.description})
                           </option>
                         ))}
-                      </select>
+                      </AppSelect>
                     </DashboardFormField>
                     <DashboardFormField label="有效期（天）" htmlFor="generate-expiry-days">
-                      <input
+                      <AppInput
                         id="generate-expiry-days"
                         type="number"
                         min="1"
@@ -2451,7 +2434,7 @@ export default function DashboardPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <DashboardFormField label="总次数" htmlFor="generate-total-count">
-                      <input
+                      <AppInput
                         id="generate-total-count"
                         type="number"
                         min="1"
