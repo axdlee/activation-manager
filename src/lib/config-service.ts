@@ -149,6 +149,10 @@ export async function getAllConfigs(): Promise<Record<string, SystemConfigValue>
 }
 
 function hasConfigValue(value: SystemConfigValue) {
+  if (value === null || value === undefined) {
+    return false
+  }
+
   if (Array.isArray(value)) {
     return value.length > 0
   }
