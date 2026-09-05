@@ -1,5 +1,36 @@
 # 更新日志
 
+## [v2.2.0] - 2026-09-05
+
+### 主题体系（14 套内置主题）🎨
+- CSS 变量主题引擎：颜色全部变量化，`data-theme` 一键换肤，带 300ms 过渡
+- 14 套内置主题：深空科技（默认）/ 午夜蓝 / 石墨灰 / 翡翠绿 / 紫夜 / 绯红 / 海洋青 / 琥珀金 / 极简浅色 / 樱花粉 / 森林绿 / 朝霞橙 / 复古纸 / 黑白极简
+- 主题切换器：登录页右上角 + 后台侧边栏底部，localStorage 持久化，预加载脚本防闪烁
+
+### 全局 Toast 提示体系 🍞
+- 右上角堆叠 Toast（成功/错误/信息三态），自动消失、可关闭、入场动画
+- 替换 dashboard 内联 message，公开文档页反馈同步接入
+
+### 定制控件库 🧩
+- `AppInput`（图标插槽 + 聚焦光晕）、`AppTextarea`、`AppSelect`（原生语义 + 自定义视觉）
+- 已应用于登录页、系统配置、修改密码、生成激活码等高频表单
+
+### 深色主题可见性修复 🐛
+- 修复 `text-ink-950` 误作标题文字色（黑字黑底），首页/登录/后台 4 处
+- 清除 20+ 处 `text-gray-*`、44 处非法 alpha 类、`bg-surface-800` 未定义
+- 公开文档页调研路径卡片白底渐变改深色；全页对比度扫描 0 问题
+
+### 测试与 CI 🧪
+- e2e 补全：新增 workspaces.spec.ts，17/17 通过
+- 修复 GitHub Actions：函数覆盖率 89.71%→90.04%；Docker smoke 密码不一致
+- 清理 49 处未使用代码，tsconfig 开启严格检查
+- 修复 `hasConfigValue(null)` 误判已配置 bug
+
+### 工程化页面 📄
+- 新增 404 / 500 / loading 页，robots.ts / sitemap.ts
+- README 新增主题/Toast/控件库章节
+- dashboard stats 拆分 DashboardStatsOverviewPanel
+
 ## [Unreleased] - 2026-09-04
 
 ### 2026-09-04：UI 设计体系重构 🎨
