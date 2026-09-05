@@ -119,7 +119,7 @@ jobs:
           exit 1
 
       - name: Run Docker smoke test
-        run: BASE_URL=http://127.0.0.1:3300 bash ./scripts/smoke-license-api.sh
+        run: BASE_URL=http://127.0.0.1:3300 ADMIN_USERNAME=admin ADMIN_PASSWORD=ci-smoke-admin-password bash ./scripts/smoke-license-api.sh
 
       - name: Verify bind-mounted data directory compatibility
         run: |
