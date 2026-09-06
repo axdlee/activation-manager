@@ -65,6 +65,18 @@ export const DELETE = createProtectedAdminRouteHandler(
       return NextResponse.json({ success: false, message: '商品不存在' }, { status: 404 })
     }
 
+    // 有历史订单的商品不能删除（外键保护），给出明确提示而非 500
+    const orderCount = await prisma.shopOrder.count({ where: { productId: id } })
+    if (orderCount > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `该商品已有 ${orderCount} 笔订单，无法删除。建议改为「下架」以停止新订单，历史订单与卡密找回仍可用。`,
+        },
+        { status: 409 },
+      )
+    }
+
     await prisma.shopProduct.delete({ where: { id } })
 
     await recordAdminOperationAuditLog(prisma, {

@@ -15,6 +15,7 @@ import {
   CONSUMPTION_AUTO_REFRESH_DELAY_MS,
 } from '@/lib/consumption-auto-refresh'
 import { buildConsumptionTrendComparisonSeries } from '@/lib/consumption-trend-comparison'
+import { sanitizeCsvValue } from '@/lib/csv-utils'
 import { getConsumptionQuickRange } from '@/lib/consumption-date-range'
 import { getVisibleConsumptionTrendPoints } from '@/lib/consumption-trend-display'
 import { buildConsumptionTrendExportUrl } from '@/lib/consumption-trend-export-url'
@@ -881,17 +882,17 @@ export default function DashboardPage() {
         .map((code) => {
           const status = getCodeStatusLabel(code)
           return [
-            getProjectDisplay(code),
-            code.code,
-            getLicenseModeDisplay(code.licenseMode),
-            getSpecDisplay(code),
-            status,
-            new Date(code.createdAt).toLocaleString(),
-            getExpiryDisplay(code),
-            code.licenseMode === 'COUNT' ? String(code.remainingCount ?? 0) : '',
-            code.licenseMode === 'COUNT' ? String(code.consumedCount ?? 0) : '',
-            code.usedAt ? new Date(code.usedAt).toLocaleString() : '',
-            code.usedBy || '',
+            sanitizeCsvValue(getProjectDisplay(code)),
+            sanitizeCsvValue(code.code),
+            sanitizeCsvValue(getLicenseModeDisplay(code.licenseMode)),
+            sanitizeCsvValue(getSpecDisplay(code)),
+            sanitizeCsvValue(status),
+            sanitizeCsvValue(new Date(code.createdAt).toLocaleString()),
+            sanitizeCsvValue(getExpiryDisplay(code)),
+            sanitizeCsvValue(code.licenseMode === 'COUNT' ? String(code.remainingCount ?? 0) : ''),
+            sanitizeCsvValue(code.licenseMode === 'COUNT' ? String(code.consumedCount ?? 0) : ''),
+            sanitizeCsvValue(code.usedAt ? new Date(code.usedAt).toLocaleString() : ''),
+            sanitizeCsvValue(code.usedBy || ''),
           ].join(',')
         })
         .join('\n')

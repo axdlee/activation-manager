@@ -369,3 +369,37 @@ test('webhook 回调：非法回调体拒绝（400）', async () => {
   void product
 })
 
+
+test('删除有关联订单的商品被拒（明确提示）', async () => {
+  const { product } = await seedProductAndConfig()
+  const { order } = await createShopOrder({
+    productId: product.id,
+    providerId: 'manual',
+    contactEmail: 'del-order@example.com',
+  })
+  void order
+
+  // 模拟删除 API 的检查逻辑（外键保护）
+  const orderCount = await prisma.shopOrder.count({ where: { productId: product.id } })
+  assert.equal(orderCount, 1)
+
+  // 直接删除应失败（RESTRICT）
+  await assert.rejects(
+    () => prisma.shopProduct.delete({ where: { id: product.id } }),
+    (error: unknown) => {
+      assert.match(String(error), /Foreign key constraint|P2003|RESTRICT/)
+      return true
+    },
+  )
+})
+
+test('删除无订单的商品成功', async () => {
+  const { product } = await seedProductAndConfig()
+
+  const orderCount = await prisma.shopOrder.count({ where: { productId: product.id } })
+  assert.equal(orderCount, 0)
+
+  await prisma.shopProduct.delete({ where: { id: product.id } })
+  const gone = await prisma.shopProduct.findUnique({ where: { id: product.id } })
+  assert.equal(gone, null)
+})
