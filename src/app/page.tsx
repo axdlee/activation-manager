@@ -73,6 +73,9 @@ export default function Home() {
                 <Link href="/admin/login" className={publicPrimaryButtonClassName}>
                   进入管理后台
                 </Link>
+                <Link href="/shop" className={publicPrimaryButtonClassName}>
+                  购买激活码
+                </Link>
                 <Link href="/docs/api" className={publicSecondaryButtonClassName}>
                   查看 API 文档
                 </Link>
@@ -154,6 +157,12 @@ export default function Home() {
                   description: '项目管理、发码、消费日志与系统配置工作台。',
                   href: '/admin/login',
                   primary: true,
+                },
+                {
+                  title: '购买激活码',
+                  description: '选择套餐、在线下单，支付成功后自动发放卡密。',
+                  href: '/shop',
+                  primary: false,
                 },
                 {
                   title: '公开 API 文档',
