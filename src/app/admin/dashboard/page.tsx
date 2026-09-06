@@ -95,6 +95,7 @@ import { DashboardStatusBadge } from '@/components/dashboard-status-badge'
 import { DashboardSubmitField } from '@/components/dashboard-submit-field'
 import { ProjectWorkspace } from '@/components/project-workspace'
 import { ShopAdminPanel } from '@/components/shop-admin-panel'
+import { LicenseApiMetricsPanel } from '@/components/license-api-metrics-panel'
 import { SystemConfigWorkspace } from '@/components/system-config-workspace'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useToast } from '@/components/toast-provider'
@@ -1831,6 +1832,8 @@ export default function DashboardPage() {
               panelClassName={panelClassName}
               mutedPanelClassName={mutedPanelClassName}
             />
+
+            <LicenseApiMetricsPanel panelClassName={panelClassName} />
 
             <div className="relative overflow-hidden rounded-lg shadow-card">
               <div className="absolute inset-0 bg-ink-950" />

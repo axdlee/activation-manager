@@ -21,6 +21,7 @@ import {
   buildLicenseApiRateLimitKey,
   type LicenseApiRateLimiter,
 } from '@/lib/license-api-rate-limit'
+import { recordLicenseApiRequest } from '@/lib/license-api-metrics'
 
 type LicenseRouteOptions = {
   errorMessage: string
@@ -38,6 +39,12 @@ async function executeLicenseRequest(
   const rateLimitResult = rateLimiter.check(rateLimitKey)
 
   if (!rateLimitResult.allowed) {
+    recordLicenseApiRequest({
+      pathname: path,
+      success: false,
+      rateLimited: true,
+      durationMs: 0,
+    })
     return new Response(
       JSON.stringify({
         success: false,
@@ -53,13 +60,26 @@ async function executeLicenseRequest(
     )
   }
 
+  const startedAt = performance.now()
+
   try {
     const result = await handler(await readLicenseRequest(request))
     const responseSecret = await resolveLicenseResponseSecret()
-    return options.legacyOnly
+    const response = options.legacyOnly
       ? createLegacyLicenseResponse(result, responseSecret)
       : createLicenseResponse(result, responseSecret)
+    recordLicenseApiRequest({
+      pathname: path,
+      success: result.success,
+      durationMs: Math.round(performance.now() - startedAt),
+    })
+    return response
   } catch (error) {
+    recordLicenseApiRequest({
+      pathname: path,
+      success: false,
+      durationMs: Math.round(performance.now() - startedAt),
+    })
     return createLicenseErrorResponse(options.errorMessage, error)
   }
 }
