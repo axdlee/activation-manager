@@ -1811,7 +1811,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className="max-w-sm rounded-md border border-surface-200 bg-surface-50 px-4 py-3 text-sm leading-6 text-ink-500 xl:shrink-0">
-                    左侧主菜单固定展示，当前工作区只聚焦本模块内容。
+                    在此查看项目、激活码与消费数据的实时概况，所有操作集中在左侧导航。
                   </div>
                 </div>
               </section>

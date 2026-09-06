@@ -114,7 +114,7 @@ export function ChangePasswordWorkspace({
             管理员密码工作台
           </h2>
           <p className="mt-2 text-sm leading-7 text-ink-500 sm:text-base">
-            改成更标准的后台表单布局：左侧直接修改，右侧只保留实时校验与必要提示，减少不必要的视觉干扰。
+            修改管理员登录密码，左侧填写、右侧实时校验，改后需重新登录。
           </p>
         </div>
 

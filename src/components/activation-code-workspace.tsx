@@ -457,7 +457,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
         <WorkspaceHeroPanel
           badge="激活码工作区"
           title="激活码管理中心"
-          description="结果列表只负责查看关键字段，单码绑定详情、策略覆盖与管理员操作统一放入弹框，避免长页面反复滚动。"
+          description="集中查看激活码状态与剩余信息，单码的绑定详情和管理操作可随时展开处理。"
           gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.1),transparent_30%)]"
           metrics={
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -495,7 +495,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
             title="筛选与导出"
-            description="统一维护搜索项、状态、项目与套餐条件，让输入区和搜索区保持同一套圆润卡片风格。"
+            description="按关键词、状态、项目与套餐快速定位激活码，组合筛选更精准。"
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button
@@ -634,7 +634,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
           <div className={`${panelClassName} p-6`}>
             <DashboardSectionHeader
               title={`激活码列表 (${resultsView.filteredCount} 条记录)`}
-              description="当前页聚焦查看结果、执行复制/删除/清理操作，单码管理入口已收敛到弹框中。"
+              description="查看当前页激活码明细，可复制、删除或清理过期绑定。"
               trailing={
                 <div className="flex flex-wrap gap-3">
                   <button

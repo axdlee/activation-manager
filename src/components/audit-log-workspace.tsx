@@ -139,7 +139,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
         <WorkspaceHeroPanel
           badge="审计日志工作区"
           title="全局审计中心"
-          description="把管理员操作统一收敛到可筛选、可导出、可分页的审计工作区，便于回溯项目配置变更、发码动作与人工换绑。"
+          description="完整记录管理员关键操作，支持筛选、分页与导出，随时回溯变更痕迹。"
           gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(244,114,182,0.1),transparent_30%)]"
           metrics={
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -177,7 +177,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
             title="筛选与导出"
-            description="按管理员、项目、操作类型和时间窗口快速缩小范围，避免在长日志列表里盲翻。"
+            description="按管理员、项目、操作类型与时间窗口组合筛选，快速定位目标记录。"
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button
@@ -271,7 +271,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
 
             <DashboardFilterFieldCard
               label="结束时间"
-              description="限定排查结束时间，避免导出过多无关日志。"
+              description="设置查询结束时间，导出结果更聚焦。"
               htmlFor="audit-log-created-to"
             >
               <input
@@ -310,7 +310,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
             title={`审计日志列表 (${logsView.totalCount} 条记录)`}
-            description="统一查看后台管理员的关键操作，便于复盘谁在什么时间对哪个项目或激活码进行了变更。"
+            description="清晰还原谁在什么时间对哪个项目或激活码做了什么变更。"
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button

@@ -324,7 +324,7 @@ export function ProjectWorkspace({
         <WorkspaceHeroPanel
           badge="项目工作区"
           title="项目管理中心"
-          description="列表只展示关键字段，名称、描述与换绑策略统一通过弹框维护，减少长表格里的输入干扰。"
+          description="以简洁表格呈现项目核心信息，名称、描述与换绑策略均可随时维护。"
           gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]"
           metrics={
             <div className="grid grid-cols-2 gap-3">
@@ -368,7 +368,7 @@ export function ProjectWorkspace({
         <div className="mb-5 flex flex-col gap-4">
           <DashboardSectionHeader
             title="项目列表"
-            description={`当前匹配 ${manageView.page.totalItems} / ${manageView.totalProjects} 个项目。列表只保留关键字段，所有编辑都改为弹框完成。`}
+            description={`当前匹配 ${manageView.page.totalItems} / ${manageView.totalProjects} 个项目。表格展示项目核心信息，编辑操作在弹窗中完成。`}
             trailing={
               <div className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
                 默认项目名称固定，且不可停用
@@ -394,7 +394,7 @@ export function ProjectWorkspace({
             </DashboardFilterFieldCard>
             <DashboardFilterFieldCard
               label="状态筛选"
-              description="聚焦查看启用中或已停用项目。"
+              description="按启用状态筛选项目。"
               htmlFor="project-management-status-filter"
             >
               <select
@@ -568,7 +568,7 @@ export function ProjectWorkspace({
 
             <DashboardFormField
               label={getScopedRebindPolicyLabel('project')}
-              description="项目级默认规则；若单码级保持继承，会继续回退到这里；项目未配置时再回退系统级。"
+              description="作为项目级默认规则，单码未覆盖时以此为准，未配置时回退系统级。"
               htmlFor="create-project-rebind-policy"
               className={modalFormFieldClassName}
               bodyClassName="mt-3"
@@ -632,7 +632,7 @@ export function ProjectWorkspace({
         open={editingBasicsProject !== null}
         onClose={() => setEditingBasicsProjectId(null)}
         title={editingBasicsProject ? `编辑基础信息 · ${editingBasicsProject.name}` : '编辑基础信息'}
-        description="项目列表中不再直接输入，基础信息统一在这里维护，避免误改并提升可读性。"
+        description="集中维护项目的基础信息，修改后立即生效。"
         size="lg"
         footer={
           <div className={modalFooterClassName}>
@@ -744,7 +744,7 @@ export function ProjectWorkspace({
             ? `编辑项目级换绑策略 · ${editingRebindProject.name}`
             : '编辑项目级换绑策略'
         }
-        description="项目级策略会作为单码级与发码默认值的上级来源，适合在这里统一约束自助换绑边界。"
+        description="在此配置项目级换绑默认策略，作为发码与单码的上级约束。"
         size="lg"
         footer={
           <div className={modalFooterClassName}>

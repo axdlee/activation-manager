@@ -164,7 +164,7 @@ test('ProjectWorkspace 在 manage tab 渲染只读列表、创建弹框入口与
   assert.equal(html.includes('搜索项目'), true)
   assert.equal(html.includes('状态筛选'), true)
   assert.equal(html.includes('排序方式'), true)
-  assert.equal(html.includes('列表只保留关键字段，所有编辑都改为弹框完成。'), true)
+  assert.equal(html.includes('表格展示项目核心信息，编辑操作在弹窗中完成。'), true)
   assert.equal(html.includes('换绑策略'), true)
   assert.equal(html.includes('默认项目名称固定，且不可停用'), true)
   assert.equal(html.includes('新建项目'), true)

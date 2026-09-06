@@ -341,7 +341,7 @@ export function SystemConfigWorkspace({
           </div>
           <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-50">系统配置中心</h2>
           <p className="mt-2 text-sm leading-7 text-ink-500 sm:text-base">
-            改成更标准的设置工作区：上方选分区，中间只看当前分区字段，底部统一保存，减少花哨装饰对操作的干扰。
+            按分区集中管理系统配置，修改后统一保存并立即生效。
           </p>
         </div>
 
@@ -386,7 +386,7 @@ export function SystemConfigWorkspace({
                 </div>
                 <h3 className="mt-3 text-lg font-semibold text-ink-50">准备保存本次配置变更？</h3>
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-500">
-                  保存后会立即写入系统配置表；涉及访问控制、换绑策略与认证的变更会立刻影响后台行为。
+                  保存后配置立即生效，涉及访问控制与认证的变更会马上影响后台行为。
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
@@ -420,7 +420,7 @@ export function SystemConfigWorkspace({
               </div>
               <h3 className="mt-4 text-xl font-semibold text-ink-50">先确认这些关键影响</h3>
               <p className="mt-2 text-sm leading-6 text-ink-500">
-                设置页已改为分区工作区，但所有更改依旧属于即时生效型操作，建议先从影响面最大的项开始检查。
+                所有配置更改即时生效，建议从影响面最大的项目开始调整。
               </p>
             </div>
 
@@ -496,7 +496,7 @@ export function SystemConfigWorkspace({
               </div>
               <h3 className="mt-4 text-lg font-semibold text-ink-50">按分区编辑，统一保存</h3>
               <p className="mt-2 text-sm leading-6 text-ink-500">
-                当前总览只负责导航；进入任一分区后即可集中编辑该组字段，并使用底部保存动作一次性提交全部配置。
+                从总览进入各分区，编辑完成后统一保存生效。
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">

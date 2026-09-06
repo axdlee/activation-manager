@@ -141,7 +141,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
         <WorkspaceHeroPanel
           badge="消费日志工作区"
           title="消费日志排查中心"
-          description="把筛选与刷新动作从日志结果页里拆出来，长表格只负责阅读与导出，避免搜索区压缩可视空间。"
+          description="通过筛选与自动刷新定位消费明细，长表格专注阅读与导出。"
           gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]"
           metrics={
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -179,7 +179,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
             title="筛选与刷新"
-            description="适合排查插件调用链路、幂等请求与真实扣次波动，所有筛选输入都统一到更圆润的卡片表单里。"
+            description="适合排查插件调用链路、幂等请求与真实扣次波动。"
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button
@@ -253,7 +253,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
 
             <DashboardFilterFieldCard
               label="结束时间"
-              description="与开始时间一起构成完整时间窗，避免长时间段日志对视线造成干扰。"
+              description="与开始时间共同限定查询范围，让结果更精确。"
               htmlFor="consumption-created-to"
             >
               <input
@@ -332,7 +332,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
             title={`消费日志 (${logsView.totalCount} 条记录)`}
-            description="仅记录次数型激活码的真实扣次请求，适合用于对账与问题回溯；筛选器已独立成工作区，阅读时更聚焦。"
+            description="仅记录次数型激活码的真实扣次请求，适合对账与问题回溯。"
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button
