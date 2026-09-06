@@ -352,6 +352,16 @@ function ensureActivationCodeCompatibility(dbPath: string) {
 export function ensureSchema(dbPath: string = DEFAULT_DB_PATH) {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true })
 
+  // 启用 WAL 日志模式：读不阻塞写、写不阻塞读，显著降低并发下的 database is locked。
+  // WAL 是数据库文件的持久属性，设置一次后 Prisma 连接自动继承。
+  try {
+    runSqlite(dbPath, 'PRAGMA journal_mode=WAL;')
+    runSqlite(dbPath, 'PRAGMA busy_timeout=5000;')
+  } catch (error) {
+    // 部分只读场景（如备份挂载）可能无法设置，不阻塞启动
+    console.warn('启用 SQLite WAL 失败（可忽略，若为只读挂载请忽略）:', error)
+  }
+
   if (tableExists(dbPath, 'activation_codes')) {
     ensureActivationCodeCompatibility(dbPath)
     ensureProjectsTable(dbPath)

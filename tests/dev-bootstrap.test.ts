@@ -18,6 +18,7 @@ import {
   DEFAULT_PROJECT_KEY,
   DEFAULT_PROJECT_NAME,
   ensureDefaultSystemConfigs,
+  ensureSchema,
 } from '../src/lib/dev-bootstrap'
 import { defaultSystemConfigs } from '../src/lib/system-config-defaults'
 
@@ -286,5 +287,27 @@ test('bootstrapRuntimeDatabase 在生产环境提供 JWT_SECRET 时可完成初�
     } else {
       process.env.ADMIN_INITIAL_PASSWORD = previousAdminPassword
     }
+  }
+})
+
+test('ensureSchema 会启用 WAL 日志模式与 busy_timeout', () => {
+  const dbPath = path.join(process.cwd(), 'prisma', 'wal-mode-check.db')
+  fs.rmSync(dbPath, { force: true })
+  fs.rmSync(`${dbPath}-journal`, { force: true })
+  fs.rmSync(`${dbPath}-wal`, { force: true })
+  fs.rmSync(`${dbPath}-shm`, { force: true })
+
+  try {
+    ensureSchema(dbPath)
+
+    const journalMode = execFileSync('sqlite3', [dbPath, 'PRAGMA journal_mode;'])
+      .toString()
+      .trim()
+    assert.equal(journalMode, 'wal')
+  } finally {
+    fs.rmSync(dbPath, { force: true })
+    fs.rmSync(`${dbPath}-journal`, { force: true })
+    fs.rmSync(`${dbPath}-wal`, { force: true })
+    fs.rmSync(`${dbPath}-shm`, { force: true })
   }
 })
