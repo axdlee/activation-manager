@@ -57,6 +57,7 @@ type LicenseClientOptions = {
   timeoutMs?: number
   maxRetries?: number
   retryDelayMs?: number
+  responseSecret?: string
   onRetry?: (event: LicenseClientRetryEvent) => void | Promise<void>
   onError?: (event: LicenseClientErrorEvent) => void | Promise<void>
   onSuccess?: (event: LicenseClientSuccessEvent) => void | Promise<void>
@@ -70,6 +71,7 @@ type LicenseClientErrorCode =
   | 'INVALID_RESPONSE'
   | 'HTTP_ERROR'
   | 'RATE_LIMITED'
+  | 'SIGNATURE_INVALID'
 
 class LicenseClientError extends Error {
   readonly code: LicenseClientErrorCode
@@ -152,6 +154,7 @@ function buildLicenseClientError(
     INVALID_RESPONSE: '接口响应格式无效',
     HTTP_ERROR: '服务端返回错误状态码',
     RATE_LIMITED: '请求过于频繁，已被限流',
+    SIGNATURE_INVALID: '接口响应签名校验失败，可能存在篡改',
   }
 
   return new LicenseClientError(messages[code], {
@@ -247,6 +250,54 @@ function createHookContext(
     attemptCount,
     totalAttempts,
     requestBody,
+  }
+}
+
+const LICENSE_SIGNATURE_HEADER = 'x-license-signature'
+const LICENSE_TIMESTAMP_HEADER = 'x-license-timestamp'
+const SIGNATURE_MAX_AGE_MS = 5 * 60 * 1000
+
+async function verifyLicenseResponseSignature(
+  bodyText: string,
+  response: Response,
+  secret: string,
+): Promise<boolean> {
+  const signature = response.headers.get(LICENSE_SIGNATURE_HEADER)
+  const timestamp = response.headers.get(LICENSE_TIMESTAMP_HEADER)
+
+  if (!signature || !timestamp) {
+    return false
+  }
+
+  const timestampMs = Number(timestamp)
+  if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > SIGNATURE_MAX_AGE_MS) {
+    return false
+  }
+
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    return false
+  }
+
+  try {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    )
+    const signatureBuffer = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      new TextEncoder().encode(bodyText),
+    )
+    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('')
+
+    return expectedSignature === signature.toLowerCase()
+  } catch {
+    return false
   }
 }
 
@@ -358,8 +409,22 @@ async function requestLicenseApi(
       let responsePayload: unknown
 
       try {
-        responsePayload = await response.json()
+        const responseText = await response.text()
+        if (options.responseSecret) {
+          const signatureValid = await verifyLicenseResponseSignature(
+            responseText,
+            response,
+            options.responseSecret,
+          )
+          if (!signatureValid) {
+            throw buildLicenseClientError('SIGNATURE_INVALID', path, attemptCount, null, response.status)
+          }
+        }
+        responsePayload = JSON.parse(responseText)
       } catch (error) {
+        if (error instanceof LicenseClientError) {
+          throw error
+        }
         throw buildLicenseClientError('INVALID_RESPONSE', path, attemptCount, error)
       }
 

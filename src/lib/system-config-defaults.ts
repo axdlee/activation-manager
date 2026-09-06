@@ -16,6 +16,7 @@ export type KnownSystemConfigMap = {
   autoRebindMaxCount: number
   expiryWebhookUrl: string
   allowDeviceBinding: boolean
+  licenseResponseSecret: string
 }
 
 export type KnownSystemConfigKey = keyof KnownSystemConfigMap
@@ -123,6 +124,11 @@ export function buildDefaultSystemConfigs(
       value: true,
       description: '是否允许激活码绑定设备（关闭后激活码不再绑定机器）',
     },
+    {
+      key: 'licenseResponseSecret',
+      value: '',
+      description: 'License API 响应签名密钥（留空不签名；配置后 SDK 可验签防篡改）',
+    },
   ]
 }
 
@@ -139,6 +145,7 @@ export const defaultConfigValues: KnownSystemConfigMap = {
   autoRebindMaxCount: DEFAULT_AUTO_REBIND_MAX_COUNT,
   expiryWebhookUrl: '',
   allowDeviceBinding: true,
+  licenseResponseSecret: '',
 }
 
 export function stringifyConfigValue(value: string | number | boolean | string[]) {

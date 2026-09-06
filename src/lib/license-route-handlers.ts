@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { prisma } from '@/lib/db'
+import { getConfigWithDefault } from '@/lib/config-service'
 import {
   createLicenseErrorResponse,
   createLegacyLicenseResponse,
@@ -54,7 +55,10 @@ async function executeLicenseRequest(
 
   try {
     const result = await handler(await readLicenseRequest(request))
-    return options.legacyOnly ? createLegacyLicenseResponse(result) : createLicenseResponse(result)
+    const responseSecret = await resolveLicenseResponseSecret()
+    return options.legacyOnly
+      ? createLegacyLicenseResponse(result, responseSecret)
+      : createLicenseResponse(result, responseSecret)
   } catch (error) {
     return createLicenseErrorResponse(options.errorMessage, error)
   }
@@ -132,3 +136,9 @@ export const handleVerifyLicenseRequest = createLicenseRouteHandler(
     legacyOnly: true,
   },
 )
+
+
+async function resolveLicenseResponseSecret() {
+  const value = await getConfigWithDefault('licenseResponseSecret')
+  return typeof value === 'string' ? value.trim() : ''
+}

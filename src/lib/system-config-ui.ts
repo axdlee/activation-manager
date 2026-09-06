@@ -109,7 +109,7 @@ const advancedGroupMeta: Omit<SystemConfigGroup, 'items'> = {
 const groupItemOrderMap: Partial<Record<SystemConfigGroupKey, string[]>> = {
   access: ['allowedIPs'],
   rebind: ['allowAutoRebind', 'autoRebindCooldownMinutes', 'autoRebindMaxCount', 'allowDeviceBinding'],
-  security: ['jwtSecret', 'jwtExpiresIn', 'bcryptRounds'],
+  security: ['jwtSecret', 'jwtExpiresIn', 'bcryptRounds', 'licenseResponseSecret'],
   branding: ['systemName', 'expiryWebhookUrl'],
 }
 
@@ -387,6 +387,24 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
         badges:
           config.value === true
             ? [{ label: '已启用', tone: 'success' }]
+            : [{ label: '未启用', tone: 'warning' }],
+      }
+    case 'licenseResponseSecret':
+      return {
+        key: config.key,
+        label: '响应签名密钥',
+        description: '为 License API 响应附加 HMAC-SHA256 签名，客户端 SDK 配置同一密钥后可验签防篡改。',
+        hint: '留空表示不签名（向后兼容）；配置后 SDK 需同步配置 responseSecret，否则验签失败。建议使用足够长的随机字符串。',
+        value: config.value,
+        inputKind: 'password',
+        sensitive: true,
+        masked: config.masked,
+        hasValue: config.hasValue,
+        placeholder: config.hasValue ? '如需更新，请输入新的签名密钥' : '请输入新的签名密钥',
+        layout: 'full',
+        badges:
+          typeof config.value === 'string' && config.value.trim()
+            ? [{ label: '签名已启用', tone: 'success' }]
             : [{ label: '未启用', tone: 'warning' }],
       }
     default:

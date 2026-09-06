@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server'
 
+import {
+  SIGNATURE_HEADER,
+  TIMESTAMP_HEADER,
+  signLicenseResponseBody,
+} from './license-response-signature'
+
 export type LicenseApiResult = {
   success: boolean
   message: string
@@ -78,16 +84,38 @@ function buildLicenseResponsePayload(
 export function createLicenseJsonResponse(
   result: LicenseApiResult,
   options: LicenseApiResponseOptions = {},
+  responseSecret?: string,
 ) {
-  return NextResponse.json(buildLicenseResponsePayload(result, options), { status: result.status })
+  const body = JSON.stringify(buildLicenseResponsePayload(result, options))
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  if (responseSecret) {
+    const timestamp = String(Date.now())
+    headers[SIGNATURE_HEADER] = signLicenseResponseBody(body, responseSecret)
+    headers[TIMESTAMP_HEADER] = timestamp
+  }
+
+  return new NextResponse(body, {
+    status: result.status,
+    headers,
+  })
 }
 
-export function createLicenseResponse(result: LicenseApiResult) {
-  return createLicenseJsonResponse(result)
+export function createLicenseResponse(
+  result: LicenseApiResult,
+  responseSecret?: string,
+) {
+  return createLicenseJsonResponse(result, {}, responseSecret)
 }
 
-export function createLegacyLicenseResponse(result: LicenseApiResult) {
-  return createLicenseJsonResponse(result, { legacyOnly: true })
+export function createLegacyLicenseResponse(
+  result: LicenseApiResult,
+  responseSecret?: string,
+) {
+  return createLicenseJsonResponse(result, { legacyOnly: true }, responseSecret)
 }
 
 export function createLicenseErrorResponse(message: string, error: unknown) {
