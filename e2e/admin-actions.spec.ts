@@ -94,7 +94,11 @@ test.describe.serial('后台管理操作 e2e', () => {
     const row = page.locator('table tbody tr').filter({ hasText: adminProjectKey })
     await expect(row).toBeVisible({ timeout: 15_000 })
 
-    await row.getByRole('button', { name: '编辑基础信息' }).click()
+    // 等待行内按钮可见并稳定后再点击（修复 CI 偶发超时）
+    const editButton = row.getByRole('button', { name: '编辑基础信息' })
+    await expect(editButton).toBeVisible({ timeout: 10_000 })
+    await editButton.scrollIntoViewIfNeeded()
+    await editButton.click()
     await expect(page.locator('#project-modal-name')).toBeVisible({ timeout: 10_000 })
 
     const newName = `管理操作项目改-${Date.now().toString(36)}`
