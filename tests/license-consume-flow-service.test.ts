@@ -337,3 +337,101 @@ test('consumeTimeLicense 在唯一约束冲突时调用冲突收敛器', async (
   assert.equal(result.success, false)
   assert.equal(result.status, 409)
 })
+
+test('consumeTimeLicense 在 bindDevice=false 时不写 usedBy（补绑分支跳过）', async () => {
+  const updatePayloads: Array<Record<string, unknown>> = []
+
+  const result = await consumeTimeLicense({
+    tx: {
+      activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
+        updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+          updatePayloads.push(data)
+          return { count: 1 }
+        },
+      },
+    } as never,
+    activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
+      id: 4,
+      licenseMode: 'TIME',
+      isUsed: true,
+      usedBy: null,
+      usedAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      validDays: 30,
+      remainingCount: null,
+    },
+    projectId: 1,
+    code: 'TEST-CODE',
+    machineId: 'machine-004',
+    reloadActivationCode: async () => null,
+    resolveProjectMachineConflict: async () => ({
+      success: false,
+      message: 'unexpected',
+      status: 409,
+    }),
+    bindDevice: false,
+  })
+
+  // 补绑分支直接返回成功，不触发任何写入
+  assert.equal(updatePayloads.length, 0)
+  assert.equal(result.success, true)
+})
+
+test('consumeTimeLicense 在 bindDevice=false 时首次激活不写 usedBy', async () => {
+  const updatePayloads: Array<Record<string, unknown>> = []
+
+  const result = await consumeTimeLicense({
+    tx: {
+      activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
+        updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+          updatePayloads.push(data)
+          return { count: 1 }
+        },
+      },
+    } as never,
+    activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
+      id: 5,
+      licenseMode: 'TIME',
+      isUsed: false,
+      usedBy: null,
+      usedAt: null,
+      expiresAt: null,
+      validDays: 30,
+      remainingCount: null,
+    },
+    projectId: 1,
+    code: 'TEST-CODE',
+    machineId: 'machine-005',
+    reloadActivationCode: async () => ({
+      code: 'TEST-CODE',
+      projectId: 1,
+      id: 5,
+      licenseMode: 'TIME',
+      isUsed: true,
+      usedBy: null,
+      usedAt: new Date(),
+      expiresAt: new Date('2026-04-24T00:00:00.000Z'),
+      validDays: 30,
+      remainingCount: null,
+    }),
+    resolveProjectMachineConflict: async () => ({
+      success: false,
+      message: 'unexpected',
+      status: 409,
+    }),
+    bindDevice: false,
+  })
+
+  assert.equal(updatePayloads.length, 1)
+  assert.equal(updatePayloads[0]?.usedBy, undefined)
+  assert.equal(updatePayloads[0]?.isUsed, true)
+  assert.equal(result.success, true)
+})

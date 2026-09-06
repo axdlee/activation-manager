@@ -307,6 +307,24 @@ export function SystemConfigWorkspace({
   toggleSensitiveConfigVisibility,
   isSensitiveConfigVisible,
 }: SystemConfigWorkspaceProps) {
+  const handleScanExpired = async () => {
+    setScanningExpired(true)
+    setScanMessage('')
+    try {
+      const response = await fetch('/api/admin/notifications/scan-expired', { method: 'POST' })
+      const data = (await response.json()) as { success: boolean; message?: string }
+      if (!data.success) {
+        setScanMessage(data.message ?? '扫描失败')
+        return
+      }
+      setScanMessage(data.message ?? '扫描完成')
+    } catch {
+      setScanMessage('扫描失败，请稍后重试')
+    } finally {
+      setScanningExpired(false)
+    }
+  }
+
   const workspaceTabs = useMemo(
     () => buildSystemConfigWorkspaceTabs(pageModel.groups),
     [pageModel.groups],
@@ -320,6 +338,8 @@ export function SystemConfigWorkspace({
     [initialTab, workspaceTabs],
   )
   const [activeTab, setActiveTab] = useState<SystemConfigWorkspaceTab>(resolvedInitialTab)
+  const [scanningExpired, setScanningExpired] = useState(false)
+  const [scanMessage, setScanMessage] = useState('')
 
   useEffect(() => {
     setActiveTab((currentTab) =>
@@ -408,7 +428,18 @@ export function SystemConfigWorkspace({
               >
                 {loading ? '保存中...' : '保存配置'}
               </button>
+              <button
+                type="button"
+                onClick={() => void handleScanExpired()}
+                disabled={scanningExpired}
+                className="inline-flex w-full items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-medium text-ink-300 transition hover:text-ink-50 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
+              >
+                {scanningExpired ? '扫描中...' : '扫描到期通知'}
+              </button>
             </div>
+            {scanMessage ? (
+              <p className="mt-2 text-sm text-ink-500">{scanMessage}</p>
+            ) : null}
           </section>
         </form>
       ) : (

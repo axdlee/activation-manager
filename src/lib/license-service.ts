@@ -110,6 +110,7 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
   }
 
   const { projectId, code, machineId, requestId, requestContext } = resolution.context
+  const bindDevice = await resolveDeviceBindingEnabled()
 
   return client.$transaction(async (tx) => {
     if (requestId) {
@@ -140,6 +141,7 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
         machineId,
         reloadActivationCode: txHelpers.reloadActivationCode,
         resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
+        bindDevice,
       })
     }
 
@@ -165,6 +167,7 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
       reloadActivationCode: txHelpers.reloadActivationCode,
       persistConsumptionRemainingCount: txHelpers.persistConsumptionRemainingCount,
       resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
+      bindDevice,
     })
   })
 }

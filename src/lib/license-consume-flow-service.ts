@@ -28,6 +28,7 @@ export async function consumeTimeLicense(params: {
   machineId: string
   reloadActivationCode: () => Promise<LicenseActionCodeRecord | null>
   resolveProjectMachineConflict: LicenseConflictResolver
+  bindDevice?: boolean
 }): Promise<LicenseResult> {
   const {
     tx,
@@ -35,6 +36,7 @@ export async function consumeTimeLicense(params: {
     machineId,
     reloadActivationCode,
     resolveProjectMachineConflict,
+    bindDevice = true,
   } = params
 
   if (!activationCode.isUsed) {
@@ -54,9 +56,8 @@ export async function consumeTimeLicense(params: {
         data: {
           isUsed: true,
           usedAt: now,
-          usedBy: machineId,
+          ...(bindDevice ? { usedBy: machineId, lastBoundAt: now } : {}),
           expiresAt,
-          lastBoundAt: now,
         },
       })
 
@@ -66,7 +67,7 @@ export async function consumeTimeLicense(params: {
       }
 
       if (updateResult.count === 0) {
-        if (updatedCode.usedBy && updatedCode.usedBy !== machineId) {
+        if (bindDevice && updatedCode.usedBy && updatedCode.usedBy !== machineId) {
           return createUsedByOtherDeviceResult()
         }
 
@@ -75,7 +76,7 @@ export async function consumeTimeLicense(params: {
         }
       }
 
-      if (updateResult.count > 0) {
+      if (updateResult.count > 0 && bindDevice) {
         await recordActivationCodeBindingHistory(tx as DbClient, {
           activationCodeId: activationCode.id,
           projectId: params.projectId,
@@ -101,6 +102,11 @@ export async function consumeTimeLicense(params: {
   }
 
   if (!activationCode.usedBy) {
+    // 设备绑定已关闭：直接验证成功，不记录绑定
+    if (!bindDevice) {
+      return createTimeConsumeSuccessResult(activationCode)
+    }
+
     const now = new Date()
 
     try {
@@ -162,6 +168,7 @@ export async function consumeCountLicense(params: {
   reloadActivationCode: () => Promise<LicenseActionCodeRecord | null>
   persistConsumptionRemainingCount?: (requestId: string, remainingCountAfter: number) => Promise<void>
   resolveProjectMachineConflict: LicenseConflictResolver
+  bindDevice?: boolean
 }): Promise<LicenseResult> {
   const {
     tx,
@@ -173,6 +180,7 @@ export async function consumeCountLicense(params: {
     reloadActivationCode,
     persistConsumptionRemainingCount,
     resolveProjectMachineConflict,
+    bindDevice = true,
   } = params
 
   const currentRemainingCount = getRemainingCount(activationCode)
@@ -210,8 +218,8 @@ export async function consumeCountLicense(params: {
       },
       data: {
         isUsed: true,
-        usedBy: machineId,
-        ...(activationCode.usedBy ? {} : { lastBoundAt: new Date() }),
+        ...(bindDevice ? { usedBy: machineId } : {}),
+        ...(bindDevice && activationCode.usedBy ? {} : { lastBoundAt: new Date() }),
         remainingCount: {
           decrement: 1,
         },
@@ -229,7 +237,7 @@ export async function consumeCountLicense(params: {
         return createLicenseNotFoundResult()
       }
 
-      if (latestCode.usedBy && latestCode.usedBy !== machineId) {
+      if (bindDevice && latestCode.usedBy && latestCode.usedBy !== machineId) {
         return createUsedByOtherDeviceResult()
       }
 
