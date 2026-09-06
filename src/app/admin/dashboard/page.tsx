@@ -93,6 +93,7 @@ import { DashboardStatsOverviewPanel } from '@/components/dashboard-stats-overvi
 import { DashboardStatusBadge } from '@/components/dashboard-status-badge'
 import { DashboardSubmitField } from '@/components/dashboard-submit-field'
 import { ProjectWorkspace } from '@/components/project-workspace'
+import { ShopAdminPanel } from '@/components/shop-admin-panel'
 import { SystemConfigWorkspace } from '@/components/system-config-workspace'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useToast } from '@/components/toast-provider'
@@ -2480,6 +2481,8 @@ export default function DashboardPage() {
             isSensitiveConfigVisible={isSensitiveConfigVisible}
           />
         )}
+
+        {activeTab === 'shop' && <ShopAdminPanel />}
           </div>
         </div>
       </div>

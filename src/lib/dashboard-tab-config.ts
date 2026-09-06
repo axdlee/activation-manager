@@ -6,6 +6,7 @@ export type DashboardTabKey =
   | 'consumptions'
   | 'auditLogs'
   | 'apiDocs'
+  | 'shop'
   | 'changePassword'
   | 'systemConfig'
 
@@ -58,6 +59,12 @@ export const dashboardTabs: DashboardTabMeta[] = [
     label: 'API 接入',
     shortLabel: 'API',
     description: '集中查看正式接口、调研路径与多语言调用示例。',
+  },
+  {
+    key: 'shop',
+    label: '购买中心',
+    shortLabel: '商店',
+    description: '管理卡密商品、订单与支付渠道，自动发卡。',
   },
   {
     key: 'changePassword',

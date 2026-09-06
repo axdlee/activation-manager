@@ -25,6 +25,7 @@ model Project {
   codes       ActivationCode[]
   bindingHistories ActivationCodeBindingHistory[]
   adminAuditLogs   AdminOperationAuditLog[]
+  shopProducts     ShopProduct[]
 
   @@map("projects")
 }
@@ -146,4 +147,66 @@ model SystemConfig {
   updatedAt   DateTime @updatedAt
 
   @@map("system_configs")
+}
+
+// ===== 支付自动发卡 =====
+
+// 卡密商品：绑定项目 + 授权套餐，定价销售
+model ShopProduct {
+  id            Int       @id @default(autoincrement())
+  name          String
+  description   String?
+  projectId     Int
+  project       Project   @relation(fields: [projectId], references: [id])
+  licenseMode   String    @default("TIME") // TIME | COUNT
+  cardType      String?   // 套餐类型（如 月卡/年卡），TIME 型必填
+  validDays     Int?      // TIME 型有效期天数
+  totalCount    Int?      // COUNT 型总次数
+  priceInCents  Int       // 价格（分）
+  isEnabled     Boolean   @default(true)
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  orders        ShopOrder[]
+
+  @@index([projectId, isEnabled])
+  @@map("shop_products")
+}
+
+// 订单状态：pending 待支付 / paid 已支付 / fulfilled 已发卡 / cancelled 已取消
+model ShopOrder {
+  id                 Int         @id @default(autoincrement())
+  orderNo            String      @unique
+  productId          Int
+  product            ShopProduct @relation(fields: [productId], references: [id])
+  amountInCents      Int
+  contactEmail       String?
+  contactPhone       String?
+  contactWechat      String?
+  status             String      @default("pending")
+  provider           String      // manual | webhook
+  paymentNote        String?     // 支付备注/交易号
+  fulfilledCodeIds   String?     // JSON: [activationCodeId]
+  remark             String?
+  paidAt             DateTime?
+  fulfilledAt        DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([status, createdAt])
+  @@index([contactEmail])
+  @@index([orderNo])
+  @@map("shop_orders")
+}
+
+// 支付渠道配置（JSON 存储，避免频繁加字段）
+model ShopPaymentConfig {
+  id          Int      @id @default(autoincrement())
+  provider    String   @unique // manual | webhook
+  configJson  String   @default("{}")
+  isEnabled   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("shop_payment_configs")
 }

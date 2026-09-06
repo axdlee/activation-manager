@@ -447,6 +447,36 @@ function backfillActivationCodesProject(dbPath: string, projectId: number) {
   )
 }
 
+async function ensureDefaultShopPaymentConfigs(dbPath: string, logger: BootstrapLogger) {
+  const existing = new Set(queryLines(dbPath, 'SELECT "provider" FROM "shop_payment_configs";'))
+  const seeds = [
+    { provider: 'manual', configJson: '{}', isEnabled: true },
+    { provider: 'webhook', configJson: '{}', isEnabled: false },
+  ]
+
+  for (const seed of seeds) {
+    if (existing.has(seed.provider)) {
+      continue
+    }
+    // INSERT OR IGNORE：并发 bootstrap 时避免唯一约束冲突
+    runSqlite(
+      dbPath,
+      `INSERT OR IGNORE INTO "shop_payment_configs" ("provider", "configJson", "isEnabled", "createdAt", "updatedAt")
+       VALUES (
+         '${escapeSqlString(seed.provider)}',
+         '${escapeSqlString(seed.configJson)}',
+         ${seed.isEnabled ? 1 : 0},
+         CURRENT_TIMESTAMP,
+         CURRENT_TIMESTAMP
+       );`,
+    )
+  }
+
+  if (seeds.some((seed) => !existing.has(seed.provider))) {
+    logger.log('✅ 默认支付渠道初始化成功!')
+  }
+}
+
 async function ensureDefaultSystemConfigsInternal(
   dbPath: string,
   logger: BootstrapLogger,
@@ -567,6 +597,7 @@ async function bootstrapDatabase({
   const defaultProjectId = ensureDefaultProjectRow(dbPath)
   backfillActivationCodesProject(dbPath, defaultProjectId)
   await ensureDefaultSystemConfigsInternal(dbPath, logger)
+  await ensureDefaultShopPaymentConfigs(dbPath, logger)
   await ensureDefaultAdminInternal(dbPath, logger)
   logger.log(`✅ ${completionLabel}: ${dbPath}`)
 }
