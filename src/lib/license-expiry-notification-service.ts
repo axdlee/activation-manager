@@ -34,7 +34,18 @@ function buildNotificationKey(activationCode: LicenseActionCodeRecord) {
 
 export async function getExpiryWebhookUrl(): Promise<string> {
   const value = await getConfigWithDefault('expiryWebhookUrl')
-  return typeof value === 'string' ? value.trim() : ''
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  const trimmed = value.trim()
+  // 仅允许 http/https，避免误配其他协议
+  if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+    console.warn('[webhook] 到期通知接口仅支持 http/https 协议，已忽略:', trimmed)
+    return ''
+  }
+
+  return trimmed
 }
 
 export function buildExpiryNotificationPayload(

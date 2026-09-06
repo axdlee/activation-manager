@@ -85,3 +85,22 @@ test('ExpiryNotificationPayload 类型包含全部通知字段', () => {
     assert.ok(Object.prototype.hasOwnProperty.call(payload, key), `缺少字段 ${key}`)
   }
 })
+
+test('getExpiryWebhookUrl 拒绝非 http/https 协议（防误配）', async () => {
+  // 直接测协议校验逻辑（通过 setConfig 写入非法 URL 后再读）
+  const { setConfig, clearConfigCache } = await import('../src/lib/config-service')
+  const { prisma } = await import('../src/lib/db')
+
+  await setConfig('expiryWebhookUrl', 'file:///etc/passwd')
+  clearConfigCache(['expiryWebhookUrl'])
+  const url = await getExpiryWebhookUrl()
+  assert.equal(url, '')
+
+  await setConfig('expiryWebhookUrl', 'https://example.com/hook')
+  clearConfigCache(['expiryWebhookUrl'])
+  const validUrl = await getExpiryWebhookUrl()
+  assert.equal(validUrl, 'https://example.com/hook')
+
+  await prisma.systemConfig.deleteMany({ where: { key: 'expiryWebhookUrl' } })
+  clearConfigCache(['expiryWebhookUrl'])
+})

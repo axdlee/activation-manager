@@ -104,14 +104,27 @@ export async function markShopOrderPaid(params: {
     return { success: false as const, message: '订单已取消' }
   }
 
-  await prisma.shopOrder.update({
-    where: { id: order.id },
+  // 原子条件更新：仅当仍为 pending 时才标记已支付，避免并发重复处理
+  const updateResult = await prisma.shopOrder.updateMany({
+    where: {
+      id: order.id,
+      status: SHOP_ORDER_STATUS.PENDING,
+    },
     data: {
       status: SHOP_ORDER_STATUS.PAID,
       paidAt: new Date(),
       paymentNote: transactionId ?? order.paymentNote,
     },
   })
+
+  if (updateResult.count === 0) {
+    // 并发下状态已被其他请求改变
+    const latest = await prisma.shopOrder.findUnique({ where: { id: order.id } })
+    if (latest?.status === SHOP_ORDER_STATUS.FULFILLED || latest?.status === SHOP_ORDER_STATUS.PAID) {
+      return { success: true as const, alreadyProcessed: true as const }
+    }
+    return { success: false as const, message: '订单状态已变化' }
+  }
 
   if (adminUsername) {
     await recordAdminOperationAuditLog(prisma, {

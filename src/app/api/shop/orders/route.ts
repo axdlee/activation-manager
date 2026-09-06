@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { prisma } from '@/lib/db'
+import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 import { getPaymentProvider } from '@/lib/shop-payment-registry'
 import { getEnabledPaymentConfig } from '@/lib/shop-payment-registry'
 import {
@@ -23,6 +24,11 @@ type CreateOrderBody = {
 
 // 公开下单：校验联系方式、生成订单、返回支付信息
 export async function POST(request: NextRequest) {
+  const rateLimit = guardShopApiRateLimit(request, '/api/shop/orders')
+  if (!rateLimit.allowed) {
+    return rateLimit.response
+  }
+
   try {
     const body = (await request.json()) as CreateOrderBody
 

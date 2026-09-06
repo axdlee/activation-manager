@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { prisma } from '@/lib/db'
+import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,11 @@ export const dynamic = 'force-dynamic'
  * 校验联系方式匹配后返回订单与已发卡密。
  */
 export async function POST(request: NextRequest) {
+  const rateLimit = guardShopApiRateLimit(request, '/api/shop/orders/query')
+  if (!rateLimit.allowed) {
+    return rateLimit.response
+  }
+
   try {
     const body = (await request.json()) as {
       orderNo?: string

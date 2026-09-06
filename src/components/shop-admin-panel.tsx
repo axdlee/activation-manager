@@ -76,6 +76,8 @@ export function ShopAdminPanel() {
   const [projects, setProjects] = useState<ProjectOption[]>([])
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
+  const [webhookSecret, setWebhookSecret] = useState('')
+  const [webhookSecretLoaded, setWebhookSecretLoaded] = useState(false)
 
   // 新建商品表单
   const [newProduct, setNewProduct] = useState({
@@ -123,6 +125,18 @@ export function ShopAdminPanel() {
     setProducts(productData.products ?? [])
     setOrders(orderData.orders ?? [])
     setConfigs(configData.configs ?? [])
+
+    // 预填 webhook secret（若已配置）
+    const webhookConfig = (configData.configs ?? []).find((item) => item.provider === 'webhook')
+    if (webhookConfig) {
+      try {
+        const parsed = JSON.parse(webhookConfig.configJson) as Record<string, string>
+        setWebhookSecret(parsed.secret ?? '')
+      } catch {
+        setWebhookSecret('')
+      }
+    }
+    setWebhookSecretLoaded(true)
   }
 
   const handleCreateProduct = async () => {
@@ -199,6 +213,28 @@ export function ShopAdminPanel() {
       await loadAll()
     } catch {
       notify('操作失败', 'error')
+    }
+  }
+
+  const handleSaveWebhookSecret = async () => {
+    try {
+      const response = await fetch('/api/admin/shop/payment-configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'webhook',
+          configJson: JSON.stringify({ secret: webhookSecret.trim() }),
+        }),
+      })
+      const data = (await response.json()) as { success: boolean; message?: string }
+      if (!data.success) {
+        notify(data.message ?? '保存失败', 'error')
+        return
+      }
+      notify('回调密钥已保存')
+      await loadAll()
+    } catch {
+      notify('保存失败', 'error')
     }
   }
 
@@ -509,6 +545,30 @@ export function ShopAdminPanel() {
                 </button>
               </div>
             ))}
+            {webhookSecretLoaded ? (
+              <div className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
+                <div className="text-sm font-medium text-ink-50">通用回调密钥（webhook）</div>
+                <p className="mt-0.5 text-xs leading-5 text-ink-500">
+                  配置后，回调请求必须携带 <code className="text-brand-400">x-webhook-secret</code>{' '}
+                  请求头且值匹配，否则拒绝（防止未授权调用触发免费发卡）。留空则不校验。
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <AppInput
+                    value={webhookSecret}
+                    onChange={(event) => setWebhookSecret(event.target.value)}
+                    placeholder="输入回调密钥（留空不校验）"
+                    className="max-w-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveWebhookSecret()}
+                    className="rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-brand-500/20"
+                  >
+                    保存密钥
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {configs.length === 0 ? (
               <p className="py-6 text-center text-sm text-ink-500">暂无支付渠道配置</p>
             ) : null}
