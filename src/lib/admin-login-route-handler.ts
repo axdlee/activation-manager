@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { NextRequest, NextResponse } from 'next/server'
 
-import { config as appConfig } from '@/config'
+import { resolveCookieSecure } from '@/lib/cookie-secure'
 import { extractClientIp } from '@/lib/admin-auth-service'
 import {
   adminLoginRateLimiter,
@@ -95,7 +95,7 @@ export async function handleAdminLoginRequest(request: NextRequest) {
 
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: appConfig.server.nodeEnv === 'production',
+      secure: resolveCookieSecure(request),
       sameSite: 'strict',
       maxAge: sessionCookieMaxAge,
     })
