@@ -203,3 +203,137 @@ test('consumeCountLicense 在唯一约束冲突时会回滚已占位 requestId �
     status: 409,
   })
 })
+
+test('consumeTimeLicense 在并发绑定冲突（count=0 且已被其他设备）时返回占用结果', async () => {
+  const result = await consumeTimeLicense({
+    tx: {
+      activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
+        updateMany: async () => ({ count: 0 }),
+      },
+    } as never,
+    activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
+      id: 1,
+      licenseMode: 'TIME',
+      isUsed: false,
+      usedBy: null,
+      usedAt: null,
+      expiresAt: null,
+      validDays: 30,
+      remainingCount: null,
+    },
+    projectId: 1,
+    code: 'TIME-CODE-001',
+    machineId: 'machine-001',
+    reloadActivationCode: async () => ({
+      id: 1,
+      projectId: 1,
+      code: 'TIME-CODE-001',
+      licenseMode: 'TIME',
+      isUsed: true,
+      usedBy: 'machine-other',
+      usedAt: new Date('2026-03-25T00:00:00.000Z'),
+      expiresAt: null,
+      validDays: 30,
+      remainingCount: null,
+    }),
+    resolveProjectMachineConflict: async () => ({
+      success: false,
+      message: 'unexpected',
+      status: 409,
+    }),
+  })
+
+  assert.equal(result.success, false)
+  assert.equal(result.status, 400)
+  assert.match(result.message, /已被其他设备使用/)
+})
+
+test('consumeTimeLicense 在 reload 返回 null 时返回激活码不存在', async () => {
+  const result = await consumeTimeLicense({
+    tx: {
+      activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
+        updateMany: async () => ({ count: 0 }),
+      },
+    } as never,
+    activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
+      id: 1,
+      licenseMode: 'TIME',
+      isUsed: false,
+      usedBy: null,
+      usedAt: null,
+      expiresAt: null,
+      validDays: 30,
+      remainingCount: null,
+    },
+    projectId: 1,
+    code: 'TIME-CODE-001',
+    machineId: 'machine-001',
+    reloadActivationCode: async () => null,
+    resolveProjectMachineConflict: async () => ({
+      success: false,
+      message: 'unexpected',
+      status: 409,
+    }),
+  })
+
+  assert.equal(result.success, false)
+  assert.equal(result.status, 404)
+  assert.match(result.message, /不存在/)
+})
+
+test('consumeTimeLicense 在唯一约束冲突时调用冲突收敛器', async () => {
+  let conflictResolved = false
+
+  const result = await consumeTimeLicense({
+    tx: {
+      activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
+        updateMany: async () => {
+          throw {
+            code: 'P2002',
+            meta: {
+              target: ['projectId', 'usedBy'],
+            },
+          }
+        },
+      },
+    } as never,
+    activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
+      id: 1,
+      licenseMode: 'TIME',
+      isUsed: false,
+      usedBy: null,
+      usedAt: null,
+      expiresAt: null,
+      validDays: 30,
+      remainingCount: null,
+    },
+    projectId: 1,
+    code: 'TIME-CODE-001',
+    machineId: 'machine-001',
+    reloadActivationCode: async () => null,
+    resolveProjectMachineConflict: async () => {
+      conflictResolved = true
+      return {
+        success: false,
+        message: '同一项目下每台设备只能使用一个有效激活码',
+        status: 409,
+      }
+    },
+  })
+
+  assert.equal(conflictResolved, true)
+  assert.equal(result.success, false)
+  assert.equal(result.status, 409)
+})

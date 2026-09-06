@@ -71,3 +71,117 @@ test('getConsumptionRefreshStatus 在自动刷新失败后返回错误态文案'
     text: '自动刷新失败：网络错误，请重试',
   })
 })
+
+test('getConsumptionRefreshStatus 在 quick 刷新失败时返回对应错误文案', () => {
+  const status = getConsumptionRefreshStatus({
+    isLoading: false,
+    refreshSource: 'quick',
+    lastRefreshedAt: null,
+    lastError: '请求超时',
+  })
+
+  assert.equal(status.tone, 'error')
+  assert.equal(status.text, '时间范围刷新失败：请求超时')
+})
+
+test('getConsumptionRefreshStatus 在 initial 加载失败时返回对应错误文案', () => {
+  const status = getConsumptionRefreshStatus({
+    isLoading: false,
+    refreshSource: 'initial',
+    lastRefreshedAt: null,
+    lastError: '网络错误',
+  })
+
+  assert.equal(status.tone, 'error')
+  assert.equal(status.text, '加载消费日志失败：网络错误')
+})
+
+test('getConsumptionRefreshStatus 在 manual 刷新失败时返回通用错误文案', () => {
+  const status = getConsumptionRefreshStatus({
+    isLoading: false,
+    refreshSource: 'manual',
+    lastRefreshedAt: null,
+    lastError: '500',
+  })
+
+  assert.equal(status.tone, 'error')
+  assert.equal(status.text, '刷新消费日志失败：500')
+})
+
+test('getConsumptionRefreshStatus 在 manual 刷新成功时返回最近刷新文案', () => {
+  const status = getConsumptionRefreshStatus(
+    {
+      isLoading: false,
+      refreshSource: 'manual',
+      lastRefreshedAt: '2026-03-24T06:30:00.000Z',
+      lastError: null,
+    },
+    () => '格式化时间',
+  )
+
+  assert.equal(status.tone, 'success')
+  assert.equal(status.text, '最近刷新：格式化时间')
+})
+
+test('getConsumptionRefreshStatus 在 initial 加载成功时返回已加载文案', () => {
+  const status = getConsumptionRefreshStatus(
+    {
+      isLoading: false,
+      refreshSource: 'initial',
+      lastRefreshedAt: '2026-03-24T06:30:00.000Z',
+      lastError: null,
+    },
+    () => '时间',
+  )
+
+  assert.equal(status.tone, 'success')
+  assert.equal(status.text, '消费日志已加载：时间')
+})
+
+test('getConsumptionRefreshStatus 在 quick 刷新成功时返回时间范围已更新文案', () => {
+  const status = getConsumptionRefreshStatus(
+    {
+      isLoading: false,
+      refreshSource: 'quick',
+      lastRefreshedAt: '2026-03-24T06:30:00.000Z',
+      lastError: null,
+    },
+    () => '时间',
+  )
+
+  assert.equal(status.tone, 'success')
+  assert.equal(status.text, '时间范围已更新：时间')
+})
+
+test('getConsumptionRefreshStatus 在 quick 刷新中返回对应加载文案', () => {
+  const status = getConsumptionRefreshStatus({
+    isLoading: true,
+    refreshSource: 'quick',
+    lastRefreshedAt: null,
+  })
+
+  assert.equal(status.tone, 'info')
+  assert.equal(status.text, '正在应用时间范围并刷新消费日志...')
+})
+
+test('getConsumptionRefreshStatus 在 initial 刷新中返回对应加载文案', () => {
+  const status = getConsumptionRefreshStatus({
+    isLoading: true,
+    refreshSource: 'initial',
+    lastRefreshedAt: null,
+  })
+
+  assert.equal(status.tone, 'info')
+  assert.equal(status.text, '正在加载消费日志...')
+})
+
+test('getConsumptionRefreshStatus 在 manual 刷新中返回通用加载文案', () => {
+  const status = getConsumptionRefreshStatus({
+    isLoading: true,
+    refreshSource: 'manual',
+    lastRefreshedAt: null,
+  })
+
+  assert.equal(status.tone, 'info')
+  assert.equal(status.text, '正在刷新消费日志...')
+})

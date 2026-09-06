@@ -182,3 +182,142 @@ test('persistSystemConfigUpdates 在事务内批量写入，任一项失败时�
     ],
   ])
 })
+
+test('normalizeSystemConfigUpdates 会拒绝空 IP 白名单', () => {
+  assert.throws(
+    () =>
+      normalizeSystemConfigUpdates([
+        { key: 'allowedIPs', value: [], description: '白名单' },
+      ]),
+    (error: unknown) => {
+      assert.match(String((error as Error).message), /至少需要保留一个 IP/)
+      return true
+    },
+  )
+})
+
+test('normalizeSystemConfigUpdates 会拒绝非数组 allowedIPs', () => {
+  assert.throws(
+    () =>
+      normalizeSystemConfigUpdates([
+        { key: 'allowedIPs', value: '127.0.0.1', description: '白名单' },
+      ]),
+    (error: unknown) => {
+      assert.match(String((error as Error).message), /必须是字符串数组/)
+      return true
+    },
+  )
+})
+
+test('normalizeSystemConfigUpdates 会拒绝越界 bcryptRounds', () => {
+  for (const value of [3, 16]) {
+    assert.throws(
+      () =>
+        normalizeSystemConfigUpdates([
+          { key: 'bcryptRounds', value, description: '强度' },
+        ]),
+      (error: unknown) => {
+        assert.match(String((error as Error).message), /必须在 4 到 15 之间/)
+        return true
+      },
+    )
+  }
+})
+
+test('normalizeSystemConfigUpdates 会拒绝非整数 bcryptRounds', () => {
+  assert.throws(
+    () =>
+      normalizeSystemConfigUpdates([
+        { key: 'bcryptRounds', value: 12.5, description: '强度' },
+      ]),
+    (error: unknown) => {
+      assert.match(String((error as Error).message), /必须是整数/)
+      return true
+    },
+  )
+})
+
+test('normalizeSystemConfigUpdates 会拒绝越界 autoRebindCooldownMinutes', () => {
+  assert.throws(
+    () =>
+      normalizeSystemConfigUpdates([
+        { key: 'autoRebindCooldownMinutes', value: -1, description: '冷却' },
+      ]),
+    (error: unknown) => {
+      assert.match(String((error as Error).message), /autoRebindCooldownMinutes 必须在/)
+      return true
+    },
+  )
+  assert.throws(
+    () =>
+      normalizeSystemConfigUpdates([
+        { key: 'autoRebindCooldownMinutes', value: 30 * 24 * 60 + 1, description: '冷却' },
+      ]),
+    (error: unknown) => {
+      assert.match(String((error as Error).message), /autoRebindCooldownMinutes 必须在/)
+      return true
+    },
+  )
+})
+
+test('normalizeSystemConfigUpdates 会拒绝越界 autoRebindMaxCount', () => {
+  assert.throws(
+    () =>
+      normalizeSystemConfigUpdates([
+        { key: 'autoRebindMaxCount', value: -1, description: '上限' },
+      ]),
+    (error: unknown) => {
+      assert.match(String((error as Error).message), /autoRebindMaxCount 必须在/)
+      return true
+    },
+  )
+})
+
+test('normalizeSystemConfigUpdates 会拒绝同一 key 重复出现', () => {
+  assert.throws(
+    () =>
+      normalizeSystemConfigUpdates([
+        { key: 'systemName', value: '名称A', description: 'a' },
+        { key: 'systemName', value: '名称B', description: 'b' },
+      ]),
+    (error: unknown) => {
+      assert.match(String((error as Error).message), /同一次提交中重复出现/)
+      return true
+    },
+  )
+})
+
+test('normalizeSystemConfigUpdates 会拒绝空字符串配置值', () => {
+  assert.throws(
+    () =>
+      normalizeSystemConfigUpdates([
+        { key: 'systemName', value: '   ', description: '名称' },
+      ]),
+    (error: unknown) => {
+      assert.match(String((error as Error).message), /不能为空/)
+      return true
+    },
+  )
+})
+
+test('normalizeSystemConfigUpdates 接受合法 jwtExpiresIn 与布尔值', () => {
+  const normalized = normalizeSystemConfigUpdates([
+    { key: 'jwtExpiresIn', value: '24h', description: '有效期' },
+    { key: 'allowAutoRebind', value: 'true', description: '换绑策略' },
+  ])
+
+  assert.deepEqual(normalized, [
+    { key: 'jwtExpiresIn', value: '24h', description: '有效期' },
+    { key: 'allowAutoRebind', value: true, description: '换绑策略' },
+  ])
+})
+
+test('normalizeSystemConfigUpdates 会把空 description 规范化为 undefined', () => {
+  const normalized = normalizeSystemConfigUpdates([
+    { key: 'systemName', value: '名称', description: '  ' },
+  ])
+
+  assert.deepEqual(normalized, [
+    { key: 'systemName', value: '名称', description: undefined },
+  ])
+})
