@@ -50,6 +50,10 @@ ehthumbs.db
 *.sqlite
 *.sqlite3
 dev.db
+# SQLite WAL/journal 临时文件
+*.db-wal
+*.db-shm
+*.db-journal
 
 # Logs
 *.log
