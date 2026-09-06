@@ -272,6 +272,7 @@ function createProjectMachineConstraintRaceClient() {
           remainingCount?: { gt: number }
           OR?: Array<{ usedBy?: string | null }>
           usedAt?: null
+          isUsed?: boolean
         }
         data: Record<string, unknown>
       }) => {
@@ -282,6 +283,7 @@ function createProjectMachineConstraintRaceClient() {
             (where.licenseMode ? code.licenseMode === where.licenseMode : true) &&
             (where.usedAt === null ? code.usedAt === null : true) &&
             (where.remainingCount ? (code.remainingCount ?? 0) > where.remainingCount.gt : true) &&
+            (where.isUsed !== undefined ? code.isUsed === where.isUsed : true) &&
             (where.OR
               ? where.OR.some((condition) =>
                   Object.prototype.hasOwnProperty.call(condition, 'usedBy')

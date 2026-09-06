@@ -8,12 +8,47 @@ import {
   createActivationSuccessResult,
   createCountExhaustedResult,
   createExpiredResult,
+  createUsedByOtherDeviceResult,
   type LicenseResult,
 } from './license-result-service'
 import { recordActivationCodeBindingHistory } from './license-binding-history-service'
 import { type DbClient } from './license-project-service'
 
 type ActivationMutationClient = Pick<DbClient, 'activationCode'>
+
+/**
+ * 尝试以原子方式占用激活码（仅当仍未被使用时）。
+ * 返回 true 表示当前调用成功抢占；false 表示已被其他并发请求占用。
+ */
+async function tryClaimActivationCode(params: {
+  tx: ActivationMutationClient
+  activationCode: LicenseActionCodeRecord
+  machineId: string
+  isUsed: boolean
+  usedBy: string | null
+  usedAt: Date | string | null
+  expiresAt?: Date | null
+}): Promise<boolean> {
+  const { tx, activationCode, machineId } = params
+
+  const updateResult = await tx.activationCode.updateMany({
+    where: {
+      id: activationCode.id,
+      projectId: activationCode.projectId,
+      isUsed: params.isUsed,
+      ...(params.isUsed ? { usedBy: params.usedBy } : {}),
+    },
+    data: {
+      isUsed: true,
+      usedAt: params.usedAt ?? new Date(),
+      usedBy: machineId,
+      lastBoundAt: new Date(),
+      ...(params.expiresAt === undefined ? {} : { expiresAt: params.expiresAt }),
+    },
+  })
+
+  return updateResult.count === 1
+}
 
 export async function activateCountLicense(params: {
   tx: ActivationMutationClient
@@ -37,38 +72,49 @@ export async function activateCountLicense(params: {
     return createActivationSuccessResult(activationCode, '激活码已激活')
   }
 
-  const now = new Date()
-
-  try {
-    const updatedCode = await tx.activationCode.update({
-      where: {
-        id: activationCode.id,
-      },
-      data: {
-        isUsed: true,
-        usedAt: activationCode.usedAt ?? now,
-        usedBy: machineId,
-        lastBoundAt: now,
-      },
-    })
-
-    await recordActivationCodeBindingHistory(tx as DbClient, {
-      activationCodeId: activationCode.id,
-      projectId: activationCode.projectId,
-      eventType: 'INITIAL_BIND',
-      operatorType: 'CLIENT',
-      fromMachineId: activationCode.usedBy ?? null,
-      toMachineId: machineId,
-    })
-
-    return createActivationSuccessResult(updatedCode, '激活码激活成功')
-  } catch (error) {
+  const claimed = await tryClaimActivationCode({
+    tx,
+    activationCode,
+    machineId,
+    isUsed: false,
+    usedBy: null,
+    usedAt: activationCode.usedAt,
+  }).catch((error) => {
     if (isProjectMachineUniqueConstraintError(error)) {
-      return resolveProjectMachineConflict()
+      return null
     }
-
     throw error
+  })
+
+  if (claimed === null) {
+    return resolveProjectMachineConflict()
   }
+
+  if (!claimed) {
+    return createUsedByOtherDeviceResult()
+  }
+
+  await recordActivationCodeBindingHistory(tx as DbClient, {
+    activationCodeId: activationCode.id,
+    projectId: activationCode.projectId,
+    eventType: 'INITIAL_BIND',
+    operatorType: 'CLIENT',
+    fromMachineId: activationCode.usedBy ?? null,
+    toMachineId: machineId,
+  })
+
+  return createActivationSuccessResult(
+    {
+      isUsed: true,
+      usedAt: activationCode.usedAt ?? new Date(),
+      expiresAt: activationCode.expiresAt ?? null,
+      validDays: activationCode.validDays,
+      licenseMode: activationCode.licenseMode,
+      totalCount: activationCode.totalCount,
+      remainingCount: activationCode.remainingCount,
+    },
+    '激活码激活成功',
+  )
 }
 
 export async function activateTimeLicense(params: {
@@ -99,53 +145,27 @@ export async function activateTimeLicense(params: {
       return createExpiredResult()
     }
 
-    try {
-      const updatedCode = await tx.activationCode.update({
-        where: {
-          id: activationCode.id,
-        },
-        data: {
-          usedBy: machineId,
-          lastBoundAt: now,
-        },
-      })
-
-      await recordActivationCodeBindingHistory(tx as DbClient, {
-        activationCodeId: activationCode.id,
-        projectId: activationCode.projectId,
-        eventType: 'INITIAL_BIND',
-        operatorType: 'CLIENT',
-        fromMachineId: activationCode.usedBy ?? null,
-        toMachineId: machineId,
-      })
-
-      return createActivationSuccessResult(updatedCode, '激活码绑定成功')
-    } catch (error) {
+    const claimed = await tryClaimActivationCode({
+      tx,
+      activationCode,
+      machineId,
+      isUsed: true,
+      usedBy: null,
+      usedAt: activationCode.usedAt,
+    }).catch((error) => {
       if (isProjectMachineUniqueConstraintError(error)) {
-        return resolveProjectMachineConflict()
+        return null
       }
-
       throw error
-    }
-  }
-
-  const expiresAt = activationCode.validDays
-    ? new Date(now.getTime() + activationCode.validDays * 24 * 60 * 60 * 1000)
-    : null
-
-  try {
-    const updatedCode = await tx.activationCode.update({
-      where: {
-        id: activationCode.id,
-      },
-      data: {
-        isUsed: true,
-        usedAt: now,
-        usedBy: machineId,
-        expiresAt,
-        lastBoundAt: now,
-      },
     })
+
+    if (claimed === null) {
+      return resolveProjectMachineConflict()
+    }
+
+    if (!claimed) {
+      return createUsedByOtherDeviceResult()
+    }
 
     await recordActivationCodeBindingHistory(tx as DbClient, {
       activationCodeId: activationCode.id,
@@ -156,12 +176,66 @@ export async function activateTimeLicense(params: {
       toMachineId: machineId,
     })
 
-    return createActivationSuccessResult(updatedCode, '激活码激活成功')
-  } catch (error) {
-    if (isProjectMachineUniqueConstraintError(error)) {
-      return resolveProjectMachineConflict()
-    }
-
-    throw error
+    return createActivationSuccessResult(
+      {
+        isUsed: true,
+        usedAt: activationCode.usedAt ?? new Date(),
+        expiresAt: activationCode.expiresAt ?? null,
+        validDays: activationCode.validDays,
+        licenseMode: activationCode.licenseMode,
+        totalCount: activationCode.totalCount,
+        remainingCount: activationCode.remainingCount,
+      },
+      '激活码绑定成功',
+    )
   }
+
+  const expiresAt = activationCode.validDays
+    ? new Date(now.getTime() + activationCode.validDays * 24 * 60 * 60 * 1000)
+    : null
+
+  const claimed = await tryClaimActivationCode({
+    tx,
+    activationCode,
+    machineId,
+    isUsed: false,
+    usedBy: null,
+    usedAt: now,
+    expiresAt,
+  }).catch((error) => {
+    if (isProjectMachineUniqueConstraintError(error)) {
+      return null
+    }
+    throw error
+  })
+
+  if (claimed === null) {
+    return resolveProjectMachineConflict()
+  }
+
+  if (!claimed) {
+    return createUsedByOtherDeviceResult()
+  }
+
+  await recordActivationCodeBindingHistory(tx as DbClient, {
+    activationCodeId: activationCode.id,
+    projectId: activationCode.projectId,
+    eventType: 'INITIAL_BIND',
+    operatorType: 'CLIENT',
+    fromMachineId: activationCode.usedBy ?? null,
+    toMachineId: machineId,
+  })
+
+  return createActivationSuccessResult(
+    {
+      isUsed: true,
+      usedAt: now,
+      expiresAt,
+      validDays: activationCode.validDays,
+      licenseMode: activationCode.licenseMode,
+      totalCount: activationCode.totalCount,
+      remainingCount: activationCode.remainingCount,
+    },
+    '激活码激活成功',
+  )
 }
