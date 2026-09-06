@@ -108,9 +108,9 @@ const advancedGroupMeta: Omit<SystemConfigGroup, 'items'> = {
 
 const groupItemOrderMap: Partial<Record<SystemConfigGroupKey, string[]>> = {
   access: ['allowedIPs'],
-  rebind: ['allowAutoRebind', 'autoRebindCooldownMinutes', 'autoRebindMaxCount'],
+  rebind: ['allowAutoRebind', 'autoRebindCooldownMinutes', 'autoRebindMaxCount', 'allowDeviceBinding'],
   security: ['jwtSecret', 'jwtExpiresIn', 'bcryptRounds'],
-  branding: ['systemName'],
+  branding: ['systemName', 'expiryWebhookUrl'],
 }
 
 function humanizeConfigKey(key: string) {
@@ -355,6 +355,39 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
         placeholder: '例如：浏览器插件授权中心',
         layout: 'full',
         badges: [{ label: '品牌识别', tone: 'neutral' }],
+      }
+    case 'expiryWebhookUrl':
+      return {
+        key: config.key,
+        label: '到期通知接口',
+        description: '激活码到期或次数耗尽时，向该地址发送 POST JSON 通知。',
+        hint: '留空表示不通知。接口需返回 2xx 视为成功；通知内容包含激活码、项目、机器与到期时间。',
+        value: config.value,
+        inputKind: 'text',
+        placeholder: 'https://example.com/hooks/license-expiry',
+        layout: 'full',
+        badges:
+          typeof config.value === 'string' && config.value.trim()
+            ? [{ label: '通知已启用', tone: 'success' }]
+            : [{ label: '未启用', tone: 'warning' }],
+      }
+    case 'allowDeviceBinding':
+      return {
+        key: config.key,
+        label: '启用设备绑定',
+        description: '激活码是否绑定到首次激活的设备。关闭后，激活码不再记录绑定机器。',
+        hint: '默认开启。关闭后同一激活码可在任意设备使用，适合无需设备锁定的授权场景。',
+        value: config.value,
+        inputKind: 'select',
+        options: [
+          { label: '启用设备绑定', value: 'true' },
+          { label: '不绑定设备', value: 'false' },
+        ],
+        layout: 'default',
+        badges:
+          config.value === true
+            ? [{ label: '已启用', tone: 'success' }]
+            : [{ label: '未启用', tone: 'warning' }],
       }
     default:
       return {

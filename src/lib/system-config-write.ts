@@ -19,6 +19,8 @@ const writableSystemConfigKeySet = new Set([
   'jwtExpiresIn',
   'bcryptRounds',
   'systemName',
+  'expiryWebhookUrl',
+  'allowDeviceBinding',
 ])
 
 const allowedJwtExpiryValues = new Set(['1h', '6h', '12h', '24h', '7d'])
@@ -66,6 +68,15 @@ function ensureStringValue(key: string, value: SystemConfigValue) {
   }
 
   return normalizedValue
+}
+
+// 允许为空的字符串配置（如到期通知接口，空表示未配置）
+function ensureOptionalStringValue(key: string, value: SystemConfigValue) {
+  if (typeof value !== 'string') {
+    throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 必须是字符串`)
+  }
+
+  return value.trim()
 }
 
 function normalizeAllowedIps(value: SystemConfigValue) {
@@ -175,6 +186,10 @@ function normalizeSystemConfigValue(key: string, value: SystemConfigValue): Syst
       return normalizeBcryptRounds(value)
     case 'systemName':
       return ensureStringValue(key, value)
+    case 'expiryWebhookUrl':
+      return ensureOptionalStringValue(key, value)
+    case 'allowDeviceBinding':
+      return normalizeBooleanConfigValue(key, value)
     default:
       throw new InvalidSystemConfigPayloadError(`不支持写入系统配置项：${key}`)
   }

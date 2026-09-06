@@ -321,3 +321,23 @@ test('normalizeSystemConfigUpdates 会把空 description 规范化为 undefined'
     { key: 'systemName', value: '名称', description: undefined },
   ])
 })
+
+test('normalizeSystemConfigUpdates 允许空的 expiryWebhookUrl（未配置）', () => {
+  const normalized = normalizeSystemConfigUpdates([
+    { key: 'expiryWebhookUrl', value: '', description: '到期通知接口' },
+  ])
+
+  assert.deepEqual(normalized, [
+    { key: 'expiryWebhookUrl', value: '', description: '到期通知接口' },
+  ])
+})
+
+test('normalizeSystemConfigUpdates 允许 allowDeviceBinding 布尔值', () => {
+  const normalized = normalizeSystemConfigUpdates([
+    { key: 'allowDeviceBinding', value: false, description: '设备绑定' },
+  ])
+
+  assert.deepEqual(normalized, [
+    { key: 'allowDeviceBinding', value: false, description: '设备绑定' },
+  ])
+})

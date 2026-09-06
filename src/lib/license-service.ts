@@ -38,6 +38,7 @@ import {
   activateCountLicense,
   activateTimeLicense,
 } from './license-activation-flow-service'
+import { resolveDeviceBindingEnabled } from './device-binding-config'
 import {
   consumeCountLicense,
   consumeTimeLicense,
@@ -67,6 +68,7 @@ export async function activateLicense(client: PrismaClient, input: LicenseAction
   }
 
   const { projectId, code, machineId } = resolution.context
+  const bindDevice = await resolveDeviceBindingEnabled()
 
   return client.$transaction(async (tx) => {
     const preparationResult = await prepareLicenseTransactionAction(tx, {
@@ -87,6 +89,7 @@ export async function activateLicense(client: PrismaClient, input: LicenseAction
         activationCode,
         machineId,
         resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
+        bindDevice,
       })
     }
 
@@ -95,6 +98,7 @@ export async function activateLicense(client: PrismaClient, input: LicenseAction
       activationCode,
       machineId,
       resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
+      bindDevice,
     })
   })
 }

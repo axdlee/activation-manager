@@ -14,6 +14,8 @@ export type KnownSystemConfigMap = {
   allowAutoRebind: boolean
   autoRebindCooldownMinutes: number
   autoRebindMaxCount: number
+  expiryWebhookUrl: string
+  allowDeviceBinding: boolean
 }
 
 export type KnownSystemConfigKey = keyof KnownSystemConfigMap
@@ -111,6 +113,16 @@ export function buildDefaultSystemConfigs(
       value: '激活码管理系统',
       description: '系统名称',
     },
+    {
+      key: 'expiryWebhookUrl',
+      value: '',
+      description: '激活码到期通知接口（POST JSON，留空表示不通知）',
+    },
+    {
+      key: 'allowDeviceBinding',
+      value: true,
+      description: '是否允许激活码绑定设备（关闭后激活码不再绑定机器）',
+    },
   ]
 }
 
@@ -125,6 +137,8 @@ export const defaultConfigValues: KnownSystemConfigMap = {
   allowAutoRebind: DEFAULT_ALLOW_AUTO_REBIND,
   autoRebindCooldownMinutes: DEFAULT_AUTO_REBIND_COOLDOWN_MINUTES,
   autoRebindMaxCount: DEFAULT_AUTO_REBIND_MAX_COUNT,
+  expiryWebhookUrl: '',
+  allowDeviceBinding: true,
 }
 
 export function stringifyConfigValue(value: string | number | boolean | string[]) {

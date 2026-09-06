@@ -28,8 +28,9 @@ async function tryClaimActivationCode(params: {
   usedBy: string | null
   usedAt: Date | string | null
   expiresAt?: Date | null
+  bindDevice?: boolean
 }): Promise<boolean> {
-  const { tx, activationCode, machineId } = params
+  const { tx, activationCode, machineId, bindDevice = true } = params
 
   const updateResult = await tx.activationCode.updateMany({
     where: {
@@ -41,8 +42,7 @@ async function tryClaimActivationCode(params: {
     data: {
       isUsed: true,
       usedAt: params.usedAt ?? new Date(),
-      usedBy: machineId,
-      lastBoundAt: new Date(),
+      ...(bindDevice ? { usedBy: machineId, lastBoundAt: new Date() } : {}),
       ...(params.expiresAt === undefined ? {} : { expiresAt: params.expiresAt }),
     },
   })
@@ -55,12 +55,14 @@ export async function activateCountLicense(params: {
   activationCode: LicenseActionCodeRecord
   machineId: string
   resolveProjectMachineConflict: LicenseConflictResolver
+  bindDevice?: boolean
 }): Promise<LicenseResult> {
   const {
     tx,
     activationCode,
     machineId,
     resolveProjectMachineConflict,
+    bindDevice = true,
   } = params
 
   const remainingCount = getRemainingCount(activationCode)
@@ -79,6 +81,7 @@ export async function activateCountLicense(params: {
     isUsed: false,
     usedBy: null,
     usedAt: activationCode.usedAt,
+    bindDevice,
   }).catch((error) => {
     if (isProjectMachineUniqueConstraintError(error)) {
       return null
@@ -94,14 +97,16 @@ export async function activateCountLicense(params: {
     return createUsedByOtherDeviceResult()
   }
 
-  await recordActivationCodeBindingHistory(tx as DbClient, {
-    activationCodeId: activationCode.id,
-    projectId: activationCode.projectId,
-    eventType: 'INITIAL_BIND',
-    operatorType: 'CLIENT',
-    fromMachineId: activationCode.usedBy ?? null,
-    toMachineId: machineId,
-  })
+  if (bindDevice) {
+    await recordActivationCodeBindingHistory(tx as DbClient, {
+      activationCodeId: activationCode.id,
+      projectId: activationCode.projectId,
+      eventType: 'INITIAL_BIND',
+      operatorType: 'CLIENT',
+      fromMachineId: activationCode.usedBy ?? null,
+      toMachineId: machineId,
+    })
+  }
 
   return createActivationSuccessResult(
     {
@@ -122,12 +127,14 @@ export async function activateTimeLicense(params: {
   activationCode: LicenseActionCodeRecord
   machineId: string
   resolveProjectMachineConflict: LicenseConflictResolver
+  bindDevice?: boolean
 }): Promise<LicenseResult> {
   const {
     tx,
     activationCode,
     machineId,
     resolveProjectMachineConflict,
+    bindDevice = true,
   } = params
 
   if (activationCode.isUsed && activationCode.usedBy === machineId) {
@@ -145,6 +152,21 @@ export async function activateTimeLicense(params: {
       return createExpiredResult()
     }
 
+    if (!bindDevice) {
+      return createActivationSuccessResult(
+        {
+          isUsed: true,
+          usedAt: activationCode.usedAt ?? new Date(),
+          expiresAt: activationCode.expiresAt ?? null,
+          validDays: activationCode.validDays,
+          licenseMode: activationCode.licenseMode,
+          totalCount: activationCode.totalCount,
+          remainingCount: activationCode.remainingCount,
+        },
+        '激活码已激活',
+      )
+    }
+
     const claimed = await tryClaimActivationCode({
       tx,
       activationCode,
@@ -152,6 +174,7 @@ export async function activateTimeLicense(params: {
       isUsed: true,
       usedBy: null,
       usedAt: activationCode.usedAt,
+      bindDevice,
     }).catch((error) => {
       if (isProjectMachineUniqueConstraintError(error)) {
         return null
@@ -202,6 +225,7 @@ export async function activateTimeLicense(params: {
     usedBy: null,
     usedAt: now,
     expiresAt,
+    bindDevice,
   }).catch((error) => {
     if (isProjectMachineUniqueConstraintError(error)) {
       return null
@@ -217,14 +241,16 @@ export async function activateTimeLicense(params: {
     return createUsedByOtherDeviceResult()
   }
 
-  await recordActivationCodeBindingHistory(tx as DbClient, {
-    activationCodeId: activationCode.id,
-    projectId: activationCode.projectId,
-    eventType: 'INITIAL_BIND',
-    operatorType: 'CLIENT',
-    fromMachineId: activationCode.usedBy ?? null,
-    toMachineId: machineId,
-  })
+  if (bindDevice) {
+    await recordActivationCodeBindingHistory(tx as DbClient, {
+      activationCodeId: activationCode.id,
+      projectId: activationCode.projectId,
+      eventType: 'INITIAL_BIND',
+      operatorType: 'CLIENT',
+      fromMachineId: activationCode.usedBy ?? null,
+      toMachineId: machineId,
+    })
+  }
 
   return createActivationSuccessResult(
     {

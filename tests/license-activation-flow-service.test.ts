@@ -262,3 +262,85 @@ test('activateTimeLicense 并发竞态下 count=0 时返回已被其他设备使
     status: 400,
   })
 })
+
+test('activateCountLicense 在 bindDevice=false 时不写入 usedBy 但仍激活', async () => {
+  const updatePayloads: Array<Record<string, unknown>> = []
+
+  const result = await activateCountLicense({
+    tx: {
+      activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
+        updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+          updatePayloads.push(data)
+          return { count: 1 }
+        },
+      },
+    } as never,
+    activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
+      id: 1,
+      licenseMode: 'COUNT',
+      totalCount: 3,
+      remainingCount: 2,
+      isUsed: false,
+      usedAt: null,
+      expiresAt: null,
+      validDays: null,
+    },
+    machineId: 'machine-001',
+    resolveProjectMachineConflict: async () => ({
+      success: false,
+      message: 'unexpected',
+      status: 409,
+    }),
+    bindDevice: false,
+  })
+
+  assert.equal(updatePayloads.length, 1)
+  assert.equal(updatePayloads[0]?.usedBy, undefined)
+  assert.equal(updatePayloads[0]?.isUsed, true)
+  assert.equal(result.success, true)
+})
+
+test('activateTimeLicense 在 bindDevice=false 时首次激活不写 usedBy', async () => {
+  const updatePayloads: Array<Record<string, unknown>> = []
+
+  const result = await activateTimeLicense({
+    tx: {
+      activationCode: {
+        code: 'TEST-CODE',
+        projectId: 1,
+        updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+          updatePayloads.push(data)
+          return { count: 1 }
+        },
+      },
+    } as never,
+    activationCode: {
+      code: 'TEST-CODE',
+      projectId: 1,
+      id: 3,
+      licenseMode: 'TIME',
+      isUsed: false,
+      usedBy: null,
+      usedAt: null,
+      expiresAt: null,
+      validDays: 30,
+      remainingCount: null,
+    },
+    machineId: 'machine-002',
+    resolveProjectMachineConflict: async () => ({
+      success: false,
+      message: 'unexpected',
+      status: 409,
+    }),
+    bindDevice: false,
+  })
+
+  assert.equal(updatePayloads.length, 1)
+  assert.equal(updatePayloads[0]?.usedBy, undefined)
+  assert.equal(updatePayloads[0]?.isUsed, true)
+  assert.equal(result.success, true)
+})
