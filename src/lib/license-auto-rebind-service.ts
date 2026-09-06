@@ -2,7 +2,6 @@ import {
   type LicenseActionCodeRecord,
   type LicenseConflictResolver,
 } from './license-action-context'
-import { isProjectMachineUniqueConstraintError } from './license-binding-service'
 import {
   formatCooldownMinutesLabel,
   getNextAllowedAutoRebindAt,
@@ -51,7 +50,7 @@ export async function resolveMutableLicenseActionCodeForMachine(params: {
   activationCode: LicenseActionCodeRecord | null
   machineId: string
   reloadActivationCode: () => Promise<LicenseActionCodeRecord | null>
-  resolveProjectMachineConflict: LicenseConflictResolver
+  resolveProjectMachineConflict: LicenseConflictResolver // 保留契约，原子更新不再触发唯一约束冲突
   now?: Date
 }): Promise<MutableCodeAccessResult> {
   const {
@@ -59,7 +58,6 @@ export async function resolveMutableLicenseActionCodeForMachine(params: {
     activationCode,
     machineId,
     reloadActivationCode,
-    resolveProjectMachineConflict,
     now = new Date(),
   } = params
 
@@ -131,40 +129,94 @@ export async function resolveMutableLicenseActionCodeForMachine(params: {
     }
   }
 
-  try {
-    await tx.activationCode.update({
-      where: {
-        id: activationCode.id,
-      },
-      data: {
-        usedBy: machineId,
-        lastBoundAt: now,
-        lastRebindAt: now,
-        rebindCount: {
-          increment: 1,
-        },
-        autoRebindCount: {
-          increment: 1,
-        },
-      },
-    })
-    await recordActivationCodeBindingHistory(tx as DbClient, {
-      activationCodeId: activationCode.id,
+  const updateResult = await tx.activationCode.updateMany({
+    where: {
+      id: activationCode.id,
       projectId: activationCode.projectId,
-      eventType: 'AUTO_REBIND',
-      operatorType: 'CLIENT',
-      fromMachineId: activationCode.usedBy,
-      toMachineId: machineId,
-    })
-  } catch (error) {
-    if (isProjectMachineUniqueConstraintError(error)) {
+      // 原子条件：仅当仍绑定原设备且未被并发换绑过才递增换绑次数
+      usedBy: activationCode.usedBy ?? null,
+      lastRebindAt: activationCode.lastRebindAt ?? null,
+    },
+    data: {
+      usedBy: machineId,
+      lastBoundAt: now,
+      lastRebindAt: now,
+      rebindCount: {
+        increment: 1,
+      },
+      autoRebindCount: {
+        increment: 1,
+      },
+    },
+  })
+
+  if (updateResult.count === 0) {
+    // 并发换绑或设备状态已变化：重新读取最新记录后判定
+    const latestActivationCode = await reloadActivationCode()
+    if (!latestActivationCode) {
       return {
-        result: await resolveProjectMachineConflict(),
+        result: createLicenseNotFoundResult(),
       }
     }
 
-    throw error
+    if (latestActivationCode.usedBy === machineId) {
+      return {
+        activationCode: latestActivationCode,
+      }
+    }
+
+    const latestUnavailableResult = resolveBoundCodeUnavailableResult(latestActivationCode, now)
+    if (latestUnavailableResult) {
+      return {
+        result: latestUnavailableResult,
+      }
+    }
+
+    const latestRebindPolicy = resolveEffectiveRebindPolicy(
+      {
+        allowAutoRebind: latestActivationCode.allowAutoRebind ?? null,
+        autoRebindCooldownMinutes: latestActivationCode.autoRebindCooldownMinutes ?? null,
+        autoRebindMaxCount: latestActivationCode.autoRebindMaxCount ?? null,
+        project: latestActivationCode.project
+          ? {
+              allowAutoRebind: latestActivationCode.project.allowAutoRebind ?? null,
+              autoRebindCooldownMinutes:
+                latestActivationCode.project.autoRebindCooldownMinutes ?? null,
+              autoRebindMaxCount: latestActivationCode.project.autoRebindMaxCount ?? null,
+            }
+          : null,
+      },
+      await getSystemRebindPolicyDefaults(),
+    )
+
+    const latestNextAllowedAt = getNextAllowedAutoRebindAt(
+      latestActivationCode,
+      latestRebindPolicy.autoRebindCooldownMinutes,
+    )
+    if (latestNextAllowedAt && latestNextAllowedAt.getTime() > now.getTime()) {
+      const cooldownResult = createRebindCooldownResult(latestNextAllowedAt)
+      cooldownResult.message = `激活码处于换绑冷却期，需等待 ${formatCooldownMinutesLabel(
+        latestRebindPolicy.autoRebindCooldownMinutes,
+      )}`
+
+      return {
+        result: cooldownResult,
+      }
+    }
+
+    return {
+      result: createUsedByOtherDeviceResult(),
+    }
   }
+
+  await recordActivationCodeBindingHistory(tx as DbClient, {
+    activationCodeId: activationCode.id,
+    projectId: activationCode.projectId,
+    eventType: 'AUTO_REBIND',
+    operatorType: 'CLIENT',
+    fromMachineId: activationCode.usedBy,
+    toMachineId: machineId,
+  })
 
   const updatedActivationCode = await reloadActivationCode()
   if (!updatedActivationCode) {
