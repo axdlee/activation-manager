@@ -361,7 +361,7 @@ export function ShopPage() {
 
                 <button
                   type="button"
-                  disabled={creating || products.length === 0}
+                  disabled={creating || loading || products.length === 0}
                   onClick={() => void handleCreateOrder()}
                   className={`w-full ${publicPrimaryButtonClassName}`}
                 >

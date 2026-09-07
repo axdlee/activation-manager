@@ -65,7 +65,6 @@ export async function listAvailablePaymentChannels() {
     id: string
     name: string
     supportsOnlinePayment: boolean
-    config: Record<string, string> | null
   }> = []
 
   for (const provider of listEnabledPaymentProviders()) {
@@ -75,7 +74,6 @@ export async function listAvailablePaymentChannels() {
         id: provider.id,
         name: provider.name,
         supportsOnlinePayment: provider.supportsOnlinePayment,
-        config,
       })
     }
   }

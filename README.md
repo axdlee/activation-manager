@@ -1066,12 +1066,21 @@ await client.consume({
 
 ### 支付渠道（适配器抽象）
 
-| 渠道 | 说明 | 自动化 |
-| --- | --- | --- |
-| **手动收款确认** | 展示收款信息，管理员后台确认后发卡 | 半自动 |
-| **通用支付回调** | 自建服务 POST `/api/shop/payment/webhook` 触发发卡 | 自动 |
+系统内置 **5 种支付渠道**，通过 `PaymentProvider` 接口统一抽象：
 
-接入新渠道只需实现 `PaymentProvider` 接口（`createPayment` / `verifyCallback` / `queryPayment`）并注册。
+| 渠道 | 资质要求 | 说明 | 自动化 | 回调路由 |
+| --- | --- | --- | --- | --- |
+| **手动收款确认** | 无 | 展示收款信息，管理员确认后发卡 | 半自动 | — |
+| **通用支付回调** | 无 | 自建服务 POST 触发发卡 | 自动 | `/api/shop/payment/webhook` |
+| **易支付** | 个人可注册 | 聚合支付，支持微信/支付宝扫码 | 自动 | `/api/shop/payment/yipay` |
+| **微信支付（官方）** | 需微信商户号 | Native 扫码支付 | 自动 | `/api/shop/payment/wechat` |
+| **支付宝（官方）** | 需商户资质 | 扫码支付 | 自动 | `/api/shop/payment/alipay` |
+
+**易支付（推荐无资质用户）**：个人无需商户资质，注册易支付账号后配置 gateway/pid/key 即可接入微信/支付宝扫码收款。回调采用 MD5 签名验证，支持 form-urlencoded 格式。
+
+**微信/支付宝**：需要对应的商户资质，配置后即可使用官方支付接口。
+
+接入新渠道只需实现 `PaymentProvider` 接口（`createPayment` / `verifyCallback` / `queryPayment`）并在 `shop-payment-registry.ts` 中注册。
 
 ### 订单与发卡闭环
 
