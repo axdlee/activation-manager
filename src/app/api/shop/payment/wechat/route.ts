@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 import { getEnabledPaymentConfig } from '@/lib/shop-payment-registry'
 import { getPaymentProvider } from '@/lib/shop-payment-registry'
 import { fulfillShopOrder } from '@/lib/shop-fulfillment-service'
@@ -7,6 +8,12 @@ import { fulfillShopOrder } from '@/lib/shop-fulfillment-service'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
+  const rateLimit = guardShopApiRateLimit(request, '/api/shop/payment/${route}')
+  if (!rateLimit.allowed) {
+    return rateLimit.response
+  }
+
+
   const bodyText = await request.text()
 
   const provider = getPaymentProvider('wechat')

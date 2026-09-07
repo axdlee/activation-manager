@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 import { getEnabledPaymentConfig } from '@/lib/shop-payment-registry'
 import { getPaymentProvider } from '@/lib/shop-payment-registry'
 import { fulfillShopOrder } from '@/lib/shop-fulfillment-service'
@@ -11,6 +12,12 @@ export const dynamic = 'force-dynamic'
  * 签名校验：MD5(参数键值对排序 + key)
  */
 export async function POST(request: NextRequest) {
+  const rateLimit = guardShopApiRateLimit(request, '/api/shop/payment/${route}')
+  if (!rateLimit.allowed) {
+    return rateLimit.response
+  }
+
+
   const bodyText = await request.text()
 
   const provider = getPaymentProvider('yipay')
