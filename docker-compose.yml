@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${DOCKER_IMAGE:-activation-manager:local}
+    image: ${DOCKER_IMAGE:-xdlee/activation-manager:latest}
     restart: unless-stopped
     init: true
     ports:
@@ -15,6 +15,8 @@ services:
       ALLOWED_IPS: ${ALLOWED_IPS:-127.0.0.1,::1,172.16.0.0/12}
       # 仅首次初始化（数据库中无管理员）时需要；已有管理员的存量库可不设置
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
+      # 无 HTTPS 反代时设为 false，否则浏览器拒收 Secure cookie 导致登录死循环
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
     volumes:
       - activation_manager_data:/app/data
 
