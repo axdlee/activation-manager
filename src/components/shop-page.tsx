@@ -472,7 +472,7 @@ export function ShopPage() {
             <AppInput
               value={lookupContact}
               onChange={(event) => setLookupContact(event.target.value)}
-              placeholder="下单时的邮箱 / 手机号 / 微信号"
+              placeholder="邮箱 / 手机号 / 微信号"
             />
             <button
               type="button"
