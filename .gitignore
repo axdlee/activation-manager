@@ -79,6 +79,8 @@ jspm_packages/
 
 # Optional npm cache directory
 .npm
+# Local npm config (not to be committed)
+.npmrc
 
 # Optional eslint cache
 .eslintcache
