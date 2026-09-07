@@ -78,6 +78,14 @@ export function ShopAdminPanel() {
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
   const [webhookSecret, setWebhookSecret] = useState('')
   const [webhookSecretLoaded, setWebhookSecretLoaded] = useState(false)
+  const [yipayGateway, setYipayGateway] = useState('')
+  const [yipayPid, setYipayPid] = useState('')
+  const [yipayKey, setYipayKey] = useState('')
+  const [wechatAppId, setWechatAppId] = useState('')
+  const [wechatMchId, setWechatMchId] = useState('')
+  const [wechatApiKey, setWechatApiKey] = useState('')
+  const [alipayAppId, setAlipayAppId] = useState('')
+  const [alipayPublicKey, setAlipayPublicKey] = useState('')
 
   // 新建商品表单
   const [newProduct, setNewProduct] = useState({
@@ -137,6 +145,100 @@ export function ShopAdminPanel() {
       }
     }
     setWebhookSecretLoaded(true)
+
+    // 预填易支付配置
+    const yipayConfig = (configData.configs ?? []).find((item) => item.provider === 'yipay')
+    if (yipayConfig) {
+      try {
+        const parsed = JSON.parse(yipayConfig.configJson) as Record<string, string>
+        setYipayGateway(parsed.gateway ?? '')
+        setYipayPid(parsed.pid ?? '')
+        setYipayKey(parsed.key ?? '')
+      } catch { /* ignore */ }
+    }
+
+    // 预填微信支付配置
+    const wechatConfig = (configData.configs ?? []).find((item) => item.provider === 'wechat')
+    if (wechatConfig) {
+      try {
+        const parsed = JSON.parse(wechatConfig.configJson) as Record<string, string>
+        setWechatAppId(parsed.appId ?? '')
+        setWechatMchId(parsed.mchId ?? '')
+        setWechatApiKey(parsed.apiKey ?? '')
+      } catch { /* ignore */ }
+    }
+
+    // 预填支付宝配置
+    const alipayConfig = (configData.configs ?? []).find((item) => item.provider === 'alipay')
+    if (alipayConfig) {
+      try {
+        const parsed = JSON.parse(alipayConfig.configJson) as Record<string, string>
+        setAlipayAppId(parsed.appId ?? '')
+        setAlipayPublicKey(parsed.alipayPublicKey ?? '')
+      } catch { /* ignore */ }
+    }
+  }
+
+  const handleSaveYipayConfig = async () => {
+    try {
+      const response = await fetch('/api/admin/shop/payment-configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'yipay',
+          configJson: JSON.stringify({
+            gateway: yipayGateway.trim(),
+            pid: yipayPid.trim(),
+            key: yipayKey.trim(),
+          }),
+        }),
+      })
+      const data = (await response.json()) as { success: boolean; message?: string }
+      if (!data.success) { notify(data.message ?? '保存失败', 'error'); return }
+      notify('易支付配置已保存')
+      await loadAll()
+    } catch { notify('保存失败', 'error') }
+  }
+
+  const handleSaveWechatConfig = async () => {
+    try {
+      const response = await fetch('/api/admin/shop/payment-configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'wechat',
+          configJson: JSON.stringify({
+            appId: wechatAppId.trim(),
+            mchId: wechatMchId.trim(),
+            apiKey: wechatApiKey.trim(),
+          }),
+        }),
+      })
+      const data = (await response.json()) as { success: boolean; message?: string }
+      if (!data.success) { notify(data.message ?? '保存失败', 'error'); return }
+      notify('微信支付配置已保存')
+      await loadAll()
+    } catch { notify('保存失败', 'error') }
+  }
+
+  const handleSaveAlipayConfig = async () => {
+    try {
+      const response = await fetch('/api/admin/shop/payment-configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'alipay',
+          configJson: JSON.stringify({
+            appId: alipayAppId.trim(),
+            alipayPublicKey: alipayPublicKey.trim(),
+          }),
+        }),
+      })
+      const data = (await response.json()) as { success: boolean; message?: string }
+      if (!data.success) { notify(data.message ?? '保存失败', 'error'); return }
+      notify('支付宝配置已保存')
+      await loadAll()
+    } catch { notify('保存失败', 'error') }
   }
 
   const handleCreateProduct = async () => {
@@ -577,6 +679,114 @@ export function ShopAdminPanel() {
                     className="rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-brand-500/20"
                   >
                     保存密钥
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {configs.find((c) => c.provider === 'yipay') ? (
+              <div className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
+                <div className="text-sm font-medium text-ink-50">易支付配置</div>
+                <p className="mt-0.5 text-xs leading-5 text-ink-500">
+                  配置易支付网关地址、商户PID和密钥，回调地址为{' '}
+                  <code className="text-brand-400">/api/shop/payment/yipay</code>
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <AppInput
+                    value={yipayGateway}
+                    onChange={(e) => setYipayGateway(e.target.value)}
+                    placeholder="网关地址 https://pay.example.com"
+                    className="max-w-sm"
+                  />
+                  <AppInput
+                    value={yipayPid}
+                    onChange={(e) => setYipayPid(e.target.value)}
+                    placeholder="商户PID"
+                    className="max-w-sm"
+                  />
+                  <AppInput
+                    value={yipayKey}
+                    onChange={(e) => setYipayKey(e.target.value)}
+                    placeholder="商户密钥"
+                    className="max-w-sm"
+                  />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveYipayConfig()}
+                    className="rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-brand-500/20"
+                  >
+                    保存配置
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {configs.find((c) => c.provider === 'wechat') ? (
+              <div className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
+                <div className="text-sm font-medium text-ink-50">微信支付配置</div>
+                <p className="mt-0.5 text-xs leading-5 text-ink-500">
+                  需微信商户号，回调地址为{' '}
+                  <code className="text-brand-400">/api/shop/payment/wechat</code>
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <AppInput
+                    value={wechatAppId}
+                    onChange={(e) => setWechatAppId(e.target.value)}
+                    placeholder="公众号AppId"
+                    className="max-w-sm"
+                  />
+                  <AppInput
+                    value={wechatMchId}
+                    onChange={(e) => setWechatMchId(e.target.value)}
+                    placeholder="商户号MchId"
+                    className="max-w-sm"
+                  />
+                  <AppInput
+                    value={wechatApiKey}
+                    onChange={(e) => setWechatApiKey(e.target.value)}
+                    placeholder="API密钥"
+                    className="max-w-sm"
+                  />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveWechatConfig()}
+                    className="rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-brand-500/20"
+                  >
+                    保存配置
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            {configs.find((c) => c.provider === 'alipay') ? (
+              <div className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
+                <div className="text-sm font-medium text-ink-50">支付宝配置</div>
+                <p className="mt-0.5 text-xs leading-5 text-ink-500">
+                  需支付宝商户资质，回调地址为{' '}
+                  <code className="text-brand-400">/api/shop/payment/alipay</code>
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <AppInput
+                    value={alipayAppId}
+                    onChange={(e) => setAlipayAppId(e.target.value)}
+                    placeholder="应用AppId"
+                    className="max-w-sm"
+                  />
+                  <AppInput
+                    value={alipayPublicKey}
+                    onChange={(e) => setAlipayPublicKey(e.target.value)}
+                    placeholder="支付宝公钥"
+                    className="max-w-sm"
+                  />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveAlipayConfig()}
+                    className="rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-brand-500/20"
+                  >
+                    保存配置
                   </button>
                 </div>
               </div>
