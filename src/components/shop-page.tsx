@@ -243,8 +243,8 @@ export function ShopPage() {
       <div className={publicContainerClassName}>
         <header className={`${publicShellClassName} p-6`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-ink-50">{t("shop.title", "激活码购买中心")}</h1>
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold tracking-tight text-ink-50 sm:text-2xl">{t("shop.title", "激活码购买中心")}</h1>
               <p className="mt-1 text-sm leading-6 text-ink-500">{t("shop.subtitle", "选择套餐、填写联系方式下单，支付成功后自动发放卡密。")}</p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -381,7 +381,7 @@ export function ShopPage() {
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between text-sm">
                         <span className="text-ink-500">订单号</span>
-                        <span className="font-mono text-ink-50">{createdOrder.orderNo}</span>
+                        <span className="break-all font-mono text-ink-50">{createdOrder.orderNo}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-ink-500">商品</span>
@@ -441,7 +441,7 @@ export function ShopPage() {
                           {fulfilled.codes.map((item) => (
                             <div
                               key={item.id}
-                              className="rounded-md border border-surface-200 bg-surface-100 px-4 py-3 font-mono text-sm text-ink-50"
+                              className="break-all rounded-md border border-surface-200 bg-surface-100 px-4 py-3 font-mono text-sm text-ink-50"
                             >
                               {item.code}
                             </div>
@@ -490,7 +490,7 @@ export function ShopPage() {
               {lookupResult.codes.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-md border border-surface-200 bg-surface-100 px-4 py-3 font-mono text-sm text-ink-50"
+                  className="break-all rounded-md border border-surface-200 bg-surface-100 px-4 py-3 font-mono text-sm text-ink-50"
                 >
                   {item.code}
                 </div>

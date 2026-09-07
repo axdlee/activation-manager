@@ -29,10 +29,6 @@ type BenchmarkResult = {
   throughput: number
 }
 
-function generateCode() {
-  return randomBytes(8).toString('hex').toUpperCase()
-}
-
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms.toFixed(1)}ms`
   return `${(ms / 1000).toFixed(2)}s`
@@ -99,31 +95,33 @@ async function measureLatency(
 }
 
 function printResults(results: BenchmarkResult[]) {
+  const header = (name: string, ...cols: string[]) =>
+    `  ${name.padEnd(20)}${cols.map((c) => c.padStart(8)).join('')}`
+
   console.log('\n' + '='.repeat(90))
   console.log('  License API 性能基准测试结果')
   console.log('='.repeat(90))
   console.log(`  服务器: ${BASE_URL}`)
   console.log(`  并发数: ${CONCURRENCY}`)
   console.log(`  请求数: ${REQUESTS}`)
+  console.log(`  机器ID: 随机（每次运行唯一）`)
   console.log('-'.repeat(90))
-  console.log(
-    '  %-20s %6s %6s %8s %8s %8s %8s %8s %8s'.replace(/%/g, ''),
-    '接口', '请求', '成功', '总耗时', '平均', 'P50', 'P95', 'P99', '吞吐',
-  )
+  console.log(header('接口', '请求', '成功', '总耗时', '平均', 'P50', 'P95', 'P99', '吞吐'))
   console.log('-'.repeat(90))
 
   for (const r of results) {
     console.log(
-      '  %-20s %6d %6d %8s %8s %8s %8s %8s %8s'.replace(/%/g, ''),
-      r.name,
-      r.total,
-      r.success,
-      formatDuration(r.totalTimeMs),
-      formatDuration(r.avgMs),
-      formatDuration(r.p50Ms),
-      formatDuration(r.p95Ms),
-      formatDuration(r.p99Ms),
-      formatThroughput(r.throughput),
+      header(
+        r.name,
+        String(r.total),
+        String(r.success),
+        formatDuration(r.totalTimeMs),
+        formatDuration(r.avgMs),
+        formatDuration(r.p50Ms),
+        formatDuration(r.p95Ms),
+        formatDuration(r.p99Ms),
+        formatThroughput(r.throughput),
+      ),
     )
   }
   console.log('-'.repeat(90))
@@ -131,25 +129,73 @@ function printResults(results: BenchmarkResult[]) {
 
 async function main() {
   console.log(`\n  🚀 License API 性能基准测试`)
+  // 每次运行使用唯一机器标识，避免命中「同一设备只能激活一个激活码」约束
+  const machineId = `bench-${Date.now().toString(36)}`
   console.log(`  服务器: ${BASE_URL}`)
   console.log(`  并发数: ${CONCURRENCY}`)
   console.log(`  请求数: ${REQUESTS}`)
+  console.log(`  机器ID: 随机（每次运行唯一）`)
   console.log()
 
-  // 1. 准备：生成激活码
-  console.log('  [准备] 生成测试用激活码...')
-  const code = generateCode()
-  const activateRes = await fetch(`${BASE_URL}/api/license/activate`, {
+  // 1. 准备：登录后台生成测试用激活码（供 status / consume 压测）
+  console.log('  [准备] 登录后台生成测试用激活码...')
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin'
+  const adminPassword = process.env.ADMIN_PASSWORD || '123456'
+
+  const loginRes = await fetch(`${BASE_URL}/api/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projectKey: PROJECT_KEY, code, machineId: 'benchmark-machine' }),
+    body: JSON.stringify({ username: adminUsername, password: adminPassword }),
   })
-  const activateData = await activateRes.json() as { success?: boolean }
-  if (!activateData.success) {
+  const loginData = await loginRes.json() as { success?: boolean }
+  if (!loginData.success) {
+    console.log('  ❌ 后台登录失败，请设置 ADMIN_USERNAME / ADMIN_PASSWORD 环境变量')
+    process.exit(1)
+  }
+
+  const setCookie = loginRes.headers.get('set-cookie') || ''
+  const cookieMatch = setCookie.match(/auth-token=([^;]+)/)
+  if (!cookieMatch) {
+    console.log('  ❌ 登录响应缺少 auth-token cookie')
+    process.exit(1)
+  }
+  const authCookie = `auth-token=${cookieMatch[1]}`
+
+  // 生成激活码（amount=2：1 个用于 status/consume，1 个用于 activate 压测）
+  const generateRes = await fetch(`${BASE_URL}/api/admin/codes/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', cookie: authCookie },
+    body: JSON.stringify({
+      projectKey: PROJECT_KEY,
+      amount: 2,
+      licenseMode: 'TIME',
+      validDays: 30,
+    }),
+  })
+  const generateData = await generateRes.json() as {
+    success?: boolean
+    codes?: Array<{ code: string }>
+  }
+  if (!generateData.success || !generateData.codes?.[0] || !generateData.codes[1]) {
     console.log('  ❌ 激活码生成失败，请先确保服务运行正常')
     process.exit(1)
   }
+  const code = generateData.codes[0].code
+  const activateBenchmarkCode = generateData.codes[1].code
+
+  // 激活主码（绑定 benchmark-machine，供 status / consume 压测）
+  const activateRes = await fetch(`${BASE_URL}/api/license/activate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectKey: PROJECT_KEY, code, machineId }),
+  })
+  const activateData = await activateRes.json() as { success?: boolean }
+  if (!activateData.success) {
+    console.log('  ❌ 激活码激活失败，请先确保服务运行正常')
+    process.exit(1)
+  }
   console.log(`  ✅ 测试激活码: ${code}`)
+  console.log(`  ✅ activate 压测码: ${activateBenchmarkCode}`)
 
   // 2. 基准测试
   const results: BenchmarkResult[] = []
@@ -160,7 +206,7 @@ async function main() {
       const res = await fetch(`${BASE_URL}/api/license/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectKey: PROJECT_KEY, code, machineId: 'benchmark-machine' }),
+        body: JSON.stringify({ projectKey: PROJECT_KEY, code, machineId }),
       })
       return res.ok
     },
@@ -171,11 +217,10 @@ async function main() {
   results.push(await measureLatency(
     'activate（新码）',
     async () => {
-      const testCode = generateCode()
       const res = await fetch(`${BASE_URL}/api/license/activate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectKey: PROJECT_KEY, code: testCode, machineId: 'benchmark-machine' }),
+        body: JSON.stringify({ projectKey: PROJECT_KEY, code: activateBenchmarkCode, machineId }),
       })
       const data = await res.json() as { success?: boolean }
       return data.success === true
@@ -193,7 +238,7 @@ async function main() {
         body: JSON.stringify({
           projectKey: PROJECT_KEY,
           code,
-          machineId: 'benchmark-machine',
+          machineId,
           requestId: randomBytes(8).toString('hex'),
         }),
       })
