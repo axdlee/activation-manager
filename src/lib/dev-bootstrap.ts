@@ -452,6 +452,9 @@ async function ensureDefaultShopPaymentConfigs(dbPath: string, logger: Bootstrap
   const seeds = [
     { provider: 'manual', configJson: '{}', isEnabled: true },
     { provider: 'webhook', configJson: '{}', isEnabled: false },
+    { provider: 'yipay', configJson: '{}', isEnabled: false },
+    { provider: 'wechat', configJson: '{}', isEnabled: false },
+    { provider: 'alipay', configJson: '{}', isEnabled: false },
   ]
 
   for (const seed of seeds) {

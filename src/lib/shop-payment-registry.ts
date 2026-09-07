@@ -4,6 +4,11 @@ import {
   webhookPaymentProvider,
 } from './shop-payment-providers'
 import {
+  yipayPaymentProvider,
+  wechatPayProvider,
+  alipayProvider,
+} from './shop-payment-providers-extra'
+import {
   type PaymentProvider,
   type PaymentProviderRegistry,
 } from './shop-payment-types'
@@ -11,6 +16,9 @@ import {
 export const paymentProviderRegistry: PaymentProviderRegistry = {
   manual: manualPaymentProvider,
   webhook: webhookPaymentProvider,
+  yipay: yipayPaymentProvider,
+  wechat: wechatPayProvider,
+  alipay: alipayProvider,
 }
 
 export function getPaymentProvider(providerId: string): PaymentProvider | null {

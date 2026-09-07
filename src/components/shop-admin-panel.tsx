@@ -522,14 +522,26 @@ export function ShopAdminPanel() {
                       ? '手动收款确认'
                       : config.provider === 'webhook'
                         ? '通用支付回调'
-                        : config.provider}
+                        : config.provider === 'yipay'
+                          ? '易支付'
+                          : config.provider === 'wechat'
+                            ? '微信支付（官方）'
+                            : config.provider === 'alipay'
+                              ? '支付宝（官方）'
+                              : config.provider}
                   </div>
                   <div className="mt-0.5 text-xs text-ink-500">
                     {config.provider === 'manual'
                       ? '展示收款信息，管理员人工确认后发卡'
                       : config.provider === 'webhook'
                         ? '自建服务回调 POST /api/shop/payment/webhook 触发发卡'
-                        : config.provider}
+                        : config.provider === 'yipay'
+                          ? '个人可用，通过易支付聚合通道接入微信/支付宝扫码支付'
+                          : config.provider === 'wechat'
+                            ? '需微信商户号，Native 扫码支付'
+                            : config.provider === 'alipay'
+                              ? '需支付宝商户资质，扫码支付'
+                              : config.provider}
                   </div>
                 </div>
                 <button
