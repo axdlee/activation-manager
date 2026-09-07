@@ -61,6 +61,16 @@ const enUS: Record<string, string> = {
   'shop.manualConfirm': '(Manual)',
 
   // API 文档页
+  'api.badge': 'Public API Documentation',
+  'api.publicTitle': 'License Service Integration Workspace',
+  'api.publicDescription': 'A unified view of official APIs, license models, multi-language examples, and integration paths for plugin developers, clients, testers, and partners.',
+  'api.asideTitle': 'No login required',
+  'api.publicAsideDescription': 'Start with the overview, then follow the official activate → status → consume flow; legacy plugins should only use /api/verify in compatibility scenarios.',
+  'api.adminBadge': 'API Integration Workspace',
+  'api.adminTitle': 'Plugin & Client Integration Guide',
+  'api.adminDescription': 'A practical page combining API research, integration steps, and result verification to reduce repeated Q&A.',
+  'api.adminAsideTitle': 'Recommended flow',
+  'api.adminAsideDescription': 'activate → status → consume; legacy plugins should only use /api/verify in compatibility scenarios.',
   'api.title': 'API Integration Guide',
   'api.subtitle': 'Official API references, field specs, SDK examples & integration guides.',
 
@@ -72,6 +82,9 @@ const enUS: Record<string, string> = {
   'login.loggingIn': 'Logging in…',
   'login.error': 'Invalid username or password',
   'login.pleaseInput': 'Please enter your username and password',
+  'login.subtitle': 'Login to manage projects, license codes, consumption logs & system configuration.',
+  'login.usernamePlaceholder': 'Enter your username',
+  'login.passwordPlaceholder': 'Enter your password',
 
   // 错误页
   'error.404': '404 · Page Not Found',

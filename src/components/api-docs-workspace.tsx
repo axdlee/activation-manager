@@ -8,6 +8,7 @@ import { DashboardCodePanel } from '@/components/dashboard-code-panel'
 import { DashboardSummaryCard } from '@/components/dashboard-summary-card'
 import { DashboardTableContainer } from '@/components/dashboard-table-container'
 import { useOptionalToast } from '@/components/toast-provider'
+import { useI18n } from '@/lib/i18n/i18n-provider'
 import { buildApiDocsPageModel } from '@/lib/api-docs-ui'
 import {
   apiDocsWorkspaceTabs,
@@ -86,6 +87,7 @@ export function ApiDocsWorkspace({
   initialTab = 'overview',
   onFeedback,
 }: ApiDocsWorkspaceProps) {
+  const { t } = useI18n()
   const isPublicMode = mode === 'public'
   const panelClassName = isPublicMode ? docsPublicPanelClassName : publicPanelClassName
   const featureCardClassName = isPublicMode
@@ -158,22 +160,30 @@ export function ApiDocsWorkspace({
   const heroContent =
     mode === 'public'
       ? {
-          badge: '公开 API 文档',
-          title: '激活码服务接入工作区',
-          description:
+          badge: t('api.badge', '公开 API 文档'),
+          title: t('api.publicTitle', '激活码服务接入工作区'),
+          description: t(
+            'api.publicDescription',
             '面向插件开发者、客户端、测试同学与合作方统一展示正式接口、授权模型、多语言示例与联调路径。',
-          asideTitle: '无需登录即可查阅',
-          asideDescription:
+          ),
+          asideTitle: t('api.asideTitle', '无需登录即可查阅'),
+          asideDescription: t(
+            'api.publicAsideDescription',
             '推荐先看概览，再按 activate → status → consume 的正式流程完成接入；旧插件仅在兼容场景下继续使用 /api/verify。',
+          ),
         }
       : {
-          badge: 'API 接入工作区',
-          title: '插件与客户端接入指南',
-          description:
+          badge: t('api.adminBadge', 'API 接入工作区'),
+          title: t('api.adminTitle', '插件与客户端接入指南'),
+          description: t(
+            'api.adminDescription',
             '把“如何调研 API、如何正式接入、如何用后台核对结果”统一整理成一个可操作页面，减少口口相传和重复答疑。',
-          asideTitle: '推荐正式流程',
-          asideDescription:
+          ),
+          asideTitle: t('api.adminAsideTitle', '推荐正式流程'),
+          asideDescription: t(
+            'api.adminAsideDescription',
             'activate → status → consume；旧插件仅在兼容场景下继续使用 /api/verify。',
+          ),
         }
 
   return (

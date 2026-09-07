@@ -13,8 +13,10 @@ import {
 } from '@/lib/public-ui'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { AppInput } from '@/components/ui/app-input'
+import { useI18n, LanguageSwitcher } from '@/lib/i18n/i18n-provider'
 
 export default function LoginPage() {
+  const { t } = useI18n()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -51,7 +53,8 @@ export default function LoginPage() {
 
   return (
     <main className={`${publicPageClassName} relative flex min-h-screen items-center justify-center`}>
-      <div className="absolute right-5 top-5 w-56">
+      <div className="absolute right-5 top-5 flex items-center gap-3">
+        <LanguageSwitcher />
         <ThemeSwitcher />
       </div>
       <div className="w-full max-w-md px-4">
@@ -60,15 +63,15 @@ export default function LoginPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
             Admin Access
           </div>
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-50">管理后台登录</h1>
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-50">{t("login.title", "管理后台登录")}</h1>
           <p className="mt-2 text-sm leading-6 text-ink-500">
-            登录后进入项目管理、发码、消费日志与系统配置工作台。
+            {t("login.subtitle", "登录后进入项目管理、发码、消费日志与系统配置工作台。")}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-ink-200">
-                用户名
+                {t("login.username", "用户名")}
               </label>
               <AppInput
                 type="text"
@@ -76,7 +79,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="mt-2"
-                placeholder="请输入管理员用户名"
+                placeholder={t("login.usernamePlaceholder", "请输入管理员用户名")}
                 autoComplete="username"
                 required
                 leadingIcon={
@@ -89,7 +92,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-ink-200">
-                密码
+                {t("login.password", "密码")}
               </label>
               <AppInput
                 type="password"
@@ -97,7 +100,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-2"
-                placeholder="请输入登录密码"
+                placeholder={t("login.passwordPlaceholder", "请输入登录密码")}
                 autoComplete="current-password"
                 required
                 leadingIcon={
@@ -120,17 +123,17 @@ export default function LoginPage() {
               disabled={loading}
               className={`w-full ${publicPrimaryButtonClassName}`}
             >
-              {loading ? '登录中...' : '登录后台'}
+              {loading ? t('login.loggingIn', '登录中...') : t('login.loginButton', '登录后台')}
             </button>
           </form>
 
           <div className="mt-8 border-t border-surface-200 pt-6">
             <div className="flex flex-wrap gap-3">
               <Link href="/docs/api" className={publicSecondaryButtonClassName}>
-                查看 API 文档
+                {t("nav.apiDocs", "查看 API 文档")}
               </Link>
               <Link href="/" className={publicSecondaryButtonClassName}>
-                返回首页
+                {t("nav.home", "返回首页")}
               </Link>
             </div>
           </div>

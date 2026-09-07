@@ -23,7 +23,9 @@ type I18nContextValue = {
 const I18nContext = createContext<I18nContextValue>({
   locale: 'zh-CN',
   setLocale: () => {},
-  t: (key: string) => key,
+  // 默认回退到中文翻译：即使组件未包裹 I18nProvider（如 SSR 或单测），
+  // t() 也能返回可读的中文文案而非原始 key
+  t: (key: string, fallback?: string) => translations['zh-CN'][key] ?? fallback ?? key,
 })
 
 export function useI18n() {

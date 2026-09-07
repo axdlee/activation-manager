@@ -61,6 +61,16 @@ const zhCN: Record<string, string> = {
   'shop.manualConfirm': '（人工确认）',
 
   // API 文档页
+  'api.badge': '公开 API 文档',
+  'api.publicTitle': '激活码服务接入工作区',
+  'api.publicDescription': '面向插件开发者、客户端、测试同学与合作方统一展示正式接口、授权模型、多语言示例与联调路径。',
+  'api.asideTitle': '无需登录即可查阅',
+  'api.publicAsideDescription': '推荐先看概览，再按 activate → status → consume 的正式流程完成接入；旧插件仅在兼容场景下继续使用 /api/verify。',
+  'api.adminBadge': 'API 接入工作区',
+  'api.adminTitle': '插件与客户端接入指南',
+  'api.adminDescription': '把“如何调研 API、如何正式接入、如何用后台核对结果”统一整理成一个可操作页面，减少口口相传和重复答疑。',
+  'api.adminAsideTitle': '推荐正式流程',
+  'api.adminAsideDescription': 'activate → status → consume；旧插件仅在兼容场景下继续使用 /api/verify。',
   'api.title': 'API 对接指南',
   'api.subtitle': '正式接口、字段规范、SDK 示例与联调方法。',
 
@@ -72,6 +82,9 @@ const zhCN: Record<string, string> = {
   'login.loggingIn': '正在登录…',
   'login.error': '用户名或密码错误',
   'login.pleaseInput': '请填写用户名和密码',
+  'login.subtitle': '登录后进入项目管理、发码、消费日志与系统配置工作台。',
+  'login.usernamePlaceholder': '请输入管理员用户名',
+  'login.passwordPlaceholder': '请输入登录密码',
 
   // 错误页
   'error.404': '404 · 页面不存在',
