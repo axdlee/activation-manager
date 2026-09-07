@@ -11,6 +11,7 @@ import {
 // ===== 易支付适配器 =====
 // 参考独角数卡/彩虹发卡实现：个人无需商户资质，通过第三方聚合支付接入微信/支付宝
 // 签名算法：MD5(参数键值对排序 + key)
+// 回调格式：form-urlencoded（真实易支付回调格式）
 
 function yipaySign(params: Record<string, string>, key: string): string {
   const sorted = Object.keys(params)
@@ -19,6 +20,18 @@ function yipaySign(params: Record<string, string>, key: string): string {
     .map((k) => `${k}=${params[k]}`)
     .join('&')
   return createHash('md5').update(sorted + key).digest('hex')
+}
+
+function parseFormUrlEncoded(body: string): Record<string, string> {
+  const params: Record<string, string> = {}
+  for (const part of body.split('&')) {
+    const eqIdx = part.indexOf('=')
+    if (eqIdx === -1) continue
+    const key = decodeURIComponent(part.slice(0, eqIdx))
+    const value = decodeURIComponent(part.slice(eqIdx + 1).replace(/\+/g, ' '))
+    if (key) params[key] = value
+  }
+  return params
 }
 
 export const yipayPaymentProvider: PaymentProvider = {
@@ -75,15 +88,14 @@ export const yipayPaymentProvider: PaymentProvider = {
     config: Record<string, string>,
   ): Promise<PaymentCallbackContext | null> {
     try {
-      const params = JSON.parse(body) as Record<string, string>
+      // 真实易支付回调为 form-urlencoded 格式
+      const rawParams = body.trim().startsWith('{') ? JSON.parse(body) as Record<string, string> : parseFormUrlEncoded(body)
       const key = config.key || ''
 
-      // 易支付回调签名校验
-      const sign = params.sign || ''
-      const tradeStatus = params.trade_status || ''
+      const sign = rawParams.sign || ''
+      const tradeStatus = rawParams.trade_status || ''
 
-      // 签名计算需排除 sign 和 sign_type 字段
-      const paramsForSign = { ...params }
+      const paramsForSign = { ...rawParams }
       delete paramsForSign.sign
       delete paramsForSign.sign_type
       const expectedSign = yipaySign(paramsForSign, key)
@@ -93,9 +105,9 @@ export const yipayPaymentProvider: PaymentProvider = {
       }
 
       return {
-        orderNo: params.out_trade_no || '',
+        orderNo: rawParams.out_trade_no || '',
         paid: tradeStatus === 'TRADE_SUCCESS' || tradeStatus === '1',
-        transactionId: params.trade_no,
+        transactionId: rawParams.trade_no,
         rawBody: body,
       }
     } catch {
@@ -113,6 +125,19 @@ export const yipayPaymentProvider: PaymentProvider = {
 
 // ===== 微信支付官方适配器（Native 扫码） =====
 // 需要微信商户号资质；HMAC-SHA256 签名验签
+// 回调格式：XML（真实微信支付回调格式）
+
+function parseXmlSimple(xml: string): Record<string, string> {
+  const result: Record<string, string> = {}
+  const regex = /<(\w+)>([^<]*)<\/\1>|<(\w+)><!\[CDATA\[(.*?)\]\]><\/\3>/g
+  let match
+  while ((match = regex.exec(xml)) !== null) {
+    const key = match[1] || match[3]
+    const value = match[2] || match[4]
+    if (key) result[key] = value.trim()
+  }
+  return result
+}
 
 export const wechatPayProvider: PaymentProvider = {
   id: 'wechat',
@@ -142,22 +167,31 @@ export const wechatPayProvider: PaymentProvider = {
     _config: Record<string, string>,
   ): Promise<PaymentCallbackContext | null> {
     try {
-      const payload = JSON.parse(body) as {
-        event_type?: string
-        resource?: { ciphertext?: string; associated_data?: string; nonce?: string }
-        summary?: string
-      }
-      if (payload.event_type === 'TRANSACTION.SUCCESS' && payload.resource) {
-        const decoded = payload.resource.ciphertext || ''
-        const parsed = JSON.parse(decoded) as {
-          out_trade_no?: string
-          transaction_id?: string
-          trade_state?: string
+      // 真实微信支付回调为 XML 格式
+      if (body.trim().startsWith('<')) {
+        const xml = parseXmlSimple(body)
+        const returnCode = xml.return_code || ''
+        const resultCode = xml.result_code || ''
+        if (returnCode === 'SUCCESS' && resultCode === 'SUCCESS') {
+          return {
+            orderNo: xml.out_trade_no || '',
+            paid: true,
+            transactionId: xml.transaction_id,
+            rawBody: body,
+          }
         }
+        return null
+      }
+
+      // 兼容 JSON 格式（v3 API）
+      const payload = JSON.parse(body) as Record<string, unknown>
+      const resource = payload.resource as Record<string, string> | undefined
+      if (payload.event_type === 'TRANSACTION.SUCCESS' && resource?.ciphertext) {
+        const decoded = JSON.parse(resource.ciphertext) as Record<string, string>
         return {
-          orderNo: parsed.out_trade_no || '',
-          paid: parsed.trade_state === 'SUCCESS',
-          transactionId: parsed.transaction_id,
+          orderNo: decoded.out_trade_no || '',
+          paid: decoded.trade_state === 'SUCCESS',
+          transactionId: decoded.transaction_id,
           rawBody: body,
         }
       }
@@ -177,6 +211,7 @@ export const wechatPayProvider: PaymentProvider = {
 
 // ===== 支付宝官方适配器 =====
 // 需要支付宝商户资质；RSA2 签名验签
+// 回调格式：form-urlencoded（真实支付宝回调格式）
 
 export const alipayProvider: PaymentProvider = {
   id: 'alipay',
@@ -201,18 +236,19 @@ export const alipayProvider: PaymentProvider = {
     _config: Record<string, string>,
   ): Promise<PaymentCallbackContext | null> {
     try {
-      const params = JSON.parse(body) as Record<string, string>
-      const tradeStatus = params.trade_status || ''
-      const appId = params.app_id || ''
+      // 真实支付宝回调为 form-urlencoded 格式
+      const rawParams = body.trim().startsWith('{') ? JSON.parse(body) as Record<string, string> : parseFormUrlEncoded(body)
+      const tradeStatus = rawParams.trade_status || ''
+      const appId = rawParams.app_id || ''
 
       if (!appId || !tradeStatus) {
         return null
       }
 
       return {
-        orderNo: params.out_trade_no || '',
+        orderNo: rawParams.out_trade_no || '',
         paid: tradeStatus === 'TRADE_SUCCESS',
-        transactionId: params.trade_no,
+        transactionId: rawParams.trade_no,
         rawBody: body,
       }
     } catch {

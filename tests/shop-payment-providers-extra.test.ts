@@ -134,3 +134,70 @@ test('支付宝 verifyCallback 缺少 app_id 返回 null', async () => {
   const context = await alipayProvider.verifyCallback(body, {})
   assert.equal(context, null)
 })
+
+test('易支付 verifyCallback 支持 form-urlencoded 格式回调', async () => {
+  const key = 'test-key'
+  const params: Record<string, string> = {
+    out_trade_no: 'SO-FORM-001',
+    trade_no: 'YIPAY-FORM-001',
+    trade_status: '1',
+    name: '月卡测试',
+    money: '19.90',
+  }
+
+  const sorted = Object.keys(params)
+    .sort()
+    .filter((k) => params[k] !== '')
+    .map((k) => `${k}=${params[k]}`)
+    .join('&')
+  const { createHash } = await import('node:crypto')
+  params.sign = createHash('md5').update(sorted + key).digest('hex')
+
+  const formBody = Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+
+  const context = await yipayPaymentProvider.verifyCallback(formBody, { key })
+  assert.ok(context)
+  assert.equal(context?.orderNo, 'SO-FORM-001')
+  assert.equal(context?.paid, true)
+  assert.equal(context?.transactionId, 'YIPAY-FORM-001')
+})
+
+test('微信支付 verifyCallback 支持 XML 格式回调', async () => {
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<xml>
+  <return_code><![CDATA[SUCCESS]]></return_code>
+  <result_code><![CDATA[SUCCESS]]></result_code>
+  <out_trade_no><![CDATA[SO-WX-001]]></out_trade_no>
+  <transaction_id><![CDATA[WX20260002]]></transaction_id>
+  <total_fee>1</total_fee>
+</xml>`
+
+  const context = await wechatPayProvider.verifyCallback(xml, {})
+  assert.ok(context)
+  assert.equal(context?.orderNo, 'SO-WX-001')
+  assert.equal(context?.paid, true)
+  assert.equal(context?.transactionId, 'WX20260002')
+})
+
+test('微信支付 verifyCallback XML 格式失败时返回 null', async () => {
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<xml>
+  <return_code><![CDATA[FAIL]]></return_code>
+  <result_code><![CDATA[FAIL]]></result_code>
+</xml>`
+
+  const context = await wechatPayProvider.verifyCallback(xml, {})
+  assert.equal(context, null)
+})
+
+test('支付宝 verifyCallback 支持 form-urlencoded 格式回调', async () => {
+  const formBody = 'out_trade_no=SO-ALI-FORM-001&trade_no=ALI-FORM-001&trade_status=TRADE_SUCCESS&app_id=2021002002'
+
+  const context = await alipayProvider.verifyCallback(formBody, {})
+  assert.ok(context)
+  assert.equal(context?.orderNo, 'SO-ALI-FORM-001')
+  assert.equal(context?.paid, true)
+  assert.equal(context?.transactionId, 'ALI-FORM-001')
+})
