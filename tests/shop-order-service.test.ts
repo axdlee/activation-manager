@@ -478,10 +478,17 @@ test('PREDEFINED 商品码池售罄时发卡失败', async () => {
     },
   })
 
-  const { order } = await createShopOrder({
-    productId: product.id,
-    providerId: 'manual',
-    contactEmail: 'soldout@example.com',
+  // 下单阶段已有库存拦截；为覆盖 fulfill 阶段售罄（并发场景：下单后有货、发卡前被抢空），
+  // 直接构造 pending 订单
+  const order = await prisma.shopOrder.create({
+    data: {
+      orderNo: generateShopOrderNo(),
+      productId: product.id,
+      amountInCents: product.priceInCents,
+      contactEmail: 'soldout@example.com',
+      status: 'pending',
+      provider: 'manual',
+    },
   })
 
   // 码池为空 → 返回售罄业务失败（事务回滚，订单保持 pending）
@@ -492,4 +499,41 @@ test('PREDEFINED 商品码池售罄时发卡失败', async () => {
   // 订单未被破坏：仍是待支付（回滚）
   const after = await prisma.shopOrder.findUniqueOrThrow({ where: { orderNo: order.orderNo } })
   assert.equal(after.status, 'pending')
+})
+
+test('PREDEFINED 商品售罄时下单被拒绝（409）', async () => {
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'manual' },
+    update: {},
+    create: { provider: 'manual', configJson: '{}', isEnabled: true },
+  })
+  const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
+  const product = await prisma.shopProduct.create({
+    data: {
+      name: '售罄拒单测试',
+      projectId: project.id,
+      licenseMode: 'TIME',
+      cardType: '测试卡',
+      validDays: 7,
+      priceInCents: 500,
+      isEnabled: true,
+      stockMode: 'PREDEFINED',
+    },
+  })
+
+  // 码池为空 → 下单直接拒绝
+  await assert.rejects(
+    () =>
+      createShopOrder({
+        productId: product.id,
+        providerId: 'manual',
+        contactEmail: 'reject@example.com',
+      }),
+    (error: unknown) => {
+      assert.ok(error instanceof ShopOrderError)
+      assert.equal(error.statusCode, 409)
+      assert.match(error.message, /售罄/)
+      return true
+    },
+  )
 })

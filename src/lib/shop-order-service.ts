@@ -58,6 +58,16 @@ export async function createShopOrder(input: CreateShopOrderInput) {
     throw new ShopOrderError('支付渠道未启用', 400)
   }
 
+  // 预定义码商品：下单时校验码池有货，售罄直接拒绝（避免买家付款后才发现无货）
+  if (product.stockMode === 'PREDEFINED') {
+    const availableStock = await prisma.shopProductCodeStock.count({
+      where: { productId: product.id, status: 'AVAILABLE' },
+    })
+    if (availableStock <= 0) {
+      throw new ShopOrderError('该商品已售罄，请等待补货', 409)
+    }
+  }
+
   const orderNo = generateShopOrderNo()
   const order = await prisma.shopOrder.create({
     data: {

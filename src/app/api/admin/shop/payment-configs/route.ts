@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { prisma } from '@/lib/db'
+import { getPaymentProvider } from '@/lib/shop-payment-registry'
 
 /**
  * 支付渠道配置（后台）：启用/停用渠道，设置渠道参数。
@@ -13,13 +14,32 @@ export const GET = createProtectedAdminRouteHandler(async () => {
 
   return NextResponse.json({
     success: true,
-    configs: configs.map((config) => ({
-      provider: config.provider,
-      configJson: config.configJson,
-      isEnabled: config.isEnabled,
-    })),
+    configs: configs.map((config) => {
+      const provider = getPaymentProvider(config.provider)
+      let parsedConfig: Record<string, string> = {}
+      try {
+        const parsed = JSON.parse(config.configJson) as Record<string, unknown>
+        for (const [key, value] of Object.entries(parsed)) {
+          if (typeof value === 'string') parsedConfig[key] = value
+        }
+      } catch {
+        parsedConfig = {}
+      }
+
+      const requiredConfigKeys = provider?.requiredConfigKeys ?? []
+      const missingKeys = requiredConfigKeys.filter((key) => !parsedConfig[key]?.trim())
+
+      return {
+        provider: config.provider,
+        configJson: config.configJson,
+        isEnabled: config.isEnabled,
+        requiredConfigKeys,
+        missingKeys,
+        configComplete: missingKeys.length === 0,
+      }
+    }),
   })
-}, { logLabel: "shop-payment-configs" })
+}, { logLabel: 'shop-payment-configs' })
 
 type UpsertConfigBody = {
   provider: string

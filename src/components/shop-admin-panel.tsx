@@ -41,6 +41,9 @@ type PaymentConfig = {
   provider: string
   configJson: string
   isEnabled: boolean
+  requiredConfigKeys?: string[]
+  missingKeys?: string[]
+  configComplete?: boolean
 }
 
 type ProjectOption = {
@@ -302,16 +305,22 @@ export function ShopAdminPanel() {
   }
 
   const handleRestockProduct = async (product: ShopProduct) => {
-    if (!window.confirm(`为「${product.name}」补充 10 张预定义激活码？`)) return
+    const input = window.prompt(`为「${product.name}」补充多少张预定义激活码？（1-200）`, '10')
+    if (input === null) return
+    const amount = Number(input)
+    if (!Number.isInteger(amount) || amount < 1 || amount > 200) {
+      notify('请输入 1-200 之间的整数', 'error')
+      return
+    }
     try {
       const response = await fetch('/api/admin/shop/products/restock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, amount: 10 }),
+        body: JSON.stringify({ productId: product.id, amount }),
       })
       const data = (await response.json()) as { success: boolean; message?: string }
       if (!data.success) { notify(data.message ?? '补货失败', 'error'); return }
-      notify('已补充 10 张激活码到码池')
+      notify(`已补充 ${amount} 张激活码到码池`)
       await loadAll()
     } catch {
       notify('补货失败', 'error')
@@ -555,7 +564,7 @@ export function ShopAdminPanel() {
                               onClick={() => void handleRestockProduct(product)}
                               className="rounded-md border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs text-brand-400"
                             >
-                              补货 10
+                              补货
                             </button>
                           ) : null}
                           <button
@@ -689,6 +698,11 @@ export function ShopAdminPanel() {
                             : config.provider === 'alipay'
                               ? '需支付宝商户资质，扫码支付'
                               : config.provider}
+                    {config.isEnabled && config.configComplete === false ? (
+                      <span className="ml-1.5 font-medium text-amber-400">
+                        配置不完整（缺 {config.missingKeys?.join(', ')}），购买页不展示
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 <button
