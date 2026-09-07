@@ -60,6 +60,8 @@ function normalizeKnownSystemConfigValue<K extends KnownSystemConfigKey>(
     case 'autoRebindMaxCount':
       return Number(value) as KnownSystemConfigMap[K]
     case 'allowAutoRebind':
+    case 'allowDeviceBinding':
+    case 'shopEnabled':
       return (
         typeof value === 'boolean'
           ? value

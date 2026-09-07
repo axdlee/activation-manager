@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { isShopEnabled } from '@/lib/shop-access'
+
 import { prisma } from '@/lib/db'
 import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 import { getPaymentProvider } from '@/lib/shop-payment-registry'
@@ -24,6 +26,10 @@ type CreateOrderBody = {
 
 // 公开下单：校验联系方式、生成订单、返回支付信息
 export async function POST(request: NextRequest) {
+  if (!(await isShopEnabled())) {
+    return NextResponse.json({ success: false, message: '购买中心已停用' }, { status: 403 })
+  }
+
   const rateLimit = guardShopApiRateLimit(request, '/api/shop/orders')
   if (!rateLimit.allowed) {
     return rateLimit.response

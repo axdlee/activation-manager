@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { isShopEnabled } from '@/lib/shop-access'
+
 import { prisma } from '@/lib/db'
 import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 
@@ -11,6 +13,10 @@ export const dynamic = 'force-dynamic'
  * 校验联系方式匹配后返回订单与已发卡密。
  */
 export async function POST(request: NextRequest) {
+  if (!(await isShopEnabled())) {
+    return NextResponse.json({ success: false, message: '购买中心已停用' }, { status: 403 })
+  }
+
   const rateLimit = guardShopApiRateLimit(request, '/api/shop/orders/query')
   if (!rateLimit.allowed) {
     return rateLimit.response

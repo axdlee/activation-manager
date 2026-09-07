@@ -164,13 +164,30 @@ model ShopProduct {
   totalCount    Int?      // COUNT 型总次数
   priceInCents  Int       // 价格（分）
   isEnabled     Boolean   @default(true)
+  stockMode     String    @default("DYNAMIC") // DYNAMIC 下单生成 | PREDEFINED 预存码池
   sortOrder     Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   orders        ShopOrder[]
+  stock         ShopProductCodeStock[]
 
   @@index([projectId, isEnabled])
   @@map("shop_products")
+}
+
+// 预定义商品的码池：后台预生成/导入激活码，售出后标记 sold
+model ShopProductCodeStock {
+  id               Int           @id @default(autoincrement())
+  productId        Int
+  product          ShopProduct   @relation(fields: [productId], references: [id])
+  activationCodeId Int           @unique
+  status           String        @default("AVAILABLE") // AVAILABLE | SOLD
+  soldOrderId      Int?
+  soldAt           DateTime?
+  createdAt        DateTime      @default(now())
+
+  @@index([productId, status])
+  @@map("shop_product_code_stocks")
 }
 
 // 订单状态：pending 待支付 / paid 已支付 / fulfilled 已发卡 / cancelled 已取消

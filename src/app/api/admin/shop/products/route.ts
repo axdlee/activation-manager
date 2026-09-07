@@ -41,6 +41,7 @@ type CreateProductBody = {
   priceInCents?: number
   isEnabled?: boolean
   sortOrder?: number
+  stockMode?: 'DYNAMIC' | 'PREDEFINED'
 }
 
 export const POST = createProtectedAdminRouteHandler(
@@ -72,6 +73,7 @@ export const POST = createProtectedAdminRouteHandler(
         priceInCents: Math.round(Number(body.priceInCents)),
         isEnabled: body.isEnabled ?? true,
         sortOrder: body.sortOrder ?? 0,
+        stockMode: body.stockMode === 'PREDEFINED' ? 'PREDEFINED' : 'DYNAMIC',
       },
     })
 

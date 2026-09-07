@@ -17,6 +17,7 @@ export type KnownSystemConfigMap = {
   expiryWebhookUrl: string
   allowDeviceBinding: boolean
   licenseResponseSecret: string
+  shopEnabled: boolean
 }
 
 export type KnownSystemConfigKey = keyof KnownSystemConfigMap
@@ -129,6 +130,11 @@ export function buildDefaultSystemConfigs(
       value: '',
       description: 'License API 响应签名密钥（留空不签名；配置后 SDK 可验签防篡改）',
     },
+    {
+      key: 'shopEnabled',
+      value: true,
+      description: '是否启用购买中心（商品、下单、支付自动发卡）',
+    },
   ]
 }
 
@@ -146,6 +152,7 @@ export const defaultConfigValues: KnownSystemConfigMap = {
   expiryWebhookUrl: '',
   allowDeviceBinding: true,
   licenseResponseSecret: '',
+  shopEnabled: true,
 }
 
 export function stringifyConfigValue(value: string | number | boolean | string[]) {

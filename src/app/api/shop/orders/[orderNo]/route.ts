@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { prisma } from '@/lib/db'
 import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
+import { isShopEnabled } from '@/lib/shop-access'
 import { SHOP_ORDER_STATUS } from '@/lib/shop-order-service'
 
 export const dynamic = 'force-dynamic'
@@ -14,6 +15,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { orderNo: string } },
 ) {
+  if (!(await isShopEnabled())) {
+    return NextResponse.json({ success: false, message: '购买中心已停用' }, { status: 403 })
+  }
+
   const rateLimit = guardShopApiRateLimit(request, '/api/shop/orders/detail')
   if (!rateLimit.allowed) {
     return rateLimit.response

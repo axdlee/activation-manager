@@ -110,7 +110,7 @@ const groupItemOrderMap: Partial<Record<SystemConfigGroupKey, string[]>> = {
   access: ['allowedIPs'],
   rebind: ['allowAutoRebind', 'autoRebindCooldownMinutes', 'autoRebindMaxCount', 'allowDeviceBinding'],
   security: ['jwtSecret', 'jwtExpiresIn', 'bcryptRounds', 'licenseResponseSecret'],
-  branding: ['systemName', 'expiryWebhookUrl'],
+  branding: ['systemName', 'expiryWebhookUrl', 'shopEnabled'],
 }
 
 function humanizeConfigKey(key: string) {
@@ -355,6 +355,24 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
         placeholder: '例如：浏览器插件授权中心',
         layout: 'full',
         badges: [{ label: '品牌识别', tone: 'neutral' }],
+      }
+    case 'shopEnabled':
+      return {
+        key: config.key,
+        label: '启用购买中心',
+        description: '是否对外开放购买中心：商品展示、下单、支付与自动发卡。',
+        hint: '关闭后 /shop 购买页与下单 API 将不可用；后台购买中心管理仍可访问（用于维护商品与配置）。',
+        value: config.value,
+        inputKind: 'select',
+        options: [
+          { label: '启用购买中心', value: 'true' },
+          { label: '停用购买中心', value: 'false' },
+        ],
+        layout: 'default',
+        badges:
+          config.value === true
+            ? [{ label: '已启用', tone: 'success' }]
+            : [{ label: '已停用', tone: 'warning' }],
       }
     case 'expiryWebhookUrl':
       return {

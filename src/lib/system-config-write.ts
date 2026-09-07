@@ -22,6 +22,7 @@ const writableSystemConfigKeySet = new Set([
   'expiryWebhookUrl',
   'allowDeviceBinding',
   'licenseResponseSecret',
+  'shopEnabled',
 ])
 
 const allowedJwtExpiryValues = new Set(['1h', '6h', '12h', '24h', '7d'])
@@ -191,6 +192,8 @@ function normalizeSystemConfigValue(key: string, value: SystemConfigValue): Syst
       return ensureOptionalStringValue(key, value)
     case 'licenseResponseSecret':
       return ensureOptionalStringValue(key, value)
+    case 'shopEnabled':
+      return normalizeBooleanConfigValue(key, value)
     case 'allowDeviceBinding':
       return normalizeBooleanConfigValue(key, value)
     default:

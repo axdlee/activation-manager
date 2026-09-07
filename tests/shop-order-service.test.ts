@@ -25,6 +25,7 @@ test.after(async () => {
 })
 
 test.afterEach(async () => {
+  await prisma.shopProductCodeStock.deleteMany({})
   await prisma.shopOrder.deleteMany({})
   await prisma.shopProduct.deleteMany({})
   await prisma.shopPaymentConfig.deleteMany({})
@@ -402,4 +403,93 @@ test('删除无订单的商品成功', async () => {
   await prisma.shopProduct.delete({ where: { id: product.id } })
   const gone = await prisma.shopProduct.findUnique({ where: { id: product.id } })
   assert.equal(gone, null)
+})
+
+test('PREDEFINED 商品下单从码池取码并标记 SOLD', async () => {
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'manual' },
+    update: {},
+    create: { provider: 'manual', configJson: '{}', isEnabled: true },
+  })
+  const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
+
+  // 建预定义商品
+  const product = await prisma.shopProduct.create({
+    data: {
+      name: '预存卡测试',
+      projectId: project.id,
+      licenseMode: 'TIME',
+      cardType: '测试卡',
+      validDays: 7,
+      priceInCents: 500,
+      isEnabled: true,
+      stockMode: 'PREDEFINED',
+    },
+  })
+
+  // 补货 1 张
+  const { generateActivationCodes } = await import('../src/lib/license-generation-service')
+  const generated = await generateActivationCodes(prisma, {
+    projectKey: 'default',
+    amount: 1,
+    licenseMode: 'TIME',
+    validDays: 7,
+  })
+  await prisma.shopProductCodeStock.create({
+    data: { productId: product.id, activationCodeId: generated[0]!.id, status: 'AVAILABLE' },
+  })
+
+  const { order } = await createShopOrder({
+    productId: product.id,
+    providerId: 'manual',
+    contactEmail: 'predefined@example.com',
+  })
+
+  const result = await fulfillShopOrder({ orderNo: order.orderNo })
+  assert.equal(result.success, true)
+  assert.ok(result.codes && result.codes.length === 1)
+  assert.equal(result.codes[0], generated[0]!.code)
+
+  // 码池已标记 SOLD
+  const stock = await prisma.shopProductCodeStock.findFirstOrThrow({
+    where: { productId: product.id },
+  })
+  assert.equal(stock.status, 'SOLD')
+  assert.equal(stock.soldOrderId, order.id)
+})
+
+test('PREDEFINED 商品码池售罄时发卡失败', async () => {
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'manual' },
+    update: {},
+    create: { provider: 'manual', configJson: '{}', isEnabled: true },
+  })
+  const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
+  const product = await prisma.shopProduct.create({
+    data: {
+      name: '售罄测试',
+      projectId: project.id,
+      licenseMode: 'TIME',
+      cardType: '测试卡',
+      validDays: 7,
+      priceInCents: 500,
+      isEnabled: true,
+      stockMode: 'PREDEFINED',
+    },
+  })
+
+  const { order } = await createShopOrder({
+    productId: product.id,
+    providerId: 'manual',
+    contactEmail: 'soldout@example.com',
+  })
+
+  // 码池为空 → 返回售罄业务失败（事务回滚，订单保持 pending）
+  const result = await fulfillShopOrder({ orderNo: order.orderNo })
+  assert.equal(result.success, false)
+  assert.equal(result.message, '商品已售罄')
+
+  // 订单未被破坏：仍是待支付（回滚）
+  const after = await prisma.shopOrder.findUniqueOrThrow({ where: { orderNo: order.orderNo } })
+  assert.equal(after.status, 'pending')
 })

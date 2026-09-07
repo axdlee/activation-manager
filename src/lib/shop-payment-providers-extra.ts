@@ -38,6 +38,7 @@ export const yipayPaymentProvider: PaymentProvider = {
   id: 'yipay',
   name: '易支付',
   supportsOnlinePayment: true,
+  requiredConfigKeys: ['gateway', 'pid', 'key'],
 
   async createPayment(
     order: ShopOrderInfo,
@@ -143,6 +144,7 @@ export const wechatPayProvider: PaymentProvider = {
   id: 'wechat',
   name: '微信支付（官方）',
   supportsOnlinePayment: true,
+  requiredConfigKeys: ['appId', 'mchId', 'apiKey'],
 
   async createPayment(
     order: ShopOrderInfo,
@@ -217,6 +219,7 @@ export const alipayProvider: PaymentProvider = {
   id: 'alipay',
   name: '支付宝（官方）',
   supportsOnlinePayment: true,
+  requiredConfigKeys: ['appId'],
 
   async createPayment(
     order: ShopOrderInfo,

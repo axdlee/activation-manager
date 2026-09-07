@@ -50,13 +50,15 @@ export async function fulfillShopOrder(
   }
 
   // 事务内原子抢占：只有 pending/paid → fulfilled 转换成功的请求才发卡
-  return prisma.$transaction(async (tx) => {
-    const claimed = await tx.shopOrder.updateMany({
-      where: {
-        id: order.id,
-        status: {
-          in: [SHOP_ORDER_STATUS.PENDING, SHOP_ORDER_STATUS.PAID],
-        },
+  // 码池售罄/并发抢码冲突时返回业务失败（事务回滚，订单回到原状态）
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const claimed = await tx.shopOrder.updateMany({
+        where: {
+          id: order.id,
+          status: {
+            in: [SHOP_ORDER_STATUS.PENDING, SHOP_ORDER_STATUS.PAID],
+          },
       },
       data: {
         status: SHOP_ORDER_STATUS.FULFILLED,
@@ -83,19 +85,56 @@ export async function fulfillShopOrder(
       return { success: false, message: '订单状态已变化，无法发卡' }
     }
 
-    // 抢占成功：在事务内生成卡密（失败则整个事务回滚，订单保持原状态）
+    // 抢占成功：按商品发卡模式处理（失败则整个事务回滚，订单保持原状态）
     const product = order.product
-    const generated = await generateActivationCodes(tx as typeof prisma, {
-      projectKey: product.project.projectKey,
-      amount: 1,
-      licenseMode: product.licenseMode as 'TIME' | 'COUNT',
-      validDays: product.validDays ?? null,
-      totalCount: product.totalCount ?? null,
-      cardType: product.cardType ?? null,
-    })
+    let codeRecords: Array<{ id: number; code: string }>
 
-    const codes = generated.map((code) => code.code)
-    const fulfilledCodeIds = JSON.stringify(generated.map((code) => code.id))
+    if (product.stockMode === 'PREDEFINED') {
+      // 预定义码池：原子取一张 AVAILABLE 码（条件更新防并发超卖）
+      const stock = await tx.shopProductCodeStock.findFirst({
+        where: { productId: product.id, status: 'AVAILABLE' },
+        include: { product: false },
+      })
+
+      if (!stock) {
+        // 码池售罄：抛错回滚订单
+        throw new Error('SHOP_OUT_OF_STOCK')
+      }
+
+      const stockClaimed = await tx.shopProductCodeStock.updateMany({
+        where: { id: stock.id, status: 'AVAILABLE' },
+        data: {
+          status: 'SOLD',
+          soldOrderId: order.id,
+          soldAt: new Date(),
+        },
+      })
+
+      if (stockClaimed.count === 0) {
+        // 并发下该码已被抢：抛错回滚，订单保持原状态由调用方重试
+        throw new Error('SHOP_STOCK_RACE')
+      }
+
+      const activationCode = await tx.activationCode.findUniqueOrThrow({
+        where: { id: stock.activationCodeId },
+        select: { id: true, code: true },
+      })
+      codeRecords = [activationCode]
+    } else {
+      // 动态生成：按商品规格生成新码
+      const generated = await generateActivationCodes(tx as typeof prisma, {
+        projectKey: product.project.projectKey,
+        amount: 1,
+        licenseMode: product.licenseMode as 'TIME' | 'COUNT',
+        validDays: product.validDays ?? null,
+        totalCount: product.totalCount ?? null,
+        cardType: product.cardType ?? null,
+      })
+      codeRecords = generated
+    }
+
+    const codes = codeRecords.map((code) => code.code)
+    const fulfilledCodeIds = JSON.stringify(codeRecords.map((code) => code.id))
 
     await tx.shopOrder.update({
       where: { id: order.id },
@@ -103,7 +142,16 @@ export async function fulfillShopOrder(
     })
 
     return { success: true, codes }
-  })
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('SHOP_')) {
+      return {
+        success: false,
+        message: error.message === 'SHOP_OUT_OF_STOCK' ? '商品已售罄' : '库存变更冲突，请重试',
+      }
+    }
+    throw error
+  }
 }
 
 async function readFulfilledCodes(fulfilledCodeIds: string | null): Promise<string[] | undefined> {

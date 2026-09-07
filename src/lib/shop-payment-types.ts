@@ -51,6 +51,8 @@ export interface PaymentProvider {
   readonly name: string
   /** 是否支持在线支付（false = 需人工确认） */
   readonly supportsOnlinePayment: boolean
+  /** 必需配置键：渠道启用后还需补齐这些配置才对外展示 */
+  readonly requiredConfigKeys: string[]
   createPayment(order: ShopOrderInfo, config: Record<string, string>): Promise<CreatePaymentResult>
   verifyCallback(body: string, config: Record<string, string>): Promise<PaymentCallbackContext | null>
   queryPayment(orderNo: string, config: Record<string, string>): Promise<PaymentQueryResult>

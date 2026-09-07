@@ -24,6 +24,8 @@ type ShopProduct = {
   totalCount: number | null
   priceInCents: number
   projectKey: string
+  stockMode: string
+  availableStock: number | null
 }
 
 type PaymentChannel = {
@@ -84,6 +86,8 @@ export function ShopPage() {
   const [lookupContact, setLookupContact] = useState('')
   const [lookupResult, setLookupResult] = useState<FulfilledResult | null>(null)
   const [lookupError, setLookupError] = useState('')
+  const [shopDisabled, setShopDisabled] = useState(false)
+  const [sortBy, setSortBy] = useState<'recommended' | 'priceAsc' | 'priceDesc' | 'newest'>('recommended')
 
   useEffect(() => {
     void (async () => {
@@ -94,6 +98,13 @@ export function ShopPage() {
         ])
         const productData = (await productRes.json()) as { products?: ShopProduct[] }
         const channelData = (await channelRes.json()) as { channels?: PaymentChannel[] }
+
+        // 购买中心停用（403）时展示停用提示
+        if (productRes.status === 403 || channelRes.status === 403) {
+          setShopDisabled(true)
+          setLoading(false)
+          return
+        }
 
         setProducts(productData.products ?? [])
         setChannels(channelData.channels ?? [])
@@ -110,6 +121,20 @@ export function ShopPage() {
       }
     })()
   }, [])
+
+  const sortedProducts = useMemo(() => {
+    const list = [...products]
+    switch (sortBy) {
+      case 'priceAsc':
+        return list.sort((a, b) => a.priceInCents - b.priceInCents)
+      case 'priceDesc':
+        return list.sort((a, b) => b.priceInCents - a.priceInCents)
+      case 'newest':
+        return list
+      default:
+        return list
+    }
+  }, [products, sortBy])
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId) ?? null,
@@ -261,15 +286,34 @@ export function ShopPage() {
 
         {/* 下单区 */}
         <section className={`${publicShellClassName} p-6`}>
-          {loading ? (
+          {shopDisabled ? (
+            <div className="py-10 text-center">
+              <div className="text-lg font-semibold text-ink-50">购买中心已停用</div>
+              <p className="mt-2 text-sm leading-6 text-ink-500">
+                管理员已停用购买能力。如需购买，请联系卖家开通。
+              </p>
+            </div>
+          ) : loading ? (
             <div className="py-10 text-center text-sm text-ink-500">{t("common.loading", "正在加载…")}</div>
           ) : (
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <div className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-ink-200">{t("shop.selectPlan", "选择套餐")}</label>
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <label className="block text-sm font-medium text-ink-200">{t("shop.selectPlan", "选择套餐")}</label>
+                    <AppSelect
+                      value={sortBy}
+                      onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
+                      className="w-40"
+                    >
+                      <option value="recommended">推荐排序</option>
+                      <option value="priceAsc">价格从低到高</option>
+                      <option value="priceDesc">价格从高到低</option>
+                      <option value="newest">最新上架</option>
+                    </AppSelect>
+                  </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {products.map((product) => (
+                    {sortedProducts.map((product) => (
                       <button
                         key={product.id}
                         type="button"
@@ -293,6 +337,13 @@ export function ShopPage() {
                           {product.licenseMode === 'TIME'
                             ? `有效期 ${product.validDays ?? '-'} 天`
                             : `共 ${product.totalCount ?? '-'} 次`}
+                          {product.stockMode === 'PREDEFINED' ? (
+                            product.availableStock === 0 ? (
+                              <span className="ml-1 font-semibold text-rose-400">已售罄</span>
+                            ) : (
+                              <span className="ml-1 text-ink-400">剩余 {product.availableStock} 张</span>
+                            )
+                          ) : null}
                         </p>
                       </button>
                     ))}
@@ -362,7 +413,7 @@ export function ShopPage() {
 
                 <button
                   type="button"
-                  disabled={creating || loading || products.length === 0}
+                  disabled={creating || loading || products.length === 0 || (selectedProduct?.stockMode === 'PREDEFINED' && (selectedProduct?.availableStock ?? 0) === 0)}
                   onClick={() => void handleCreateOrder()}
                   className={`w-full ${publicPrimaryButtonClassName}`}
                 >

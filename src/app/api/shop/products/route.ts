@@ -1,15 +1,45 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+
+import { isShopEnabled } from '@/lib/shop-access'
 
 import { prisma } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
 // 公开商品列表：仅返回启用中的商品
-export async function GET() {
+// 支持排序：recommended（默认，sortOrder+id）| priceAsc | priceDesc | newest
+// 预定义模式商品附带剩余库存（售罄前端展示）
+export async function GET(request: NextRequest) {
+  if (!(await isShopEnabled())) {
+    return NextResponse.json({ success: false, message: '购买中心已停用' }, { status: 403 })
+  }
+
+  const sort = request.nextUrl.searchParams.get('sort') ?? 'recommended'
+
+  let orderBy: object[]
+  switch (sort) {
+    case 'priceAsc':
+      orderBy = [{ priceInCents: 'asc' as const }, { id: 'asc' as const }]
+      break
+    case 'priceDesc':
+      orderBy = [{ priceInCents: 'desc' as const }, { id: 'asc' as const }]
+      break
+    case 'newest':
+      orderBy = [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
+      break
+    default:
+      orderBy = [{ sortOrder: 'asc' as const }, { id: 'asc' as const }]
+  }
+
   const products = await prisma.shopProduct.findMany({
     where: { isEnabled: true },
-    include: { project: true },
-    orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+    include: {
+      project: true,
+      _count: {
+        select: { stock: { where: { status: 'AVAILABLE' } } },
+      },
+    },
+    orderBy,
   })
 
   return NextResponse.json({
@@ -24,6 +54,8 @@ export async function GET() {
       totalCount: product.totalCount,
       priceInCents: product.priceInCents,
       projectKey: product.project.projectKey,
+      stockMode: product.stockMode,
+      availableStock: product.stockMode === 'PREDEFINED' ? product._count.stock : null,
     })),
   })
 }

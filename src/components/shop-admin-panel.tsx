@@ -18,6 +18,7 @@ type ShopProduct = {
   priceInCents: number
   isEnabled: boolean
   sortOrder: number
+  stockMode: string
 }
 
 type ShopOrder = {
@@ -97,6 +98,7 @@ export function ShopAdminPanel() {
     validDays: '30',
     totalCount: '',
     priceInCents: '',
+    stockMode: 'DYNAMIC',
   })
 
   useEffect(() => {
@@ -260,6 +262,7 @@ export function ShopAdminPanel() {
           validDays: newProduct.licenseMode === 'TIME' ? Number(newProduct.validDays) : null,
           totalCount: newProduct.licenseMode === 'COUNT' ? Number(newProduct.totalCount) : null,
           priceInCents: Math.round(Number(newProduct.priceInCents) * 100),
+          stockMode: newProduct.stockMode === 'PREDEFINED' ? 'PREDEFINED' : 'DYNAMIC',
         }),
       })
       const data = (await response.json()) as { success: boolean; message?: string }
@@ -268,7 +271,7 @@ export function ShopAdminPanel() {
         return
       }
       notify('商品创建成功')
-      setNewProduct({ name: '', description: '', projectId: '', licenseMode: 'TIME', cardType: '月卡', validDays: '30', totalCount: '', priceInCents: '' })
+      setNewProduct({ name: '', description: '', projectId: '', licenseMode: 'TIME', cardType: '月卡', validDays: '30', totalCount: '', priceInCents: '', stockMode: 'DYNAMIC' })
       await loadAll()
     } catch {
       notify('创建失败', 'error')
@@ -295,6 +298,23 @@ export function ShopAdminPanel() {
       await loadAll()
     } catch {
       notify('删除失败', 'error')
+    }
+  }
+
+  const handleRestockProduct = async (product: ShopProduct) => {
+    if (!window.confirm(`为「${product.name}」补充 10 张预定义激活码？`)) return
+    try {
+      const response = await fetch('/api/admin/shop/products/restock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, amount: 10 }),
+      })
+      const data = (await response.json()) as { success: boolean; message?: string }
+      if (!data.success) { notify(data.message ?? '补货失败', 'error'); return }
+      notify('已补充 10 张激活码到码池')
+      await loadAll()
+    } catch {
+      notify('补货失败', 'error')
     }
   }
 
@@ -458,6 +478,13 @@ export function ShopAdminPanel() {
                 onChange={(event) => setNewProduct({ ...newProduct, priceInCents: event.target.value })}
                 placeholder="价格（元）"
               />
+              <AppSelect
+                value={newProduct.stockMode}
+                onChange={(event) => setNewProduct({ ...newProduct, stockMode: event.target.value })}
+              >
+                <option value="DYNAMIC">动态生成（下单后发新码）</option>
+                <option value="PREDEFINED">预定义码池（卖预存码）</option>
+              </AppSelect>
               <button
                 type="button"
                 onClick={() => void handleCreateProduct()}
@@ -490,6 +517,15 @@ export function ShopAdminPanel() {
                       <td className="py-3 pr-4 text-ink-400">{product.projectKey}</td>
                       <td className="py-3 pr-4 text-ink-400">
                         {product.licenseMode === 'TIME' ? '时间型' : '次数型'}
+                        <span
+                          className={`ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                            product.stockMode === 'PREDEFINED'
+                              ? 'bg-brand-500/10 text-brand-400'
+                              : 'bg-surface-100 text-ink-500'
+                          }`}
+                        >
+                          {product.stockMode === 'PREDEFINED' ? '预存码' : '动态'}
+                        </span>
                       </td>
                       <td className="py-3 pr-4 text-ink-400">
                         {product.licenseMode === 'TIME'
@@ -513,6 +549,15 @@ export function ShopAdminPanel() {
                           >
                             {product.isEnabled ? '下架' : '上架'}
                           </button>
+                          {product.stockMode === 'PREDEFINED' ? (
+                            <button
+                              type="button"
+                              onClick={() => void handleRestockProduct(product)}
+                              className="rounded-md border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs text-brand-400"
+                            >
+                              补货 10
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             onClick={() => void handleDeleteProduct(product)}

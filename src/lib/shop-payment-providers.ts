@@ -15,6 +15,8 @@ export const manualPaymentProvider: PaymentProvider = {
   id: 'manual',
   name: '手动收款确认',
   supportsOnlinePayment: false,
+  // 手动收款是兜底渠道：无强制配置（account/qrCode 可选，instructions 有默认）*/
+  requiredConfigKeys: [],
 
   async createPayment(
     order: ShopOrderInfo,
@@ -57,6 +59,7 @@ export const webhookPaymentProvider: PaymentProvider = {
   id: 'webhook',
   name: '通用支付回调',
   supportsOnlinePayment: true,
+  requiredConfigKeys: [],
 
   async createPayment(
     order: ShopOrderInfo,

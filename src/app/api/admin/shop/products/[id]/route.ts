@@ -14,6 +14,7 @@ type UpdateProductBody = {
   priceInCents?: number
   isEnabled?: boolean
   sortOrder?: number
+  stockMode?: 'DYNAMIC' | 'PREDEFINED'
 }
 
 export const PATCH = createProtectedAdminRouteHandler(
@@ -42,6 +43,9 @@ export const PATCH = createProtectedAdminRouteHandler(
         ...(body.priceInCents !== undefined ? { priceInCents: Math.round(body.priceInCents) } : {}),
         ...(body.isEnabled !== undefined ? { isEnabled: body.isEnabled } : {}),
         ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}),
+        ...(body.stockMode !== undefined
+          ? { stockMode: body.stockMode === 'PREDEFINED' ? 'PREDEFINED' : 'DYNAMIC' }
+          : {}),
       },
     })
 
