@@ -1,0 +1,86 @@
+// 美式英语翻译
+const enUS: Record<string, string> = {
+  // 通用
+  'common.loading': 'Loading…',
+  'common.error': 'Failed to load',
+  'common.retry': 'Retry',
+  'common.save': 'Save',
+  'common.cancel': 'Cancel',
+  'common.confirm': 'Confirm',
+  'common.delete': 'Delete',
+  'common.edit': 'Edit',
+  'common.search': 'Search',
+  'common.export': 'Export',
+  'common.back': 'Back',
+  'common.submit': 'Submit',
+  'common.copy': 'Copy',
+  'common.copied': 'Copied',
+
+  // 导航
+  'nav.home': 'Home',
+  'nav.admin': 'Admin Panel',
+  'nav.apiDocs': 'API Docs',
+  'nav.shop': 'Buy License',
+  'nav.login': 'Login',
+
+  // 首页
+  'home.title': 'License Manager',
+  'home.subtitle': 'A unified admin panel for multi-project, multi-license-model scenarios. Generate codes, check status, view consumption trends, and share API docs directly with integrators.',
+  'home.enterAdmin': 'Enter Admin',
+  'home.buyLicense': 'Buy License',
+  'home.viewApi': 'API Docs',
+  'home.quickEntry': 'Quick Links',
+  'home.adminDesc': 'Project management, code generation, consumption logs & system config.',
+  'home.shopDesc': 'Select a plan, place an order, and get your license code automatically after payment.',
+  'home.apiDesc': 'Official API references, field specs, SDK examples & integration guides.',
+
+  // 购买页
+  'shop.title': 'License Store',
+  'shop.subtitle': 'Select a plan, fill in your contact info, and get your license code automatically after payment.',
+  'shop.selectPlan': 'Select Plan',
+  'shop.paymentMethod': 'Payment Method',
+  'shop.contactEmail': 'Email',
+  'shop.contactPhone': 'Phone',
+  'shop.contactWechat': 'WeChat',
+  'shop.contactHint': '(for code retrieval, recommended)',
+  'shop.contactRequired': 'Please provide at least one contact method (email, phone, or WeChat) for code retrieval',
+  'shop.orderNow': 'Order Now',
+  'shop.generating': 'Generating order…',
+  'shop.orderCreated': 'Order Created',
+  'shop.orderNo': 'Order No.',
+  'shop.product': 'Product',
+  'shop.amount': 'Amount',
+  'shop.status': 'Status',
+  'shop.waitingPayment': 'Awaiting Payment',
+  'shop.paymentSuccess': '✅ Payment successful! Your license code is ready',
+  'shop.saveCode': 'Please keep your code safe. Lost it? Use the order number + contact info below to retrieve it.',
+  'shop.findCode': 'Retrieve Code',
+  'shop.findCodeDesc': 'Lost your code? Use the order number + contact info (email/phone/WeChat) to retrieve it.',
+  'shop.noProducts': 'No products available',
+  'shop.onlinePayment': '(Online)',
+  'shop.manualConfirm': '(Manual)',
+
+  // API 文档页
+  'api.title': 'API Integration Guide',
+  'api.subtitle': 'Official API references, field specs, SDK examples & integration guides.',
+
+  // 登录页
+  'login.title': 'Admin Login',
+  'login.username': 'Username',
+  'login.password': 'Password',
+  'login.loginButton': 'Login',
+  'login.loggingIn': 'Logging in…',
+  'login.error': 'Invalid username or password',
+  'login.pleaseInput': 'Please enter your username and password',
+
+  // 错误页
+  'error.404': '404 · Page Not Found',
+  'error.404title': 'Page Not Found',
+  'error.404desc': 'The page you are looking for does not exist or has been removed.',
+  'error.500': '500 · Server Error',
+  'error.500title': 'Something went wrong',
+  'error.500desc': 'Please try again later, or contact the administrator.',
+  'error.backHome': 'Back to Home',
+}
+
+export default enUS

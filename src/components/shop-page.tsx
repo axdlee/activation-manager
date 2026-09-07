@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
+import { useI18n, LanguageSwitcher } from '@/lib/i18n/i18n-provider'
 import { AppInput } from '@/components/ui/app-input'
 import { AppSelect } from '@/components/ui/app-select'
 import {
@@ -59,6 +60,7 @@ function formatPrice(cents: number) {
 }
 
 export function ShopPage() {
+  const { t } = useI18n()
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [channels, setChannels] = useState<PaymentChannel[]>([])
   const [loading, setLoading] = useState(true)
@@ -242,18 +244,17 @@ export function ShopPage() {
         <header className={`${publicShellClassName} p-6`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-ink-50">激活码购买中心</h1>
-              <p className="mt-1 text-sm leading-6 text-ink-500">
-                选择套餐、填写联系方式下单，支付成功后自动发放卡密。
-              </p>
+              <h1 className="text-2xl font-semibold tracking-tight text-ink-50">{t("shop.title", "激活码购买中心")}</h1>
+              <p className="mt-1 text-sm leading-6 text-ink-500">{t("shop.subtitle", "选择套餐、填写联系方式下单，支付成功后自动发放卡密。")}</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Link href="/" className={publicSecondaryButtonClassName}>
                 返回首页
               </Link>
               <Link href="/docs/api" className={publicSecondaryButtonClassName}>
                 API 文档
               </Link>
+              <LanguageSwitcher />
             </div>
           </div>
         </header>
@@ -261,12 +262,12 @@ export function ShopPage() {
         {/* 下单区 */}
         <section className={`${publicShellClassName} p-6`}>
           {loading ? (
-            <div className="py-10 text-center text-sm text-ink-500">正在加载商品…</div>
+            <div className="py-10 text-center text-sm text-ink-500">{t("common.loading", "正在加载…")}</div>
           ) : (
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <div className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-ink-200">选择套餐</label>
+                  <label className="mb-2 block text-sm font-medium text-ink-200">{t("shop.selectPlan", "选择套餐")}</label>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {products.map((product) => (
                       <button
@@ -304,7 +305,7 @@ export function ShopPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-ink-200">支付方式</label>
+                  <label className="mb-2 block text-sm font-medium text-ink-200">{t("shop.paymentMethod", "支付方式")}</label>
                   <AppSelect value={providerId} onChange={(event) => setProviderId(event.target.value)}>
                     {channels.map((channel) => (
                       <option key={channel.id} value={channel.id}>
@@ -365,7 +366,7 @@ export function ShopPage() {
                   onClick={() => void handleCreateOrder()}
                   className={`w-full ${publicPrimaryButtonClassName}`}
                 >
-                  {creating ? '正在生成订单…' : '立即下单'}
+                  {creating ? t('shop.generating', '正在生成订单…') : t('shop.orderNow', '立即下单')}
                 </button>
               </div>
 
@@ -375,7 +376,7 @@ export function ShopPage() {
                   <div className={`${publicShellClassName} p-6`}>
                     <div className="flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400">
                       <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-                      订单已生成
+                      {t("shop.orderCreated", "订单已生成")}
                     </div>
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between text-sm">
@@ -394,7 +395,7 @@ export function ShopPage() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-ink-500">状态</span>
-                        <span className="text-amber-400">等待支付</span>
+                        <span className="text-amber-400">{t("shop.waitingPayment", "等待支付")}</span>
                       </div>
                     </div>
 
@@ -460,15 +461,13 @@ export function ShopPage() {
 
         {/* 找回卡密区 */}
         <section className={`${publicShellClassName} p-6`}>
-          <h2 className="text-lg font-semibold text-ink-50">找回卡密</h2>
-          <p className="mt-1 text-sm leading-6 text-ink-500">
-            忘记卡密时，用下单时填写的邮箱 / 手机号 / 微信号 + 订单号即可重新获取。
-          </p>
+          <h2 className="text-lg font-semibold text-ink-50">{t("shop.findCode", "找回卡密")}</h2>
+          <p className="mt-1 text-sm leading-6 text-ink-500">{t("shop.findCodeDesc", "忘记卡密时，用下单时填写的邮箱 / 手机号 / 微信号 + 订单号即可重新获取。")}</p>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             <AppInput
               value={lookupOrderNo}
               onChange={(event) => setLookupOrderNo(event.target.value)}
-              placeholder="订单号，如 SO…"
+              placeholder={t("shop.orderNo", "订单号") + "，如 SO…"}
             />
             <AppInput
               value={lookupContact}

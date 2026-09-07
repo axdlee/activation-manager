@@ -4,6 +4,7 @@ import './globals.css'
 
 import { ToastProvider } from '@/components/toast-provider'
 import { ThemeProvider } from '@/lib/theme-provider'
+import { I18nProvider } from '@/lib/i18n/i18n-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -38,7 +39,9 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <I18nProvider>{children}</I18nProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

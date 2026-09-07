@@ -22,7 +22,10 @@ async function loadDefaultComponent(modulePath: string) {
 
 test('首页会渲染管理后台入口与公开 API 文档入口', async () => {
   const { component: Home } = await loadDefaultComponent('../src/app/page')
-  const html = renderToStaticMarkup(React.createElement(Home))
+  const { I18nProvider } = await import('../src/lib/i18n/i18n-provider')
+  const html = renderToStaticMarkup(
+    React.createElement(I18nProvider, null, React.createElement(Home)),
+  )
 
   assert.equal(html.includes('激活码管理系统'), true)
   assert.equal(html.includes('进入管理后台'), true)
