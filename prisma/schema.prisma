@@ -196,6 +196,7 @@ model ShopOrder {
   orderNo            String      @unique
   productId          Int
   product            ShopProduct @relation(fields: [productId], references: [id])
+  quantity           Int         @default(1) // 购买数量（一单可发多张卡）
   amountInCents      Int
   contactEmail       String?
   contactPhone       String?
@@ -215,6 +216,7 @@ model ShopOrder {
   @@index([orderNo])
   @@map("shop_orders")
 }
+
 
 // 支付渠道配置（JSON 存储，避免频繁加字段）
 model ShopPaymentConfig {

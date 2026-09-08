@@ -26,6 +26,7 @@ type ShopOrder = {
   id: number
   orderNo: string
   productName: string
+  quantity: number
   amountInCents: number
   status: string
   provider: string
@@ -715,7 +716,14 @@ export function ShopAdminPanel() {
                 {orders.map((order) => (
                   <tr key={order.id}>
                     <td className="py-3 pr-4 font-mono text-xs text-ink-300">{order.orderNo}</td>
-                    <td className="py-3 pr-4 text-ink-50">{order.productName}</td>
+                    <td className="py-3 pr-4 text-ink-50">
+                      {order.productName}
+                      {(order.quantity ?? 1) > 1 ? (
+                        <span className="ml-1.5 rounded bg-surface-200 px-1.5 py-0.5 text-xs text-ink-300">
+                          ×{order.quantity}
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="py-3 pr-4 font-semibold text-ink-50">
                       {formatPrice(order.amountInCents)}
                     </td>
