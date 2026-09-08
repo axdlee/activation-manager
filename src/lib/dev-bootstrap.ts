@@ -568,10 +568,12 @@ async function ensureDefaultAdminInternal(dbPath: string, logger: BootstrapLogge
   const bcryptRounds = Number(defaultConfigValues.bcryptRounds)
   const hashedPassword = await bcrypt.hash(adminPassword, bcryptRounds)
 
+  // INSERT OR IGNORE：并发 bootstrap（如并行测试/多实例启动）下避免
+  // 「先查后插」竞态导致 UNIQUE constraint failed: admins.username
   runSqlite(
     dbPath,
     `
-      INSERT INTO "admins" ("username", "password", "createdAt", "updatedAt")
+      INSERT OR IGNORE INTO "admins" ("username", "password", "createdAt", "updatedAt")
       VALUES (
         '${escapeSqlString(DEFAULT_ADMIN_USERNAME)}',
         '${escapeSqlString(hashedPassword)}',
