@@ -33,6 +33,7 @@ export const GET = createProtectedAdminRouteHandler(async (request: NextRequest)
       orderNo: order.orderNo,
       productName: order.product.name,
       productStockMode: order.product.stockMode,
+      quantity: order.quantity,
       amountInCents: order.amountInCents,
       status: order.status,
       provider: order.provider,

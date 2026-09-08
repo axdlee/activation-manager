@@ -14,6 +14,17 @@ export const SHOP_ORDER_STATUS = {
 
 export type ShopOrderStatus = (typeof SHOP_ORDER_STATUS)[keyof typeof SHOP_ORDER_STATUS]
 
+/** 单笔订单最大购买数量（与动态发码单次生成上限 100 对齐） */
+export const SHOP_ORDER_MAX_QUANTITY = 100
+
+export function normalizeShopOrderQuantity(value: unknown): number {
+  const quantity = Number(value ?? 1)
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > SHOP_ORDER_MAX_QUANTITY) {
+    throw new ShopOrderError(`购买数量必须是 1 到 ${SHOP_ORDER_MAX_QUANTITY} 之间的整数`, 400)
+  }
+  return quantity
+}
+
 export function generateShopOrderNo() {
   const timestamp = Date.now().toString(36).toUpperCase()
   const random = randomBytes(4).toString('hex').toUpperCase()
@@ -23,6 +34,7 @@ export function generateShopOrderNo() {
 export type CreateShopOrderInput = {
   productId: number
   providerId: string
+  quantity?: number
   contactEmail?: string
   contactPhone?: string
   contactWechat?: string
@@ -41,6 +53,8 @@ export class ShopOrderError extends Error {
 }
 
 export async function createShopOrder(input: CreateShopOrderInput) {
+  const quantity = normalizeShopOrderQuantity(input.quantity)
+
   const product = await prisma.shopProduct.findUnique({
     where: { id: input.productId },
   })
@@ -58,13 +72,18 @@ export async function createShopOrder(input: CreateShopOrderInput) {
     throw new ShopOrderError('支付渠道未启用', 400)
   }
 
-  // 预定义码商品：下单时校验码池有货，售罄直接拒绝（避免买家付款后才发现无货）
+  // 预定义码商品：下单时校验码池库存充足（数量 × 单价，售罄/库存不足直接拒绝，避免买家付款后才发现无货）
   if (product.stockMode === 'PREDEFINED') {
     const availableStock = await prisma.shopProductCodeStock.count({
       where: { productId: product.id, status: 'AVAILABLE' },
     })
-    if (availableStock <= 0) {
-      throw new ShopOrderError('该商品已售罄，请等待补货', 409)
+    if (availableStock < quantity) {
+      throw new ShopOrderError(
+        availableStock <= 0
+          ? '该商品已售罄，请等待补货'
+          : `该商品库存不足，剩余 ${availableStock} 张`,
+        409,
+      )
     }
   }
 
@@ -73,7 +92,8 @@ export async function createShopOrder(input: CreateShopOrderInput) {
     data: {
       orderNo,
       productId: product.id,
-      amountInCents: product.priceInCents,
+      quantity,
+      amountInCents: product.priceInCents * quantity,
       contactEmail: input.contactEmail?.trim() || null,
       contactPhone: input.contactPhone?.trim() || null,
       contactWechat: input.contactWechat?.trim() || null,

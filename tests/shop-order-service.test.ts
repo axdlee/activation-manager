@@ -596,3 +596,270 @@ test('超时未支付订单会被清理为 cancelled，新订单不受影响', a
   assert.equal(expiredCount, 1)
   assert.equal(freshStatus.status, 'pending')
 })
+
+test('normalizeShopOrderQuantity 校验数量边界', async () => {
+  const { normalizeShopOrderQuantity, ShopOrderError: OrderError } = await import(
+    '../src/lib/shop-order-service'
+  )
+
+  assert.equal(normalizeShopOrderQuantity(undefined), 1)
+  assert.equal(normalizeShopOrderQuantity(5), 5)
+  assert.equal(normalizeShopOrderQuantity('7'), 7)
+
+  for (const bad of [0, -1, 1.5, 101, 'abc']) {
+    await assert.rejects(
+      async () => {
+        try {
+          normalizeShopOrderQuantity(bad)
+        } catch (error) {
+          if (error instanceof OrderError) {
+            throw new Error(String(error.statusCode))
+          }
+          throw error
+        }
+      },
+      /400/,
+    )
+  }
+})
+
+test('createShopOrder 支持数量：金额按数量计算', async () => {
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'manual' },
+    update: {},
+    create: { provider: 'manual', configJson: '{}', isEnabled: true },
+  })
+  const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
+  const product = await prisma.shopProduct.create({
+    data: {
+      name: '数量测试卡',
+      projectId: project.id,
+      licenseMode: 'COUNT',
+      cardType: '次卡',
+      totalCount: 10,
+      priceInCents: 300,
+      isEnabled: true,
+      stockMode: 'DYNAMIC',
+    },
+  })
+
+  const { order } = await createShopOrder({
+    productId: product.id,
+    providerId: 'manual',
+    quantity: 3,
+    contactEmail: 'qty@test.com',
+  })
+
+  assert.equal(order.quantity, 3)
+  assert.equal(order.amountInCents, 900)
+})
+
+test('createShopOrder 预定义商品库存不足时拒绝下单（409）', async () => {
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'manual' },
+    update: {},
+    create: { provider: 'manual', configJson: '{}', isEnabled: true },
+  })
+  const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
+  const product = await prisma.shopProduct.create({
+    data: {
+      name: '数量库存测试卡',
+      projectId: project.id,
+      licenseMode: 'TIME',
+      cardType: '月卡',
+      validDays: 30,
+      priceInCents: 300,
+      isEnabled: true,
+      stockMode: 'PREDEFINED',
+    },
+  })
+
+  // 码池只放 2 张，下单 3 张 → 库存不足
+  for (let i = 0; i < 2; i += 1) {
+    const code = await prisma.activationCode.create({
+      data: {
+        code: `QTY-STOCK-${i}-${Date.now()}`,
+        projectId: project.id,
+        licenseMode: 'TIME',
+        validDays: 30,
+        cardType: '月卡',
+      },
+    })
+    await prisma.shopProductCodeStock.create({
+      data: { productId: product.id, activationCodeId: code.id },
+    })
+  }
+
+  await assert.rejects(
+    createShopOrder({
+      productId: product.id,
+      providerId: 'manual',
+      quantity: 3,
+      contactEmail: 'qty-stock@test.com',
+    }),
+    (error: unknown) =>
+      error instanceof ShopOrderError &&
+      error.statusCode === 409 &&
+      /库存不足/.test(error.message),
+  )
+})
+
+test('fulfillShopOrder 按数量动态生成多张卡密', async () => {
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'manual' },
+    update: {},
+    create: { provider: 'manual', configJson: '{}', isEnabled: true },
+  })
+  const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
+  const product = await prisma.shopProduct.create({
+    data: {
+      name: '数量发卡测试卡',
+      projectId: project.id,
+      licenseMode: 'COUNT',
+      cardType: '次卡',
+      totalCount: 10,
+      priceInCents: 300,
+      isEnabled: true,
+      stockMode: 'DYNAMIC',
+    },
+  })
+
+  const order = await prisma.shopOrder.create({
+    data: {
+      orderNo: generateShopOrderNo(),
+      productId: product.id,
+      quantity: 3,
+      amountInCents: 900,
+      contactEmail: 'qty-fulfill@test.com',
+      status: 'pending',
+      provider: 'manual',
+    },
+  })
+
+  const result = await fulfillShopOrder({ orderNo: order.orderNo })
+  assert.equal(result.success, true)
+  assert.equal(result.codes?.length, 3)
+
+  const codeIds = JSON.parse(
+    (await prisma.shopOrder.findUniqueOrThrow({ where: { id: order.id } })).fulfilledCodeIds ?? '[]',
+  ) as number[]
+  assert.equal(codeIds.length, 3)
+})
+
+test('fulfillShopOrder 预定义码池按数量原子取码', async () => {
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'manual' },
+    update: {},
+    create: { provider: 'manual', configJson: '{}', isEnabled: true },
+  })
+  const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
+  const product = await prisma.shopProduct.create({
+    data: {
+      name: '数量码池测试卡',
+      projectId: project.id,
+      licenseMode: 'TIME',
+      cardType: '月卡',
+      validDays: 30,
+      priceInCents: 300,
+      isEnabled: true,
+      stockMode: 'PREDEFINED',
+    },
+  })
+
+  // 码池放 3 张
+  for (let i = 0; i < 3; i += 1) {
+    const code = await prisma.activationCode.create({
+      data: {
+        code: `QTY-POOL-${i}-${Date.now()}`,
+        projectId: project.id,
+        licenseMode: 'TIME',
+        validDays: 30,
+        cardType: '月卡',
+      },
+    })
+    await prisma.shopProductCodeStock.create({
+      data: { productId: product.id, activationCodeId: code.id },
+    })
+  }
+
+  const order = await prisma.shopOrder.create({
+    data: {
+      orderNo: generateShopOrderNo(),
+      productId: product.id,
+      quantity: 3,
+      amountInCents: 900,
+      contactEmail: 'qty-pool@test.com',
+      status: 'pending',
+      provider: 'manual',
+    },
+  })
+
+  const result = await fulfillShopOrder({ orderNo: order.orderNo })
+  assert.equal(result.success, true)
+  assert.equal(result.codes?.length, 3)
+
+  const soldCount = await prisma.shopProductCodeStock.count({
+    where: { productId: product.id, status: 'SOLD', soldOrderId: order.id },
+  })
+  assert.equal(soldCount, 3)
+})
+
+test('fulfillShopOrder 码池库存不足时不发卡且订单保持原状态', async () => {
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'manual' },
+    update: {},
+    create: { provider: 'manual', configJson: '{}', isEnabled: true },
+  })
+  const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
+  const product = await prisma.shopProduct.create({
+    data: {
+      name: '数量码池不足测试卡',
+      projectId: project.id,
+      licenseMode: 'TIME',
+      cardType: '月卡',
+      validDays: 30,
+      priceInCents: 300,
+      isEnabled: true,
+      stockMode: 'PREDEFINED',
+    },
+  })
+
+  // 码池只放 1 张，订单要 2 张
+  const code = await prisma.activationCode.create({
+    data: {
+      code: `QTY-POOL-SHORT-${Date.now()}`,
+      projectId: project.id,
+      licenseMode: 'TIME',
+      validDays: 30,
+      cardType: '月卡',
+    },
+  })
+  await prisma.shopProductCodeStock.create({
+    data: { productId: product.id, activationCodeId: code.id },
+  })
+
+  const order = await prisma.shopOrder.create({
+    data: {
+      orderNo: generateShopOrderNo(),
+      productId: product.id,
+      quantity: 2,
+      amountInCents: 600,
+      contactEmail: 'qty-short@test.com',
+      status: 'paid',
+      provider: 'manual',
+    },
+  })
+
+  const result = await fulfillShopOrder({ orderNo: order.orderNo })
+  assert.equal(result.success, false)
+  assert.equal(result.message, '商品已售罄')
+
+  const latest = await prisma.shopOrder.findUniqueOrThrow({ where: { id: order.id } })
+  assert.equal(latest.status, 'paid')
+
+  // 码池未被消耗
+  const availableCount = await prisma.shopProductCodeStock.count({
+    where: { productId: product.id, status: 'AVAILABLE' },
+  })
+  assert.equal(availableCount, 1)
+})

@@ -69,6 +69,7 @@ export function ShopPage() {
 
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null)
   const [providerId, setProviderId] = useState('manual')
+  const [quantity, setQuantity] = useState(1)
   const [contactEmail, setContactEmail] = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [contactWechat, setContactWechat] = useState('')
@@ -169,6 +170,7 @@ export function ShopPage() {
         body: JSON.stringify({
           productId: selectedProduct.id,
           providerId,
+          quantity,
           contactEmail: contactEmail || undefined,
           contactPhone: contactPhone || undefined,
           contactWechat: contactWechat || undefined,
@@ -365,6 +367,31 @@ export function ShopPage() {
                       </option>
                     ))}
                   </AppSelect>
+                </div>
+
+                <div>
+                  <label htmlFor="order-quantity" className="mb-2 block text-sm font-medium text-ink-200">
+                    购买数量
+                    {selectedProduct ? (
+                      <span className="ml-2 text-xs text-ink-500">
+                        合计 ￥{((selectedProduct.priceInCents * quantity) / 100).toFixed(2)}
+                      </span>
+                    ) : null}
+                  </label>
+                  <AppInput
+                    id="order-quantity"
+                    type="number"
+                    min={1}
+                    max={100}
+                    step={1}
+                    value={quantity}
+                    onChange={(event) => {
+                      const next = Number(event.target.value)
+                      if (Number.isInteger(next) && next >= 1 && next <= 100) {
+                        setQuantity(next)
+                      }
+                    }}
+                  />
                 </div>
 
                 <div className="space-y-3">

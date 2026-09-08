@@ -9,6 +9,7 @@ import { getEnabledPaymentConfig } from '@/lib/shop-payment-registry'
 import {
   buildShopOrderInfo,
   createShopOrder,
+  normalizeShopOrderQuantity,
   ShopOrderError,
 } from '@/lib/shop-order-service'
 
@@ -17,6 +18,7 @@ export const dynamic = 'force-dynamic'
 type CreateOrderBody = {
   productId?: number
   providerId?: string
+  quantity?: number
   contactEmail?: string
   contactPhone?: string
   contactWechat?: string
@@ -48,6 +50,7 @@ export async function POST(request: NextRequest) {
     const { order, product } = await createShopOrder({
       productId: Number(body.productId),
       providerId: body.providerId,
+      quantity: normalizeShopOrderQuantity(body.quantity),
       contactEmail: body.contactEmail,
       contactPhone: body.contactPhone,
       contactWechat: body.contactWechat,
@@ -80,6 +83,7 @@ export async function POST(request: NextRequest) {
       success: true,
       order: {
         orderNo: order.orderNo,
+        quantity: order.quantity,
         amountInCents: order.amountInCents,
         status: order.status,
         provider: order.provider,

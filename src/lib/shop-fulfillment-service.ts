@@ -92,46 +92,51 @@ export async function fulfillShopOrder(
       return { success: false, message: '订单状态已变化，无法发卡' }
     }
 
-    // 抢占成功：按商品发卡模式处理（失败则整个事务回滚，订单保持原状态）
+    // 抢占成功：按商品发卡模式与订单数量发卡（失败则整个事务回滚，订单保持原状态）
     const product = order.product
+    const quantity = Math.max(1, order.quantity ?? 1)
     let codeRecords: Array<{ id: number; code: string }>
 
     if (product.stockMode === 'PREDEFINED') {
-      // 预定义码池：原子取一张 AVAILABLE 码（条件更新防并发超卖）
-      const stock = await tx.shopProductCodeStock.findFirst({
+      // 预定义码池：原子取 quantity 张 AVAILABLE 码（条件更新防并发超卖）
+      const stocks = await tx.shopProductCodeStock.findMany({
         where: { productId: product.id, status: 'AVAILABLE' },
-        include: { product: false },
+        orderBy: { id: 'asc' },
+        take: quantity,
       })
 
-      if (!stock) {
-        // 码池售罄：抛错回滚订单
+      if (stocks.length < quantity) {
+        // 码池库存不足：抛错回滚订单
         throw new Error('SHOP_OUT_OF_STOCK')
       }
 
-      const stockClaimed = await tx.shopProductCodeStock.updateMany({
-        where: { id: stock.id, status: 'AVAILABLE' },
-        data: {
-          status: 'SOLD',
-          soldOrderId: order.id,
-          soldAt: new Date(),
-        },
-      })
+      codeRecords = []
+      for (const stock of stocks) {
+        const stockClaimed = await tx.shopProductCodeStock.updateMany({
+          where: { id: stock.id, status: 'AVAILABLE' },
+          data: {
+            status: 'SOLD',
+            soldOrderId: order.id,
+            soldAt: new Date(),
+          },
+        })
 
-      if (stockClaimed.count === 0) {
-        // 并发下该码已被抢：抛错回滚，订单保持原状态由调用方重试
-        throw new Error('SHOP_STOCK_RACE')
+        if (stockClaimed.count === 0) {
+          // 并发下该码已被抢：抛错回滚，订单保持原状态由调用方重试
+          throw new Error('SHOP_STOCK_RACE')
+        }
+
+        const activationCode = await tx.activationCode.findUniqueOrThrow({
+          where: { id: stock.activationCodeId },
+          select: { id: true, code: true },
+        })
+        codeRecords.push(activationCode)
       }
-
-      const activationCode = await tx.activationCode.findUniqueOrThrow({
-        where: { id: stock.activationCodeId },
-        select: { id: true, code: true },
-      })
-      codeRecords = [activationCode]
     } else {
-      // 动态生成：按商品规格生成新码
+      // 动态生成：按商品规格 × 数量生成新码
       const generated = await generateActivationCodes(tx as typeof prisma, {
         projectKey: product.project.projectKey,
-        amount: 1,
+        amount: quantity,
         licenseMode: product.licenseMode as 'TIME' | 'COUNT',
         validDays: product.validDays ?? null,
         totalCount: product.totalCount ?? null,

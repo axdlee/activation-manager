@@ -502,6 +502,7 @@ export function createLicenseClient(options: LicenseClientOptions) {
     async createShopOrder(payload: {
       productId: number
       providerId: string
+      quantity?: number
       contactEmail?: string
       contactPhone?: string
       contactWechat?: string
