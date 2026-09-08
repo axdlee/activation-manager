@@ -165,3 +165,55 @@ test('createLicenseApiRateLimiter 清理后旧 key 重新计数', () => {
   limiter.check('b') // 触发清理
   assert.equal(limiter.check('a').allowed, true)
 })
+
+test('createLicenseApiRateLimiter 支持自定义 RateLimitStore（Redis 等共享存储接缝）', async () => {
+  const backing = new Map<string, number[]>()
+  const store = {
+    get(key: string) {
+      return backing.get(key)
+    },
+    set(key: string, timestamps: number[]) {
+      backing.set(key, timestamps)
+    },
+  }
+
+  let now = 1000
+  const limiter = createLicenseApiRateLimiter({
+    maxRequests: 2,
+    windowMs: 1000,
+    now: () => now,
+    store,
+  })
+
+  assert.equal(limiter.check('k').allowed, true)
+  assert.equal(limiter.check('k').allowed, true)
+  assert.equal(limiter.check('k').allowed, false)
+
+  // 时间戳确实写入共享存储
+  assert.ok((backing.get('k') ?? []).length === 3)
+
+  // 窗口滑动后基于共享存储恢复放行
+  now = 3000
+  assert.equal(limiter.check('k').allowed, true)
+})
+
+test('InMemoryRateLimitStore 过期 key 会被清理（防伪造 IP 撑爆内存）', () => {
+  const { InMemoryRateLimitStore } = require('../src/lib/license-api-rate-limit') as {
+    InMemoryRateLimitStore: new () => {
+      get(key: string): number[] | undefined
+      set(key: string, timestamps: number[], ttlMs: number): void
+      cleanupExpired(normalize: (timestamps: number[]) => number[]): void
+      size(): number
+    }
+  }
+
+  const store = new InMemoryRateLimitStore()
+  store.set('fresh', [Date.now()], 1000)
+  store.set('stale', [1, 2], 1000)
+
+  store.cleanupExpired((timestamps) => timestamps.filter((t) => Date.now() - t < 60_000))
+
+  assert.ok(store.get('fresh'))
+  assert.equal(store.get('stale'), undefined)
+  assert.equal(store.size(), 1)
+})
