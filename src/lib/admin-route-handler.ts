@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { guardAdminApiRateLimit } from './admin-api-rate-limit'
 import {
   createAuthResponse as defaultCreateAuthResponse,
   verifyAuth as defaultVerifyAuth,
@@ -60,6 +61,15 @@ export function createProtectedAdminRouteHandler<
   } = options
 
   return async function protectedAdminRouteHandler(request: TRequest, ...args: TArgs) {
+    // 限流：IP + 路径维度，防暴力刷接口
+    const rateLimit = guardAdminApiRateLimit(
+      request as NextRequest,
+      (request as NextRequest).nextUrl?.pathname ?? 'admin-api',
+    )
+    if (!rateLimit.allowed) {
+      return rateLimit.response
+    }
+
     try {
       const authResult = await verifyAuth(request)
       if (!authResult.success) {
