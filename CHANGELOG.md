@@ -1,5 +1,34 @@
 # 更新日志
 
+## [Unreleased]
+
+### 通知系统（管理员通知中心）📣
+- 新增通用通知分发层：`LICENSE_EXPIRED`（到期/耗尽）、`SHOP_ORDER_PAID_FULFILLED`（发卡）、
+  `SHOP_ORDER_TIMEOUT_CANCELLED`（超时取消）三类事件可同时分发到 Webhook / 邮件 / 短信
+- Webhook 渠道（notifyWebhookUrl）：POST 统一 envelope `{event, title, body, data, notifiedAt}`；
+  到期事件在未配置时回落旧「到期通知接口」expiryWebhookUrl 并保持原始扁平 payload（向后兼容）
+- 邮件渠道（notifyEmailSmtp*，nodemailer）：SMTP + 收件人多选；订单发卡且买家留了邮箱时自动发送卡密邮件
+- 短信渠道（notifySms*）：通用 HTTP 网关 + 请求体模板（`{phone}`/`{content}` 占位符），适配任意 JSON 提交服务商
+- 后台「系统配置 → 通知与告警」分组；SMTP 授权码为敏感配置（掩码、不回显、空值不覆盖）
+- 未配置渠道自动跳过；单渠道失败不影响其他渠道，也不阻塞主业务
+
+### 订单超时自动取消 ⏱
+- pending 订单超过 30 分钟未支付 → 标记 cancelled（幂等，可重复触发）
+- 后台购买中心新增「清理超时订单」按钮 + `POST /api/admin/shop/orders/cleanup` 接口（外部 cron 可调用）
+- 超时订单支付回调不再发卡；清理动作支持通知推送（含订单号列表）
+
+### SDK 与文档 📖
+- SDK 新增 `createShopOrder` / `queryShopOrder` 购买端方法（含错误透传与测试）
+- API 文档补充 Shop 公开 / 管理 API 完整章节、SDK 购买端用法、订单超时与限流说明
+- 修复支付回调路由限流 key 模板字符串字面量（yipay/alipay/wechat 三处）
+
+### 安全 🔒
+- 全部 Admin API 统一内存限流（IP + 路径维度，默认 300 次/分钟，ADMIN_API_RATE_LIMIT_MAX 可调），429 返回 Retry-After
+- 项目不存在/已停用时 License API 返回明确业务失败（不再抛 500）
+
+### 测试 🧪
+- 单测 540 个（+40：通知系统 30 例、Admin 限流 4 例、通知配置 6 例）
+
 ## [v2.4.0] - 2026-09-07
 
 ### 购买中心体系完善 💰

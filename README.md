@@ -1084,9 +1084,10 @@ await client.consume({
 
 ### 订单与发卡闭环
 
-- 订单状态机：`pending → paid → fulfilled`
+- 订单状态机：`pending → paid → fulfilled`；`pending` 订单超过 **30 分钟**未支付会被自动取消（`cancelled`，后台「清理超时订单」按钮或外部 cron 调用清理接口触发）
 - 支付确认后事务生成卡密并关联订单（幂等，重复回调不重复发卡）
 - 卡密找回：`/shop` 页凭「订单号 + 联系方式」重新获取；联系方式不匹配拒绝
+- 发卡成功后可触发管理员通知与买家卡密邮件（见下方「通知系统」）
 
 ### 后台
 
@@ -1123,6 +1124,29 @@ await client.consume({
 ### 商品排序
 
 购买页支持排序：推荐（sortOrder）、价格从低到高、价格从高到低、最新上架。
+
+### 通知系统（管理员通知中心）
+
+关键业务事件可同时分发到三类渠道，全部在 **系统配置 → 通知与告警** 中配置：
+
+| 事件 | 触发时机 |
+| --- | --- |
+| `LICENSE_EXPIRED` | 激活码到期 / 次数耗尽（客户端查询触发或主动扫描） |
+| `SHOP_ORDER_PAID_FULFILLED` | 订单支付后发卡成功（回调或人工确认） |
+| `SHOP_ORDER_TIMEOUT_CANCELLED` | 超时未支付订单被清理取消 |
+
+| 渠道 | 配置项 | 说明 |
+| --- | --- | --- |
+| **Webhook** | `notifyWebhookUrl` | POST JSON：`{event, title, body, data, notifiedAt}` |
+| **邮件** | `notifyEmailSmtpHost/Port/User/Pass/From/To` | SMTP 发送；收件人逗号/换行分隔可多个 |
+| **短信** | `notifySmsApiUrl` / `notifySmsApiBody` / `notifySmsPhones` | 通用 HTTP 网关；模板占位符 `{phone}` / `{content}` |
+
+行为约定：
+
+- 未配置的渠道自动跳过；单渠道失败不影响其他渠道，也不阻塞主业务（fire-and-forget）
+- 配置 `notifyWebhookUrl` 后，到期事件优先走该地址；未配置时回落旧「到期通知接口」`expiryWebhookUrl` 且保持原始扁平 payload（向后兼容）
+- 订单发卡且买家留了邮箱时，邮件渠道会把卡密自动发送到买家邮箱
+- SMTP 授权码为敏感配置：后台掩码显示，保存后不回显
 
 ---
 

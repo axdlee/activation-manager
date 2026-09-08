@@ -206,6 +206,33 @@ hooks 事件说明：
   - 可读取 `event.path`、`event.attemptCount`、`event.requestBody`、`event.response`
 - 当前 hooks 为请求生命周期的一部分；若 hook 内抛出异常，会中断当前请求，因此建议仅执行轻量日志 / 埋点逻辑
 
+SDK 同样内置购买端（Shop API）方法：
+
+```ts
+// 创建购买订单：返回 { success, order, payment }
+// order.orderNo 用于支付跳转与后续查询 / 找回
+const createResult = await client.createShopOrder({
+  productId: 1,
+  providerId: 'yipay',
+  contactEmail: 'buyer@example.com',
+})
+
+// 查询订单 / 找回卡密：联系方式需与下单时一致
+const queryResult = await client.queryShopOrder({
+  orderNo: createResult.order?.orderNo ?? '',
+  contactEmail: 'buyer@example.com',
+})
+
+// 已发卡订单的 codes 数组包含卡密
+console.log(queryResult.codes?.[0]?.code)
+```
+
+购买端方法说明：
+
+- `createShopOrder(payload)`：对应 `POST /api/shop/orders`，`contactEmail` / `contactPhone` / `contactWechat` 至少提供一个
+- `queryShopOrder(payload)`：对应 `POST /api/shop/orders/query`，校验「订单号 + 联系方式」匹配后返回订单状态与卡密
+- 与授权方法一致，网络异常时抛出异常；业务失败通过返回值 `success: false` 与 `message` 判断
+
 ---
 
 ## 5. 正式接口
@@ -661,3 +688,193 @@ GET /api/admin/codes/stats/export?projectKey=browser-plugin
 
 - `text/csv` 文件下载
 - 表头包含：项目、项目标识、状态、总激活码、已激活、有效、已过期、次数剩余、次数消耗
+
+---
+
+## 11. 购买中心（Shop）公开 API
+
+购买中心对外提供商品浏览、下单、支付渠道查询与订单查询找回四组公开接口。所有接口在后台关闭购买中心总开关（系统配置 `shopEnabled`）时统一返回 `403`：
+
+```json
+{ "success": false, "message": "购买中心已停用" }
+```
+
+### 11.1 商品列表
+
+```http
+GET /api/shop/products?sort=priceAsc
+```
+
+- `sort`（可选）：`recommended`（默认，按 sortOrder）| `priceAsc` | `priceDesc` | `newest`
+- 仅返回启用中的商品；预定义码池商品附带 `availableStock`（剩余库存），售罄为 `0`
+
+响应示例：
+
+```json
+{
+  "success": true,
+  "products": [
+    {
+      "id": 1,
+      "name": "月卡",
+      "description": "30 天有效期",
+      "licenseMode": "TIME",
+      "cardType": "月卡",
+      "validDays": 30,
+      "totalCount": null,
+      "priceInCents": 990,
+      "projectKey": "browser-plugin",
+      "stockMode": "PREDEFINED",
+      "availableStock": 12
+    }
+  ]
+}
+```
+
+### 11.2 支付渠道列表
+
+```http
+GET /api/shop/payment/channels
+```
+
+仅返回**已启用且必需配置齐全**的渠道。响应示例：
+
+```json
+{
+  "success": true,
+  "channels": [
+    { "id": "manual", "name": "手动收款确认", "supportsOnlinePayment": false },
+    { "id": "yipay", "name": "易支付", "supportsOnlinePayment": true }
+  ]
+}
+```
+
+### 11.3 创建订单
+
+```http
+POST /api/shop/orders
+```
+
+请求体：
+
+```json
+{
+  "productId": 1,
+  "providerId": "yipay",
+  "contactEmail": "buyer@example.com",
+  "contactPhone": "",
+  "contactWechat": ""
+}
+```
+
+- `productId` 必填；`providerId` 必须是 11.2 中列出的渠道
+- `contactEmail` / `contactPhone` / `contactWechat` 至少提供一个（用于卡密找回）
+- 预定义码池商品售罄时返回 `409`：
+
+```json
+{ "success": false, "message": "该商品已售罄，请等待补货" }
+```
+
+成功响应（`manual` 渠道附带收款说明，在线渠道返回支付跳转参数）：
+
+```json
+{
+  "success": true,
+  "order": {
+    "orderNo": "SOABC123XYZ",
+    "productName": "月卡",
+    "amountInCents": 990,
+    "status": "pending",
+    "provider": "yipay"
+  }
+}
+```
+
+### 11.4 订单超时自动取消
+
+- 待支付（`pending`）订单超过 **30 分钟**未支付，会被后台「清理超时订单」按钮或外部 cron 触发的清理接口标记为 `cancelled`
+- 超时订单在支付回调到达时不会再发卡（返回「订单已取消」）
+- 管理员配置通知渠道后，清理动作会推送通知（含订单号列表）
+
+### 11.5 订单查询 / 卡密找回
+
+```http
+POST /api/shop/orders/query
+Content-Type: application/json
+```
+
+```json
+{
+  "orderNo": "SOABC123XYZ",
+  "contactEmail": "buyer@example.com"
+}
+```
+
+- `orderNo` 必填；`contactEmail` / `contactPhone` / `contactWechat` 需与下单时**任意一项完全一致**才能查询
+- 不匹配返回 `403`；已发卡订单返回 `codes` 数组，未发卡返回当前状态
+
+成功响应示例：
+
+```json
+{
+  "success": true,
+  "order": {
+    "orderNo": "SOABC123XYZ",
+    "status": "fulfilled",
+    "amountInCents": 990,
+    "productName": "月卡",
+    "createdAt": "2026-09-08T04:00:00.000Z",
+    "paidAt": "2026-09-08T04:01:00.000Z",
+    "fulfilledAt": "2026-09-08T04:01:01.000Z"
+  },
+  "codes": [
+    { "id": 1, "code": "A1B2C3D4E5F6G7H8", "cardType": "月卡" }
+  ]
+}
+```
+
+### 11.6 支付回调（由支付网关调用）
+
+- 易支付回调：`POST /api/shop/payment/yipay`
+- 微信回调：`POST /api/shop/payment/wechat`
+- 支付宝回调：`POST /api/shop/payment/alipay`
+- 通用回调（自建监控 / 其他渠道）：`POST /api/shop/payment/webhook`，请求体 `{ orderNo, paid, transactionId? }`；渠道配置 secret 后必须携带 `x-webhook-secret` 请求头
+- 回调验签通过且订单匹配后自动发卡；全部回调接口带限流保护
+
+### 11.7 限流
+
+公开 Shop API 全部受统一速率限制（IP 维度，默认 60 次/分钟，`SHOP_API_RATE_LIMIT_MAX` 可调），超限返回 `429` 与 `Retry-After`。
+
+---
+
+## 12. 管理后台 Shop API
+
+管理接口均需登录态（admin cookie），未登录返回 `401`。所有管理接口（含下表）统一受 Admin API 速率限制（IP + 路径维度，默认 300 次/分钟，`ADMIN_API_RATE_LIMIT_MAX` 可调），超限返回 `429` 与 `Retry-After`。
+
+| 接口 | 方法 | 说明 |
+| --- | --- | --- |
+| `/api/admin/shop/products` | GET / POST | 商品列表 / 创建（含 `stockMode`） |
+| `/api/admin/shop/products/[id]` | PATCH / DELETE | 编辑商品 / 删除（有订单时拒绝） |
+| `/api/admin/shop/products/restock` | POST | 预定义商品补货 `{productId, amount}`，1-100 |
+| `/api/admin/shop/orders` | GET | 订单列表，支持 `status` / `provider` / `page` / `pageSize` |
+| `/api/admin/shop/orders/[orderNo]/confirm` | POST | manual 渠道人工确认发卡 |
+| `/api/admin/shop/orders/cleanup` | POST | 取消超过 30 分钟未支付的待支付订单，返回 `{cancelled}` |
+| `/api/admin/shop/payment-configs` | GET / POST | 渠道配置读写；GET 返回 `missingKeys` / `configComplete` |
+| `/api/admin/system-config` | GET / POST | 系统配置（含 `shopEnabled`、`notify*` 通知渠道等全部配置项） |
+
+### 12.1 通知渠道配置（管理员通知中心）
+
+系统配置（后台「系统配置 → 通知与告警」分组，或 `POST /api/admin/system-config`）支持为关键业务事件配置三类通知渠道：
+
+| 配置项 | 说明 |
+| --- | --- |
+| `notifyWebhookUrl` | 通用通知 Webhook：到期 / 发卡 / 超时取消等事件 POST JSON（`{event, title, body, data, notifiedAt}`） |
+| `notifyEmailSmtp*` | 邮件通知（SMTP）：host / port / user / pass / from / to；配置后事件同时发邮件 |
+| `notifySms*` | 短信通知（通用 HTTP 网关）：`notifySmsApiUrl` + `notifySmsApiBody` 模板（`{phone}`/`{content}` 占位符）+ `notifySmsPhones` |
+
+行为约定：
+
+- 事件类型：`LICENSE_EXPIRED`（激活码到期/耗尽）、`SHOP_ORDER_PAID_FULFILLED`（订单发卡）、`SHOP_ORDER_TIMEOUT_CANCELLED`（超时取消）
+- 未配置的渠道自动跳过；单渠道失败不影响其他渠道
+- 配置 `notifyWebhookUrl` 后，激活码到期事件优先走该地址；未配置时回落到旧「到期通知接口」`expiryWebhookUrl` 并保持原始扁平 payload 结构（向后兼容）
+- 订单发卡时，若买家留了邮箱且邮件渠道已配置，系统会把卡密自动发送到买家邮箱
