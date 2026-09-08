@@ -52,15 +52,21 @@ async function resolveBaseLicenseActionCommandContext(
     }
   }
 
-  const project = await resolveProject(client, projectKey)
-
-  return {
-    ok: true,
-    context: {
-      projectId: project.id,
-      code,
-      machineId,
-    },
+  try {
+    const project = await resolveProject(client, projectKey)
+    return {
+      ok: true,
+      context: {
+        projectId: project.id,
+        code,
+        machineId,
+      },
+    }
+  } catch {
+    return {
+      ok: false,
+      result: { success: false, message: `项目不存在或已停用: ${projectKey ?? ''}`, status: 400 },
+    }
   }
 }
 
