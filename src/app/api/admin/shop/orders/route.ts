@@ -6,15 +6,19 @@ import { prisma } from '@/lib/db'
 export const GET = createProtectedAdminRouteHandler(async (request: NextRequest) => {
   const url = new URL(request.url)
   const status = url.searchParams.get('status') ?? undefined
+  const provider = url.searchParams.get('provider') ?? undefined
   const page = Math.max(1, Number(url.searchParams.get('page') ?? 1))
   const pageSize = Math.min(50, Math.max(1, Number(url.searchParams.get('pageSize') ?? 20)))
 
-  const where = status && status !== 'all' ? { status } : {}
+  const where = {
+    ...(status && status !== 'all' ? { status } : {}),
+    ...(provider && provider !== 'all' ? { provider } : {}),
+  }
 
   const [orders, total] = await Promise.all([
     prisma.shopOrder.findMany({
       where,
-      include: { product: true },
+      include: { product: { select: { name: true, stockMode: true } } },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -28,6 +32,7 @@ export const GET = createProtectedAdminRouteHandler(async (request: NextRequest)
       id: order.id,
       orderNo: order.orderNo,
       productName: order.product.name,
+      productStockMode: order.product.stockMode,
       amountInCents: order.amountInCents,
       status: order.status,
       provider: order.provider,
@@ -41,4 +46,4 @@ export const GET = createProtectedAdminRouteHandler(async (request: NextRequest)
     })),
     pagination: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
   })
-}, { logLabel: "shop-orders-list" })
+}, { logLabel: 'shop-orders-list' })

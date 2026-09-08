@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react'
 import { AppInput } from '@/components/ui/app-input'
 import { AppSelect } from '@/components/ui/app-select'
 import { panelClassName } from '@/lib/dashboard-class-names'
+import { DashboardModal } from '@/components/dashboard-modal'
 
 type ShopProduct = {
   id: number
@@ -90,6 +91,11 @@ export function ShopAdminPanel() {
   const [wechatApiKey, setWechatApiKey] = useState('')
   const [alipayAppId, setAlipayAppId] = useState('')
   const [alipayPublicKey, setAlipayPublicKey] = useState('')
+  const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', description: '', priceInCents: '', isEnabled: true })
+  const [editSaving, setEditSaving] = useState(false)
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all')
+  const [orderProviderFilter, setOrderProviderFilter] = useState('all')
 
   // 新建商品表单
   const [newProduct, setNewProduct] = useState({
@@ -108,7 +114,7 @@ export function ShopAdminPanel() {
     void loadAll()
     void loadProjects()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [orderStatusFilter, orderProviderFilter])
 
   const notify = (content: string, type: 'success' | 'error' = 'success') => {
     setMessage(content)
@@ -128,7 +134,7 @@ export function ShopAdminPanel() {
   const loadAll = async () => {
     const [productRes, orderRes, configRes] = await Promise.all([
       fetch('/api/admin/shop/products'),
-      fetch('/api/admin/shop/orders?status=all'),
+      fetch(`/api/admin/shop/orders?status=${orderStatusFilter}&provider=${orderProviderFilter}`),
       fetch('/api/admin/shop/payment-configs'),
     ])
     const productData = (await productRes.json()) as { products?: ShopProduct[] }
@@ -304,11 +310,52 @@ export function ShopAdminPanel() {
     }
   }
 
+  const handleOpenEditProduct = (product: ShopProduct) => {
+    setEditingProduct(product)
+    setEditForm({
+      name: product.name,
+      description: product.description ?? '',
+      priceInCents: String(product.priceInCents / 100),
+      isEnabled: product.isEnabled,
+    })
+  }
+
+  const handleSaveEditProduct = async () => {
+    if (!editingProduct) return
+    const price = Number(editForm.priceInCents)
+    if (!editForm.name.trim() || !Number.isFinite(price) || price < 0) {
+      notify('请填写有效的名称与价格', 'error')
+      return
+    }
+    setEditSaving(true)
+    try {
+      const response = await fetch(`/api/admin/shop/products/${editingProduct.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editForm.name.trim(),
+          description: editForm.description.trim() || null,
+          priceInCents: Math.round(price * 100),
+          isEnabled: editForm.isEnabled,
+        }),
+      })
+      const data = (await response.json()) as { success: boolean; message?: string }
+      if (!data.success) { notify(data.message ?? '保存失败', 'error'); return }
+      notify('商品已更新')
+      setEditingProduct(null)
+      await loadAll()
+    } catch {
+      notify('保存失败', 'error')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
   const handleRestockProduct = async (product: ShopProduct) => {
-    const input = window.prompt(`为「${product.name}」补充多少张预定义激活码？（1-200）`, '10')
+    const input = window.prompt(`为「${product.name}」补充多少张预定义激活码？（1-100）`, '10')
     if (input === null) return
     const amount = Number(input)
-    if (!Number.isInteger(amount) || amount < 1 || amount > 200) {
+    if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
       notify('请输入 1-200 之间的整数', 'error')
       return
     }
@@ -569,11 +616,18 @@ export function ShopAdminPanel() {
                           ) : null}
                           <button
                             type="button"
-                            onClick={() => void handleDeleteProduct(product)}
-                            className="rounded-md border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-400"
+                            onClick={() => handleOpenEditProduct(product)}
+                            className="rounded-md border border-surface-200 bg-surface-100 px-2.5 py-1 text-xs text-ink-300 hover:text-ink-50"
                           >
-                            删除
+                            编辑
                           </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteProduct(product)}
+                              className="rounded-md border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-400"
+                            >
+                              删除
+                            </button>
                         </div>
                       </td>
                     </tr>
@@ -598,6 +652,31 @@ export function ShopAdminPanel() {
           <p className="mt-1 text-sm leading-6 text-ink-500">
             manual 渠道需人工核对收款后点击确认，系统自动发放卡密。
           </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <AppSelect
+              value={orderStatusFilter}
+              onChange={(event) => setOrderStatusFilter(event.target.value)}
+              className="w-40"
+            >
+              <option value="all">全部状态</option>
+              <option value="pending">待支付</option>
+              <option value="paid">已支付</option>
+              <option value="fulfilled">已发卡</option>
+              <option value="cancelled">已取消</option>
+            </AppSelect>
+            <AppSelect
+              value={orderProviderFilter}
+              onChange={(event) => setOrderProviderFilter(event.target.value)}
+              className="w-44"
+            >
+              <option value="all">全部渠道</option>
+              <option value="manual">手动收款</option>
+              <option value="yipay">易支付</option>
+              <option value="wechat">微信支付</option>
+              <option value="alipay">支付宝</option>
+              <option value="webhook">通用回调</option>
+            </AppSelect>
+          </div>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[880px] text-left text-sm">
               <thead>
@@ -856,6 +935,72 @@ export function ShopAdminPanel() {
           </div>
         </div>
       ) : null}
+
+      {/* 商品编辑弹框 */}
+      <DashboardModal
+        open={editingProduct !== null}
+        onClose={() => setEditingProduct(null)}
+        title="编辑商品"
+        description={editingProduct ? `修改「${editingProduct.name}」的名称、描述与价格` : ''}
+        size="xl"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setEditingProduct(null)}
+              className="rounded-md border border-surface-200 bg-surface-100 px-4 py-2 text-sm text-ink-300 hover:text-ink-50"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleSaveEditProduct()}
+              disabled={editSaving}
+              className="rounded-md bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 px-4 py-2 text-sm font-medium text-white shadow-glow transition hover:from-brand-400 hover:via-brand-500 hover:to-brand-600 disabled:opacity-50"
+            >
+              {editSaving ? '保存中…' : '保存修改'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-ink-200">商品名称</label>
+            <AppInput
+              value={editForm.name}
+              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              placeholder="商品名称"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-ink-200">商品描述</label>
+            <AppInput
+              value={editForm.description}
+              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+              placeholder="商品描述（可选）"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-ink-200">价格（元）</label>
+            <AppInput
+              type="number"
+              step="0.01"
+              value={editForm.priceInCents}
+              onChange={(e) => setEditForm({ ...editForm, priceInCents: e.target.value })}
+              placeholder="价格（元）"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-ink-300">
+            <input
+              type="checkbox"
+              checked={editForm.isEnabled}
+              onChange={(e) => setEditForm({ ...editForm, isEnabled: e.target.checked })}
+              className="h-4 w-4 rounded border-surface-300"
+            />
+            上架销售
+          </label>
+        </div>
+      </DashboardModal>
     </div>
   )
 }

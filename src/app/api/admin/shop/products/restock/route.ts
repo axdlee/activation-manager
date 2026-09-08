@@ -13,7 +13,7 @@ export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult) => {
     const body = (await request.json()) as { productId?: number; amount?: number }
     const productId = Number(body.productId)
-    const amount = Math.min(200, Math.max(1, Number(body.amount) || 1))
+    const amount = Math.min(100, Math.max(1, Number(body.amount) || 1))
 
     if (!productId) {
       return NextResponse.json({ success: false, message: '缺少商品ID' }, { status: 400 })

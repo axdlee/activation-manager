@@ -7,7 +7,6 @@ import { expect, test } from '@playwright/test'
 test.describe.serial('购买中心新功能 e2e', () => {
   let adminCookie = ''
   let predefProductId = 0
-  let dynamicProductId = 0
 
   test('0. 登录并创建动态 + 预定义商品', async ({ request }) => {
     const loginRes = await request.post('/api/admin/login', {
@@ -31,7 +30,7 @@ test.describe.serial('购买中心新功能 e2e', () => {
     })
     const dynData = (await dynRes.json()) as { success: boolean; product?: { id: number; stockMode: string } }
     expect(dynData.success).toBe(true)
-    dynamicProductId = dynData.product?.id ?? 0
+    expect(dynData.product?.id).toBeGreaterThan(0)
     expect(dynData.product?.stockMode).toBe('DYNAMIC')
 
     // 预定义商品（价格 2000）
