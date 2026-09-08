@@ -23,6 +23,16 @@ const writableSystemConfigKeySet = new Set([
   'allowDeviceBinding',
   'licenseResponseSecret',
   'shopEnabled',
+  'notifyWebhookUrl',
+  'notifyEmailSmtpHost',
+  'notifyEmailSmtpPort',
+  'notifyEmailSmtpUser',
+  'notifyEmailSmtpPass',
+  'notifyEmailFrom',
+  'notifyEmailTo',
+  'notifySmsApiUrl',
+  'notifySmsApiBody',
+  'notifySmsPhones',
 ])
 
 const allowedJwtExpiryValues = new Set(['1h', '6h', '12h', '24h', '7d'])
@@ -170,8 +180,29 @@ function normalizeAutoRebindMaxCount(value: SystemConfigValue) {
   return value
 }
 
-function normalizeSystemConfigValue(key: string, value: SystemConfigValue): SystemConfigValue {
-  switch (key) {
+// 通用通知 Webhook：允许为空；非空时必须是 http/https URL
+function normalizeNotifyWebhookUrl(value: SystemConfigValue) {
+  const normalizedValue = ensureOptionalStringValue('notifyWebhookUrl', value)
+  if (normalizedValue && !/^https?:\/\//i.test(normalizedValue)) {
+    throw new InvalidSystemConfigPayloadError('系统配置 notifyWebhookUrl 必须是 http/https 地址')
+  }
+  return normalizedValue
+}
+
+// 通知邮件 SMTP 端口：1-65535 整数
+function normalizeNotifyEmailSmtpPort(value: SystemConfigValue) {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    throw new InvalidSystemConfigPayloadError('系统配置 notifyEmailSmtpPort 必须是整数')
+  }
+
+  if (value < 1 || value > 65535) {
+    throw new InvalidSystemConfigPayloadError('系统配置 notifyEmailSmtpPort 必须在 1 到 65535 之间')
+  }
+
+  return value
+}
+
+function normalizeSystemConfigValue(key: string, value: SystemConfigValue): SystemConfigValue {  switch (key) {
     case 'allowedIPs':
       return normalizeAllowedIps(value)
     case 'allowAutoRebind':
@@ -190,6 +221,19 @@ function normalizeSystemConfigValue(key: string, value: SystemConfigValue): Syst
       return ensureStringValue(key, value)
     case 'expiryWebhookUrl':
       return ensureOptionalStringValue(key, value)
+    case 'notifyWebhookUrl':
+      return normalizeNotifyWebhookUrl(value)
+    case 'notifyEmailSmtpHost':
+    case 'notifyEmailSmtpUser':
+    case 'notifyEmailSmtpPass':
+    case 'notifyEmailFrom':
+    case 'notifyEmailTo':
+    case 'notifySmsApiUrl':
+    case 'notifySmsApiBody':
+    case 'notifySmsPhones':
+      return ensureOptionalStringValue(key, value)
+    case 'notifyEmailSmtpPort':
+      return normalizeNotifyEmailSmtpPort(value)
     case 'licenseResponseSecret':
       return ensureOptionalStringValue(key, value)
     case 'shopEnabled':

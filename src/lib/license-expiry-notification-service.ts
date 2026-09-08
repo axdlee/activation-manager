@@ -1,13 +1,15 @@
 import { getConfigWithDefault } from './config-service'
+import { notifyLicenseExpiryEvent } from './notification-events'
 import { type LicenseActionCodeRecord } from './license-action-context'
 
 /**
  * 激活码到期/耗尽通知服务：
- * 向系统配置的 expiryWebhookUrl 发送 POST JSON 通知。
+ * 通过通用通知系统分发（webhook / 邮件 / 短信，见 notification-service）。
+ * - 未配置 notifyWebhookUrl 时，LICENSE_EXPIRED 事件回落到旧 expiryWebhookUrl，
+ *   且保持原始扁平 payload 结构（向后兼容，见 notification-service）
  * 设计原则：
  * - fire-and-forget：异步发送，失败不阻塞主业务
  * - 进程内去重：同一激活码只通知一次（按 code + 到期时间戳去重）
- * - 空 URL 不发送；超时保护（5s）
  */
 
 export type ExpiryNotificationPayload = {
@@ -76,40 +78,7 @@ export function notifyLicenseExpiry(activationCode: LicenseActionCodeRecord): bo
   }
   notifiedKeys.add(key)
 
-  void (async () => {
-    try {
-      const webhookUrl = await getExpiryWebhookUrl()
-      if (!webhookUrl) {
-        return
-      }
-
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 5000)
-
-      try {
-        const response = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(buildExpiryNotificationPayload(activationCode)),
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          console.warn(`[webhook] 到期通知返回非 2xx: ${response.status}（${webhookUrl}）`)
-        }
-      } finally {
-        clearTimeout(timeout)
-      }
-    } catch (error) {
-      console.warn(
-        `[webhook] 到期通知发送异常（${activationCode.code}）:`,
-        error instanceof Error ? error.message : String(error),
-      )
-    }
-  })()
-
+  notifyLicenseExpiryEvent(activationCode)
   return true
 }
 

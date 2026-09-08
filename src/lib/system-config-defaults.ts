@@ -18,6 +18,16 @@ export type KnownSystemConfigMap = {
   allowDeviceBinding: boolean
   licenseResponseSecret: string
   shopEnabled: boolean
+  notifyWebhookUrl: string
+  notifyEmailSmtpHost: string
+  notifyEmailSmtpPort: number
+  notifyEmailSmtpUser: string
+  notifyEmailSmtpPass: string
+  notifyEmailFrom: string
+  notifyEmailTo: string
+  notifySmsApiUrl: string
+  notifySmsApiBody: string
+  notifySmsPhones: string
 }
 
 export type KnownSystemConfigKey = keyof KnownSystemConfigMap
@@ -135,6 +145,56 @@ export function buildDefaultSystemConfigs(
       value: true,
       description: '是否启用购买中心（商品、下单、支付自动发卡）',
     },
+    {
+      key: 'notifyWebhookUrl',
+      value: '',
+      description: '通用通知 Webhook（到期/发卡/超时取消等事件 POST JSON；留空不通知）',
+    },
+    {
+      key: 'notifyEmailSmtpHost',
+      value: '',
+      description: '通知邮件 SMTP 服务器地址（留空不启用邮件通知）',
+    },
+    {
+      key: 'notifyEmailSmtpPort',
+      value: 465,
+      description: '通知邮件 SMTP 端口（465=SSL，其他端口默认 STARTTLS/明文）',
+    },
+    {
+      key: 'notifyEmailSmtpUser',
+      value: '',
+      description: '通知邮件 SMTP 用户名（与密码同时填写才启用认证）',
+    },
+    {
+      key: 'notifyEmailSmtpPass',
+      value: '',
+      description: '通知邮件 SMTP 密码/授权码',
+    },
+    {
+      key: 'notifyEmailFrom',
+      value: '',
+      description: '通知邮件发件人（留空默认使用 SMTP 用户名）',
+    },
+    {
+      key: 'notifyEmailTo',
+      value: '',
+      description: '通知邮件收件人（逗号或换行分隔，可多个）',
+    },
+    {
+      key: 'notifySmsApiUrl',
+      value: '',
+      description: '通知短信 HTTP 网关地址（留空不启用短信通知）',
+    },
+    {
+      key: 'notifySmsApiBody',
+      value: '',
+      description: '通知短信请求体模板（{phone} 手机号 {content} 内容；留空用默认 JSON 模板）',
+    },
+    {
+      key: 'notifySmsPhones',
+      value: '',
+      description: '通知短信接收手机号（逗号或换行分隔，可多个）',
+    },
   ]
 }
 
@@ -153,6 +213,16 @@ export const defaultConfigValues: KnownSystemConfigMap = {
   allowDeviceBinding: true,
   licenseResponseSecret: '',
   shopEnabled: true,
+  notifyWebhookUrl: '',
+  notifyEmailSmtpHost: '',
+  notifyEmailSmtpPort: 465,
+  notifyEmailSmtpUser: '',
+  notifyEmailSmtpPass: '',
+  notifyEmailFrom: '',
+  notifyEmailTo: '',
+  notifySmsApiUrl: '',
+  notifySmsApiBody: '',
+  notifySmsPhones: '',
 }
 
 export function stringifyConfigValue(value: string | number | boolean | string[]) {

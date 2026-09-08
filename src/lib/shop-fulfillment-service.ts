@@ -1,5 +1,9 @@
 import { prisma } from './db'
 import { generateActivationCodes } from './license-generation-service'
+import {
+  notifyShopOrderFulfilledEvent,
+  sendBuyerOrderFulfilledEmail,
+} from './notification-events'
 import { SHOP_ORDER_STATUS } from './shop-order-service'
 
 /**
@@ -52,7 +56,10 @@ export async function fulfillShopOrder(
   // 事务内原子抢占：只有 pending/paid → fulfilled 转换成功的请求才发卡
   // 码池售罄/并发抢码冲突时返回业务失败（事务回滚，订单回到原状态）
   try {
-    return await prisma.$transaction(async (tx) => {
+    const txResult = await prisma.$transaction(
+      async (
+        tx,
+      ): Promise<FulfillShopOrderResult & { newlyFulfilled?: boolean }> => {
       const claimed = await tx.shopOrder.updateMany({
         where: {
           id: order.id,
@@ -141,8 +148,22 @@ export async function fulfillShopOrder(
       data: { fulfilledCodeIds },
     })
 
-    return { success: true, codes }
+    return { success: true, codes, newlyFulfilled: true }
     })
+
+    // 事务提交成功后分发事件通知（fire-and-forget，不影响发卡结果）
+    if (txResult.success && !txResult.alreadyProcessed && txResult.codes?.length) {
+      dispatchFulfillmentNotifications({
+        orderNo: order.orderNo,
+        productName: order.product.name,
+        amountInCents: order.amountInCents,
+        contactEmail: order.contactEmail,
+        codes: txResult.codes,
+        trigger: params.adminUsername ? 'admin' : 'payment',
+      })
+    }
+
+    return txResult
   } catch (error) {
     if (error instanceof Error && error.message.startsWith('SHOP_')) {
       return {
@@ -151,6 +172,43 @@ export async function fulfillShopOrder(
       }
     }
     throw error
+  }
+}
+
+/**
+ * 发卡成功后的事件通知（fire-and-forget，不阻塞发卡主流程）：
+ * - 管理员渠道（webhook/邮件/短信）：SHOP_ORDER_PAID_FULFILLED 事件
+ * - 买家渠道：下单时留了邮箱则发送卡密邮件（需邮件通知已配置）
+ */
+function dispatchFulfillmentNotifications(params: {
+  orderNo: string
+  productName: string
+  amountInCents: number
+  contactEmail: string | null
+  codes: string[]
+  trigger: 'payment' | 'admin'
+}) {
+  notifyShopOrderFulfilledEvent({
+    orderNo: params.orderNo,
+    productName: params.productName,
+    amountInCents: params.amountInCents,
+    codes: params.codes,
+    trigger: params.trigger,
+  })
+
+  if (params.contactEmail?.trim()) {
+    void sendBuyerOrderFulfilledEmail({
+      to: params.contactEmail,
+      orderNo: params.orderNo,
+      productName: params.productName,
+      amountInCents: params.amountInCents,
+      codes: params.codes,
+    }).catch((error) => {
+      console.warn(
+        `[notify] 买家发卡邮件发送失败（${params.orderNo}）:`,
+        error instanceof Error ? error.message : String(error),
+      )
+    })
   }
 }
 

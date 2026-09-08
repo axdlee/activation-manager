@@ -43,7 +43,13 @@ export type SystemConfigDisplayItem = {
   previewTokens?: string[]
 }
 
-export type SystemConfigGroupKey = 'access' | 'rebind' | 'security' | 'branding' | 'advanced'
+export type SystemConfigGroupKey =
+  | 'access'
+  | 'rebind'
+  | 'security'
+  | 'branding'
+  | 'notification'
+  | 'advanced'
 
 export type SystemConfigGroup = {
   key: SystemConfigGroupKey
@@ -97,6 +103,12 @@ const groupMetaMap: Record<Exclude<SystemConfigGroupKey, 'advanced'>, Omit<Syste
     description: '维护后台面向管理员的系统名称与识别信息。',
     badge: '展示',
   },
+  notification: {
+    key: 'notification',
+    title: '通知与告警',
+    description: '关键业务事件（到期、发卡、超时取消）可同时分发到 Webhook、邮件与短信。',
+    badge: '通知',
+  },
 }
 
 const advancedGroupMeta: Omit<SystemConfigGroup, 'items'> = {
@@ -111,6 +123,18 @@ const groupItemOrderMap: Partial<Record<SystemConfigGroupKey, string[]>> = {
   rebind: ['allowAutoRebind', 'autoRebindCooldownMinutes', 'autoRebindMaxCount', 'allowDeviceBinding'],
   security: ['jwtSecret', 'jwtExpiresIn', 'bcryptRounds', 'licenseResponseSecret'],
   branding: ['systemName', 'expiryWebhookUrl', 'shopEnabled'],
+  notification: [
+    'notifyWebhookUrl',
+    'notifyEmailSmtpHost',
+    'notifyEmailSmtpPort',
+    'notifyEmailSmtpUser',
+    'notifyEmailSmtpPass',
+    'notifyEmailFrom',
+    'notifyEmailTo',
+    'notifySmsApiUrl',
+    'notifySmsApiBody',
+    'notifySmsPhones',
+  ],
 }
 
 function humanizeConfigKey(key: string) {
@@ -229,8 +253,14 @@ function resolveBcryptRoundsBadges(value: SystemConfigValue): SystemConfigBadge[
   return [{ label: '高强度', tone: 'info' }]
 }
 
-function resolveSensitiveConfigBadges(config: SystemConfigItem): SystemConfigBadge[] {
-  const badges: SystemConfigBadge[] = [{ label: '敏感配置', tone: 'danger' }]
+function resolveConfiguredBadges(value: SystemConfigValue, configuredLabel: string, unconfiguredLabel: string): SystemConfigBadge[] {
+  const hasValue = typeof value === 'string' ? Boolean(value.trim()) : Boolean(value)
+  return hasValue
+    ? [{ label: configuredLabel, tone: 'success' }]
+    : [{ label: unconfiguredLabel, tone: 'warning' }]
+}
+
+function resolveSensitiveConfigBadges(config: SystemConfigItem): SystemConfigBadge[] {  const badges: SystemConfigBadge[] = [{ label: '敏感配置', tone: 'danger' }]
 
   if (!config.masked) {
     return badges
@@ -377,9 +407,9 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
     case 'expiryWebhookUrl':
       return {
         key: config.key,
-        label: '到期通知接口',
-        description: '激活码到期或次数耗尽时，向该地址发送 POST JSON 通知。',
-        hint: '留空表示不通知。接口需返回 2xx 视为成功；通知内容包含激活码、项目、机器与到期时间。',
+        label: '到期通知接口（旧）',
+        description: '激活码到期或次数耗尽时的旧版通知入口；已配置「通用通知 Webhook」时此地址不再发送。',
+        hint: '建议改用「通用通知 Webhook」统一接收所有事件。此地址仅在未配置通用 Webhook 时用于到期事件，且保持原有扁平 payload 格式。',
         value: config.value,
         inputKind: 'text',
         placeholder: 'https://example.com/hooks/license-expiry',
@@ -425,6 +455,135 @@ function resolveDisplayItem(config: SystemConfigItem): SystemConfigDisplayItem {
             ? [{ label: '签名已启用', tone: 'success' }]
             : [{ label: '未启用', tone: 'warning' }],
       }
+    case 'notifyWebhookUrl':
+      return {
+        key: config.key,
+        label: '通用通知 Webhook',
+        description: '关键业务事件（激活码到期、订单发卡、超时取消）发生时，向该地址 POST JSON 通知。',
+        hint: '留空表示不通知。配置后激活码到期事件优先走此地址（不再发送下方旧「到期通知接口」）。接口需返回 2xx 视为成功。',
+        value: config.value,
+        inputKind: 'text',
+        placeholder: 'https://example.com/hooks/activation-manager',
+        layout: 'full',
+        badges: resolveConfiguredBadges(config.value, '通知已启用', '未启用'),
+      }
+    case 'notifyEmailSmtpHost':
+      return {
+        key: config.key,
+        label: '邮件通知 SMTP 服务器',
+        description: '配置后到期、发卡等事件会同时发送邮件通知到下方收件人。',
+        hint: '例如 smtp.qq.com、smtp.163.com；留空表示不启用邮件通知。邮箱需开启 SMTP 并使用授权码登录。',
+        value: config.value,
+        inputKind: 'text',
+        placeholder: 'smtp.example.com',
+        layout: 'default',
+        badges: resolveConfiguredBadges(config.value, '邮件通知已启用', '邮件通知未启用'),
+      }
+    case 'notifyEmailSmtpPort':
+      return {
+        key: config.key,
+        label: '邮件通知 SMTP 端口',
+        description: 'SMTP 服务端口；465 使用 SSL 直连，其他端口按 STARTTLS/明文处理。',
+        hint: '常用端口：465（SSL）或 587/25（STARTTLS）。',
+        value: config.value,
+        inputKind: 'number',
+        min: 1,
+        max: 65535,
+        step: 1,
+        layout: 'default',
+        badges: [{ label: '默认 465', tone: 'neutral' }],
+      }
+    case 'notifyEmailSmtpUser':
+      return {
+        key: config.key,
+        label: '邮件通知 SMTP 用户名',
+        description: 'SMTP 登录用户名，通常为发件邮箱地址。',
+        hint: '与密码/授权码同时填写才启用 SMTP 认证；使用无需认证的内网 SMTP 可留空。',
+        value: config.value,
+        inputKind: 'text',
+        placeholder: 'notify@example.com',
+        layout: 'default',
+        badges: [],
+      }
+    case 'notifyEmailSmtpPass':
+      return {
+        key: config.key,
+        label: '邮件通知 SMTP 密码/授权码',
+        description: 'SMTP 登录密码或邮箱服务商提供的授权码。',
+        hint: config.masked
+          ? config.hasValue
+            ? '当前授权码已配置，留空可保持不变；输入新值后会立即覆盖。'
+            : '尚未配置 SMTP 授权码，请从邮箱服务商设置中生成后填写。'
+          : '建议使用授权码而非邮箱登录密码，并妥善保管。',
+        value: config.value,
+        inputKind: 'password',
+        sensitive: true,
+        masked: config.masked,
+        hasValue: config.hasValue,
+        placeholder: config.hasValue ? '如需更新，请输入新的授权码' : '请输入 SMTP 密码/授权码',
+        layout: 'full',
+        badges: resolveSensitiveConfigBadges(config),
+      }
+    case 'notifyEmailFrom':
+      return {
+        key: config.key,
+        label: '邮件通知发件人',
+        description: '通知邮件展示的发件人地址。',
+        hint: '留空时默认使用 SMTP 用户名作为发件人。',
+        value: config.value,
+        inputKind: 'text',
+        placeholder: 'notify@example.com',
+        layout: 'default',
+        badges: [],
+      }
+    case 'notifyEmailTo':
+      return {
+        key: config.key,
+        label: '邮件通知收件人',
+        description: '接收通知邮件的管理员邮箱，可填写多个。',
+        hint: '多个邮箱用逗号或换行分隔；未填写时邮件通知不启用。',
+        value: config.value,
+        inputKind: 'textarea',
+        placeholder: 'admin@example.com',
+        layout: 'full',
+        badges: resolveConfiguredBadges(config.value, '收件人已配置', '未配置收件人'),
+      }
+    case 'notifySmsApiUrl':
+      return {
+        key: config.key,
+        label: '短信通知网关地址',
+        description: '通用 HTTP 短信网关；配置后关键事件会以短信形式发送到下方手机号。',
+        hint: '兼容提交 JSON 的短信服务商（阿里云短信助手、短信宝等 HTTP 网关）；留空表示不启用短信通知。',
+        value: config.value,
+        inputKind: 'text',
+        placeholder: 'https://sms.example.com/api/send',
+        layout: 'full',
+        badges: resolveConfiguredBadges(config.value, '短信通知已启用', '短信通知未启用'),
+      }
+    case 'notifySmsApiBody':
+      return {
+        key: config.key,
+        label: '短信请求体模板',
+        description: '发送短信时的 POST 请求体模板，占位符 {phone} 与 {content} 会被替换。',
+        hint: '默认模板：{"phone":"{phone}","content":"{content}"}。按短信服务商接口文档调整字段名。',
+        value: config.value,
+        inputKind: 'textarea',
+        placeholder: '{"phone":"{phone}","content":"{content}"}',
+        layout: 'full',
+        badges: [{ label: '支持 {phone} {content} 占位符', tone: 'neutral' }],
+      }
+    case 'notifySmsPhones':
+      return {
+        key: config.key,
+        label: '短信接收手机号',
+        description: '接收通知短信的管理员手机号，可填写多个。',
+        hint: '多个手机号用逗号或换行分隔；未填写时短信通知不启用。',
+        value: config.value,
+        inputKind: 'textarea',
+        placeholder: '13800000000',
+        layout: 'full',
+        badges: resolveConfiguredBadges(config.value, '手机号已配置', '未配置手机号'),
+      }
     default:
       return {
         key: config.key,
@@ -458,6 +617,10 @@ function resolveGroupKey(configKey: string): SystemConfigGroupKey {
 
   if (configKey === 'systemName') {
     return 'branding'
+  }
+
+  if (configKey.startsWith('notify')) {
+    return 'notification'
   }
 
   return 'advanced'

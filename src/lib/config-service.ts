@@ -5,7 +5,7 @@ import {
   type KnownSystemConfigMap,
 } from './system-config-defaults'
 import { type SystemConfigItem, type SystemConfigValue } from './system-config-ui'
-import { isSensitiveSystemConfigKey } from './system-config-rules'
+import { isRequiredSensitiveSystemConfigKey, isSensitiveSystemConfigKey } from './system-config-rules'
 
 type CachedSystemConfigValue = SystemConfigValue | null
 
@@ -58,6 +58,7 @@ function normalizeKnownSystemConfigValue<K extends KnownSystemConfigKey>(
     case 'bcryptRounds':
     case 'autoRebindCooldownMinutes':
     case 'autoRebindMaxCount':
+    case 'notifyEmailSmtpPort':
       return Number(value) as KnownSystemConfigMap[K]
     case 'allowAutoRebind':
     case 'allowDeviceBinding':
@@ -172,7 +173,7 @@ type ResolveConfigValueWithFallbackOptions = {
 
 function shouldFailFastForConfigValue(key: string, value: unknown, nodeEnv: string) {
   return (
-    isSensitiveSystemConfigKey(key) &&
+    isRequiredSensitiveSystemConfigKey(key) &&
     nodeEnv === 'production' &&
     (value === null || (typeof value === 'string' && value.trim() === ''))
   )

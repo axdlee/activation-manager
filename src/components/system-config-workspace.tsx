@@ -74,6 +74,14 @@ const systemConfigGroupThemeMap = {
     divider: 'border-surface-200',
     summaryPanel: 'border-surface-200 bg-surface-100',
   },
+  notification: {
+    badge: 'border border-surface-200 bg-surface-50 text-ink-300',
+    dot: 'bg-sky-500',
+    title: 'text-ink-50',
+    note: 'border-surface-200 bg-surface-50 text-ink-300',
+    divider: 'border-surface-200',
+    summaryPanel: 'border-surface-200 bg-surface-100',
+  },
   advanced: {
     badge: 'border border-surface-200 bg-surface-50 text-ink-300',
     dot: 'bg-surface-500',
@@ -89,6 +97,7 @@ const systemConfigFocusNoteMap = {
   rebind: '这里配置的是系统级默认策略，项目级与单码级可继续覆盖；建议结合冷却时间与次数上限一起审视。',
   security: '这里的修改会立即影响登录态与密码安全成本，建议优先复核。',
   branding: '展示项会直接出现在登录页和后台标题区，建议与实际产品名称保持一致。',
+  notification: '通知渠道全部可选：Webhook、邮件、短信至少配置其一即可生效；敏感的 SMTP 授权码保存后不会回显。',
   advanced: '高级配置通常承载扩展项，变更前请先确认其消费方与默认回退逻辑。',
 } as const
 

@@ -135,6 +135,12 @@ const systemConfigWorkspaceTabMetaMap: Record<
     shortLabel: '展示',
     description: '维护管理员侧可见的系统名称与品牌信息',
   },
+  notification: {
+    key: 'notification',
+    label: '通知与告警',
+    shortLabel: '通知',
+    description: '配置 Webhook、邮件与短信通知渠道',
+  },
   advanced: {
     key: 'advanced',
     label: '高级配置',
@@ -150,7 +156,7 @@ export function buildSystemConfigWorkspaceTabs(
 
   return [
     systemConfigWorkspaceOverviewTab,
-    ...(['access', 'rebind', 'security', 'branding', 'advanced'] as const)
+    ...(['access', 'rebind', 'security', 'branding', 'notification', 'advanced'] as const)
       .filter((groupKey) => groupKeySet.has(groupKey))
       .map((groupKey) => systemConfigWorkspaceTabMetaMap[groupKey]),
   ]
