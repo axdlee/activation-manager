@@ -395,7 +395,7 @@ function ensureDefaultProjectRow(dbPath: string) {
   runSqlite(
     dbPath,
     `
-      INSERT INTO "projects" ("name", "projectKey", "description", "isEnabled", "createdAt", "updatedAt")
+      INSERT OR IGNORE INTO "projects" ("name", "projectKey", "description", "isEnabled", "createdAt", "updatedAt")
       VALUES (
         '${escapeSqlString(DEFAULT_PROJECT_NAME)}',
         '${escapeSqlString(DEFAULT_PROJECT_KEY)}',
