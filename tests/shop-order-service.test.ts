@@ -537,3 +537,62 @@ test('PREDEFINED 商品售罄时下单被拒绝（409）', async () => {
     },
   )
 })
+
+test('超时未支付订单会被清理为 cancelled，新订单不受影响', async () => {
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'manual' },
+    update: {},
+    create: { provider: 'manual', configJson: '{}', isEnabled: true },
+  })
+  const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
+  const product = await prisma.shopProduct.create({
+    data: {
+      name: '清理测试卡',
+      projectId: project.id,
+      licenseMode: 'TIME',
+      cardType: '测试卡',
+      validDays: 7,
+      priceInCents: 300,
+      isEnabled: true,
+      stockMode: 'DYNAMIC',
+    },
+  })
+
+  // 超时订单（40 分钟前）
+  await prisma.shopOrder.create({
+    data: {
+      orderNo: generateShopOrderNo(),
+      productId: product.id,
+      amountInCents: 300,
+      contactEmail: 'expired@test.com',
+      status: 'pending',
+      provider: 'manual',
+      createdAt: new Date(Date.now() - 40 * 60 * 1000),
+    },
+  })
+
+  // 新订单（1 分钟前，不应被清理）
+  const fresh = await prisma.shopOrder.create({
+    data: {
+      orderNo: generateShopOrderNo(),
+      productId: product.id,
+      amountInCents: 300,
+      contactEmail: 'fresh@test.com',
+      status: 'pending',
+      provider: 'manual',
+      createdAt: new Date(Date.now() - 1 * 60 * 1000),
+    },
+  })
+
+  const { cancelExpiredPendingOrders } = await import('../src/lib/shop-order-cleanup-service')
+  const result = await cancelExpiredPendingOrders()
+
+  assert.equal(result.cancelled, 1)
+
+  const expiredCount = await prisma.shopOrder.count({
+    where: { status: 'cancelled', contactEmail: 'expired@test.com' },
+  })
+  const freshStatus = await prisma.shopOrder.findUniqueOrThrow({ where: { id: fresh.id } })
+  assert.equal(expiredCount, 1)
+  assert.equal(freshStatus.status, 'pending')
+})

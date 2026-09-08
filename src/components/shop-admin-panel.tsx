@@ -310,6 +310,19 @@ export function ShopAdminPanel() {
     }
   }
 
+  const handleCleanupExpiredOrders = async () => {
+    if (!window.confirm('取消所有超过 30 分钟仍未支付的待支付订单？')) return
+    try {
+      const response = await fetch('/api/admin/shop/orders/cleanup', { method: 'POST' })
+      const data = (await response.json()) as { success: boolean; message?: string }
+      if (!data.success) { notify(data.message ?? '清理失败', 'error'); return }
+      notify(data.message ?? '清理完成')
+      await loadAll()
+    } catch {
+      notify('清理失败，请重试', 'error')
+    }
+  }
+
   const handleOpenEditProduct = (product: ShopProduct) => {
     setEditingProduct(product)
     setEditForm({
@@ -653,6 +666,13 @@ export function ShopAdminPanel() {
             manual 渠道需人工核对收款后点击确认，系统自动发放卡密。
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => void handleCleanupExpiredOrders()}
+              className="rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-400"
+            >
+              清理超时订单（30 分钟未支付）
+            </button>
             <AppSelect
               value={orderStatusFilter}
               onChange={(event) => setOrderStatusFilter(event.target.value)}
