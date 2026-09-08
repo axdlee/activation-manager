@@ -1,7 +1,9 @@
 # Release Notes — Activation Manager v2.4.0
 
 > 购买中心体系完善：总开关 · 预定义码池 · 渠道配置完整性 · 多支付适配器 · 国际化
-> 覆盖范围：`v2.3.0..HEAD` | 14 commits | 51 files | +2,654 / -157
+> 覆盖范围：`v2.3.0..HEAD` | 16 commits | 51 files | +2,672 / -165
+>
+> 含发布流程修复：Docker workflow .env.ci 镜像名对齐、bootstrap admin 种子并发防护
 
 ---
 
