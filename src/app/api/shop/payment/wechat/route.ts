@@ -8,7 +8,7 @@ import { fulfillShopOrder } from '@/lib/shop-fulfillment-service'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
-  const rateLimit = guardShopApiRateLimit(request, '/api/shop/payment/${route}')
+  const rateLimit = guardShopApiRateLimit(request, '/api/shop/payment/wechat')
   if (!rateLimit.allowed) {
     return rateLimit.response
   }

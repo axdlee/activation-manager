@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
  * 签名校验：MD5(参数键值对排序 + key)
  */
 export async function POST(request: NextRequest) {
-  const rateLimit = guardShopApiRateLimit(request, '/api/shop/payment/${route}')
+  const rateLimit = guardShopApiRateLimit(request, '/api/shop/payment/yipay')
   if (!rateLimit.allowed) {
     return rateLimit.response
   }
