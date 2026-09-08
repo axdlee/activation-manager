@@ -16,7 +16,9 @@
 - **面向真实接入而不是演示页面**：内置 `activate / status / consume` 正式接口与 `/api/verify` 兼容接口
 - **适合多产品 / 多客户并行运营**：通过 `projectKey` 隔离项目、发码空间、启停状态与治理策略
 - **对浏览器插件尤其友好**：支持次数型授权、`requestId` 幂等扣次、消费日志按请求回查
-- **交付闭环完整**：公开 API 文档、SDK、smoke 联调脚本、后台排查工作区、Docker 部署与 DockerHub 自动发布都已就绪
+- **支付自动发卡闭环**：公开购买页 + 手动收款/易支付/微信/支付宝渠道适配 + 预定义码池防超卖 + 订单超时自动取消
+- **通知系统**：激活码到期、订单发卡、超时取消等事件可同时分发到 Webhook / 邮件 / 短信，发卡自动邮件卡密给买家
+- **交付闭环完整**：公开 API 文档、SDK（JS/TS + Python）、smoke 联调脚本、后台排查工作区、Docker 部署与 DockerHub 自动发布都已就绪
 
 ## 快速导航
 
@@ -874,7 +876,8 @@ BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
 
 项目内已提供可直接复用的 SDK：
 
-- `src/lib/license-sdk.ts`
+- JS/TS：`src/lib/license-sdk.ts`
+- Python：`sdk/python/activation_manager.py`（单文件零依赖，含响应验签；自测：`python3 sdk/python/test_sdk.py`）
 
 最小使用示例：
 
@@ -1265,7 +1268,7 @@ CI 工作流位置：
 ├── Dockerfile
 ├── docker-compose.yml
 ├── apidocs.md
-├── xitonkaifa.md
+├── docs/            # 运维手册 / Postgres 指南 / 升级计划 / 历史文档归档
 └── README.md
 ```
 
@@ -1404,9 +1407,12 @@ flowchart TD
 
 - [API 对接指南（详版）](./apidocs.md)
 - [数据库备份指南](./DATABASE_BACKUP_GUIDE.md)
+- [运维手册（定时任务 / 多实例 / 升级计划）](./docs/operations.md)
+- [Postgres 接入指南](./docs/postgres.md)
 - [更新日志](./CHANGELOG.md)
-- [开发说明](./xitonkaifa.md)
 - [README 截图清单（最新版）](./Readmeimg/validation-20260327/README_SCREENSHOTS.md)
+- [演进备忘（暂缓项与触发条件）](./docs/ROADMAP.md)
+- 历史文档归档：[工程加固计划](./docs/archive/ENGINEERING_HARDENING_PLAN.md) / [早期开发说明](./docs/archive/xitonkaifa.md)
 
 ---
 

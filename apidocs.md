@@ -115,11 +115,12 @@ POST /api/license/consume
 
 ---
 
-## 4.4 JS / TS SDK 接入
+## 4.4 SDK 接入（JS/TS 与 Python）
 
-项目已内置一个可复用 SDK：
+项目已内置两个可复用 SDK：
 
-- `src/lib/license-sdk.ts`
+- JS/TS：`src/lib/license-sdk.ts`（Next.js 应用内 `@/lib/license-sdk` 引用）
+- Python：`sdk/python/activation_manager.py`（单文件、零第三方依赖，Python 3.8+）
 
 推荐用法：
 
@@ -214,6 +215,7 @@ SDK 同样内置购买端（Shop API）方法：
 const createResult = await client.createShopOrder({
   productId: 1,
   providerId: 'yipay',
+  quantity: 2,
   contactEmail: 'buyer@example.com',
 })
 
@@ -226,6 +228,20 @@ const queryResult = await client.queryShopOrder({
 // 已发卡订单的 codes 数组包含卡密
 console.log(queryResult.codes?.[0]?.code)
 ```
+
+Python SDK 等价用法：
+
+```python
+from activation_manager import create_client
+
+client = create_client(base_url="http://127.0.0.1:3000", project_key="browser-plugin")
+
+activate_result = client.activate(code="A1B2C3D4E5F6G7H8", machine_id="machine-001")
+status_result = client.status(code="A1B2C3D4E5F6G7H8", machine_id="machine-001")
+consume_result = client.consume(code="A1B2C3D4E5F6G7H8", machine_id="machine-001", request_id="req-001")
+```
+
+Python SDK 自测：`python3 sdk/python/test_sdk.py`
 
 购买端方法说明：
 
@@ -761,6 +777,7 @@ POST /api/shop/orders
 {
   "productId": 1,
   "providerId": "yipay",
+  "quantity": 2,
   "contactEmail": "buyer@example.com",
   "contactPhone": "",
   "contactWechat": ""
@@ -768,11 +785,16 @@ POST /api/shop/orders
 ```
 
 - `productId` 必填；`providerId` 必须是 11.2 中列出的渠道
+- `quantity`（可选，默认 1）：购买数量，1-100；一单按数量发多张卡密，金额 = 单价 × 数量
 - `contactEmail` / `contactPhone` / `contactWechat` 至少提供一个（用于卡密找回）
-- 预定义码池商品售罄时返回 `409`：
+- 预定义码池商品售罄 / 库存不足时返回 `409`：
 
 ```json
 { "success": false, "message": "该商品已售罄，请等待补货" }
+```
+
+```json
+{ "success": false, "message": "该商品库存不足，剩余 2 张" }
 ```
 
 成功响应（`manual` 渠道附带收款说明，在线渠道返回支付跳转参数）：
@@ -783,7 +805,8 @@ POST /api/shop/orders
   "order": {
     "orderNo": "SOABC123XYZ",
     "productName": "月卡",
-    "amountInCents": 990,
+    "quantity": 2,
+    "amountInCents": 1980,
     "status": "pending",
     "provider": "yipay"
   }
@@ -835,11 +858,10 @@ Content-Type: application/json
 
 ### 11.6 支付回调（由支付网关调用）
 
-- 易支付回调：`POST /api/shop/payment/yipay`
-- 微信回调：`POST /api/shop/payment/wechat`
-- 支付宝回调：`POST /api/shop/payment/alipay`
+- **统一入口（推荐）**：`POST /api/shop/payment/notify/[provider]`，如 `.../notify/yipay`、`.../notify/alipay`、`.../notify/wechat`；内部按渠道适配器验签后自动发卡
+- 独立入口（等价，可并存）：`POST /api/shop/payment/yipay` | `/wechat` | `/alipay`
 - 通用回调（自建监控 / 其他渠道）：`POST /api/shop/payment/webhook`，请求体 `{ orderNo, paid, transactionId? }`；渠道配置 secret 后必须携带 `x-webhook-secret` 请求头
-- 回调验签通过且订单匹配后自动发卡；全部回调接口带限流保护
+- 回调验签通过且订单匹配后自动发卡（超时已取消的订单回调会被拒绝）；全部回调接口带限流保护
 
 ### 11.7 限流
 
@@ -858,8 +880,10 @@ Content-Type: application/json
 | `/api/admin/shop/products/restock` | POST | 预定义商品补货 `{productId, amount}`，1-100 |
 | `/api/admin/shop/orders` | GET | 订单列表，支持 `status` / `provider` / `page` / `pageSize` |
 | `/api/admin/shop/orders/[orderNo]/confirm` | POST | manual 渠道人工确认发卡 |
+| `/api/admin/shop/orders/[orderNo]/resend-email` | POST | 重发买家卡密邮件（需已发卡且留了邮箱；邮件渠道未配置返回 502） |
 | `/api/admin/shop/orders/cleanup` | POST | 取消超过 30 分钟未支付的待支付订单，返回 `{cancelled}` |
 | `/api/admin/shop/payment-configs` | GET / POST | 渠道配置读写；GET 返回 `missingKeys` / `configComplete` |
+| `/api/admin/notifications/logs` | GET | 通知投递日志，支持 `event` / `channel` / `status` / `relatedId` 筛选 |
 | `/api/admin/system-config` | GET / POST | 系统配置（含 `shopEnabled`、`notify*` 通知渠道等全部配置项） |
 
 ### 12.1 通知渠道配置（管理员通知中心）
@@ -878,3 +902,4 @@ Content-Type: application/json
 - 未配置的渠道自动跳过；单渠道失败不影响其他渠道
 - 配置 `notifyWebhookUrl` 后，激活码到期事件优先走该地址；未配置时回落到旧「到期通知接口」`expiryWebhookUrl` 并保持原始扁平 payload 结构（向后兼容）
 - 订单发卡时，若买家留了邮箱且邮件渠道已配置，系统会把卡密自动发送到买家邮箱
+- 每次实际投递（非跳过）都会写入投递日志（`GET /api/admin/notifications/logs` 可查），失败便于排查与重发

@@ -1,69 +1,48 @@
-# Release Notes — Activation Manager v2.4.0
+# Release Notes — Activation Manager v2.5.0
 
-> 购买中心体系完善：总开关 · 预定义码池 · 渠道配置完整性 · 多支付适配器 · 国际化
-> 覆盖范围：`v2.3.0..HEAD` | 16 commits | 51 files | +2,672 / -165
->
-> 含发布流程修复：Docker workflow .env.ci 镜像名对齐、bootstrap admin 种子并发防护
+> 通用通知系统 · 订单数量（一单多码）· Admin API 限流 · 统一支付回调 · Python SDK · CI 加固
+> 覆盖范围：`v2.4.0..HEAD`
 
 ---
 
-## 💰 购买中心体系完善
+## 📣 通用通知系统（管理员通知中心）
 
-### 支付适配器（真实网关）
-- **易支付**（个人可注册，无商户资质）：MD5 签名、form-urlencoded 回调
-- **微信支付 / 支付宝（官方）**：XML / form-urlencoded 回调解析，配置齐全即可启用
-- 回调路由统一限流保护（防回调轰炸）
+- 三类事件统一分发：**激活码到期/耗尽**、**订单发卡**、**超时订单取消**
+- 三类渠道可叠加：**Webhook**（统一 envelope）/ **邮件**（SMTP，nodemailer）/ **短信**（通用 HTTP 网关 + 请求体模板）
+- 发卡成功自动把卡密邮件发给买家（留了邮箱即可）；管理员可后台一键**重发卡密邮件**
+- 向后兼容：未配置新 Webhook 时到期事件回落旧 `expiryWebhookUrl`，payload 结构不变
+- **通知投递日志**（notification_logs）：渠道/目标/状态/错误/payload 快照，管理 API 可筛选查询
+- 后台「系统配置 → 通知与告警」分组；SMTP 授权码敏感掩码、空值不覆盖
 
-### 后台自主配置
-- **购买中心总开关**（系统配置 → 启用购买中心）：关闭后 `/shop` 停用提示 + 商品/下单/渠道 API 403，后台管理不受影响
-- **支付渠道按配置完整性展示**：渠道需启用且必需配置齐全（易支付 gateway/pid/key；微信 appId/mchId/apiKey；支付宝 appId）才对外展示；配置不全后台有明确警示
-- **manual 兜底**：无可用渠道且手动收款未显式禁用时自动提供
+## 🛒 订单数量（一单多码）
 
-### 预定义码池商品
-- 商品支持两种模式：**动态生成**（下单后发码）与 **预定义码池**（卖预存码）
-- 后台补货 1-100 张；码池事务原子取码，**并发下单不超卖**
-- 售罄：公开列表「已售罄」+ 下单 **409 拦截**（避免买家付款后无货）
-- 购买页显示剩余库存
+- 下单 `quantity` 1-100：金额 = 单价 × 数量，支付后一次发 N 张卡密
+- 预定义码池事务内逐张原子抢占，库存不足整体回滚（不超卖）；动态商品批量生成
+- 购买页数量选择 + 合计金额；后台订单 ×N 徽标；SDK 同步支持
+- 库存不足 409：「该商品库存不足，剩余 N 张」
 
-### 商品排序与后台体验
-- 商品排序：推荐 / 价格升 / 价格降 / 最新
-- 后台订单筛选（状态 + 支付渠道）、商品编辑弹框、补货数量自定义
+## ⏱ 订单超时自动取消
 
-## 🌐 国际化（i18n）
+- pending 订单超 30 分钟未支付自动取消（后台按钮 / `POST /api/admin/shop/orders/cleanup` / 外部 cron）
+- 超时订单支付回调拒绝发卡；清理动作推送通知（含订单号列表）
+- 后台购买中心「清理超时订单」按钮
 
-- 轻量零依赖 i18n 框架，zh-CN / en-US 双语言 + 语言切换器
-- 首页 / 购买页 / 登录页 / API 文档页关键文案翻译
+## 🔒 安全与运维
 
-## ⚡ 性能基准测试
+- **Admin API 统一限流**：IP + 路径维度，默认 300 次/分钟（`ADMIN_API_RATE_LIMIT_MAX` 可调），429 + Retry-After
+- **支付回调统一入口** `POST /api/shop/payment/notify/[provider]`，与独立路由并存
+- **CI 加固**：新增 Playwright e2e job（失败上传报告）+ Dependabot（npm/actions 每周）
+- 单测文件串行化，消除共享 SQLite 并行竞态
+- 限流器预留 `RateLimitStore` 存储接口缝（多实例 Redis 预留）
+- 新增运维/升级文档：`docs/operations.md`（crontab 示例、多实例注意）、`docs/postgres.md`、`docs/nextjs-upgrade-plan.md`；历史文档归档 `docs/archive/`
 
-`npm run benchmark:license-api`（实测并发 10）：
+## 📖 SDK 与文档
 
-| 接口 | 平均 | P95 | 吞吐 |
-| --- | --- | --- | --- |
-| status | 10.5ms | 12.8ms | 877 req/s |
-| activate | 30.4ms | 77ms | 165 req/s |
-| consume | 40.2ms | 102ms | 106 req/s |
+- JS/TS SDK 新增 `createShopOrder` / `queryShopOrder`（含 quantity）
+- **新增 Python SDK**（`sdk/python/activation_manager.py`）：activate/status/consume + 响应验签 + 重试，单文件零依赖
+- API 文档重写 Shop 章节：统一回调入口、订单数量、超时取消、投递日志、双语言 SDK 用法
 
-## 📱 移动端适配
+## 🐛 修复
 
-- 购买页 / 首页移动视口单列无溢出（390px 真实浏览器验证）
-- 订单号 / 卡密 break-all、标题响应式、placeholder 精简
-
-## 🐛 主要修复
-
-- 预定义商品售罄后仍可下单 → 409 拦截
-- 支付回调格式不兼容（真实网关 form-urlencoded / XML）
-- config-service 布尔配置归一化（shopEnabled 存成字符串 bug）
-- 补货上限与发码上限不一致
-
-## 🧪 测试与质量
-
-| 指标 | 数值 |
-| --- | --- |
-| 单元测试 | **496 个** |
-| e2e | **53 个**（购买中心新功能 6 / 工程化 12 / 支付回调 6） |
-| Quality Gate | ✅ |
-
----
-
-**升级提示**：新增 `shop_products.stockMode` 列与 `shop_product_code_stocks` 表，Docker 启动自动迁移。购买中心默认开启，无需购买页的部署可在系统配置中关闭。
+- 支付回调路由限流 key 模板字符串字面量（yipay/alipay/wechat 共用同一计数桶）
+- License API 项目不存在/已停用时返回业务失败而非异常

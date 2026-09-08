@@ -1,6 +1,12 @@
 # 更新日志
 
-## [Unreleased]
+## [v2.5.0] - 2026-09-08
+
+### 订单数量（一单多码）🛒
+- 下单支持 `quantity`（1-100）：金额 = 单价 × 数量，支付后按数量一次发卡
+- 预定义码池按数量原子取码（事务内逐张抢占，不足即回滚，不超卖）；动态商品按数量批量生成
+- 购买页数量选择与合计金额；后台订单列表显示 ×N 徽标；SDK `createShopOrder` 支持 `quantity`
+- 库存不足返回 409「该商品库存不足，剩余 N 张」
 
 ### 通知系统（管理员通知中心）📣
 - 新增通用通知分发层：`LICENSE_EXPIRED`（到期/耗尽）、`SHOP_ORDER_PAID_FULFILLED`（发卡）、
@@ -11,6 +17,10 @@
 - 短信渠道（notifySms*）：通用 HTTP 网关 + 请求体模板（`{phone}`/`{content}` 占位符），适配任意 JSON 提交服务商
 - 后台「系统配置 → 通知与告警」分组；SMTP 授权码为敏感配置（掩码、不回显、空值不覆盖）
 - 未配置渠道自动跳过；单渠道失败不影响其他渠道，也不阻塞主业务
+- **通知投递日志**（notification_logs）：每次实际投递记录渠道/目标/状态/错误/payload 快照，
+  `GET /api/admin/notifications/logs` 可按事件、渠道、状态、关联单号筛选
+- **后台重发卡密邮件**：已发卡订单一键重发（`POST /api/admin/shop/orders/[orderNo]/resend-email`），
+  邮件渠道未配置返回明确提示；日志清理纳入 prune-logs.sh
 
 ### 订单超时自动取消 ⏱
 - pending 订单超过 30 分钟未支付 → 标记 cancelled（幂等，可重复触发）
@@ -18,16 +28,24 @@
 - 超时订单支付回调不再发卡；清理动作支持通知推送（含订单号列表）
 
 ### SDK 与文档 📖
-- SDK 新增 `createShopOrder` / `queryShopOrder` 购买端方法（含错误透传与测试）
-- API 文档补充 Shop 公开 / 管理 API 完整章节、SDK 购买端用法、订单超时与限流说明
+- JS/TS SDK 新增 `createShopOrder` / `queryShopOrder` 购买端方法（含错误透传与测试）
+- 新增 **Python SDK**（sdk/python/activation_manager.py）：activate/status/consume + 响应验签（HMAC-SHA256 时间窗）
+  + 重试与错误分类，单文件零第三方依赖，附自测脚本
+- API 文档补充 Shop 公开 / 管理 API 完整章节、双语言 SDK 用法、订单超时与限流说明
 - 修复支付回调路由限流 key 模板字符串字面量（yipay/alipay/wechat 三处）
 
-### 安全 🔒
+### 安全与运维 🔒
 - 全部 Admin API 统一内存限流（IP + 路径维度，默认 300 次/分钟，ADMIN_API_RATE_LIMIT_MAX 可调），429 返回 Retry-After
 - 项目不存在/已停用时 License API 返回明确业务失败（不再抛 500）
+- 新增 **支付回调统一入口** `POST /api/shop/payment/notify/[provider]`（yipay/wechat/alipay），与独立回调路由等价并存
+- CI 新增 **e2e（Playwright）job**（verify 通过后运行，失败上传 test-results）；新增 Dependabot（npm + actions 每周）
+- 单测文件串行化（--test-concurrency=1），消除共享 SQLite 的并行竞态
+- 新增运维文档：定时任务 crontab 示例、多实例注意事项（docs/operations.md）、Postgres 接入指南（docs/postgres.md）、
+  Next.js 15/16 升级计划（docs/nextjs-upgrade-plan.md）；历史文档归档至 docs/archive/
+- 限流器新增 **RateLimitStore 存储接口缝**（默认进程内 Map，为 Redis 共享存储预留）
 
 ### 测试 🧪
-- 单测 540 个（+40：通知系统 30 例、Admin 限流 4 例、通知配置 6 例）
+- 单测 572 个（较 v2.4.0 +72：订单数量 6 例、通知投递日志 4 例、重发邮件 5 例、统一回调 6 例、限流存储接缝 2 例、支付适配器 9 例等）
 
 ## [v2.4.0] - 2026-09-07
 
