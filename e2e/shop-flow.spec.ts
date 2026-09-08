@@ -130,7 +130,7 @@ test.describe.serial('支付自动发卡 e2e', () => {
 
     // 用订单号 + 联系方式在页面找回
     await page.getByPlaceholder('订单号，如 SO…').fill(createdOrderNo)
-    await page.getByPlaceholder('下单时的邮箱 / 手机号 / 微信号').fill('e2e-buyer@example.com')
+    await page.getByPlaceholder('邮箱 / 手机号 / 微信号').fill('e2e-buyer@example.com')
     await page.getByRole('button', { name: '找回卡密' }).click()
 
     await expect(page.getByText(generatedCode).first()).toBeVisible({ timeout: 15_000 })
