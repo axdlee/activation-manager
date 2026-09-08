@@ -25,6 +25,10 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // 防跨源读取（配合 CSP frame-ancestors 'none' 防点击劫持与嵌入）
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+  // 隔离 opener 上下文，降低 tabnabbing / window.opener 攻击面
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   { key: 'Content-Security-Policy', value: cspDirectives },
 ]
 
