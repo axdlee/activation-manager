@@ -93,6 +93,8 @@ jobs:
           PORT=3300
           ALLOWED_IPS=127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
           ADMIN_INITIAL_PASSWORD=ci-smoke-admin-password
+          # CI 本地构建镜像名（与 bind mount 验证步骤保持一致）
+          DOCKER_IMAGE=activation-manager:local
           EOF
 
       - name: Build and start application via Docker Compose

@@ -57,8 +57,9 @@ export const POST = createProtectedAdminRouteHandler(
       return NextResponse.json({ success: false, message: '项目不存在' }, { status: 404 })
     }
 
-    if (body.priceInCents < 0) {
-      return NextResponse.json({ success: false, message: '价格不能为负' }, { status: 400 })
+    const price = Number(body.priceInCents)
+    if (!Number.isFinite(price) || price < 0) {
+      return NextResponse.json({ success: false, message: '价格必须是非负数' }, { status: 400 })
     }
 
     const product = await prisma.shopProduct.create({
@@ -70,7 +71,7 @@ export const POST = createProtectedAdminRouteHandler(
         cardType: body.cardType?.trim() || null,
         validDays: body.validDays ?? null,
         totalCount: body.totalCount ?? null,
-        priceInCents: Math.round(Number(body.priceInCents)),
+        priceInCents: Math.round(price),
         isEnabled: body.isEnabled ?? true,
         sortOrder: body.sortOrder ?? 0,
         stockMode: body.stockMode === 'PREDEFINED' ? 'PREDEFINED' : 'DYNAMIC',
