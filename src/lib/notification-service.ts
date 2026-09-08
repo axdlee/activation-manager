@@ -1,6 +1,15 @@
 import { getConfigWithDefault } from './config-service'
-import { sendNotificationEmail } from './notification-email'
-import { sendNotificationSms } from './notification-sms'
+import { prisma } from './db'
+import {
+  getEmailNotificationConfig,
+  isEmailNotificationConfigured,
+  sendNotificationEmail,
+} from './notification-email'
+import {
+  getSmsNotificationConfig,
+  isSmsNotificationConfigured,
+  sendNotificationSms,
+} from './notification-sms'
 
 /**
  * 通用通知系统（管理员通知中心）：
@@ -35,9 +44,9 @@ export type NotificationEnvelope = NotificationContent & {
 }
 
 export type NotificationChannelResult = {
-  webhook: { sent: boolean; viaLegacyExpiryWebhook?: boolean; skipped?: boolean }
-  email: { sent: boolean; skipped?: boolean }
-  sms: { sent: number; failed: number; skipped?: boolean }
+  webhook: { sent: boolean; target?: string; viaLegacyExpiryWebhook?: boolean; skipped?: boolean }
+  email: { sent: boolean; attempted: boolean; target?: string }
+  sms: { sent: number; failed: number; attempted: boolean; target?: string }
 }
 
 export type NotificationDispatchOptions = {
@@ -119,8 +128,9 @@ async function sendWebhookChannel(
 ): Promise<NotificationChannelResult['webhook']> {
   const genericUrl = await getNotificationWebhookUrl()
   if (genericUrl) {
-    return (await postJson(genericUrl, buildNotificationEnvelope(content))) as {
-      sent: boolean
+    return {
+      ...(await postJson(genericUrl, buildNotificationEnvelope(content))),
+      target: genericUrl,
     }
   }
 
@@ -131,8 +141,8 @@ async function sendWebhookChannel(
         ? normalizeHttpUrl(options.legacyExpiryWebhookUrl)
         : await getLegacyExpiryWebhookUrl()
     if (legacyUrl) {
-      const result = (await postJson(legacyUrl, content.data)) as { sent: boolean }
-      return { ...result, viaLegacyExpiryWebhook: true }
+      const result = await postJson(legacyUrl, content.data)
+      return { ...result, target: legacyUrl, viaLegacyExpiryWebhook: true }
     }
   }
 
@@ -140,24 +150,120 @@ async function sendWebhookChannel(
 }
 
 /**
- * 同步执行所有已配置渠道（等待全部完成；任何渠道异常都被吞掉）。
+ * 同步执行所有已配置渠道（等待全部完成；任何渠道异常都被吞掉），
+ * 并把每次实际投递（非跳过）写入 notification_logs。
  */
 export async function runNotificationChannels(
   content: NotificationContent,
   options: NotificationDispatchOptions = {},
 ): Promise<NotificationChannelResult> {
-  const [webhook, email, sms] = await Promise.all([
+  const [webhook, emailConfig, smsConfig] = await Promise.all([
     sendWebhookChannel(content, options).catch(() => ({ sent: false, skipped: true }) as NotificationChannelResult['webhook']),
-    sendNotificationEmail({ title: content.title, body: content.body, data: content.data }).catch(
-      () => false,
-    ),
-    sendNotificationSms({ content: `${content.title}：${content.body}` }).catch(() => null),
+    getEmailNotificationConfig(),
+    getSmsNotificationConfig(),
   ])
 
-  return {
+  const emailAttempted = isEmailNotificationConfigured(emailConfig)
+  const smsAttempted = isSmsNotificationConfigured(smsConfig)
+
+  const [emailSent, sms] = await Promise.all([
+    emailAttempted
+      ? sendNotificationEmail({ title: content.title, body: content.body, data: content.data }).catch(() => false)
+      : Promise.resolve(false),
+    smsAttempted
+      ? sendNotificationSms({ content: `${content.title}：${content.body}` }).catch(() => null)
+      : Promise.resolve(null),
+  ])
+
+  const result: NotificationChannelResult = {
     webhook,
-    email: { sent: email === true, skipped: email === false },
-    sms: sms ?? { sent: 0, failed: 0, skipped: true },
+    email: {
+      sent: emailSent === true,
+      attempted: emailAttempted,
+      target: emailAttempted ? (emailConfig?.recipients ?? []).join(',') : undefined,
+    },
+    sms: smsAttempted && sms
+      ? { ...sms, attempted: true, target: (smsConfig?.phones ?? []).join(',') }
+      : { sent: 0, failed: 0, attempted: false },
+  }
+
+  await persistNotificationLogs(content, result)
+
+  return result
+}
+
+/**
+ * 通知投递日志：每个渠道一条（仅记录实际尝试的投递）。
+ * 日志写入失败不影响通知结果，也不抛出。
+ */
+async function persistNotificationLogs(
+  content: NotificationContent,
+  result: NotificationChannelResult,
+): Promise<void> {
+  const data = (content.data ?? {}) as Record<string, unknown>
+  const relatedId =
+    (typeof data.orderNo === 'string' ? data.orderNo : undefined) ??
+    (typeof data.code === 'string' ? data.code : undefined) ??
+    (Array.isArray(data.orderNos) ? (data.orderNos as string[]).join(',') : undefined)
+
+  const envelope = JSON.stringify(buildNotificationEnvelope(content))
+  const rows: Array<{
+    event: string
+    channel: string
+    target: string
+    status: string
+    error?: string
+    relatedId?: string
+    payload?: string
+  }> = []
+
+  if (!result.webhook.skipped) {
+    rows.push({
+      event: content.event,
+      channel: 'webhook',
+      target: result.webhook.target ?? '',
+      status: result.webhook.sent ? 'sent' : 'failed',
+      error: result.webhook.sent ? undefined : 'webhook 返回非 2xx 或网络异常',
+      relatedId,
+      payload: envelope,
+    })
+  }
+
+  if (result.email.attempted) {
+    rows.push({
+      event: content.event,
+      channel: 'email',
+      target: result.email.target ?? '',
+      status: result.email.sent ? 'sent' : 'failed',
+      error: result.email.sent ? undefined : 'SMTP 发送失败',
+      relatedId,
+      payload: envelope,
+    })
+  }
+
+  if (result.sms.attempted) {
+    rows.push({
+      event: content.event,
+      channel: 'sms',
+      target: result.sms.target ?? '',
+      status: result.sms.failed === 0 ? 'sent' : result.sms.sent > 0 ? 'partial' : 'failed',
+      error: result.sms.failed > 0 ? `${result.sms.failed} 个号码发送失败` : undefined,
+      relatedId,
+      payload: envelope,
+    })
+  }
+
+  if (rows.length === 0) {
+    return
+  }
+
+  try {
+    await prisma.notificationLog.createMany({ data: rows })
+  } catch (error) {
+    console.warn(
+      '[notify] 通知日志写入失败:',
+      error instanceof Error ? error.message : String(error),
+    )
   }
 }
 

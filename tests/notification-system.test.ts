@@ -181,6 +181,7 @@ test.afterEach(async () => {
   await prisma.shopProductCodeStock.deleteMany({})
   await prisma.shopOrder.deleteMany({})
   await prisma.shopProduct.deleteMany({})
+  await prisma.notificationLog.deleteMany({})
   await prisma.systemConfig.deleteMany({ where: { key: { in: NOTIFY_CONFIG_KEYS } } })
   clearConfigCache()
   setEmailTransportFactoryForTests(null)
@@ -209,11 +210,12 @@ test('buildNotificationEnvelope 附带 notifiedAt 时间戳', () => {
 test('未配置任何渠道时 runNotificationChannels 全部跳过', async () => {
   const result = await runNotificationChannels(buildTestContent())
 
-  assert.deepEqual(result, {
-    webhook: { sent: false, skipped: true },
-    email: { sent: false, skipped: true },
-    sms: { sent: 0, failed: 0 },
-  })
+  assert.deepEqual(result.webhook, { sent: false, skipped: true })
+  assert.equal(result.email.sent, false)
+  assert.equal(result.email.attempted, false)
+  assert.equal(result.sms.attempted, false)
+  assert.equal(result.sms.sent, 0)
+  assert.equal(result.sms.failed, 0)
 })
 
 test('notifyWebhookUrl 收到统一 envelope 结构', async () => {
@@ -780,6 +782,91 @@ test('超时清理后触发 webhook 通知（含订单号列表）', async () =>
 
     const orderStatus = await prisma.shopOrder.findUniqueOrThrow({ where: { id: expired.id } })
     assert.equal(orderStatus.status, 'cancelled')
+  } finally {
+    restoreFetch()
+  }
+})
+
+// ---------- 通知投递日志（notification_logs） ----------
+
+test('配置渠道后投递会写入 notification_logs（webhook sent + email skipped 不记录）', async () => {
+  await writeConfig('notifyWebhookUrl', 'https://notify.example.com/hook')
+
+  const requests: CapturedRequest[] = []
+  const restoreFetch = installWebhookCapture(requests)
+
+  try {
+    await runNotificationChannels(buildTestContent())
+
+    assert.equal(requests.length, 1)
+
+    const logs = await prisma.notificationLog.findMany({})
+    assert.equal(logs.length, 1)
+    assert.equal(logs[0].event, 'SHOP_ORDER_PAID_FULFILLED')
+    assert.equal(logs[0].channel, 'webhook')
+    assert.equal(logs[0].status, 'sent')
+    assert.equal(logs[0].target, 'https://notify.example.com/hook')
+    assert.equal(logs[0].relatedId, 'SO-TEST')
+    const payload = JSON.parse(logs[0].payload ?? '{}') as { data?: { orderNo?: string } }
+    assert.equal(payload.data?.orderNo, 'SO-TEST')
+  } finally {
+    restoreFetch()
+  }
+})
+
+test('webhook 投递失败记录 failed 状态', async () => {
+  await writeConfig('notifyWebhookUrl', 'https://notify.example.com/hook')
+
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (async () => new Response('err', { status: 500 })) as typeof fetch
+
+  try {
+    await runNotificationChannels(buildTestContent())
+
+    const logs = await prisma.notificationLog.findMany({ where: { channel: 'webhook' } })
+    assert.equal(logs.length, 1)
+    assert.equal(logs[0].status, 'failed')
+    assert.ok(logs[0].error)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('邮件渠道尝试投递时记录 email 日志；未配置时不记录', async () => {
+  // 未配置：runNotificationChannels 全跳过，无日志
+  await runNotificationChannels(buildTestContent())
+  assert.equal(await prisma.notificationLog.count({}), 0)
+
+  // 配置后：email 日志记录
+  await writeConfig('notifyEmailSmtpHost', 'smtp.example.com')
+  await writeConfig('notifyEmailTo', 'admin@example.com')
+  setEmailTransportFactoryForTests(() => ({
+    async sendMail() {
+      throw new Error('smtp down')
+    },
+  }))
+
+  await runNotificationChannels(buildTestContent())
+
+  const logs = await prisma.notificationLog.findMany({ where: { channel: 'email' } })
+  assert.equal(logs.length, 1)
+  assert.equal(logs[0].status, 'failed')
+  assert.equal(logs[0].target, 'admin@example.com')
+})
+
+test('超时取消事件日志 relatedId 汇总订单号列表', async () => {
+  await writeConfig('notifyWebhookUrl', 'https://notify.example.com/hook')
+
+  const requests: CapturedRequest[] = []
+  const restoreFetch = installWebhookCapture(requests)
+
+  try {
+    notifyShopOrderTimeoutCancelledEvent({ orderNos: ['SO-A', 'SO-B'], timeoutMinutes: 30 })
+    await waitFor(() => requests.length >= 1)
+
+    const logs = await prisma.notificationLog.findMany({ where: { channel: 'webhook' } })
+    assert.equal(logs.length, 1)
+    assert.equal(logs[0].relatedId, 'SO-A,SO-B')
   } finally {
     restoreFetch()
   }

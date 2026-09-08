@@ -217,6 +217,22 @@ model ShopOrder {
   @@map("shop_orders")
 }
 
+// 通知投递日志：记录每次事件通知的渠道投递结果，支持后台查询与重发
+model NotificationLog {
+  id         Int       @id @default(autoincrement())
+  event      String // LICENSE_EXPIRED | SHOP_ORDER_PAID_FULFILLED | SHOP_ORDER_TIMEOUT_CANCELLED
+  channel    String // webhook | email | sms
+  target     String // Webhook URL / 收件邮箱 / 手机号
+  status     String    @default("pending") // pending | sent | failed | skipped
+  error      String?
+  relatedId  String? // 关联业务标识（如订单号），用于后台筛选
+  payload    String? // JSON 快照（重发时使用）
+  createdAt  DateTime  @default(now())
+
+  @@index([event, createdAt])
+  @@index([channel, status])
+  @@map("notification_logs")
+}
 
 // 支付渠道配置（JSON 存储，避免频繁加字段）
 model ShopPaymentConfig {

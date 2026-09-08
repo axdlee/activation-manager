@@ -324,6 +324,23 @@ export function ShopAdminPanel() {
     }
   }
 
+  const handleResendEmail = async (order: ShopOrder) => {
+    if (!window.confirm(`向 ${order.contactEmail} 重发订单 ${order.orderNo} 的卡密邮件？`)) return
+    try {
+      const response = await fetch(`/api/admin/shop/orders/${order.orderNo}/resend-email`, {
+        method: 'POST',
+      })
+      const data = (await response.json()) as { success: boolean; message?: string }
+      if (!data.success) {
+        notify(data.message ?? '重发失败', 'error')
+        return
+      }
+      notify(data.message ?? '卡密邮件已重发')
+    } catch {
+      notify('重发失败，请重试', 'error')
+    }
+  }
+
   const handleOpenEditProduct = (product: ShopProduct) => {
     setEditingProduct(product)
     setEditForm({
@@ -749,7 +766,18 @@ export function ShopAdminPanel() {
                           确认收款发卡
                         </button>
                       ) : order.status === 'fulfilled' ? (
-                        <span className="text-xs text-emerald-400">✓ 已发卡</span>
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-xs text-emerald-400">✓ 已发卡</span>
+                          {order.contactEmail ? (
+                            <button
+                              type="button"
+                              onClick={() => void handleResendEmail(order)}
+                              className="rounded-md border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-xs text-sky-400"
+                            >
+                              重发卡密邮件
+                            </button>
+                          ) : null}
+                        </div>
                       ) : null}
                     </td>
                   </tr>

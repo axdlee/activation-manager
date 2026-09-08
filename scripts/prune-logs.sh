@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 归档清理：删除 N 天前的审计日志与消费日志。
+# 归档清理：删除 N 天前的审计日志、消费日志与通知投递日志。
 # SQLite 单文件数据库长期运行会无限膨胀，建议定期执行本脚本（如 cron 每周）。
 #
 # 用法：
@@ -48,6 +48,7 @@ TIMEOUT_PREFIX=".timeout 5000"
 echo "== 清理前统计 =="
 echo "审计日志总数: $(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM admin_operation_audit_logs;")"
 echo "消费日志总数: $(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM license_consumptions;")"
+echo "通知日志总数: $(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM notification_logs;" 2>/dev/null || echo 0)"
 echo "保留阈值: ${RETENTION_DAYS} 天前（${CUTOFF} 之前的数据将被删除）"
 echo "数据库: $DB_PATH"
 
@@ -68,6 +69,14 @@ SELECT changes();
 SQL
 
 echo
+echo "== 删除通知投递日志（createdAt < ${CUTOFF}） =="
+sqlite3 "$DB_PATH" <<SQL
+${TIMEOUT_PREFIX}
+DELETE FROM notification_logs WHERE createdAt < '${CUTOFF}';
+SELECT changes();
+SQL
+
+echo
 echo "== VACUUM 回收空间 =="
 sqlite3 "$DB_PATH" <<SQL
 ${TIMEOUT_PREFIX}
@@ -78,4 +87,5 @@ echo
 echo "== 清理后统计 =="
 echo "审计日志总数: $(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM admin_operation_audit_logs;")"
 echo "消费日志总数: $(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM license_consumptions;")"
+echo "通知日志总数: $(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM notification_logs;" 2>/dev/null || echo 0)"
 echo "✅ 日志清理完成"

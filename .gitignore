@@ -57,7 +57,7 @@ dev.db
 
 # Logs
 *.log
-logs/
+/logs/
 
 # Runtime data
 pids
@@ -154,3 +154,7 @@ e2e/.auth/
 
 # 本地备份产物
 /backups/
+
+# Python
+__pycache__/
+*.pyc
