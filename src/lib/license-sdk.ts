@@ -495,6 +495,73 @@ export function createLicenseClient(options: LicenseClientOptions) {
     consume(payload: ConsumeLicenseRequestInput) {
       return requestLicenseApi(options, '/api/license/consume', payload)
     },
+    /**
+     * 创建购买订单（Shop API）。返回原始 JSON 响应：
+     * { success, order, payment } —— order.orderNo 用于后续查询/找回。
+     */
+    async createShopOrder(payload: {
+      productId: number
+      providerId: string
+      contactEmail?: string
+      contactPhone?: string
+      contactWechat?: string
+    }) {
+      const fetcher = options.fetch ?? globalThis.fetch
+      if (!fetcher) {
+        throw new Error('当前环境不支持 fetch，请手动传入 fetch 实现')
+      }
+
+      const response = await fetcher(`${normalizeBaseUrl(options.baseUrl)}/api/shop/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers ? Object.fromEntries(new Headers(options.headers).entries()) : {}),
+        },
+        body: JSON.stringify(payload),
+      })
+
+      return (await response.json()) as {
+        success: boolean
+        message?: string
+        order?: {
+          orderNo: string
+          productName: string
+          amountInCents: number
+          status: string
+          provider: string
+        }
+        payment?: Record<string, string>
+      }
+    },
+    /**
+     * 查询订单 / 找回卡密（Shop API）。
+     */
+    async queryShopOrder(payload: {
+      orderNo: string
+      contactEmail?: string
+      contactPhone?: string
+      contactWechat?: string
+    }) {
+      const fetcher = options.fetch ?? globalThis.fetch
+      if (!fetcher) {
+        throw new Error('当前环境不支持 fetch，请手动传入 fetch 实现')
+      }
+
+      const response = await fetcher(`${normalizeBaseUrl(options.baseUrl)}/api/shop/orders/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers ? Object.fromEntries(new Headers(options.headers).entries()) : {}),
+        },
+        body: JSON.stringify(payload),
+      })
+
+      return (await response.json()) as {
+        success: boolean
+        message?: string
+        codes?: Array<{ id: number; code: string; cardType: string | null }>
+      }
+    },
   }
 }
 

@@ -109,3 +109,78 @@ test('SDK 未配置 responseSecret 时对未签名响应正常返回（向后兼
 
   assert.equal(result.success, true)
 })
+
+test('SDK createShopOrder 创建订单并返回订单号', async () => {
+  const mockFetch = async (_url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body))
+    assert.equal(body.productId, 1)
+    return new Response(
+      JSON.stringify({
+        success: true,
+        order: {
+          orderNo: 'SOSDK0001',
+          productName: '月卡',
+          amountInCents: 990,
+          status: 'pending',
+          provider: 'manual',
+        },
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )
+  }
+
+  const client = createLicenseClient({
+    baseUrl: 'http://127.0.0.1:3000',
+    fetch: mockFetch as unknown as typeof fetch,
+  })
+
+  const result = await client.createShopOrder({
+    productId: 1,
+    providerId: 'manual',
+    contactEmail: 'sdk@example.com',
+  })
+
+  assert.equal(result.success, true)
+  assert.equal(result.order?.orderNo, 'SOSDK0001')
+})
+
+test('SDK queryShopOrder 查询已发卡密', async () => {
+  const mockFetch = async (_url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body))
+    assert.equal(body.orderNo, 'SOSDK0001')
+    return new Response(
+      JSON.stringify({
+        success: true,
+        codes: [{ id: 1, code: 'AABBCCDDEEFF0011', cardType: '月卡' }],
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )
+  }
+
+  const client = createLicenseClient({
+    baseUrl: 'http://127.0.0.1:3000',
+    fetch: mockFetch as unknown as typeof fetch,
+  })
+
+  const result = await client.queryShopOrder({
+    orderNo: 'SOSDK0001',
+    contactEmail: 'sdk@example.com',
+  })
+
+  assert.equal(result.success, true)
+  assert.equal(result.codes?.[0]?.code, 'AABBCCDDEEFF0011')
+})
+
+test('SDK createShopOrder 网络错误时抛出可辨识异常', async () => {
+  const client = createLicenseClient({
+    baseUrl: 'http://127.0.0.1:3000',
+    fetch: (async () => {
+      throw new Error('network down')
+    }) as unknown as typeof fetch,
+  })
+
+  await assert.rejects(
+    () => client.createShopOrder({ productId: 1, providerId: 'manual' }),
+    /network down/,
+  )
+})
