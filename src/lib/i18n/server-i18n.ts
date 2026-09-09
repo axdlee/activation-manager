@@ -10,15 +10,52 @@
 // License API 响应签名：签名发生在消息组装之后（对最终 body 签名），
 // 因此按语言返回不同 message 不影响验签一致性。
 
-export type SupportedLocale = 'zh-CN' | 'en-US'
+export type SupportedLocale =
+  | 'zh-CN'
+  | 'en-US'
+  | 'ja-JP'
+  | 'ko-KR'
+  | 'es-ES'
+  | 'fr-FR'
+  | 'de-DE'
+  | 'pt-BR'
+  | 'ru-RU'
+  | 'ar-SA'
 
 export const LOCALE_COOKIE = 'activation-manager-locale'
 export const DEFAULT_LOCALE: SupportedLocale = 'zh-CN'
 
 const LOCALE_PATTERN = /^[a-zA-Z]{2}(-[a-zA-Z]{2,4})?$/
 
+/** BCP-47 前缀 → 受支持 locale（与服务端/客户端词典装配顺序一致） */
+const TAG_PREFIX_MAP: ReadonlyArray<readonly [string, SupportedLocale]> = [
+  ['zh', 'zh-CN'],
+  ['en', 'en-US'],
+  ['ja', 'ja-JP'],
+  ['ko', 'ko-KR'],
+  ['es', 'es-ES'],
+  ['fr', 'fr-FR'],
+  ['de', 'de-DE'],
+  ['pt', 'pt-BR'],
+  ['ru', 'ru-RU'],
+  ['ar', 'ar-SA'],
+]
+
 export function isSupportedLocale(value: unknown): value is SupportedLocale {
-  return value === 'zh-CN' || value === 'en-US'
+  return (
+    typeof value === 'string' && TAG_PREFIX_MAP.some(([, id]) => id === value)
+  )
+}
+
+/** BCP-47 tag → 受支持 locale（前缀匹配） */
+export function matchLocale(tag: string): SupportedLocale | null {
+  const lower = tag.toLowerCase()
+  for (const [prefix, id] of TAG_PREFIX_MAP) {
+    if (lower === prefix || lower.startsWith(prefix + '-')) {
+      return id
+    }
+  }
+  return null
 }
 
 /** 解析 Accept-Language 头的第一个可支持区域（q 值顺序） */
@@ -39,11 +76,9 @@ export function localeFromAcceptLanguage(header: string | null | undefined): Sup
     .sort((a, b) => b.q - a.q)
 
   for (const { tag } of candidates) {
-    if (tag.startsWith('zh')) {
-      return 'zh-CN'
-    }
-    if (tag.startsWith('en')) {
-      return 'en-US'
+    const matched = matchLocale(tag)
+    if (matched) {
+      return matched
     }
   }
 
@@ -105,10 +140,10 @@ function interpolate(template: string, params?: ServerMessageParams) {
  */
 export function createServerT(
   locale: SupportedLocale,
-  messages: Record<SupportedLocale, Record<string, string>>,
+  messages: Partial<Record<SupportedLocale, Record<string, string>>>,
 ): ServerT {
-  const dict = messages[locale] ?? messages[DEFAULT_LOCALE]
-  const fallbackDict = messages[DEFAULT_LOCALE]
+  const dict = messages[locale] ?? messages[DEFAULT_LOCALE] ?? {}
+  const fallbackDict = messages[DEFAULT_LOCALE] ?? {}
 
   return (key, params) => {
     const template = dict[key] ?? fallbackDict[key] ?? key

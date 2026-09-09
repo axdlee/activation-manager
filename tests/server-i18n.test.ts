@@ -24,7 +24,7 @@ test('localeFromAcceptLanguage 按质量值解析浏览器语言', () => {
   assert.equal(localeFromAcceptLanguage('zh-CN,zh;q=0.9,en;q=0.8'), 'zh-CN')
   assert.equal(localeFromAcceptLanguage('en'), 'en-US')
   assert.equal(localeFromAcceptLanguage('zh'), 'zh-CN')
-  assert.equal(localeFromAcceptLanguage('fr-FR,fr;q=0.9'), null)
+  assert.equal(localeFromAcceptLanguage('fr-FR,fr;q=0.9'), 'fr-FR')
   assert.equal(localeFromAcceptLanguage(null), null)
   assert.equal(localeFromAcceptLanguage(''), null)
 })
@@ -32,7 +32,8 @@ test('localeFromAcceptLanguage 按质量值解析浏览器语言', () => {
 test('localeFromCookieHeader 只接受受支持的 locale', () => {
   assert.equal(localeFromCookieHeader(`${LOCALE_COOKIE}=en-US; other=1`), 'en-US')
   assert.equal(localeFromCookieHeader(`a=1; ${LOCALE_COOKIE}=zh-CN`), 'zh-CN')
-  assert.equal(localeFromCookieHeader(`${LOCALE_COOKIE}=fr-FR`), null)
+  assert.equal(localeFromCookieHeader(`${LOCALE_COOKIE}=fr-FR`), 'fr-FR')
+  assert.equal(localeFromCookieHeader(`${LOCALE_COOKIE}=xx-XX`), null)
   assert.equal(localeFromCookieHeader(null), null)
 })
 
@@ -62,4 +63,20 @@ test('createServerT 支持参数插值与回退', () => {
 
 test('两个语言目录 key 集合完全一致（防漏译）', () => {
   assert.deepEqual(Object.keys(serverMessagesZh).sort(), Object.keys(serverMessagesEn).sort())
+})
+
+test('matchLocale 多语言前缀匹配', async () => {
+  const { matchLocale } = await import('../src/lib/i18n/server-i18n')
+
+  assert.equal(matchLocale('ja'), 'ja-JP')
+  assert.equal(matchLocale('ja-JP'), 'ja-JP')
+  assert.equal(matchLocale('ko-KR'), 'ko-KR')
+  assert.equal(matchLocale('es-MX'), 'es-ES')
+  assert.equal(matchLocale('pt-PT'), 'pt-BR')
+  assert.equal(matchLocale('de-AT'), 'de-DE')
+  assert.equal(matchLocale('ru'), 'ru-RU')
+  assert.equal(matchLocale('ar-EG'), 'ar-SA')
+  assert.equal(matchLocale('zh-TW'), 'zh-CN')
+  assert.equal(matchLocale('en-GB'), 'en-US')
+  assert.equal(matchLocale('it-IT'), null)
 })
