@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { generateActivationCodes } from '@/lib/license-generation-service'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
@@ -11,6 +12,7 @@ import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-servic
  */
 export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult) => {
+    const t = serverT(resolveServerLocale(request))
     const body = (await request.json()) as { productId?: number; amount?: number }
     const productId = Number(body.productId)
     const rawAmount = Number(body.amount)
@@ -19,7 +21,7 @@ export const POST = createProtectedAdminRouteHandler(
       : 1
 
     if (!productId) {
-      return NextResponse.json({ success: false, message: '缺少商品ID' }, { status: 400 })
+      return NextResponse.json({ success: false, message: t('shop.productIdRequired') }, { status: 400 })
     }
 
     const product = await prisma.shopProduct.findUnique({
@@ -28,12 +30,12 @@ export const POST = createProtectedAdminRouteHandler(
     })
 
     if (!product) {
-      return NextResponse.json({ success: false, message: '商品不存在' }, { status: 404 })
+      return NextResponse.json({ success: false, message: t('shop.productNotFound') }, { status: 404 })
     }
 
     if (product.stockMode !== 'PREDEFINED') {
       return NextResponse.json(
-        { success: false, message: '该商品不是预定义码模式，请先切换为 PREDEFINED' },
+        { success: false, message: t('shop.productNotPredefined') },
         { status: 400 },
       )
     }

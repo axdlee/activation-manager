@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { getPaymentProvider } from '@/lib/shop-payment-registry'
 
@@ -48,10 +49,11 @@ type UpsertConfigBody = {
 }
 
 export const POST = createProtectedAdminRouteHandler(async (request: NextRequest) => {
+  const t = serverT(resolveServerLocale(request))
   const body = (await request.json()) as UpsertConfigBody
 
   if (!body.provider) {
-    return NextResponse.json({ success: false, message: '缺少渠道标识' }, { status: 400 })
+    return NextResponse.json({ success: false, message: t('api.channelIdRequired') }, { status: 400 })
   }
 
   const config = await prisma.shopPaymentConfig.upsert({

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import {
   createProject,
@@ -21,12 +22,13 @@ export const GET = createProtectedAdminRouteHandler(
   {
     logLabel: '获取项目列表失败',
     errorStatus: 500,
-    errorMessage: '获取项目列表失败',
+    errorMessageKey: 'project.listFailed',
   },
 )
 
 export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult) => {
+    const t = serverT(resolveServerLocale(request))
     const {
       name,
       projectKey,
@@ -49,14 +51,14 @@ export const POST = createProtectedAdminRouteHandler(
 
     return NextResponse.json({
       success: true,
-      message: '项目创建成功',
+      message: t('project.createSuccess'),
       project,
     })
   },
   {
     logLabel: '创建项目失败',
     errorStatus: 400,
-    errorMessage: '创建项目失败',
+    errorMessageKey: 'project.createFailed',
     exposeErrorMessage: true,
   },
 )

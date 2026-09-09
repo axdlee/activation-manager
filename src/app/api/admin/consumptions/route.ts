@@ -8,7 +8,7 @@ export const GET = createProtectedAdminRouteHandler(
   {
     logLabel: '获取消费日志失败',
     errorStatus: 400,
-    errorMessage: '获取消费日志失败',
+    errorMessageKey: 'consumption.listFailed',
     exposeErrorMessage: true,
   },
 )

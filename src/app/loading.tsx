@@ -1,3 +1,7 @@
+'use client'
+
+import { useI18n } from '@/lib/i18n/i18n-provider'
+
 import {
   publicContainerClassName,
   publicPageClassName,
@@ -5,13 +9,17 @@ import {
 } from '@/lib/public-ui'
 
 export default function Loading() {
+  const { t } = useI18n()
+
   return (
     <main className={`${publicPageClassName} flex min-h-screen items-center justify-center`}>
       <div className={publicContainerClassName}>
         <section className={`${publicShellClassName} mx-auto max-w-lg p-8`}>
           <div className="flex items-center gap-3">
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-brand-500" />
-            <span className="text-sm font-medium text-ink-400">正在加载…</span>
+            <span className="text-sm font-medium text-ink-400">
+              {t('common.loading', '正在加载…')}
+            </span>
           </div>
           <div className="mt-6 space-y-3">
             <div className="h-4 w-2/3 animate-pulse rounded bg-surface-200" />

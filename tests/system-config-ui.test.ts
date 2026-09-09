@@ -185,3 +185,44 @@ test('buildSystemConfigPageModel 遇到未知配置时会归入高级配置分�
   assert.equal(model.groups.at(-1)?.key, 'advanced')
   assert.deepEqual(model.groups.at(-1)?.items.map((item) => item.key), ['customConfig'])
 })
+
+test('buildSystemConfigPageModel 注入 t 时使用注入译文，缺省时回退 zh 词典中文', () => {
+  // 注入英文译文（模拟 client 组件传入 useI18n().t）
+  const enModel = buildSystemConfigPageModel(systemConfigs, (key: string, fallback?: string) => {
+    const en: Record<string, string> = {
+      'sysconfui.group.rebind.title': 'Rebind Policy',
+      'sysconfui.item.allowAutoRebind.label': 'System-level Self-rebind Policy',
+      'sysconfui.item.systemName.placeholder': 'e.g. Browser Plugin License Center',
+      'sysconfui.badge.whitelist.count': '{count} addresses',
+      'sysconfui.summary.roundsValue': '{rounds} rounds',
+    }
+    return en[key] ?? fallback ?? key
+  })
+
+  const rebindGroup = enModel.groups.find((group) => group.key === 'rebind')
+  const allowAutoRebindItem = rebindGroup?.items.find((item) => item.key === 'allowAutoRebind')
+  assert.equal(rebindGroup?.title, 'Rebind Policy')
+  assert.equal(allowAutoRebindItem?.label, 'System-level Self-rebind Policy')
+  const systemNameItem = enModel.groups
+    .flatMap((group) => group.items)
+    .find((item) => item.key === 'systemName')
+  assert.equal(systemNameItem?.placeholder, 'e.g. Browser Plugin License Center')
+  const accessItem = enModel.groups[0].items[0]
+  assert.equal(accessItem.badges?.[0].label, '2 addresses')
+  assert.equal(
+    enModel.summaryCards.find((card) => card.label === 'Password Strength')?.value,
+    undefined,
+  )
+  assert.equal(enModel.summaryCards[3].value, '12 rounds')
+
+  // 缺省 t：回退 zh 词典，行为与迁移前完全一致
+  const zhModel = buildSystemConfigPageModel(systemConfigs)
+  assert.equal(
+    zhModel.groups.find((group) => group.key === 'rebind')?.title,
+    '换绑策略',
+  )
+  assert.equal(
+    zhModel.groups[0].items[0].badges?.[0].label,
+    '2 个地址',
+  )
+})

@@ -8,7 +8,7 @@ export const GET = createProtectedAdminRouteHandler(
   {
     logLabel: '获取审计日志失败',
     errorStatus: 400,
-    errorMessage: '获取审计日志失败',
+    errorMessageKey: 'audit.getFailed',
     exposeErrorMessage: true,
   },
 )

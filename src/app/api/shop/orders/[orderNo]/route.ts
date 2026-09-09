@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 import { isShopEnabled } from '@/lib/shop-access'
@@ -15,8 +16,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { orderNo: string } },
 ) {
+  const t = serverT(resolveServerLocale(request))
+
   if (!(await isShopEnabled())) {
-    return NextResponse.json({ success: false, message: '购买中心已停用' }, { status: 403 })
+    return NextResponse.json({ success: false, message: t('shop.disabled') }, { status: 403 })
   }
 
   const rateLimit = guardShopApiRateLimit(request, '/api/shop/orders/detail')
@@ -32,7 +35,7 @@ export async function GET(
   })
 
   if (!order) {
-    return NextResponse.json({ success: false, message: '订单不存在' }, { status: 404 })
+    return NextResponse.json({ success: false, message: t('shop.orderNotFound') }, { status: 404 })
   }
 
   let codes: Array<{ id: number; code: string; cardType: string | null }> = []

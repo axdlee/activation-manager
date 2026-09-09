@@ -76,18 +76,27 @@ export function isCodeActive(code: LicenseStatusLike, now: Date = new Date()) {
   return !isCodeExpired(code, now)
 }
 
-export function getCodeStatusLabel(code: LicenseStatusLike, now: Date = new Date()) {
+/** 可选的翻译函数：传入时优先使用词典 key，未传时回退中文标签 */
+export type LicenseStatusTranslate = (key: string, fallback?: string) => string
+
+export function getCodeStatusLabel(
+  code: LicenseStatusLike,
+  now: Date = new Date(),
+  t?: LicenseStatusTranslate,
+) {
   if (code.licenseMode === 'COUNT') {
     if (!code.isUsed) {
-      return '未激活'
+      return t?.('code.status.unused') ?? '未激活'
     }
 
-    return isCountCodeDepleted(code) ? '已耗尽' : '使用中'
+    return isCountCodeDepleted(code)
+      ? (t?.('code.status.exhausted') ?? '已耗尽')
+      : (t?.('code.status.active') ?? '使用中')
   }
 
   if (isCodeExpired(code, now)) {
-    return '已过期'
+    return t?.('code.status.expired') ?? '已过期'
   }
 
-  return code.isUsed ? '已使用' : '未激活'
+  return code.isUsed ? (t?.('code.status.used') ?? '已使用') : (t?.('code.status.unused') ?? '未激活')
 }

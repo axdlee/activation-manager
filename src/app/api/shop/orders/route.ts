@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { isShopEnabled } from '@/lib/shop-access'
 
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 import { getPaymentProvider } from '@/lib/shop-payment-registry'
@@ -28,8 +29,10 @@ type CreateOrderBody = {
 
 // 公开下单：校验联系方式、生成订单、返回支付信息
 export async function POST(request: NextRequest) {
+  const t = serverT(resolveServerLocale(request))
+
   if (!(await isShopEnabled())) {
-    return NextResponse.json({ success: false, message: '购买中心已停用' }, { status: 403 })
+    return NextResponse.json({ success: false, message: t('shop.disabled') }, { status: 403 })
   }
 
   const rateLimit = guardShopApiRateLimit(request, '/api/shop/orders')
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     if (!body.productId || !body.providerId) {
       return NextResponse.json(
-        { success: false, message: '缺少商品或支付渠道参数' },
+        { success: false, message: t('shop.productOrProviderRequired') },
         { status: 400 },
       )
     }
@@ -50,13 +53,13 @@ export async function POST(request: NextRequest) {
     const { order, product } = await createShopOrder({
       productId: Number(body.productId),
       providerId: body.providerId,
-      quantity: normalizeShopOrderQuantity(body.quantity),
+      quantity: normalizeShopOrderQuantity(body.quantity, t),
       contactEmail: body.contactEmail,
       contactPhone: body.contactPhone,
       contactWechat: body.contactWechat,
       paymentNote: body.paymentNote,
       remark: body.remark,
-    })
+    }, t)
 
     // 生成支付信息
     const provider = getPaymentProvider(body.providerId)
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     if (!provider || !paymentConfig) {
       return NextResponse.json(
-        { success: false, message: '支付渠道不可用' },
+        { success: false, message: t('shop.paymentProviderUnavailable') },
         { status: 400 },
       )
     }
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     console.error('创建订单失败:', error)
     return NextResponse.json(
-      { success: false, message: '创建订单失败' },
+      { success: false, message: t('api.internalError') },
       { status: 500 },
     )
   }

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { isShopEnabled } from '@/lib/shop-access'
 
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -10,8 +11,10 @@ export const dynamic = 'force-dynamic'
 // 支持排序：recommended（默认，sortOrder+id）| priceAsc | priceDesc | newest
 // 预定义模式商品附带剩余库存（售罄前端展示）
 export async function GET(request: NextRequest) {
+  const t = serverT(resolveServerLocale(request))
+
   if (!(await isShopEnabled())) {
-    return NextResponse.json({ success: false, message: '购买中心已停用' }, { status: 403 })
+    return NextResponse.json({ success: false, message: t('shop.disabled') }, { status: 403 })
   }
 
   const sort = request.nextUrl.searchParams.get('sort') ?? 'recommended'

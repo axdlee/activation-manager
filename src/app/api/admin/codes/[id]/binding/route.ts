@@ -1,17 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import {
   forceRebindActivationCode,
   forceUnbindActivationCode,
 } from '@/lib/license-code-admin-service'
 
-function parseActivationCodeId(value: string) {
+function parseActivationCodeId(value: string, t: (key: string) => string) {
   const id = Number(value)
 
   if (!Number.isInteger(id) || id <= 0) {
-    throw new Error('激活码ID无效')
+    throw new Error(t('api.codeIdInvalid'))
   }
 
   return id
@@ -23,7 +24,8 @@ export const POST = createProtectedAdminRouteHandler(
     authResult,
     context: { params: { id: string } },
   ) => {
-    const id = parseActivationCodeId(context.params.id)
+    const t = serverT(resolveServerLocale(request))
+    const id = parseActivationCodeId(context.params.id, t)
     const payload = await request.json()
     const action = String(payload.action || '').trim()
 
@@ -36,7 +38,7 @@ export const POST = createProtectedAdminRouteHandler(
 
       return NextResponse.json({
         success: true,
-        message: '激活码绑定已解除',
+        message: t('code.bindingRemoved'),
         activationCode,
       })
     }
@@ -51,20 +53,20 @@ export const POST = createProtectedAdminRouteHandler(
 
       return NextResponse.json({
         success: true,
-        message: '激活码已强制换绑到新设备',
+        message: t('code.forceRebound'),
         activationCode,
       })
     }
 
     return NextResponse.json(
-      { success: false, message: '仅支持 unbind 或 rebind 动作' },
+      { success: false, message: t('code.actionUnsupported') },
       { status: 400 },
     )
   },
   {
     logLabel: '执行激活码绑定管理操作失败',
     errorStatus: 400,
-    errorMessage: '执行激活码绑定管理操作失败',
+    errorMessageKey: 'code.actionFailed',
     exposeErrorMessage: true,
   },
 )

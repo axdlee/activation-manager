@@ -19,6 +19,6 @@ export const GET = createProtectedAdminRouteHandler(
   {
     logLabel: '获取统计数据时发生错误',
     errorStatus: 500,
-    errorMessage: '服务器内部错误',
+    errorMessageKey: 'api.internalError',
   },
 )

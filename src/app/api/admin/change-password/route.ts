@@ -3,19 +3,21 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { type AdminAuthSuccessResult } from '@/lib/admin-auth-shared'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { getConfigWithDefault } from '@/lib/config-service'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 
 export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult: AdminAuthSuccessResult) => {
+    const t = serverT(resolveServerLocale(request))
     const { currentPassword, newPassword } = await request.json()
 
     if (!currentPassword || !newPassword) {
       return NextResponse.json(
         {
           success: false,
-          message: '当前密码和新密码不能为空',
+          message: t('password.fieldsRequired'),
         },
         { status: 400 },
       )
@@ -25,7 +27,7 @@ export const POST = createProtectedAdminRouteHandler(
       return NextResponse.json(
         {
           success: false,
-          message: '新密码长度不能少于6位',
+          message: t('password.minLength'),
         },
         { status: 400 },
       )
@@ -39,7 +41,7 @@ export const POST = createProtectedAdminRouteHandler(
       return NextResponse.json(
         {
           success: false,
-          message: '管理员账号不存在',
+          message: t('password.adminNotFound'),
         },
         { status: 404 },
       )
@@ -50,7 +52,7 @@ export const POST = createProtectedAdminRouteHandler(
       return NextResponse.json(
         {
           success: false,
-          message: '当前密码不正确',
+          message: t('password.currentIncorrect'),
         },
         { status: 400 },
       )
@@ -73,12 +75,12 @@ export const POST = createProtectedAdminRouteHandler(
 
     return NextResponse.json({
       success: true,
-      message: '密码修改成功，请重新登录',
+      message: t('password.changed'),
     })
   },
   {
     logLabel: '密码修改失败',
     errorStatus: 500,
-    errorMessage: '密码修改失败，请重试',
+    errorMessageKey: 'password.changeFailed',
   },
 )

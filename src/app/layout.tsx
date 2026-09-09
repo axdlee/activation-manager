@@ -4,7 +4,7 @@ import './globals.css'
 
 import { ToastProvider } from '@/components/toast-provider'
 import { ThemeProvider } from '@/lib/theme-provider'
-import { I18nProvider } from '@/lib/i18n/i18n-provider'
+import { I18nProvider, localeInitScript } from '@/lib/i18n/i18n-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -36,6 +36,7 @@ export default function RootLayout({
     <html lang="zh" data-theme="dark-tech">
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: localeInitScript }} />
       </head>
       <body className={inter.className}>
         <ThemeProvider>

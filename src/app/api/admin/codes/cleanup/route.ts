@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 
@@ -17,7 +18,8 @@ interface ActivationCodeData {
 }
 
 export const POST = createProtectedAdminRouteHandler(
-  async (_request: NextRequest, authResult) => {
+  async (request: NextRequest, authResult) => {
+    const t = serverT(resolveServerLocale(request))
     const now = new Date()
 
     const usedCodes = await prisma.activationCode.findMany({
@@ -49,7 +51,7 @@ export const POST = createProtectedAdminRouteHandler(
     if (expiredCodes.length === 0) {
       return NextResponse.json({
         success: true,
-        message: '没有找到需要清理的过期激活码',
+        message: t('cleanup.noExpiredFound'),
         cleaned: 0,
       })
     }
@@ -80,7 +82,7 @@ export const POST = createProtectedAdminRouteHandler(
 
     return NextResponse.json({
       success: true,
-      message: `成功清理了 ${result.count} 个过期激活码的绑定关系`,
+      message: t('cleanup.bindingSuccess', { count: result.count }),
       cleaned: result.count,
       expiredCodes: expiredCodes.map((code: ActivationCodeData) => ({
         code: code.code,
@@ -92,7 +94,7 @@ export const POST = createProtectedAdminRouteHandler(
   {
     logLabel: '清理过期激活码时发生错误',
     errorStatus: 500,
-    errorMessage: '服务器内部错误',
+    errorMessageKey: 'api.internalError',
   },
 )
 
@@ -136,6 +138,6 @@ export const GET = createProtectedAdminRouteHandler(
   {
     logLabel: '获取过期激活码时发生错误',
     errorStatus: 500,
-    errorMessage: '服务器内部错误',
+    errorMessageKey: 'api.internalError',
   },
 )

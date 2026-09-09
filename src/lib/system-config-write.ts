@@ -53,10 +53,23 @@ type SystemConfigPersistenceClient = {
   $transaction<T>(callback: (tx: SystemConfigTransactionClient) => Promise<T>): Promise<T>
 }
 
+/**
+ * 服务端系统配置校验错误。
+ *
+ * i18n 约定：
+ * - `message` 始终是中文原文（向后兼容：未迁移的调用方直接展示 message 不变）
+ * - `messageKey` 指向 server-messages 词典的 `sysconf.*` 键，route 层可用
+ *   createServerT(locale).t(error.messageKey, error.messageParams) 按请求语言翻译
+ */
 export class InvalidSystemConfigPayloadError extends Error {
-  constructor(message: string) {
+  readonly messageKey?: string
+  readonly messageParams?: Record<string, string | number>
+
+  constructor(message: string, messageKey?: string, messageParams?: Record<string, string | number>) {
     super(message)
     this.name = 'InvalidSystemConfigPayloadError'
+    this.messageKey = messageKey
+    this.messageParams = messageParams
   }
 }
 
@@ -71,12 +84,12 @@ function normalizeDescription(description?: string) {
 
 function ensureStringValue(key: string, value: SystemConfigValue) {
   if (typeof value !== 'string') {
-    throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 必须是字符串`)
+    throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 必须是字符串`, 'sysconf.mustBeString', { key })
   }
 
   const normalizedValue = value.trim()
   if (!normalizedValue) {
-    throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 不能为空`)
+    throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 不能为空`, 'sysconf.cannotBeEmpty', { key })
   }
 
   return normalizedValue
@@ -85,7 +98,7 @@ function ensureStringValue(key: string, value: SystemConfigValue) {
 // 允许为空的字符串配置（如到期通知接口，空表示未配置）
 function ensureOptionalStringValue(key: string, value: SystemConfigValue) {
   if (typeof value !== 'string') {
-    throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 必须是字符串`)
+    throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 必须是字符串`, 'sysconf.mustBeString', { key })
   }
 
   return value.trim()
@@ -93,7 +106,10 @@ function ensureOptionalStringValue(key: string, value: SystemConfigValue) {
 
 function normalizeAllowedIps(value: SystemConfigValue) {
   if (!Array.isArray(value)) {
-    throw new InvalidSystemConfigPayloadError('系统配置 allowedIPs 必须是字符串数组')
+    throw new InvalidSystemConfigPayloadError(
+      '系统配置 allowedIPs 必须是字符串数组',
+      'sysconf.allowedIPsMustBeArray',
+    )
   }
 
   const normalizedValue = Array.from(
@@ -101,7 +117,10 @@ function normalizeAllowedIps(value: SystemConfigValue) {
   )
 
   if (normalizedValue.length === 0) {
-    throw new InvalidSystemConfigPayloadError('系统配置 allowedIPs 至少需要保留一个 IP 地址')
+    throw new InvalidSystemConfigPayloadError(
+      '系统配置 allowedIPs 至少需要保留一个 IP 地址',
+      'sysconf.allowedIPsAtLeastOne',
+    )
   }
 
   return normalizedValue
@@ -113,6 +132,8 @@ function normalizeJwtExpiresIn(value: SystemConfigValue) {
   if (!allowedJwtExpiryValues.has(normalizedValue)) {
     throw new InvalidSystemConfigPayloadError(
       `系统配置 jwtExpiresIn 仅支持以下值：${Array.from(allowedJwtExpiryValues).join('、')}`,
+      'sysconf.jwtExpiresInUnsupported',
+      { values: Array.from(allowedJwtExpiryValues).join('、') },
     )
   }
 
@@ -121,11 +142,18 @@ function normalizeJwtExpiresIn(value: SystemConfigValue) {
 
 function normalizeBcryptRounds(value: SystemConfigValue) {
   if (typeof value !== 'number' || !Number.isInteger(value)) {
-    throw new InvalidSystemConfigPayloadError('系统配置 bcryptRounds 必须是整数')
+    throw new InvalidSystemConfigPayloadError(
+      '系统配置 bcryptRounds 必须是整数',
+      'sysconf.mustBeInteger',
+      { key: 'bcryptRounds' },
+    )
   }
 
   if (value < 4 || value > 15) {
-    throw new InvalidSystemConfigPayloadError('系统配置 bcryptRounds 必须在 4 到 15 之间')
+    throw new InvalidSystemConfigPayloadError(
+      '系统配置 bcryptRounds 必须在 4 到 15 之间',
+      'sysconf.bcryptRoundsRange',
+    )
   }
 
   return value
@@ -146,12 +174,16 @@ function normalizeBooleanConfigValue(key: string, value: SystemConfigValue) {
     }
   }
 
-  throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 必须是布尔值`)
+  throw new InvalidSystemConfigPayloadError(`系统配置 ${key} 必须是布尔值`, 'sysconf.mustBeBoolean', { key })
 }
 
 function normalizeAutoRebindCooldownMinutes(value: SystemConfigValue) {
   if (typeof value !== 'number' || !Number.isInteger(value)) {
-    throw new InvalidSystemConfigPayloadError('系统配置 autoRebindCooldownMinutes 必须是整数')
+    throw new InvalidSystemConfigPayloadError(
+      '系统配置 autoRebindCooldownMinutes 必须是整数',
+      'sysconf.mustBeInteger',
+      { key: 'autoRebindCooldownMinutes' },
+    )
   }
 
   if (
@@ -160,6 +192,8 @@ function normalizeAutoRebindCooldownMinutes(value: SystemConfigValue) {
   ) {
     throw new InvalidSystemConfigPayloadError(
       `系统配置 autoRebindCooldownMinutes 必须在 ${AUTO_REBIND_COOLDOWN_MINUTES_MIN} 到 ${AUTO_REBIND_COOLDOWN_MINUTES_MAX} 之间`,
+      'sysconf.valueRange',
+      { key: 'autoRebindCooldownMinutes', min: AUTO_REBIND_COOLDOWN_MINUTES_MIN, max: AUTO_REBIND_COOLDOWN_MINUTES_MAX },
     )
   }
 
@@ -168,12 +202,18 @@ function normalizeAutoRebindCooldownMinutes(value: SystemConfigValue) {
 
 function normalizeAutoRebindMaxCount(value: SystemConfigValue) {
   if (typeof value !== 'number' || !Number.isInteger(value)) {
-    throw new InvalidSystemConfigPayloadError('系统配置 autoRebindMaxCount 必须是整数')
+    throw new InvalidSystemConfigPayloadError(
+      '系统配置 autoRebindMaxCount 必须是整数',
+      'sysconf.mustBeInteger',
+      { key: 'autoRebindMaxCount' },
+    )
   }
 
   if (value < AUTO_REBIND_MAX_COUNT_MIN || value > AUTO_REBIND_MAX_COUNT_MAX) {
     throw new InvalidSystemConfigPayloadError(
       `系统配置 autoRebindMaxCount 必须在 ${AUTO_REBIND_MAX_COUNT_MIN} 到 ${AUTO_REBIND_MAX_COUNT_MAX} 之间`,
+      'sysconf.valueRange',
+      { key: 'autoRebindMaxCount', min: AUTO_REBIND_MAX_COUNT_MIN, max: AUTO_REBIND_MAX_COUNT_MAX },
     )
   }
 
@@ -184,7 +224,10 @@ function normalizeAutoRebindMaxCount(value: SystemConfigValue) {
 function normalizeNotifyWebhookUrl(value: SystemConfigValue) {
   const normalizedValue = ensureOptionalStringValue('notifyWebhookUrl', value)
   if (normalizedValue && !/^https?:\/\//i.test(normalizedValue)) {
-    throw new InvalidSystemConfigPayloadError('系统配置 notifyWebhookUrl 必须是 http/https 地址')
+    throw new InvalidSystemConfigPayloadError(
+      '系统配置 notifyWebhookUrl 必须是 http/https 地址',
+      'sysconf.notifyWebhookUrlProtocol',
+    )
   }
   return normalizedValue
 }
@@ -192,11 +235,18 @@ function normalizeNotifyWebhookUrl(value: SystemConfigValue) {
 // 通知邮件 SMTP 端口：1-65535 整数
 function normalizeNotifyEmailSmtpPort(value: SystemConfigValue) {
   if (typeof value !== 'number' || !Number.isInteger(value)) {
-    throw new InvalidSystemConfigPayloadError('系统配置 notifyEmailSmtpPort 必须是整数')
+    throw new InvalidSystemConfigPayloadError(
+      '系统配置 notifyEmailSmtpPort 必须是整数',
+      'sysconf.mustBeInteger',
+      { key: 'notifyEmailSmtpPort' },
+    )
   }
 
   if (value < 1 || value > 65535) {
-    throw new InvalidSystemConfigPayloadError('系统配置 notifyEmailSmtpPort 必须在 1 到 65535 之间')
+    throw new InvalidSystemConfigPayloadError(
+      '系统配置 notifyEmailSmtpPort 必须在 1 到 65535 之间',
+      'sysconf.smtpPortRange',
+    )
   }
 
   return value
@@ -241,13 +291,21 @@ function normalizeSystemConfigValue(key: string, value: SystemConfigValue): Syst
     case 'allowDeviceBinding':
       return normalizeBooleanConfigValue(key, value)
     default:
-      throw new InvalidSystemConfigPayloadError(`不支持写入系统配置项：${key}`)
+      throw new InvalidSystemConfigPayloadError(
+        `不支持写入系统配置项：${key}`,
+        'sysconf.notWritable',
+        { key },
+      )
   }
 }
 
 function normalizeSystemConfigUpdate(config: PersistableSystemConfigItem): PersistableSystemConfigItem {
   if (!writableSystemConfigKeySet.has(config.key)) {
-    throw new InvalidSystemConfigPayloadError(`不支持写入系统配置项：${config.key}`)
+    throw new InvalidSystemConfigPayloadError(
+      `不支持写入系统配置项：${config.key}`,
+      'sysconf.notWritable',
+      { key: config.key },
+    )
   }
 
   return {
@@ -262,7 +320,11 @@ export function normalizeSystemConfigUpdates(configs: PersistableSystemConfigIte
 
   return configs.map((config) => {
     if (seenKeys.has(config.key)) {
-      throw new InvalidSystemConfigPayloadError(`系统配置 ${config.key} 在同一次提交中重复出现`)
+      throw new InvalidSystemConfigPayloadError(
+        `系统配置 ${config.key} 在同一次提交中重复出现`,
+        'sysconf.duplicateKey',
+        { key: config.key },
+      )
     }
 
     seenKeys.add(config.key)

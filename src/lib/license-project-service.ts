@@ -11,6 +11,9 @@ import { normalizeProjectKeyForCreate } from './project-key'
 
 export type DbClient = PrismaClient | Prisma.TransactionClient
 
+/** 可选的翻译函数：传入时优先使用词典 key，未传时回退中文消息 */
+export type ProjectServiceTranslate = (key: string, fallback?: string) => string
+
 type CreateProjectInput = {
   name: string
   projectKey: string
@@ -60,7 +63,11 @@ function normalizeProjectKey(projectKey?: string) {
   return (projectKey || DEFAULT_PROJECT_KEY).trim()
 }
 
-export async function resolveProject(client: DbClient, projectKey?: string) {
+export async function resolveProject(
+  client: DbClient,
+  projectKey?: string,
+  t?: ProjectServiceTranslate,
+) {
   const normalizedProjectKey = normalizeProjectKey(projectKey)
   const project = await client.project.findUnique({
     where: {
@@ -69,11 +76,11 @@ export async function resolveProject(client: DbClient, projectKey?: string) {
   })
 
   if (!project) {
-    throw new Error(`项目不存在: ${normalizedProjectKey}`)
+    throw new Error((t?.('project.notFound', '项目不存在') ?? '项目不存在') + `: ${normalizedProjectKey}`)
   }
 
   if (!project.isEnabled) {
-    throw new Error(`项目已停用: ${normalizedProjectKey}`)
+    throw new Error((t?.('project.disabled', '项目已停用') ?? '项目已停用') + `: ${normalizedProjectKey}`)
   }
 
   return project
@@ -87,7 +94,11 @@ async function getProjectById(client: DbClient, id: number) {
   })
 }
 
-export async function findProjectByProjectKey(client: DbClient, projectKey?: string) {
+export async function findProjectByProjectKey(
+  client: DbClient,
+  projectKey?: string,
+  t?: ProjectServiceTranslate,
+) {
   const normalizedProjectKey = projectKey?.trim()
 
   if (!normalizedProjectKey) {
@@ -104,13 +115,16 @@ export async function findProjectByProjectKey(client: DbClient, projectKey?: str
   })
 
   if (!project) {
-    throw new Error(`项目不存在: ${normalizedProjectKey}`)
+    throw new Error((t?.('project.notFound', '项目不存在') ?? '项目不存在') + `: ${normalizedProjectKey}`)
   }
 
   return project
 }
 
-export async function ensureDefaultProjectRecord(client: DbClient) {
+export async function ensureDefaultProjectRecord(
+  client: DbClient,
+  t?: ProjectServiceTranslate,
+) {
   return client.project.upsert({
     where: {
       projectKey: DEFAULT_PROJECT_KEY,
@@ -122,7 +136,7 @@ export async function ensureDefaultProjectRecord(client: DbClient) {
     create: {
       name: DEFAULT_PROJECT_NAME,
       projectKey: DEFAULT_PROJECT_KEY,
-      description: '系统兼容默认项目',
+      description: t?.('project.defaultDescription', '系统兼容默认项目') ?? '系统兼容默认项目',
       isEnabled: true,
     },
   })
@@ -134,7 +148,11 @@ export async function listProjects(client: DbClient) {
   })
 }
 
-export async function createProject(client: DbClient, input: CreateProjectInput) {
+export async function createProject(
+  client: DbClient,
+  input: CreateProjectInput,
+  t?: ProjectServiceTranslate,
+) {
   const name = normalizeOptionalText(input.name)
   const projectKey = normalizeProjectKeyForCreate(input.projectKey)
   const description = normalizeOptionalText(input.description) || null
@@ -145,7 +163,7 @@ export async function createProject(client: DbClient, input: CreateProjectInput)
   const autoRebindMaxCount = normalizeNullableMaxCountOverride(input.autoRebindMaxCount)
 
   if (!name) {
-    throw new Error('项目名称不能为空')
+    throw new Error(t?.('project.nameRequired', '项目名称不能为空') ?? '项目名称不能为空')
   }
 
   const createdProject = await client.project.create({
@@ -179,15 +197,19 @@ export async function createProject(client: DbClient, input: CreateProjectInput)
   return createdProject
 }
 
-export async function updateProjectStatus(client: DbClient, input: UpdateProjectStatusInput) {
+export async function updateProjectStatus(
+  client: DbClient,
+  input: UpdateProjectStatusInput,
+  t?: ProjectServiceTranslate,
+) {
   const project = await getProjectById(client, input.id)
 
   if (!project) {
-    throw new Error('项目不存在')
+    throw new Error(t?.('project.notFound', '项目不存在') ?? '项目不存在')
   }
 
   if (project.projectKey === DEFAULT_PROJECT_KEY && !input.isEnabled) {
-    throw new Error('默认项目不允许停用')
+    throw new Error(t?.('project.defaultNoDisable', '默认项目不允许停用') ?? '默认项目不允许停用')
   }
 
   const updatedProject = await client.project.update({
@@ -214,21 +236,25 @@ export async function updateProjectStatus(client: DbClient, input: UpdateProject
   return updatedProject
 }
 
-export async function updateProjectName(client: DbClient, input: UpdateProjectNameInput) {
+export async function updateProjectName(
+  client: DbClient,
+  input: UpdateProjectNameInput,
+  t?: ProjectServiceTranslate,
+) {
   const project = await getProjectById(client, input.id)
 
   if (!project) {
-    throw new Error('项目不存在')
+    throw new Error(t?.('project.notFound', '项目不存在') ?? '项目不存在')
   }
 
   if (project.projectKey === DEFAULT_PROJECT_KEY) {
-    throw new Error('默认项目不允许修改名称')
+    throw new Error(t?.('project.defaultNoRename', '默认项目不允许修改名称') ?? '默认项目不允许修改名称')
   }
 
   const name = input.name.trim()
 
   if (!name) {
-    throw new Error('项目名称不能为空')
+    throw new Error(t?.('project.nameRequired', '项目名称不能为空') ?? '项目名称不能为空')
   }
 
   const updatedProject = await client.project.update({
@@ -255,11 +281,15 @@ export async function updateProjectName(client: DbClient, input: UpdateProjectNa
   return updatedProject
 }
 
-export async function updateProjectDescription(client: DbClient, input: UpdateProjectDescriptionInput) {
+export async function updateProjectDescription(
+  client: DbClient,
+  input: UpdateProjectDescriptionInput,
+  t?: ProjectServiceTranslate,
+) {
   const project = await getProjectById(client, input.id)
 
   if (!project) {
-    throw new Error('项目不存在')
+    throw new Error(t?.('project.notFound', '项目不存在') ?? '项目不存在')
   }
 
   const updatedProject = await client.project.update({
@@ -289,11 +319,12 @@ export async function updateProjectDescription(client: DbClient, input: UpdatePr
 export async function updateProjectRebindSettings(
   client: DbClient,
   input: UpdateProjectRebindSettingsInput,
+  t?: ProjectServiceTranslate,
 ) {
   const project = await getProjectById(client, input.id)
 
   if (!project) {
-    throw new Error('项目不存在')
+    throw new Error(t?.('project.notFound', '项目不存在') ?? '项目不存在')
   }
 
   const allowAutoRebind = normalizeNullableBooleanOverride(input.allowAutoRebind)
@@ -330,15 +361,19 @@ export async function updateProjectRebindSettings(
   return updatedProject
 }
 
-export async function deleteProject(client: DbClient, input: DeleteProjectInput) {
+export async function deleteProject(
+  client: DbClient,
+  input: DeleteProjectInput,
+  t?: ProjectServiceTranslate,
+) {
   const project = await getProjectById(client, input.id)
 
   if (!project) {
-    throw new Error('项目不存在')
+    throw new Error(t?.('project.notFound', '项目不存在') ?? '项目不存在')
   }
 
   if (project.projectKey === DEFAULT_PROJECT_KEY) {
-    throw new Error('默认项目不允许删除')
+    throw new Error(t?.('project.defaultNoDelete', '默认项目不允许删除') ?? '默认项目不允许删除')
   }
 
   const codeCount = await client.activationCode.count({
@@ -348,7 +383,7 @@ export async function deleteProject(client: DbClient, input: DeleteProjectInput)
   })
 
   if (codeCount > 0) {
-    throw new Error('项目下仍有激活码，无法删除')
+    throw new Error(t?.('project.hasCodes', '项目下仍有激活码，无法删除') ?? '项目下仍有激活码，无法删除')
   }
 
   const deletedProject = await client.project.delete({

@@ -7,6 +7,14 @@ import {
   type PaymentQueryResult,
   type ShopOrderInfo,
 } from './shop-payment-types'
+import { type ServerT } from './i18n/server'
+
+/** 服务端消息词典 key（未注入 t 时回退中文原文） */
+export const SHOP_PAYMENT_EXTRA_MESSAGE_KEYS = {
+  channelConfigIncomplete: 'payment.channelConfigIncomplete',
+  noteWechat: 'shop.noteWechat',
+  noteAlipay: 'shop.noteAlipay',
+} as const
 
 // ===== 易支付适配器 =====
 // 参考独角数卡/彩虹发卡实现：个人无需商户资质，通过第三方聚合支付接入微信/支付宝
@@ -37,12 +45,14 @@ function parseFormUrlEncoded(body: string): Record<string, string> {
 export const yipayPaymentProvider: PaymentProvider = {
   id: 'yipay',
   name: '易支付',
+  nameKey: 'shop.channel.yipay',
   supportsOnlinePayment: true,
   requiredConfigKeys: ['gateway', 'pid', 'key'],
 
   async createPayment(
     order: ShopOrderInfo,
     config: Record<string, string>,
+    t?: ServerT,
   ): Promise<CreatePaymentResult> {
     const gateway = (config.gateway?.replace(/\/+$/, '') || '').trim()
     const pid = (config.pid || '').trim()
@@ -51,7 +61,7 @@ export const yipayPaymentProvider: PaymentProvider = {
     if (!gateway || !pid || !key) {
       return {
         payParams: {
-          error: '易支付渠道配置不完整，请检查 gateway / pid / key',
+          error: t?.(SHOP_PAYMENT_EXTRA_MESSAGE_KEYS.channelConfigIncomplete) ?? '易支付渠道配置不完整，请检查 gateway / pid / key',
         },
       }
     }
@@ -143,16 +153,20 @@ function parseXmlSimple(xml: string): Record<string, string> {
 export const wechatPayProvider: PaymentProvider = {
   id: 'wechat',
   name: '微信支付（官方）',
+  nameKey: 'shop.channel.wechat',
   supportsOnlinePayment: true,
   requiredConfigKeys: ['appId', 'mchId', 'apiKey'],
 
   async createPayment(
     order: ShopOrderInfo,
     config: Record<string, string>,
+    t?: ServerT,
   ): Promise<CreatePaymentResult> {
     return {
       payParams: {
-        note: `微信支付 ${(order.amountInCents / 100).toFixed(2)} 元`,
+        note: t?.(SHOP_PAYMENT_EXTRA_MESSAGE_KEYS.noteWechat, {
+          amount: (order.amountInCents / 100).toFixed(2),
+        }) ?? `微信支付 ${(order.amountInCents / 100).toFixed(2)} 元`,
         appId: config.appId || '',
         partnerId: config.mchId || '',
         prepayId: '',
@@ -218,16 +232,20 @@ export const wechatPayProvider: PaymentProvider = {
 export const alipayProvider: PaymentProvider = {
   id: 'alipay',
   name: '支付宝（官方）',
+  nameKey: 'shop.channel.alipay',
   supportsOnlinePayment: true,
   requiredConfigKeys: ['appId'],
 
   async createPayment(
     order: ShopOrderInfo,
     config: Record<string, string>,
+    t?: ServerT,
   ): Promise<CreatePaymentResult> {
     return {
       payParams: {
-        note: `支付宝 ${(order.amountInCents / 100).toFixed(2)} 元`,
+        note: t?.(SHOP_PAYMENT_EXTRA_MESSAGE_KEYS.noteAlipay, {
+          amount: (order.amountInCents / 100).toFixed(2),
+        }) ?? `支付宝 ${(order.amountInCents / 100).toFixed(2)} 元`,
         appId: config.appId || '',
         orderNo: order.orderNo,
       },

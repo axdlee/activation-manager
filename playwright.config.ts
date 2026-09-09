@@ -23,6 +23,8 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
+    // e2e 断言依赖中文文案：钉住 locale（langSwitcher 可切，测试环境统一 zh-CN）
+    locale: 'zh-CN',
   },
   projects: [
     {

@@ -13,6 +13,9 @@ import {
 
 type DbClient = PrismaClient | Prisma.TransactionClient
 
+/** 可选的翻译函数：传入时优先使用词典 key，未传时回退中文消息 */
+export type CodeAdminServiceTranslate = (key: string, fallback?: string) => string
+
 type UpdateActivationCodeRebindSettingsInput = {
   id: number
   allowAutoRebind?: boolean | null
@@ -35,11 +38,11 @@ type ForceRebindActivationCodeInput = {
   reason?: string
 }
 
-function normalizeMachineId(machineId: string) {
+function normalizeMachineId(machineId: string, t?: CodeAdminServiceTranslate) {
   const normalizedMachineId = machineId.trim()
 
   if (!normalizedMachineId) {
-    throw new Error('machineId 不能为空')
+    throw new Error(t?.('code.machineIdEmpty', 'machineId 不能为空') ?? 'machineId 不能为空')
   }
 
   return normalizedMachineId
@@ -60,14 +63,14 @@ function includeProjectRebindSettings() {
   } as const
 }
 
-async function getActivationCodeById(client: DbClient, id: number) {
+async function getActivationCodeById(client: DbClient, id: number, t?: CodeAdminServiceTranslate) {
   const activationCode = await client.activationCode.findUnique({
     where: { id },
     include: includeProjectRebindSettings(),
   })
 
   if (!activationCode) {
-    throw new Error('激活码不存在')
+    throw new Error(t?.('code.notFound', '激活码不存在') ?? '激活码不存在')
   }
 
   return activationCode
@@ -76,8 +79,9 @@ async function getActivationCodeById(client: DbClient, id: number) {
 export async function updateActivationCodeRebindSettings(
   client: DbClient,
   input: UpdateActivationCodeRebindSettingsInput,
+  t?: CodeAdminServiceTranslate,
 ) {
-  const activationCode = await getActivationCodeById(client, input.id)
+  const activationCode = await getActivationCodeById(client, input.id, t)
 
   const updatedActivationCode = await client.activationCode.update({
     where: {
@@ -115,9 +119,10 @@ export async function updateActivationCodeRebindSettings(
 export async function forceUnbindActivationCode(
   client: PrismaClient,
   input: ForceUnbindActivationCodeInput,
+  t?: CodeAdminServiceTranslate,
 ) {
   return client.$transaction(async (tx) => {
-    const activationCode = await getActivationCodeById(tx as Prisma.TransactionClient, input.id)
+    const activationCode = await getActivationCodeById(tx as Prisma.TransactionClient, input.id, t)
 
     if (!activationCode.usedBy) {
       return activationCode
@@ -165,18 +170,22 @@ export async function forceUnbindActivationCode(
 export async function forceRebindActivationCode(
   client: PrismaClient,
   input: ForceRebindActivationCodeInput,
+  t?: CodeAdminServiceTranslate,
 ) {
-  const machineId = normalizeMachineId(input.machineId)
+  const machineId = normalizeMachineId(input.machineId, t)
 
   return client.$transaction(async (tx) => {
-    const activationCode = await getActivationCodeById(tx as Prisma.TransactionClient, input.id)
+    const activationCode = await getActivationCodeById(tx as Prisma.TransactionClient, input.id, t)
 
     if (activationCode.project.projectKey === DEFAULT_PROJECT_KEY && activationCode.projectId <= 0) {
-      throw new Error('默认项目配置异常')
+      throw new Error(t?.('project.defaultConfigError', '默认项目配置异常') ?? '默认项目配置异常')
     }
 
     if (!activationCode.isUsed && !activationCode.usedBy) {
-      throw new Error('未激活激活码请由客户端首次 activate 完成绑定')
+      throw new Error(
+        t?.('code.notActivatedYet', '未激活激活码请由客户端首次 activate 完成绑定') ??
+          '未激活激活码请由客户端首次 activate 完成绑定',
+      )
     }
 
     if (activationCode.usedBy === machineId) {
@@ -244,7 +253,10 @@ export async function forceRebindActivationCode(
       return updatedActivationCode
     } catch (error) {
       if (isProjectMachineUniqueConstraintError(error)) {
-        throw new Error('目标设备在当前项目下已绑定其他有效激活码')
+        throw new Error(
+          t?.('code.machineBoundOther', '目标设备在当前项目下已绑定其他有效激活码') ??
+            '目标设备在当前项目下已绑定其他有效激活码',
+        )
       }
 
       throw error

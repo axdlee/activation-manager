@@ -12,12 +12,13 @@ import { prisma } from '@/lib/db'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 import { getJwtSessionCookieMaxAge } from '@/lib/jwt-session'
 import { signToken } from '@/lib/jwt'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 
-function createRateLimitedResponse(retryAfterSeconds: number) {
+function createRateLimitedResponse(retryAfterSeconds: number, message: string) {
   return NextResponse.json(
     {
       success: false,
-      message: '登录失败次数过多，请稍后再试',
+      message,
       retryAfterSeconds,
     },
     {
@@ -35,30 +36,32 @@ export const adminLoginRouteDependencies: {
   rateLimiter: adminLoginRateLimiter,
 }
 
-async function createInvalidCredentialsResponse(clientIp: string) {
+async function createInvalidCredentialsResponse(clientIp: string, message: string) {
   await adminLoginRouteDependencies.rateLimiter.recordFailure(clientIp)
 
-  return NextResponse.json(
-    { success: false, message: '用户名或密码错误' },
-    { status: 401 },
-  )
+  return NextResponse.json({ success: false, message }, { status: 401 })
 }
 
 export async function handleAdminLoginRequest(request: NextRequest) {
+  const t = serverT(resolveServerLocale(request))
+
   try {
     const { username, password } = await request.json()
     const clientIp = extractClientIp(request)
 
     if (!username || !password) {
       return NextResponse.json(
-        { success: false, message: '用户名和密码不能为空' },
+        { success: false, message: t('auth.credentialsRequired') },
         { status: 400 },
       )
     }
 
     const rateLimitResult = await adminLoginRouteDependencies.rateLimiter.check(clientIp)
     if (!rateLimitResult.allowed) {
-      return createRateLimitedResponse(rateLimitResult.retryAfterSeconds)
+      return createRateLimitedResponse(
+        rateLimitResult.retryAfterSeconds,
+        t('auth.loginRateLimited'),
+      )
     }
 
     const admin = await prisma.admin.findUnique({
@@ -66,12 +69,12 @@ export async function handleAdminLoginRequest(request: NextRequest) {
     })
 
     if (!admin) {
-      return await createInvalidCredentialsResponse(clientIp)
+      return await createInvalidCredentialsResponse(clientIp, t('auth.loginFailed'))
     }
 
     const isValid = await bcrypt.compare(password, admin.password)
     if (!isValid) {
-      return await createInvalidCredentialsResponse(clientIp)
+      return await createInvalidCredentialsResponse(clientIp, t('auth.loginFailed'))
     }
 
     await adminLoginRouteDependencies.rateLimiter.reset(clientIp)
@@ -90,7 +93,7 @@ export async function handleAdminLoginRequest(request: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
-      message: '登录成功',
+      message: t('auth.loginSuccess'),
     })
 
     response.cookies.set('auth-token', token, {
@@ -112,7 +115,7 @@ export async function handleAdminLoginRequest(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, message: '服务器内部错误' },
+      { success: false, message: t('api.internalError') },
       { status: 500 },
     )
   }

@@ -21,6 +21,7 @@ import {
   type ActivationCodeWorkspaceTab,
 } from '@/lib/dashboard-workspace-tabs'
 import { type LicenseModeValue } from '@/lib/license-status'
+import { useI18n } from '@/lib/i18n/i18n-provider'
 import {
   getInheritedRebindPlaceholder,
   getInheritedRebindPolicyOptionLabel,
@@ -204,6 +205,7 @@ type ActivationCodeManagementPanelProps = {
   compactInputClassName: string
   primaryButtonClassName: string
   warningButtonClassName: string
+  t: (key: string, fallback?: string) => string
 }
 
 function ActivationCodeManagementPanel({
@@ -211,29 +213,37 @@ function ActivationCodeManagementPanel({
   compactInputClassName,
   primaryButtonClassName,
   warningButtonClassName,
+  t,
 }: ActivationCodeManagementPanelProps) {
   if (managementView.selectedCodeId === null) {
     return (
-      <DashboardEmptyState message="选择一条激活码后，可在弹框中查看绑定设备、最终生效策略并执行强制解绑或换绑。" />
+      <DashboardEmptyState
+        message={t(
+          'codews.managementEmpty',
+          '选择一条激活码后，可在弹框中查看绑定设备、最终生效策略并执行强制解绑或换绑。',
+        )}
+      />
     )
   }
 
   return (
     <div className="space-y-5">
       <div className="rounded-lg border border-surface-200 bg-surface-100 px-5 py-4 shadow-sm">
-        <div className="text-xs uppercase tracking-[0.18em] text-ink-500">当前选中</div>
+        <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
+          {t('codews.currentSelection', '当前选中')}
+        </div>
         <div className="mt-3 text-xl font-semibold text-ink-50">{managementView.selectedCodeTitle}</div>
         <div className="mt-2 text-sm text-ink-500">{managementView.selectedCodeSubtitle}</div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
         {[
-          ['绑定设备', managementView.bindingDeviceDisplay],
-          ['首次使用', managementView.usedAtDisplay],
-          ['最近绑定', managementView.lastBoundAtDisplay],
-          ['最近换绑', managementView.lastRebindAtDisplay],
-          ['换绑次数', managementView.rebindCountDisplay],
-          ['自助换绑次数', managementView.autoRebindCountDisplay],
+          [t('codews.fieldDevice', '绑定设备'), managementView.bindingDeviceDisplay],
+          [t('codews.fieldFirstUsed', '首次使用'), managementView.usedAtDisplay],
+          [t('codews.fieldLastBound', '最近绑定'), managementView.lastBoundAtDisplay],
+          [t('codews.fieldLastRebind', '最近换绑'), managementView.lastRebindAtDisplay],
+          [t('codews.fieldRebindCount', '换绑次数'), managementView.rebindCountDisplay],
+          [t('codews.fieldAutoRebindCount', '自助换绑次数'), managementView.autoRebindCountDisplay],
         ].map(([label, value]) => (
           <div
             key={label}
@@ -247,7 +257,7 @@ function ActivationCodeManagementPanel({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
         <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">最终生效策略</div>
+          <div className="text-sm font-semibold text-ink-50">{t('codews.effectivePolicyTitle', '最终生效策略')}</div>
           <ul className="mt-4 space-y-2 text-sm text-ink-300">
             {managementView.effectivePolicySummary.map((item) => (
               <li key={item} className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3">
@@ -258,9 +268,9 @@ function ActivationCodeManagementPanel({
         </div>
 
         <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">单码级覆盖配置</div>
+          <div className="text-sm font-semibold text-ink-50">{t('codews.overrideTitle', '单码级覆盖配置')}</div>
           <p className="mt-2 text-sm leading-6 text-ink-500">
-            这里是单码级覆盖层；若保持继承，会先回退项目级策略，项目未配置时再回退系统级策略。
+            {t('codews.overrideDescription', '这里是单码级覆盖层；若保持继承，会先回退项目级策略，项目未配置时再回退系统级策略。')}
           </p>
           <div className="mt-4 space-y-4">
             <div>
@@ -274,8 +284,8 @@ function ActivationCodeManagementPanel({
                 className={`${compactInputClassName} mt-2`}
               >
                 <option value="inherit">{getInheritedRebindPolicyOptionLabel('code')}</option>
-                <option value="enabled">允许自助换绑</option>
-                <option value="disabled">禁止自助换绑</option>
+                <option value="enabled">{t('codews.rebindPolicyEnabled', '允许自助换绑')}</option>
+                <option value="disabled">{t('codews.rebindPolicyDisabled', '禁止自助换绑')}</option>
               </select>
             </div>
             <div>
@@ -312,7 +322,7 @@ function ActivationCodeManagementPanel({
               disabled={managementView.loading}
               className={`w-full ${primaryButtonClassName}`}
             >
-              保存单码级换绑配置
+              {t('codews.saveOverride', '保存单码级换绑配置')}
             </button>
           </div>
         </div>
@@ -320,22 +330,22 @@ function ActivationCodeManagementPanel({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
         <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm xl:col-span-2">
-          <div className="text-sm font-semibold text-ink-50">管理员操作说明（选填）</div>
+          <div className="text-sm font-semibold text-ink-50">{t('codews.adminReasonTitle', '管理员操作说明（选填）')}</div>
           <p className="mt-2 text-sm leading-6 text-ink-500">
-            会随“保存单码级换绑配置 / 强制解绑 / 强制换绑”一起写入审计日志，建议记录工单号、用户申请原因或排障背景。
+            {t('codews.adminReasonDescription', '会随“保存单码级换绑配置 / 强制解绑 / 强制换绑”一起写入审计日志，建议记录工单号、用户申请原因或排障背景。')}
           </p>
           <textarea
             value={managementView.adminActionReason}
             onChange={(event) => managementView.onAdminActionReasonChange(event.target.value)}
             className={`${compactInputClassName} mt-4 min-h-[104px] resize-y`}
-            placeholder="例如：用户更换电脑，已核对订单并批准迁移"
+            placeholder={t('codews.adminReasonPlaceholder', '例如：用户更换电脑，已核对订单并批准迁移')}
           />
         </div>
 
         <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">强制解绑</div>
+          <div className="text-sm font-semibold text-ink-50">{t('codews.forceUnbind', '强制解绑')}</div>
           <p className="mt-2 text-sm leading-6 text-ink-500">
-            只释放当前设备绑定，不重置有效期、剩余次数或使用时间。
+            {t('codews.forceUnbindDescription', '只释放当前设备绑定，不重置有效期、剩余次数或使用时间。')}
           </p>
           <button
             type="button"
@@ -343,14 +353,14 @@ function ActivationCodeManagementPanel({
             disabled={managementView.loading}
             className={`mt-4 w-full ${warningButtonClassName}`}
           >
-            强制解绑
+            {t('codews.forceUnbind', '强制解绑')}
           </button>
         </div>
 
         <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">强制换绑</div>
+          <div className="text-sm font-semibold text-ink-50">{t('codews.forceRebind', '强制换绑')}</div>
           <p className="mt-2 text-sm leading-6 text-ink-500">
-            将当前激活码直接迁移到新设备，同时保留原有效期、次数与生命周期。
+            {t('codews.forceRebindDescription', '将当前激活码直接迁移到新设备，同时保留原有效期、次数与生命周期。')}
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <input
@@ -358,7 +368,7 @@ function ActivationCodeManagementPanel({
               value={managementView.targetMachineId}
               onChange={(event) => managementView.onTargetMachineIdChange(event.target.value)}
               className={compactInputClassName}
-              placeholder="输入目标 machineId"
+              placeholder={t('codews.machineIdPlaceholder', '输入目标 machineId')}
             />
             <button
               type="button"
@@ -366,7 +376,7 @@ function ActivationCodeManagementPanel({
               disabled={managementView.loading}
               className={primaryButtonClassName}
             >
-              强制换绑
+              {t('codews.forceRebind', '强制换绑')}
             </button>
           </div>
         </div>
@@ -374,10 +384,10 @@ function ActivationCodeManagementPanel({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">绑定历史</div>
+          <div className="text-sm font-semibold text-ink-50">{t('codews.bindingHistoryTitle', '绑定历史')}</div>
           <div className="mt-4 space-y-3">
             {managementView.bindingHistoryEntries.length === 0 ? (
-              <p className="text-sm text-ink-500">暂无绑定历史记录</p>
+              <p className="text-sm text-ink-500">{t('codews.noBindingHistory', '暂无绑定历史记录')}</p>
             ) : (
               managementView.bindingHistoryEntries.map((item) => (
                 <div
@@ -394,10 +404,10 @@ function ActivationCodeManagementPanel({
         </div>
 
         <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">管理员审计</div>
+          <div className="text-sm font-semibold text-ink-50">{t('codews.auditTitle', '管理员审计')}</div>
           <div className="mt-4 space-y-3">
             {managementView.adminAuditEntries.length === 0 ? (
-              <p className="text-sm text-ink-500">暂无管理员操作记录</p>
+              <p className="text-sm text-ink-500">{t('codews.noAuditRecords', '暂无管理员操作记录')}</p>
             ) : (
               managementView.adminAuditEntries.map((item) => (
                 <div
@@ -436,6 +446,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
   paginationButtonClassName = defaultPaginationButtonClassName,
   paginationActiveButtonClassName = defaultPaginationActiveButtonClassName,
 }: ActivationCodeWorkspaceProps<TCode>) {
+  const { t } = useI18n()
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(
     Boolean(resultsView.managementView?.selectedCodeId),
   )
@@ -455,28 +466,28 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
     <div className="space-y-6">
       <div className={panelClassName}>
         <WorkspaceHeroPanel
-          badge="激活码工作区"
-          title="激活码管理中心"
-          description="集中查看激活码状态与剩余信息，单码的绑定详情和管理操作可随时展开处理。"
+          badge={t('codews.badge', '激活码工作区')}
+          title={t('codews.title', '激活码管理中心')}
+          description={t('codews.description', '集中查看激活码状态与剩余信息，单码的绑定详情和管理操作可随时展开处理。')}
           gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.1),transparent_30%)]"
           metrics={
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <WorkspaceMetricCard
-                label="当前匹配"
+                label={t('codews.matchedLabel', '当前匹配')}
                 value={matchedCount}
-                description="筛选后的激活码记录总数"
+                description={t('codews.matchedDescription', '筛选后的激活码记录总数')}
                 className={workspaceSummaryCardClassName}
               />
               <WorkspaceMetricCard
-                label="覆盖项目"
+                label={t('codews.coverageLabel', '覆盖项目')}
                 value={projectCoverage}
-                description="当前结果涉及的项目数"
+                description={t('codews.coverageDescription', '当前结果涉及的项目数')}
                 className={workspaceSummaryCardClassName}
               />
               <WorkspaceMetricCard
-                label="风险项"
+                label={t('codews.riskLabel', '风险项')}
                 value={riskCount}
-                description="已过期或已耗尽的记录"
+                description={t('codews.riskDescription', '已过期或已耗尽的记录')}
                 className={workspaceSummaryCardClassName}
               />
             </div>
@@ -494,8 +505,8 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
       {activeTab === 'filters' ? (
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
-            title="筛选与导出"
-            description="按关键词、状态、项目与套餐快速定位激活码，组合筛选更精准。"
+            title={t('codews.filtersTitle', '筛选与导出')}
+            description={t('codews.filtersDescription', '按关键词、状态、项目与套餐快速定位激活码，组合筛选更精准。')}
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button
@@ -504,14 +515,14 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                   disabled={filtersView.filterTokens.length === 0}
                   className={ghostButtonClassName}
                 >
-                  重置筛选
+                  {t('codews.resetFilters', '重置筛选')}
                 </button>
                 <button
                   type="button"
                   onClick={() => onTabChange('results')}
                   className={primaryButtonClassName}
                 >
-                  查看结果列表
+                  {t('codews.viewResults', '查看结果列表')}
                 </button>
               </div>
             }
@@ -519,8 +530,8 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
             <DashboardFilterFieldCard
-              label="搜索激活码或机器ID"
-              description="支持按激活码正文与绑定机器标识快速缩小范围。"
+              label={t('codews.searchLabel', '搜索激活码或机器ID')}
+              description={t('codews.searchDescription', '支持按激活码正文与绑定机器标识快速缩小范围。')}
               htmlFor="activation-code-search-term"
             >
               <input
@@ -529,13 +540,13 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                 value={filtersView.searchTerm}
                 onChange={(event) => filtersView.onSearchTermChange(event.target.value)}
                 className={compactInputClassName}
-                placeholder="输入激活码或机器ID"
+                placeholder={t('codews.searchPlaceholder', '输入激活码或机器ID')}
               />
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="状态筛选"
-              description="快速区分未激活、使用中、过期和次数耗尽状态。"
+              label={t('codews.statusFilterLabel', '状态筛选')}
+              description={t('codews.statusFilterDescription', '快速区分未激活、使用中、过期和次数耗尽状态。')}
               htmlFor="activation-code-status-filter"
             >
               <select
@@ -546,17 +557,17 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                 }
                 className={compactInputClassName}
               >
-                <option value="all">全部状态</option>
-                <option value="unused">未激活</option>
-                <option value="used">已使用 / 使用中</option>
-                <option value="expired">已过期</option>
-                <option value="depleted">已耗尽</option>
+                <option value="all">{t('codews.statusAll', '全部状态')}</option>
+                <option value="unused">{t('codews.statusUnused', '未激活')}</option>
+                <option value="used">{t('codews.statusUsed', '已使用 / 使用中')}</option>
+                <option value="expired">{t('codews.statusExpired', '已过期')}</option>
+                <option value="depleted">{t('codews.statusDepleted', '已耗尽')}</option>
               </select>
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="项目筛选"
-              description="当你有多个项目时，可以只观察某一条业务线的发码结果。"
+              label={t('codews.projectFilterLabel', '项目筛选')}
+              description={t('codews.projectFilterDescription', '当你有多个项目时，可以只观察某一条业务线的发码结果。')}
               htmlFor="activation-code-project-filter"
             >
               <select
@@ -565,7 +576,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                 onChange={(event) => filtersView.onProjectFilterChange(event.target.value)}
                 className={compactInputClassName}
               >
-                <option value="all">全部项目</option>
+                <option value="all">{t('codews.projectAll', '全部项目')}</option>
                 {filtersView.projectOptions.map((project) => (
                   <option key={project.id} value={project.projectKey}>
                     {project.name}
@@ -575,8 +586,8 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="套餐类型"
-              description="适合将周卡、月卡、自定义天数与无套餐记录分别查看。"
+              label={t('codews.cardTypeLabel', '套餐类型')}
+              description={t('codews.cardTypeDescription', '适合将周卡、月卡、自定义天数与无套餐记录分别查看。')}
               htmlFor="activation-code-card-type-filter"
             >
               <select
@@ -585,19 +596,19 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                 onChange={(event) => filtersView.onCardTypeFilterChange(event.target.value)}
                 className={compactInputClassName}
               >
-                <option value="all">全部套餐</option>
+                <option value="all">{t('codews.cardTypeAll', '全部套餐')}</option>
                 {filtersView.availableCardTypes.map((cardType) => (
                   <option key={cardType} value={cardType}>
                     {cardType}
                   </option>
                 ))}
-                <option value="none">无套餐类型</option>
+                <option value="none">{t('codews.cardTypeNone', '无套餐类型')}</option>
               </select>
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="导出当前结果"
-              description="基于当前筛选条件导出 CSV，适合对账、转交和离线留档。"
+              label={t('codews.exportCardLabel', '导出当前结果')}
+              description={t('codews.exportCardDescription', '基于当前筛选条件导出 CSV，适合对账、转交和离线留档。')}
             >
               <button
                 type="button"
@@ -605,7 +616,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                 disabled={matchedCount === 0}
                 className={`w-full ${successButtonClassName}`}
               >
-                导出筛选结果
+                {t('codews.exportFiltered', '导出筛选结果')}
               </button>
             </DashboardFilterFieldCard>
           </div>
@@ -613,18 +624,32 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
           <div className="mt-5 rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
-                <div className="text-xs uppercase tracking-[0.18em] text-ink-500">当前生效条件</div>
+                <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
+                  {t('codews.activeFilters', '当前生效条件')}
+                </div>
                 <DashboardTokenList
                   tokens={filtersView.filterTokens}
-                  emptyText="当前未设置任何筛选条件"
+                  emptyText={t('codews.noFilters', '当前未设置任何筛选条件')}
                   className="mt-3 flex flex-wrap gap-2"
                 />
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <DashboardStatTile label="未激活" value={filtersView.statusSummary.unused} description="尚未完成首次绑定" />
-                <DashboardStatTile label="已绑定" value={filtersView.statusSummary.inUse} description="已进入使用中或已使用状态" />
-                <DashboardStatTile label="风险项" value={filtersView.statusSummary.risk} description="已过期或次数已耗尽" />
+                <DashboardStatTile
+                  label={t('codews.summaryUnused', '未激活')}
+                  value={filtersView.statusSummary.unused}
+                  description={t('codews.summaryUnusedDescription', '尚未完成首次绑定')}
+                />
+                <DashboardStatTile
+                  label={t('codews.summaryBound', '已绑定')}
+                  value={filtersView.statusSummary.inUse}
+                  description={t('codews.summaryBoundDescription', '已进入使用中或已使用状态')}
+                />
+                <DashboardStatTile
+                  label={t('codews.summaryRisk', '风险项')}
+                  value={filtersView.statusSummary.risk}
+                  description={t('codews.summaryRiskDescription', '已过期或次数已耗尽')}
+                />
               </div>
             </div>
           </div>
@@ -633,8 +658,11 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
         <>
           <div className={`${panelClassName} p-6`}>
             <DashboardSectionHeader
-              title={`激活码列表 (${resultsView.filteredCount} 条记录)`}
-              description="查看当前页激活码明细，可复制、删除或清理过期绑定。"
+              title={t('codews.listTitle', '激活码列表 ({count} 条记录)').replace(
+                '{count}',
+                String(resultsView.filteredCount),
+              )}
+              description={t('codews.listDescription', '查看当前页激活码明细，可复制、删除或清理过期绑定。')}
               trailing={
                 <div className="flex flex-wrap gap-3">
                   <button
@@ -642,7 +670,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                     onClick={() => onTabChange('filters')}
                     className={ghostButtonClassName}
                   >
-                    查看筛选器
+                    {t('codews.viewFilters', '查看筛选器')}
                   </button>
                   <button
                     type="button"
@@ -650,7 +678,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                     disabled={resultsView.filteredCount === 0}
                     className={successButtonClassName}
                   >
-                    导出筛选结果
+                    {t('codews.exportFiltered', '导出筛选结果')}
                   </button>
                   <button
                     type="button"
@@ -658,7 +686,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                     disabled={loading}
                     className={warningButtonClassName}
                   >
-                    清理过期绑定
+                    {t('codews.cleanupExpired', '清理过期绑定')}
                   </button>
                 </div>
               }
@@ -669,34 +697,36 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
               leading={
                 <DashboardTokenList
                   tokens={resultsView.filterTokens}
-                  emptyText="当前显示全部激活码"
+                  emptyText={t('codews.showAllCodes', '当前显示全部激活码')}
                 />
               }
               trailing={
                 <div className="text-sm text-ink-500">
-                  当前展示第 {resultsView.startIndex} - {resultsView.endIndex} 条，共{' '}
-                  {resultsView.filteredCount} 条记录
+                  {t('codews.pageSummary', '当前展示第 {start} - {end} 条，共 {total} 条记录')
+                    .replace('{start}', String(resultsView.startIndex))
+                    .replace('{end}', String(resultsView.endIndex))
+                    .replace('{total}', String(resultsView.filteredCount))}
                 </div>
               }
             />
 
             {loading ? (
-              <DashboardLoadingState message="加载中..." />
+              <DashboardLoadingState message={t('codews.loading', '加载中...')} />
             ) : (
               <>
                 <DashboardDataTable
                   headers={[
-                    '项目',
-                    '激活码',
-                    '状态',
-                    '授权类型',
-                    '规格',
-                    '创建时间',
-                    '过期时间',
-                    '剩余次数',
-                    '使用时间',
-                    '绑定设备 / machineId',
-                    '操作',
+                    t('codews.columnProject', '项目'),
+                    t('codews.columnCode', '激活码'),
+                    t('codews.columnStatus', '状态'),
+                    t('codews.columnLicenseMode', '授权类型'),
+                    t('codews.columnSpec', '规格'),
+                    t('codews.columnCreatedAt', '创建时间'),
+                    t('codews.columnExpiresAt', '过期时间'),
+                    t('codews.columnRemaining', '剩余次数'),
+                    t('codews.columnUsedAt', '使用时间'),
+                    t('codews.columnDevice', '绑定设备 / machineId'),
+                    t('codews.columnActions', '操作'),
                   ]}
                   tableClassName="w-full min-w-[1460px] divide-y divide-surface-200"
                 >
@@ -733,14 +763,14 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                           {code.usedAt ? new Date(code.usedAt).toLocaleString() : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
-                          {code.usedBy || '未绑定'}
+                          {code.usedBy || t('codews.unbound', '未绑定')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex flex-wrap gap-2">
                             <DashboardInlineActionButton
                               onClick={() => resultsView.onCopyCode(code.code)}
                             >
-                              复制
+                              {t('codews.copy', '复制')}
                             </DashboardInlineActionButton>
                             <DashboardInlineActionButton
                               onClick={() => handleOpenManagement(code.id)}
@@ -750,12 +780,12 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                                   : 'border-surface-200 bg-surface-100 text-ink-300 hover:border-surface-300 hover:bg-surface-50'
                               }`}
                             >
-                              查看 / 管理
+                              {t('codews.viewManage', '查看 / 管理')}
                             </DashboardInlineActionButton>
                             <DashboardInlineActionButton
                               onClick={() => resultsView.onDeleteCode(code.id)}
                             >
-                              删除
+                              {t('codews.delete', '删除')}
                             </DashboardInlineActionButton>
                           </div>
                         </td>
@@ -766,7 +796,10 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
 
                 {resultsView.filteredCount === 0 ? (
                   <DashboardEmptyState
-                    message="暂无匹配的激活码记录，建议切换到“筛选与导出”检查关键词、项目或套餐条件。"
+                    message={t(
+                      'codews.emptyCodes',
+                      '暂无匹配的激活码记录，建议切换到“筛选与导出”检查关键词、项目或套餐条件。',
+                    )}
                     className="mt-5"
                   />
                 ) : null}
@@ -774,7 +807,10 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                 <DashboardPaginationBar
                   currentPage={resultsView.currentPage}
                   totalPages={resultsView.totalPages}
-                  summary={`显示第 ${resultsView.startIndex} - ${resultsView.endIndex} 条，共 ${resultsView.filteredCount} 条记录`}
+                  summary={t('codews.paginationSummary', '显示第 {start} - {end} 条，共 {total} 条记录')
+                    .replace('{start}', String(resultsView.startIndex))
+                    .replace('{end}', String(resultsView.endIndex))
+                    .replace('{total}', String(resultsView.filteredCount))}
                   onPageChange={resultsView.onPageChange}
                   buttonClassName={paginationButtonClassName}
                   activeButtonClassName={paginationActiveButtonClassName}
@@ -789,10 +825,10 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
               onClose={() => setIsManagementModalOpen(false)}
               title={
                 resultsView.managementView.selectedCodeId === null
-                  ? '单码管理'
-                  : `单码管理 · ${resultsView.managementView.selectedCodeTitle}`
+                  ? t('codews.manageTitle', '单码管理')
+                  : `${t('codews.manageTitle', '单码管理')} · ${resultsView.managementView.selectedCodeTitle}`
               }
-              description="查看绑定设备、最终生效策略、单码级覆盖配置与管理员操作审计。"
+              description={t('codews.manageDescription', '查看绑定设备、最终生效策略、单码级覆盖配置与管理员操作审计。')}
               size="6xl"
             >
               <ActivationCodeManagementPanel
@@ -800,6 +836,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                 compactInputClassName={compactInputClassName}
                 primaryButtonClassName={primaryButtonClassName}
                 warningButtonClassName={warningButtonClassName}
+                t={t}
               />
             </DashboardModal>
           ) : null}

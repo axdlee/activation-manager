@@ -49,6 +49,7 @@ import {
   getDashboardTabMeta,
 } from '@/lib/dashboard-tab-config'
 import {
+  translateWorkspaceTabs,
   type AuditLogWorkspaceTab,
   type ActivationCodeWorkspaceTab,
   type ConsumptionWorkspaceTab,
@@ -98,6 +99,7 @@ import { ShopAdminPanel } from '@/components/shop-admin-panel'
 import { LicenseApiMetricsPanel } from '@/components/license-api-metrics-panel'
 import { SystemConfigWorkspace } from '@/components/system-config-workspace'
 import { ThemeSwitcher } from '@/components/theme-switcher'
+import { LanguageSwitcher, useI18n } from '@/lib/i18n/i18n-provider'
 import { useToast } from '@/components/toast-provider'
 import { AppInput } from '@/components/ui/app-input'
 import { AppSelect } from '@/components/ui/app-select'
@@ -127,6 +129,7 @@ import {
 import { cardTypes, statusFilterLabelMap } from '@/lib/dashboard-page-types'
 
 export default function DashboardPage() {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<TabType>('stats')
   const [licenseMode, setLicenseMode] = useState<LicenseModeValue>('TIME')
   const [selectedProjectKey, setSelectedProjectKey] = useState('default')
@@ -1028,7 +1031,7 @@ export default function DashboardPage() {
   const comparisonTrendDifferenceDescription = hasComparisonConsumptionTrend && selectedComparisonProject
     ? `${statsScopeLabel} 相比 ${selectedComparisonProject.name} 的累计扣次差值`
     : '主项目与对比项目的累计扣次差值'
-  const activeTabMeta = getDashboardTabMeta(activeTab)
+  const activeTabMeta = getDashboardTabMeta(activeTab, t)
   const heroMetricCards = [
     {
       label: '项目总数',
@@ -1731,19 +1734,19 @@ export default function DashboardPage() {
                 <div className="shrink-0 border-b border-surface-200 pb-5">
                   <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100" />
-                    授权运营中台
+                    {t('dash.brand.badge', '授权运营中台')}
                   </div>
                   <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink-50">
-                    激活码管理后台
+                    {t('dash.brand.title', '激活码管理后台')}
                   </h1>
                   <p className="mt-2 text-sm leading-6 text-ink-500">
-                    项目、发码、激活码、消费、审计与 API 接入统一工作台。
+                    {t('dash.brand.subtitle', '项目、发码、激活码、消费、审计与 API 接入统一工作台。')}
                   </p>
                 </div>
 
                 <div className="dashboard-scroll-area mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
                   <nav className="space-y-1">
-                    {dashboardTabs.map((tab) => {
+                    {translateWorkspaceTabs(dashboardTabs, t).map((tab) => {
                       const isActive = activeTab === tab.key
 
                       return (
@@ -1788,9 +1791,10 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="shrink-0 space-y-2 pt-4">
+                  <LanguageSwitcher className="w-full" />
                   <ThemeSwitcher />
                   <button onClick={handleLogout} className={`w-full ${dangerButtonClassName}`}>
-                    登出
+                    {t('dash.nav.logout', '登出')}
                   </button>
                 </div>
               </div>

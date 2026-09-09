@@ -9,7 +9,7 @@ import { DashboardSummaryCard } from '@/components/dashboard-summary-card'
 import { DashboardTableContainer } from '@/components/dashboard-table-container'
 import { useOptionalToast } from '@/components/toast-provider'
 import { useI18n } from '@/lib/i18n/i18n-provider'
-import { buildApiDocsPageModel } from '@/lib/api-docs-ui'
+import { buildApiDocsPageModel, type ApiDocsTranslate } from '@/lib/api-docs-ui'
 import {
   apiDocsWorkspaceTabs,
   type ApiDocsWorkspaceTab,
@@ -82,6 +82,94 @@ const docsPublicPrimaryButtonClassName =
 const docsPublicSecondaryButtonClassName =
   'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-semibold text-ink-200 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/10'
 
+/** 公开文档页的分区标签（客户端词典渲染，供服务端壳复用） */
+export function ApiDocsPageHero() {
+  const { t } = useI18n()
+
+  const docsHighlights = [
+    {
+      label: t('api.docsHighlights.flow.label', '正式流程'),
+      value: t('api.docsHighlights.flow.value', '3 步'),
+      description: t(
+        'api.docsHighlights.flow.description',
+        'activate → status → consume，适合新插件与新客户端。',
+      ),
+    },
+    {
+      label: t('api.docsHighlights.models.label', '授权模型'),
+      value: 'TIME / COUNT',
+      description: t(
+        'api.docsHighlights.models.description',
+        '同一套服务同时支持时间型和次数型授权。',
+      ),
+    },
+    {
+      label: t('api.docsHighlights.resources.label', '联调资源'),
+      value: 'SDK + Smoke',
+      description: t(
+        'api.docsHighlights.resources.description',
+        '内含多语言示例、管理接口与本地联调脚本入口。',
+      ),
+    },
+  ]
+
+  return (
+    <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+      <div className="max-w-3xl">
+        <div className={apiDocsPillClassName}>
+          <span className="h-2 w-2 rounded-full bg-brand-500" />
+          {t('api.docsPill', '对外接入说明')}
+        </div>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink-50 sm:text-4xl">
+          {t('api.docsHeroTitle', '面向插件与客户端的 API 文档中心')}
+        </h1>
+        <p className="mt-3 text-sm leading-7 text-ink-500 sm:text-base">
+          {t(
+            'api.docsHeroDescription',
+            '该页面可直接发给插件开发者、桌面端、测试同学与合作方，无需进入后台即可查看完整接入路径与示例代码。',
+          )}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a href="/admin/login" className={apiDocsPrimaryButtonClassName}>
+            {t('api.adminLogin', '管理员登录')}
+          </a>
+          <a href="/" className={apiDocsSecondaryButtonClassName}>
+            {t('error.backHome', '返回首页')}
+          </a>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:max-w-3xl">
+        {docsHighlights.map((item) => (
+          <div key={item.label} className={apiDocsHighlightCardClassName}>
+            <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
+              {item.label}
+            </div>
+            <div className="mt-3 text-2xl font-semibold tracking-tight text-ink-50">
+              {item.value}
+            </div>
+            <div className="mt-2 text-sm leading-6 text-ink-500">
+              {item.description}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const apiDocsPillClassName =
+  'inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-400 shadow-sm'
+
+const apiDocsPrimaryButtonClassName =
+  'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-glow transition-all hover:from-brand-400 hover:via-brand-500 hover:to-brand-600 disabled:cursor-not-allowed disabled:opacity-50'
+
+const apiDocsSecondaryButtonClassName =
+  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-semibold text-ink-200 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/10'
+
+const apiDocsHighlightCardClassName =
+  'rounded-lg border border-surface-200 bg-surface-100 px-5 py-5 shadow-card'
+
 export function ApiDocsWorkspace({
   mode = 'dashboard',
   initialTab = 'overview',
@@ -106,7 +194,11 @@ export function ApiDocsWorkspace({
     type: 'success' | 'error'
   } | null>(null)
   const feedbackTimerRef = useRef<number | null>(null)
-  const apiDocsPageModel = useMemo(() => buildApiDocsPageModel(), [])
+  // 把当前语言的 t 传给纯 TS 模型构建器（不传则回退中文原文）
+  const apiDocsPageModel = useMemo(
+    () => buildApiDocsPageModel(t as ApiDocsTranslate),
+    [t],
+  )
   const { toast } = useOptionalToast()
 
   useEffect(() => {
@@ -143,7 +235,7 @@ export function ApiDocsWorkspace({
 
   const copyToClipboard = async (
     text: string,
-    successMessage = '已复制到剪贴板',
+    successMessage = t('apiws.copiedToClipboard', '已复制到剪贴板'),
   ) => {
     try {
       if (!navigator.clipboard?.writeText) {
@@ -153,7 +245,7 @@ export function ApiDocsWorkspace({
       await navigator.clipboard.writeText(text)
       notify(successMessage)
     } catch (error) {
-      notify('当前环境不支持自动复制，请手动复制', 'error')
+      notify(t('apiws.clipboardUnsupported', '当前环境不支持自动复制，请手动复制'), 'error')
     }
   }
 
@@ -302,10 +394,12 @@ export function ApiDocsWorkspace({
         <div className="space-y-6">
           <div className={`${publicPanelClassName} p-6`}>
             <div className="mb-5">
-              <h3 className="text-xl font-semibold text-ink-50">推荐调研路径</h3>
+              <h3 className="text-xl font-semibold text-ink-50">{t('apiws.researchPathTitle', '推荐调研路径')}</h3>
               <p className="mt-1 text-sm leading-6 text-ink-500">
-                建议把接口调研理解为一个业务闭环：先准备 projectKey，再绑定、查询、扣次，最后用后台日志和
-                smoke 脚本回证。
+                {t(
+                  'apiws.researchPathDescription',
+                  '建议把接口调研理解为一个业务闭环：先准备 projectKey，再绑定、查询、扣次，最后用后台日志和 smoke 脚本回证。',
+                )}
               </p>
             </div>
 
@@ -324,7 +418,9 @@ export function ApiDocsWorkspace({
                         {step.description}
                       </p>
                       <div className="mt-3 rounded-md border border-brand-500/20 bg-brand-500/10 px-4 py-3 text-sm leading-6 text-brand-400">
-                        <span className="font-medium text-brand-300">你会得到：</span>{' '}
+                        <span className="font-medium text-brand-300">
+                          {t('apiws.outcomePrefix', '你会得到：')}
+                        </span>{' '}
                         {step.outcome}
                       </div>
                     </div>
@@ -360,16 +456,24 @@ export function ApiDocsWorkspace({
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
-                <h3 className="text-xl font-semibold text-ink-50">通用请求字段</h3>
+                <h3 className="text-xl font-semibold text-ink-50">{t('apiws.requestFieldsTitle', '通用请求字段')}</h3>
                 <p className="mt-1 text-sm leading-6 text-ink-500">
-                  正式接口支持 camelCase / snake_case 双写法，便于不同语言和历史客户端接入。
+                  {t(
+                    'apiws.requestFieldsDescription',
+                    '正式接口支持 camelCase / snake_case 双写法，便于不同语言和历史客户端接入。',
+                  )}
                 </p>
               </div>
               <DashboardTableContainer className={tableContainerClassName}>
                 <table className="w-full min-w-max divide-y divide-slate-200">
                   <thead className="bg-surface-50">
                     <tr>
-                      {['字段', '类型', '必填', '说明'].map((title) => (
+                      {[
+                        t('apiws.table.field', '字段'),
+                        t('apiws.table.type', '类型'),
+                        t('apiws.table.required', '必填'),
+                        t('apiws.table.description', '说明'),
+                      ].map((title) => (
                         <th
                           key={title}
                           className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-500"
@@ -401,16 +505,24 @@ export function ApiDocsWorkspace({
 
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
-                <h3 className="text-xl font-semibold text-ink-50">统一响应字段</h3>
+                <h3 className="text-xl font-semibold text-ink-50">{t('apiws.responseFieldsTitle', '统一响应字段')}</h3>
                 <p className="mt-1 text-sm leading-6 text-ink-500">
-                  正式接口会同时返回 camelCase 与 snake_case，便于浏览器插件、桌面端和脚本工具统一接入。
+                  {t(
+                    'apiws.responseFieldsDescription',
+                    '正式接口会同时返回 camelCase 与 snake_case，便于浏览器插件、桌面端和脚本工具统一接入。',
+                  )}
                 </p>
               </div>
               <DashboardTableContainer className={tableContainerClassName}>
                 <table className="w-full min-w-max divide-y divide-slate-200">
                   <thead className="bg-surface-50">
                     <tr>
-                      {['字段', '类型', '返回时机', '说明'].map((title) => (
+                      {[
+                        t('apiws.table.field', '字段'),
+                        t('apiws.table.type', '类型'),
+                        t('apiws.table.returnTiming', '返回时机'),
+                        t('apiws.table.description', '说明'),
+                      ].map((title) => (
                         <th
                           key={title}
                           className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-500"
@@ -459,8 +571,8 @@ export function ApiDocsWorkspace({
                       className={`rounded-full border px-3 py-1 text-xs font-semibold ${audienceBadgeClassNameMap[endpoint.audience]}`}
                     >
                       {endpoint.audience === 'recommended'
-                        ? '推荐正式接口'
-                        : '兼容旧接口'}
+                        ? t('apiws.audience.recommended', '推荐正式接口')
+                        : t('apiws.audience.compat', '兼容旧接口')}
                     </span>
                   </div>
                   <h3 className="mt-4 text-xl font-semibold text-ink-50">
@@ -470,7 +582,9 @@ export function ApiDocsWorkspace({
                     {endpoint.summary}
                   </p>
                   <div className="mt-3 rounded-md border border-surface-200 bg-surface-50 px-4 py-3 text-sm leading-6 text-ink-300">
-                    <span className="font-medium text-ink-50">适用时机：</span>{' '}
+                    <span className="font-medium text-ink-50">
+                      {t('apiws.whenToUsePrefix', '适用时机：')}
+                    </span>{' '}
                     {endpoint.whenToUse}
                   </div>
                 </div>
@@ -481,10 +595,12 @@ export function ApiDocsWorkspace({
                   </div>
                   <button
                     type="button"
-                    onClick={() => void copyToClipboard(endpoint.path, '接口路径已复制')}
+                    onClick={() =>
+                      void copyToClipboard(endpoint.path, t('apiws.pathCopied', '接口路径已复制'))
+                    }
                     className={secondaryButtonClassName}
                   >
-                    复制路径
+                    {t('apiws.copyPath', '复制路径')}
                   </button>
                 </div>
               </div>
@@ -507,10 +623,13 @@ export function ApiDocsWorkspace({
                     header={
                       <div>
                         <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
-                          请求示例
+                          {t('apiws.requestExampleTitle', '请求示例')}
                         </div>
                         <div className="mt-1 text-sm text-ink-500">
-                          可直接用于 Postman、脚本或插件侧联调。
+                          {t(
+                            'apiws.requestExampleDescription',
+                            '可直接用于 Postman、脚本或插件侧联调。',
+                          )}
                         </div>
                       </div>
                     }
@@ -518,11 +637,14 @@ export function ApiDocsWorkspace({
                       <button
                         type="button"
                         onClick={() =>
-                          void copyToClipboard(endpoint.requestExample, '请求示例已复制')
+                          void copyToClipboard(
+                            endpoint.requestExample,
+                            t('apiws.requestExampleCopied', '请求示例已复制'),
+                          )
                         }
                         className={inlineActionButtonClassName}
                       >
-                        复制
+                        {t('common.copy', '复制')}
                       </button>
                     }
                     code={endpoint.requestExample}
@@ -533,10 +655,13 @@ export function ApiDocsWorkspace({
                     header={
                       <div>
                         <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
-                          响应示例
+                          {t('apiws.responseExampleTitle', '响应示例')}
                         </div>
                         <div className="mt-1 text-sm text-ink-500">
-                          用于核对业务是否成功、字段是否匹配以及是否命中幂等。
+                          {t(
+                            'apiws.responseExampleDescription',
+                            '用于核对业务是否成功、字段是否匹配以及是否命中幂等。',
+                          )}
                         </div>
                       </div>
                     }
@@ -544,11 +669,14 @@ export function ApiDocsWorkspace({
                       <button
                         type="button"
                         onClick={() =>
-                          void copyToClipboard(endpoint.responseExample, '响应示例已复制')
+                          void copyToClipboard(
+                            endpoint.responseExample,
+                            t('apiws.responseExampleCopied', '响应示例已复制'),
+                          )
                         }
                         className={inlineActionButtonClassName}
                       >
-                        复制
+                        {t('common.copy', '复制')}
                       </button>
                     }
                     code={endpoint.responseExample}
@@ -585,11 +713,17 @@ export function ApiDocsWorkspace({
                 <button
                   type="button"
                   onClick={() =>
-                    void copyToClipboard(snippet.code, `${snippet.label} 示例已复制`)
+                    void copyToClipboard(
+                      snippet.code,
+                      t('apiws.snippetCopied', '{label} 示例已复制').replace(
+                        '{label}',
+                        snippet.label,
+                      ),
+                    )
                   }
                   className={primaryButtonClassName}
                 >
-                  复制示例代码
+                  {t('apiws.copySnippetCode', '复制示例代码')}
                 </button>
               }
               code={snippet.code}
@@ -604,10 +738,13 @@ export function ApiDocsWorkspace({
           <div className={`${panelClassName} p-6`}>
             <div className="mb-5">
               <h3 className="text-xl font-semibold text-ink-50">
-                联调时常用的后台接口
+                {t('apiws.adminEndpointsTitle', '联调时常用的后台接口')}
               </h3>
               <p className="mt-1 text-sm leading-6 text-ink-500">
-                当你需要生成测试码、核对 requestId、导出日志或确认项目是否启用时，可直接参考这些管理接口。
+                {t(
+                  'apiws.adminEndpointsDescription',
+                  '当你需要生成测试码、核对 requestId、导出日志或确认项目是否启用时，可直接参考这些管理接口。',
+                )}
               </p>
             </div>
 
@@ -627,10 +764,13 @@ export function ApiDocsWorkspace({
           <div className={`${panelClassName} p-6`}>
             <div className="mb-5">
               <h3 className="text-xl font-semibold text-ink-50">
-                本地联调与排查辅助
+                {t('apiws.localDebuggingTitle', '本地联调与排查辅助')}
               </h3>
               <p className="mt-1 text-sm leading-6 text-ink-500">
-                除了接口本身，建议同时把 smoke 脚本、SDK 源码和完整文档路径暴露给接入者，降低沟通成本。
+                {t(
+                  'apiws.localDebuggingDescription',
+                  '除了接口本身，建议同时把 smoke 脚本、SDK 源码和完整文档路径暴露给接入者，降低沟通成本。',
+                )}
               </p>
             </div>
 
@@ -641,7 +781,12 @@ export function ApiDocsWorkspace({
                   title={item.title}
                   description={item.description}
                   command={item.command}
-                  onCopy={() => void copyToClipboard(item.command, `${item.title} 已复制`)}
+                  onCopy={() =>
+                    void copyToClipboard(
+                      item.command,
+                      t('apiws.itemCopied', '{title} 已复制').replace('{title}', item.title),
+                    )
+                  }
                   buttonClassName={secondaryButtonClassName}
                   codeClassName={isPublicMode ? publicCodeBlockClassName : undefined}
                 />

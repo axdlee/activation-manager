@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 import { prisma } from '@/lib/db'
 import { generateActivationCodes } from '@/lib/license-generation-service'
 
 export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult) => {
+    const t = serverT(resolveServerLocale(request))
     const {
       amount,
       expiryDays,
@@ -51,14 +53,14 @@ export const POST = createProtectedAdminRouteHandler(
 
     return NextResponse.json({
       success: true,
-      message: `成功生成 ${amount} 个激活码`,
+      message: t('code.generateSuccess', { amount }),
       codes,
     })
   },
   {
     logLabel: '生成激活码时发生错误',
     errorStatus: 500,
-    errorMessage: '服务器内部错误',
+    errorMessageKey: 'api.internalError',
     resolveErrorResponse: (error) =>
       error instanceof Error
         ? {

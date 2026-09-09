@@ -34,5 +34,7 @@ test('dashboard workspace tabs 为每个工作区提供标签、短标题与说�
     label: '接入概览',
     shortLabel: '概览',
     description: '先看调研路径、授权模型与字段规范',
+    labelKey: 'tabs.apiDocs.overview.label',
+    descriptionKey: 'tabs.apiDocs.overview.desc',
   })
 })
