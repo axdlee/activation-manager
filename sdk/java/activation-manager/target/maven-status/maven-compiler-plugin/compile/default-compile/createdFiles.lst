@@ -1,0 +1,6 @@
+com/activationmanager/sdk/ActivationManagerClient.class
+com/activationmanager/sdk/ActivationManagerClient$Json.class
+com/activationmanager/sdk/ActivationManagerClient$Result.class
+com/activationmanager/sdk/ActivationManagerClient$ErrorKind.class
+com/activationmanager/sdk/ActivationManagerClient$ClientException.class
+com/activationmanager/sdk/ActivationManagerClient$ClientOptions.class
