@@ -1,3 +1,32 @@
+# Release Notes — Activation Manager v2.6.0
+
+> 全项目 i18n：后台组件 + 服务端消息 + 10 语言词典
+> 覆盖范围：`v2.5.0..HEAD`
+
+---
+
+## 🌐 全项目 i18n（10 语言）
+
+- **语言**：中文（默认）· English · 日本語 · 한국어 · Español · Français · Deutsch · Português (BR) · Русский · العربية（RTL）
+- **默认按浏览器语言**自动选择（BCP-47 前缀匹配 + 回退），用户可随时通过切换器更改（后台侧边栏也有）
+- **切语言连报错都跟着切**：26 个 API route + handler 库的报错/提示按 `Accept-Language`/cookie 返回对应语言——
+
+  ```
+  登录失败（zh）  → 用户名或密码错误
+  登录失败（ja）  → ユーザー名またはパスワードが正しくありません
+  登录失败（de）  → Benutzername oder Passwort falsch
+  ```
+
+- **词典规模**：客户端 1310 键 × 10 + 服务端 176 键 × 10；8 种新语言逐键校验与中文键集一致，占位符字节级保留
+- **RTL**：العربية 自动 `dir="rtl"`；切换持久化（localStorage + cookie），刷新不丢
+
+## 兼容性
+
+- 纯 TS UI 模块与服务函数均为可选 `t` 注入，默认中文回退——既有调用方与测试零破坏
+- Playwright 钉住 `zh-CN`，e2e 中文断言不受影响
+
+---
+
 # Release Notes — Activation Manager v2.5.0
 
 > 通用通知系统 · 订单数量（一单多码）· Admin API 限流 · 统一支付回调 · Python SDK · CI 加固
