@@ -158,3 +158,6 @@ e2e/.auth/
 # Python
 __pycache__/
 *.pyc
+
+# Java/Maven build artifacts
+sdk/java/**/target/
