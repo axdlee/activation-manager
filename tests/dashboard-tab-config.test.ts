@@ -16,5 +16,16 @@ test('getDashboardTabMeta 会返回当前标签的标题与说明', () => {
     label: 'API 接入',
     shortLabel: 'API',
     description: '集中查看正式接口、调研路径与多语言调用示例。',
+    labelKey: 'tabs.dashboard.apiDocs.label',
+    descriptionKey: 'tabs.dashboard.apiDocs.desc',
   })
+})
+
+test('getDashboardTabMeta 传入 t 时优先使用词典并回退中文', () => {
+  const meta = getDashboardTabMeta('apiDocs', (key, fallback) =>
+    key === 'tabs.dashboard.apiDocs.label' ? 'API (EN)' : (fallback ?? key),
+  )
+
+  assert.equal(meta.label, 'API (EN)')
+  assert.equal(meta.description, '集中查看正式接口、调研路径与多语言调用示例。')
 })

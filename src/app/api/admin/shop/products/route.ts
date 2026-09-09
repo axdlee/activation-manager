@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 
@@ -46,20 +47,21 @@ type CreateProductBody = {
 
 export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult) => {
+    const t = serverT(resolveServerLocale(request))
     const body = (await request.json()) as CreateProductBody
 
     if (!body.name || !body.projectId || !body.licenseMode || body.priceInCents === undefined) {
-      return NextResponse.json({ success: false, message: '缺少必填字段' }, { status: 400 })
+      return NextResponse.json({ success: false, message: t('shop.requiredFieldsMissing') }, { status: 400 })
     }
 
     const project = await prisma.project.findUnique({ where: { id: Number(body.projectId) } })
     if (!project) {
-      return NextResponse.json({ success: false, message: '项目不存在' }, { status: 404 })
+      return NextResponse.json({ success: false, message: t('project.notFound') }, { status: 404 })
     }
 
     const price = Number(body.priceInCents)
     if (!Number.isFinite(price) || price < 0) {
-      return NextResponse.json({ success: false, message: '价格必须是非负数' }, { status: 400 })
+      return NextResponse.json({ success: false, message: t('shop.priceInvalid') }, { status: 400 })
     }
 
     const product = await prisma.shopProduct.create({

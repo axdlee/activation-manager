@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto'
 
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 import { getEnabledPaymentConfig } from '@/lib/shop-payment-registry'
 import { getPaymentProvider } from '@/lib/shop-payment-registry'
@@ -19,6 +20,8 @@ const WEBHOOK_SECRET_HEADER = 'x-webhook-secret'
  * 防止未授权调用触发免费发卡。
  */
 export async function POST(request: NextRequest) {
+  const t = serverT(resolveServerLocale(request))
+
   const rateLimit = guardShopApiRateLimit(request, '/api/shop/payment/webhook')
   if (!rateLimit.allowed) {
     return rateLimit.response
@@ -30,7 +33,7 @@ export async function POST(request: NextRequest) {
   const config = await getEnabledPaymentConfig('webhook')
 
   if (!provider || !config) {
-    return NextResponse.json({ success: false, message: '回调渠道未启用' }, { status: 400 })
+    return NextResponse.json({ success: false, message: t('payment.callbackChannelDisabled') }, { status: 400 })
   }
 
   // secret 鉴权：配置了 secret 就必须匹配，未配置时向后兼容（但强烈建议配置）
@@ -38,32 +41,32 @@ export async function POST(request: NextRequest) {
   if (configuredSecret) {
     const providedSecret = request.headers.get(WEBHOOK_SECRET_HEADER) ?? ''
     if (!verifySecret(providedSecret, configuredSecret)) {
-      return NextResponse.json({ success: false, message: '回调鉴权失败' }, { status: 401 })
+      return NextResponse.json({ success: false, message: t('payment.callbackUnauthorized') }, { status: 401 })
     }
   }
 
   const context = await provider.verifyCallback(bodyText, config)
   if (!context) {
-    return NextResponse.json({ success: false, message: '回调校验失败' }, { status: 400 })
+    return NextResponse.json({ success: false, message: t('payment.callbackVerifyFailed') }, { status: 400 })
   }
 
   if (!context.paid) {
-    return NextResponse.json({ success: true, message: '未支付，忽略' })
+    return NextResponse.json({ success: true, message: t('payment.callbackNotPaid') })
   }
 
   const result = await fulfillShopOrder({
     orderNo: context.orderNo,
     transactionId: context.transactionId,
-  })
+  }, t)
 
   if (!result.success) {
-    return NextResponse.json({ success: false, message: result.message ?? '发卡失败' }, { status: 400 })
+    return NextResponse.json({ success: false, message: result.message ?? t('payment.fulfillFailed') }, { status: 400 })
   }
 
   return NextResponse.json({
     success: true,
     alreadyProcessed: result.alreadyProcessed ?? false,
-    message: result.alreadyProcessed ? '订单已处理' : '发卡成功',
+    message: result.alreadyProcessed ? t('shop.paymentProcessed') : t('payment.fulfillSuccess'),
   })
 }
 

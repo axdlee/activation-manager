@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { resolveServerLocale, serverT } from './i18n/server'
 import { guardAdminApiRateLimit } from './admin-api-rate-limit'
 import {
   createAuthResponse as defaultCreateAuthResponse,
@@ -29,10 +30,22 @@ type AdminRouteErrorResponse = {
 
 type CreateProtectedAdminRouteHandlerOptions = {
   logLabel: string
+  /**
+   * 回退错误消息的词典 key（i18n）：catch 内按请求语言翻译后返回。
+   * 未传时默认 'api.internalError'。
+   */
+  errorMessageKey?: string
+  /**
+   * @deprecated 直接传中文消息的旧用法，保持原样返回以便向后兼容。
+   * 新代码请使用 errorMessageKey。
+   */
   errorMessage?: string
   errorStatus?: number
   exposeErrorMessage?: boolean
-  resolveErrorResponse?: (error: unknown) => AdminRouteErrorResponse | null | undefined
+  resolveErrorResponse?: (
+    error: unknown,
+    request: AdminRouteHandlerRequest,
+  ) => AdminRouteErrorResponse | null | undefined
 }
 
 type ProtectedAdminRouteHandlerDependencies<TRequest extends AdminRouteHandlerRequest> = {
@@ -55,7 +68,8 @@ export function createProtectedAdminRouteHandler<
   const {
     logLabel,
     errorStatus = 500,
-    errorMessage = '服务器内部错误',
+    errorMessage,
+    errorMessageKey,
     exposeErrorMessage = false,
     resolveErrorResponse,
   } = options
@@ -78,7 +92,9 @@ export function createProtectedAdminRouteHandler<
 
       return await handler(request, authResult, ...args)
     } catch (error) {
-      const resolvedErrorResponse = resolveErrorResponse?.(error)
+      // i18n：按请求语言翻译回退错误消息
+      const t = serverT(resolveServerLocale(request as NextRequest))
+      const resolvedErrorResponse = resolveErrorResponse?.(error, request)
       if (resolvedErrorResponse) {
         return NextResponse.json(
           {
@@ -94,7 +110,9 @@ export function createProtectedAdminRouteHandler<
       console.error(`${logLabel}:`, error)
 
       const message =
-        exposeErrorMessage && error instanceof Error ? error.message : errorMessage
+        exposeErrorMessage && error instanceof Error
+          ? error.message
+          : (errorMessage ?? t(errorMessageKey ?? 'api.internalError'))
 
       return NextResponse.json(
         {

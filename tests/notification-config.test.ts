@@ -54,22 +54,38 @@ test('normalizeSystemConfigUpdates 接受通知配置并规范化', () => {
 test('normalizeSystemConfigUpdates 拒绝非 http/https 的通知 Webhook', () => {
   assert.throws(
     () => normalizeSystemConfigUpdates([{ key: 'notifyWebhookUrl', value: 'file:///etc/passwd' }]),
-    InvalidSystemConfigPayloadError,
+    (error: unknown) => {
+      assert.ok(error instanceof InvalidSystemConfigPayloadError)
+      assert.equal(error.messageKey, 'sysconf.notifyWebhookUrlProtocol')
+      assert.match(error.message, /http\/https 地址/)
+      return true
+    },
   )
 })
-
 test('normalizeSystemConfigUpdates 拒绝越界的 SMTP 端口', () => {
   assert.throws(
     () => normalizeSystemConfigUpdates([{ key: 'notifyEmailSmtpPort', value: 0 }]),
-    InvalidSystemConfigPayloadError,
+    (error: unknown) => {
+      assert.ok(error instanceof InvalidSystemConfigPayloadError)
+      assert.equal(error.messageKey, 'sysconf.smtpPortRange')
+      return true
+    },
   )
   assert.throws(
     () => normalizeSystemConfigUpdates([{ key: 'notifyEmailSmtpPort', value: 70000 }]),
-    InvalidSystemConfigPayloadError,
+    (error: unknown) => {
+      assert.ok(error instanceof InvalidSystemConfigPayloadError)
+      assert.equal(error.messageKey, 'sysconf.smtpPortRange')
+      return true
+    },
   )
   assert.throws(
     () => normalizeSystemConfigUpdates([{ key: 'notifyEmailSmtpPort', value: '465' }]),
-    InvalidSystemConfigPayloadError,
+    (error: unknown) => {
+      assert.ok(error instanceof InvalidSystemConfigPayloadError)
+      assert.equal(error.messageKey, 'sysconf.mustBeInteger')
+      return true
+    },
   )
 })
 

@@ -4,6 +4,7 @@ import React from 'react'
 
 import { AppInput } from '@/components/ui/app-input'
 import { type ChangePasswordPageModel } from '@/lib/change-password-ui'
+import { useI18n } from '@/lib/i18n/i18n-provider'
 
 type ChangePasswordWorkspaceProps = {
   pageModel: ChangePasswordPageModel
@@ -27,16 +28,34 @@ const changePasswordChecklistToneMap = {
   false: 'border-surface-200 bg-surface-50 text-ink-500',
 } as const
 
-const passwordTips = [
-  '优先使用“词组 + 数字 + 符号”的组合，既更强也更容易记忆。',
-  '避免复用项目 key、公司名、手机号等容易被猜中的信息。',
-  '如在多人环境共用后台，建议定期轮换管理员密码并缩短会话时长。',
+const passwordTips: Array<{ key: string; fallback: string }> = [
+  {
+    key: 'pwdws.tip.1',
+    fallback: '优先使用“词组 + 数字 + 符号”的组合，既更强也更容易记忆。',
+  },
+  {
+    key: 'pwdws.tip.2',
+    fallback: '避免复用项目 key、公司名、手机号等容易被猜中的信息。',
+  },
+  {
+    key: 'pwdws.tip.3',
+    fallback: '如在多人环境共用后台，建议定期轮换管理员密码并缩短会话时长。',
+  },
 ]
 
-const passwordChangeEffects = [
-  '后台会先校验当前密码，只有验证通过后才会写入新的管理员凭据。',
-  '新密码会按系统当前 bcrypt 轮数重新哈希，安全成本与系统配置保持一致。',
-  '修改成功后会在 3 秒内自动登出，方便让所有旧会话失效并重新验证。',
+const passwordChangeEffects: Array<{ key: string; fallback: string }> = [
+  {
+    key: 'pwdws.effect.1',
+    fallback: '后台会先校验当前密码，只有验证通过后才会写入新的管理员凭据。',
+  },
+  {
+    key: 'pwdws.effect.2',
+    fallback: '新密码会按系统当前 bcrypt 轮数重新哈希，安全成本与系统配置保持一致。',
+  },
+  {
+    key: 'pwdws.effect.3',
+    fallback: '修改成功后会在 3 秒内自动登出，方便让所有旧会话失效并重新验证。',
+  },
 ]
 
 type ChangePasswordField = {
@@ -48,31 +67,33 @@ type ChangePasswordField = {
   minLength?: number
 }
 
-const changePasswordFields: ChangePasswordField[] = [
-  {
-    key: 'currentPassword',
-    label: '当前密码',
-    description: '用于验证当前操作者身份。',
-    placeholder: '请输入当前密码',
-    autoComplete: 'current-password',
-  },
-  {
-    key: 'newPassword',
-    label: '新密码',
-    description: '建议至少 10 位，并加入数字与符号。',
-    placeholder: '请输入新密码（至少6位）',
-    autoComplete: 'new-password',
-    minLength: 6,
-  },
-  {
-    key: 'confirmPassword',
-    label: '确认新密码',
-    description: '再次输入新密码，避免误保存。',
-    placeholder: '请再次输入新密码',
-    autoComplete: 'new-password',
-    minLength: 6,
-  },
-]
+function getChangePasswordFields(t: (key: string, fallback?: string) => string): ChangePasswordField[] {
+  return [
+    {
+      key: 'currentPassword',
+      label: t('pwdws.field.current.label', '当前密码'),
+      description: t('pwdws.field.current.description', '用于验证当前操作者身份。'),
+      placeholder: t('pwdws.field.current.placeholder', '请输入当前密码'),
+      autoComplete: 'current-password',
+    },
+    {
+      key: 'newPassword',
+      label: t('pwdws.field.new.label', '新密码'),
+      description: t('pwdws.field.new.description', '建议至少 10 位，并加入数字与符号。'),
+      placeholder: t('pwdws.field.new.placeholder', '请输入新密码（至少6位）'),
+      autoComplete: 'new-password',
+      minLength: 6,
+    },
+    {
+      key: 'confirmPassword',
+      label: t('pwdws.field.confirm.label', '确认新密码'),
+      description: t('pwdws.field.confirm.description', '再次输入新密码，避免误保存。'),
+      placeholder: t('pwdws.field.confirm.placeholder', '请再次输入新密码'),
+      autoComplete: 'new-password',
+      minLength: 6,
+    },
+  ]
+}
 
 export function ChangePasswordWorkspace({
   pageModel,
@@ -91,6 +112,8 @@ export function ChangePasswordWorkspace({
   togglePasswordFieldVisibility,
   isPasswordFieldVisible,
 }: ChangePasswordWorkspaceProps) {
+  const { t } = useI18n()
+  const changePasswordFields = getChangePasswordFields(t)
   const fieldValueMap = {
     currentPassword,
     newPassword,
@@ -108,22 +131,24 @@ export function ChangePasswordWorkspace({
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-ink-300">
             <span className="h-2 w-2 rounded-full bg-surface-500" />
-            凭证安全
+            {t('pwdws.badge', '凭证安全')}
           </div>
           <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-50">
-            管理员密码工作台
+            {t('pwdws.title', '管理员密码工作台')}
           </h2>
           <p className="mt-2 text-sm leading-7 text-ink-500 sm:text-base">
-            修改管理员登录密码，左侧填写、右侧实时校验，改后需重新登录。
+            {t('pwdws.subtitle', '修改管理员登录密码，左侧填写、右侧实时校验，改后需重新登录。')}
           </p>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2 text-xs text-ink-500">
           <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5">
-            已完成 {completedChecklistCount} / {pageModel.checklist.length} 项安全检查
+            {t('pwdws.checklistProgress', '已完成 {completed} / {total} 项安全检查')
+              .replace('{completed}', String(completedChecklistCount))
+              .replace('{total}', String(pageModel.checklist.length))}
           </span>
           <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5">
-            修改成功后将立即要求重新登录
+            {t('pwdws.reloginNotice', '修改成功后将立即要求重新登录')}
           </span>
         </div>
       </section>
@@ -132,11 +157,14 @@ export function ChangePasswordWorkspace({
         <form onSubmit={onSubmit} className={`${panelClassName} p-6`}>
           <div className="mb-5">
             <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-200">
-              密码表单
+              {t('pwdws.formBadge', '密码表单')}
             </div>
-            <h3 className="mt-4 text-xl font-semibold text-ink-50">修改管理员密码</h3>
+            <h3 className="mt-4 text-xl font-semibold text-ink-50">{t('pwdws.formTitle', '修改管理员密码')}</h3>
             <p className="mt-2 text-sm leading-6 text-ink-500">
-              建议使用至少 10 位、包含数字与符号的新密码，以降低后台被撞库和弱口令命中的风险。
+              {t(
+                'pwdws.formDescription',
+                '建议使用至少 10 位、包含数字与符号的新密码，以降低后台被撞库和弱口令命中的风险。',
+              )}
             </p>
           </div>
 
@@ -156,7 +184,7 @@ export function ChangePasswordWorkspace({
                     onClick={() => togglePasswordFieldVisibility(field.key)}
                     className="inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-xs font-medium text-ink-300 transition hover:border-surface-300 hover:bg-surface-100"
                   >
-                    {isPasswordFieldVisible(field.key) ? '隐藏内容' : '显示内容'}
+                    {isPasswordFieldVisible(field.key) ? t('pwdws.hide', '隐藏内容') : t('pwdws.show', '显示内容')}
                   </button>
                 </div>
 
@@ -180,9 +208,12 @@ export function ChangePasswordWorkspace({
           <div className="mt-5 rounded-lg border border-surface-200 bg-surface-50 p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h3 className="text-base font-semibold text-ink-50">确认后立即生效</h3>
+                <h3 className="text-base font-semibold text-ink-50">{t('pwdws.effectTitle', '确认后立即生效')}</h3>
                 <p className="mt-1 text-sm leading-6 text-ink-500">
-                  修改成功后系统会提示重新登录，并在 3 秒内自动退出当前会话。
+                  {t(
+                    'pwdws.effectDescription',
+                    '修改成功后系统会提示重新登录，并在 3 秒内自动退出当前会话。',
+                  )}
                 </p>
               </div>
               <button
@@ -190,7 +221,7 @@ export function ChangePasswordWorkspace({
                 disabled={loading}
                 className="inline-flex w-full items-center justify-center rounded-md bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
               >
-                {loading ? '修改中...' : '修改密码'}
+                {loading ? t('pwdws.submitting', '修改中...') : t('pwdws.submit', '修改密码')}
               </button>
             </div>
           </div>
@@ -199,12 +230,17 @@ export function ChangePasswordWorkspace({
         <div className="space-y-6">
           <div className={`${panelClassName} p-6`}>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-ink-50">实时校验</h3>
+              <h3 className="text-lg font-semibold text-ink-50">{t('pwdws.liveCheckTitle', '实时校验')}</h3>
               <p className="text-sm leading-6 text-ink-500">
-                输入时即时反馈关键检查项，减少提交后报错的来回成本。
+                {t(
+                  'pwdws.liveCheckDescription',
+                  '输入时即时反馈关键检查项，减少提交后报错的来回成本。',
+                )}
               </p>
               <div className="inline-flex rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-medium text-ink-500">
-                {completedChecklistCount} / {pageModel.checklist.length} 已通过
+                {t('pwdws.liveCheckPassed', '{completed} / {total} 已通过')
+                  .replace('{completed}', String(completedChecklistCount))
+                  .replace('{total}', String(pageModel.checklist.length))}
               </div>
             </div>
 
@@ -232,20 +268,23 @@ export function ChangePasswordWorkspace({
 
           <div className={`${panelClassName} p-6`}>
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-ink-50">操作提示</h3>
+              <h3 className="text-lg font-semibold text-ink-50">{t('pwdws.tipsTitle', '操作提示')}</h3>
               <p className="text-sm leading-6 text-ink-500">
-                这里只保留真正会影响提交和登录态的说明，方便边改边看。
+                {t(
+                  'pwdws.tipsDescription',
+                  '这里只保留真正会影响提交和登录态的说明，方便边改边看。',
+                )}
               </p>
             </div>
 
             <div className="mt-4 space-y-3">
               {passwordChangeEffects.map((effect, index) => (
                 <div
-                  key={effect}
+                  key={effect.key}
                   className="rounded-md border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-7 text-ink-300"
                 >
                   <span className="mr-2 font-semibold text-ink-50">0{index + 1}</span>
-                  {effect}
+                  {t(effect.key, effect.fallback)}
                 </div>
               ))}
             </div>
@@ -254,10 +293,10 @@ export function ChangePasswordWorkspace({
               <div className="space-y-3">
                 {passwordTips.map((tip) => (
                   <div
-                    key={tip}
+                    key={tip.key}
                     className="rounded-md border border-surface-200 bg-surface-100 px-4 py-4 text-sm leading-7 text-ink-300"
                   >
-                    {tip}
+                    {t(tip.key, tip.fallback)}
                   </div>
                 ))}
               </div>

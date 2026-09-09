@@ -8,7 +8,7 @@ export const GET = createProtectedAdminRouteHandler(
   {
     logLabel: '导出消费趋势失败',
     errorStatus: 400,
-    errorMessage: '导出消费趋势失败',
+    errorMessageKey: 'consumption.trendExportFailed',
     exposeErrorMessage: true,
   },
 )

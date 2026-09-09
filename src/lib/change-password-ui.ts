@@ -1,3 +1,5 @@
+export type PasswordUiTranslate = (key: string, fallback?: string) => string
+
 export type ChangePasswordInput = {
   currentPassword: string
   newPassword: string
@@ -20,24 +22,20 @@ export type ChangePasswordChecklistItem = {
   satisfied: boolean
 }
 
-function resolvePasswordStrength(newPassword: string): {
-  label: string
-  tone: ChangePasswordTone
-  description: string
-} {
+function resolvePasswordStrength(newPassword: string, t?: PasswordUiTranslate) {
   if (!newPassword) {
     return {
-      label: '待设置',
-      tone: 'neutral',
-      description: '请输入新密码后开始评估强度',
+      label: t?.('pwdui.strength.pending.label') ?? '待设置',
+      tone: 'neutral' as const,
+      description: t?.('pwdui.strength.pending.desc') ?? '请输入新密码后开始评估强度',
     }
   }
 
   if (newPassword.length < 6) {
     return {
-      label: '过短',
-      tone: 'danger',
-      description: '至少需要 6 位字符才满足基础要求',
+      label: t?.('pwdui.strength.tooShort.label') ?? '过短',
+      tone: 'danger' as const,
+      description: t?.('pwdui.strength.tooShort.desc') ?? '至少需要 6 位字符才满足基础要求',
     }
   }
 
@@ -48,40 +46,46 @@ function resolvePasswordStrength(newPassword: string): {
 
   if (hasRecommendedComplexity) {
     return {
-      label: '推荐',
-      tone: 'success',
-      description: '长度与复杂度较为均衡，适合管理员后台使用',
+      label: t?.('pwdui.strength.recommended.label') ?? '推荐',
+      tone: 'success' as const,
+      description:
+        t?.('pwdui.strength.recommended.desc') ?? '长度与复杂度较为均衡，适合管理员后台使用',
     }
   }
 
   return {
-    label: '基础',
-    tone: 'warning',
-    description: '已满足最低要求，建议补充数字或符号增强安全性',
+    label: t?.('pwdui.strength.basic.label') ?? '基础',
+    tone: 'warning' as const,
+    description:
+      t?.('pwdui.strength.basic.desc') ?? '已满足最低要求，建议补充数字或符号增强安全性',
   }
 }
 
-function resolveConfirmStatus(newPassword: string, confirmPassword: string) {
+function resolveConfirmStatus(
+  newPassword: string,
+  confirmPassword: string,
+  t?: PasswordUiTranslate,
+) {
   if (!newPassword || !confirmPassword) {
     return {
-      label: '待确认',
+      label: t?.('pwdui.confirm.pending.label') ?? '待确认',
       tone: 'neutral' as const,
-      description: '再次输入新密码以完成二次确认',
+      description: t?.('pwdui.confirm.pending.desc') ?? '再次输入新密码以完成二次确认',
     }
   }
 
   if (newPassword === confirmPassword) {
     return {
-      label: '已匹配',
+      label: t?.('pwdui.confirm.matched.label') ?? '已匹配',
       tone: 'success' as const,
-      description: '新密码与确认密码保持一致',
+      description: t?.('pwdui.confirm.matched.desc') ?? '新密码与确认密码保持一致',
     }
   }
 
   return {
-    label: '不一致',
+    label: t?.('pwdui.confirm.mismatch.label') ?? '不一致',
     tone: 'danger' as const,
-    description: '请检查确认密码是否与新密码完全一致',
+    description: t?.('pwdui.confirm.mismatch.desc') ?? '请检查确认密码是否与新密码完全一致',
   }
 }
 
@@ -90,26 +94,29 @@ export type ChangePasswordPageModel = {
   checklist: ChangePasswordChecklistItem[]
 }
 
-export function buildChangePasswordPageModel(input: ChangePasswordInput): ChangePasswordPageModel {
+export function buildChangePasswordPageModel(
+  input: ChangePasswordInput,
+  t?: PasswordUiTranslate,
+): ChangePasswordPageModel {
   const completedFields = [
     input.currentPassword,
     input.newPassword,
     input.confirmPassword,
   ].filter(Boolean).length
-  const passwordStrength = resolvePasswordStrength(input.newPassword)
-  const confirmStatus = resolveConfirmStatus(input.newPassword, input.confirmPassword)
+  const passwordStrength = resolvePasswordStrength(input.newPassword, t)
+  const confirmStatus = resolveConfirmStatus(input.newPassword, input.confirmPassword, t)
 
   const checklist: ChangePasswordChecklistItem[] = [
     {
       key: 'length',
-      label: '至少 6 位',
-      description: '满足接口要求的最低长度限制',
+      label: t?.('pwdui.checklist.length.label') ?? '至少 6 位',
+      description: t?.('pwdui.checklist.length.desc') ?? '满足接口要求的最低长度限制',
       satisfied: input.newPassword.length >= 6,
     },
     {
       key: 'difference',
-      label: '不同于当前密码',
-      description: '避免继续复用旧密码',
+      label: t?.('pwdui.checklist.difference.label') ?? '不同于当前密码',
+      description: t?.('pwdui.checklist.difference.desc') ?? '避免继续复用旧密码',
       satisfied:
         Boolean(input.currentPassword) &&
         Boolean(input.newPassword) &&
@@ -117,8 +124,8 @@ export function buildChangePasswordPageModel(input: ChangePasswordInput): Change
     },
     {
       key: 'match',
-      label: '确认密码一致',
-      description: '二次输入与新密码保持一致',
+      label: t?.('pwdui.checklist.match.label') ?? '确认密码一致',
+      description: t?.('pwdui.checklist.match.desc') ?? '二次输入与新密码保持一致',
       satisfied:
         Boolean(input.newPassword) &&
         Boolean(input.confirmPassword) &&
@@ -131,19 +138,19 @@ export function buildChangePasswordPageModel(input: ChangePasswordInput): Change
 
   const summaryCards: ChangePasswordSummaryCard[] = [
     {
-      label: '已填写',
+      label: t?.('pwdui.summary.filled.label') ?? '已填写',
       value: `${completedFields}/3`,
-      description: '当前密码、新密码与确认密码的完成度',
+      description: t?.('pwdui.summary.filled.desc') ?? '当前密码、新密码与确认密码的完成度',
       tone: completionTone,
     },
     {
-      label: '新密码强度',
+      label: t?.('pwdui.summary.strength.label') ?? '新密码强度',
       value: passwordStrength.label,
       description: passwordStrength.description,
       tone: passwordStrength.tone,
     },
     {
-      label: '确认状态',
+      label: t?.('pwdui.summary.confirm.label') ?? '确认状态',
       value: confirmStatus.label,
       description: confirmStatus.description,
       tone: confirmStatus.tone,

@@ -56,29 +56,37 @@ export type ActivationCodeListResult = {
   availableCardTypes: string[]
 }
 
-function getCodeStatusLabelForList(code: {
-  licenseMode: string | null
-  isUsed: boolean
-  usedAt: Date | null
-  expiresAt: Date | null
-  validDays: number | null
-  remainingCount: number | null
-}, now: Date): string {
+/** 可选的翻译函数：传入时优先使用词典 key，未传时回退中文标签 */
+export type CodeListTranslate = (key: string, fallback?: string) => string
+
+function getCodeStatusLabelForList(
+  code: {
+    licenseMode: string | null
+    isUsed: boolean
+    usedAt: Date | null
+    expiresAt: Date | null
+    validDays: number | null
+    remainingCount: number | null
+  },
+  now: Date,
+  t?: CodeListTranslate,
+): string {
   if (code.licenseMode === 'COUNT') {
-    if (!code.isUsed) return '未激活'
-    if (code.remainingCount !== null && code.remainingCount <= 0) return '已耗尽'
-    return '使用中'
+    if (!code.isUsed) return t?.('code.status.unused') ?? '未激活'
+    if (code.remainingCount !== null && code.remainingCount <= 0) return t?.('code.status.exhausted') ?? '已耗尽'
+    return t?.('code.status.active') ?? '使用中'
   }
 
   // TIME
-  if (isCodeExpired(code as LicenseStatusLike, now)) return '已过期'
-  if (code.isUsed) return '已使用'
-  return '未激活'
+  if (isCodeExpired(code as LicenseStatusLike, now)) return t?.('code.status.expired') ?? '已过期'
+  if (code.isUsed) return t?.('code.status.used') ?? '已使用'
+  return t?.('code.status.unused') ?? '未激活'
 }
 
 export async function listActivationCodes(
   client: PrismaClient,
   filters: ActivationCodeListFilters = {},
+  t?: CodeListTranslate,
 ): Promise<ActivationCodeListResult> {
   const now = new Date()
   const hasPagination = filters.page !== undefined || filters.pageSize !== undefined
@@ -162,7 +170,7 @@ export async function listActivationCodes(
   // ===== 3. Compute status label for each code =====
   const codesWithStatus = allMatchingCodes.map((code) => ({
     ...code,
-    _statusLabel: getCodeStatusLabelForList(code, now),
+    _statusLabel: getCodeStatusLabelForList(code, now, t),
   }))
 
   // ===== 4. Apply status filter in memory =====

@@ -8,7 +8,7 @@ export const GET = createProtectedAdminRouteHandler(
   {
     logLabel: '导出项目统计失败',
     errorStatus: 400,
-    errorMessage: '导出项目统计失败',
+    errorMessageKey: 'consumption.exportFailed',
     exposeErrorMessage: true,
   },
 )

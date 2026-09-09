@@ -13,8 +13,10 @@ import { DashboardTokenList } from '@/components/dashboard-token-list'
 import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
 import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
 import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
+import { useI18n } from '@/lib/i18n/i18n-provider'
 import {
   auditLogWorkspaceTabs,
+  translateWorkspaceTabs,
   type AuditLogWorkspaceTab,
 } from '@/lib/dashboard-workspace-tabs'
 
@@ -133,39 +135,45 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
   paginationButtonClassName = defaultPaginationButtonClassName,
   paginationActiveButtonClassName = defaultPaginationActiveButtonClassName,
 }: AuditLogWorkspaceProps<TLog>) {
+  const { t } = useI18n()
+  const workspaceTabs = translateWorkspaceTabs(auditLogWorkspaceTabs, t)
+
   return (
     <div className="space-y-6">
       <div className={panelClassName}>
         <WorkspaceHeroPanel
-          badge="审计日志工作区"
-          title="全局审计中心"
-          description="完整记录管理员关键操作，支持筛选、分页与导出，随时回溯变更痕迹。"
+          badge={t('auditws.badge', '审计日志工作区')}
+          title={t('auditws.title', '全局审计中心')}
+          description={t(
+            'auditws.description',
+            '完整记录管理员关键操作，支持筛选、分页与导出，随时回溯变更痕迹。',
+          )}
           gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(244,114,182,0.1),transparent_30%)]"
           metrics={
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <WorkspaceMetricCard
-                label="匹配日志"
+                label={t('auditws.metric.matched', '匹配日志')}
                 value={matchedCount}
-                description="当前条件下的管理员操作数"
+                description={t('auditws.metric.matchedDesc', '当前条件下的管理员操作数')}
                 className={workspaceSummaryCardClassName}
               />
               <WorkspaceMetricCard
-                label="涉及管理员"
+                label={t('auditws.metric.operators', '涉及管理员')}
                 value={operatorCoverage}
-                description="当前结果包含的操作账号数"
+                description={t('auditws.metric.operatorsDesc', '当前结果包含的操作账号数')}
                 className={workspaceSummaryCardClassName}
               />
               <WorkspaceMetricCard
-                label="涉及项目"
+                label={t('auditws.metric.projects', '涉及项目')}
                 value={projectCoverage}
-                description="当前结果覆盖的项目数"
+                description={t('auditws.metric.projectsDesc', '当前结果覆盖的项目数')}
                 className={workspaceSummaryCardClassName}
               />
             </div>
           }
           tabs={
             <WorkspaceTabNav
-              tabs={auditLogWorkspaceTabs}
+              tabs={workspaceTabs}
               activeTab={activeTab}
               onChange={onTabChange}
             />
@@ -176,8 +184,11 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
       {activeTab === 'filters' ? (
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
-            title="筛选与导出"
-            description="按管理员、项目、操作类型与时间窗口组合筛选，快速定位目标记录。"
+            title={t('auditws.filters.title', '筛选与导出')}
+            description={t(
+              'auditws.filters.description',
+              '按管理员、项目、操作类型与时间窗口组合筛选，快速定位目标记录。',
+            )}
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button
@@ -186,14 +197,14 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
                   disabled={filtersView.filterTokens.length === 0}
                   className={ghostButtonClassName}
                 >
-                  重置筛选
+                  {t('auditws.filters.reset', '重置筛选')}
                 </button>
                 <button
                   type="button"
                   onClick={() => onTabChange('logs')}
                   className={primaryButtonClassName}
                 >
-                  查看日志列表
+                  {t('auditws.filters.viewLogs', '查看日志列表')}
                 </button>
               </div>
             }
@@ -201,8 +212,11 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-6">
             <DashboardFilterFieldCard
-              label="搜索管理员 / 目标 / 原因"
-              description="支持按管理员账号、项目标识、激活码目标或原因说明快速回溯。"
+              label={t('auditws.filters.searchLabel', '搜索管理员 / 目标 / 原因')}
+              description={t(
+                'auditws.filters.searchDesc',
+                '支持按管理员账号、项目标识、激活码目标或原因说明快速回溯。',
+              )}
               htmlFor="audit-log-search-term"
             >
               <input
@@ -211,13 +225,19 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
                 value={filtersView.searchTerm}
                 onChange={(event) => filtersView.onSearchTermChange(event.target.value)}
                 className={compactInputClassName}
-                placeholder="输入管理员、目标或原因"
+                placeholder={t(
+                  'auditws.filters.searchPlaceholder',
+                  '输入管理员、目标或原因',
+                )}
               />
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="项目筛选"
-              description="只观察某个项目时，更容易梳理一条业务线上的配置变更与人工操作。"
+              label={t('auditws.filters.projectLabel', '项目筛选')}
+              description={t(
+                'auditws.filters.projectDesc',
+                '只观察某个项目时，更容易梳理一条业务线上的配置变更与人工操作。',
+              )}
               htmlFor="audit-log-project-filter"
             >
               <select
@@ -226,7 +246,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
                 onChange={(event) => filtersView.onProjectFilterChange(event.target.value)}
                 className={compactInputClassName}
               >
-                <option value="all">全部项目</option>
+                <option value="all">{t('dash.project.all', '全部项目')}</option>
                 {filtersView.projectOptions.map((project) => (
                   <option key={project.id} value={project.projectKey}>
                     {project.name}
@@ -236,8 +256,11 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="操作类型"
-              description="快速区分发码、项目配置、单码策略和人工换绑相关操作。"
+              label={t('auditws.filters.operationTypeLabel', '操作类型')}
+              description={t(
+                'auditws.filters.operationTypeDesc',
+                '快速区分发码、项目配置、单码策略和人工换绑相关操作。',
+              )}
               htmlFor="audit-log-operation-type-filter"
             >
               <select
@@ -246,7 +269,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
                 onChange={(event) => filtersView.onOperationTypeFilterChange(event.target.value)}
                 className={compactInputClassName}
               >
-                <option value="all">全部操作</option>
+                <option value="all">{t('auditws.filters.allOperations', '全部操作')}</option>
                 {filtersView.operationTypeOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -256,8 +279,11 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="开始时间"
-              description="从这个时间点开始回溯管理动作。"
+              label={t('auditws.filters.fromLabel', '开始时间')}
+              description={t(
+                'auditws.filters.fromDesc',
+                '从这个时间点开始回溯管理动作。',
+              )}
               htmlFor="audit-log-created-from"
             >
               <input
@@ -270,8 +296,11 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="结束时间"
-              description="设置查询结束时间，导出结果更聚焦。"
+              label={t('auditws.filters.toLabel', '结束时间')}
+              description={t(
+                'auditws.filters.toDesc',
+                '设置查询结束时间，导出结果更聚焦。',
+              )}
               htmlFor="audit-log-created-to"
             >
               <input
@@ -284,24 +313,27 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="导出当前结果"
-              description="按当前筛选条件导出 CSV，适合审计留档与问题复盘。"
+              label={t('auditws.filters.exportLabel', '导出当前结果')}
+              description={t(
+                'auditws.filters.exportDesc',
+                '按当前筛选条件导出 CSV，适合审计留档与问题复盘。',
+              )}
             >
               <button
                 type="button"
                 onClick={filtersView.onExport}
                 className={`w-full ${successButtonClassName}`}
               >
-                导出筛选结果
+                {t('auditws.filters.export', '导出筛选结果')}
               </button>
             </DashboardFilterFieldCard>
           </div>
 
           <div className="mt-5 rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
-            <div className="text-xs uppercase tracking-[0.18em] text-ink-500">当前生效条件</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{t('auditws.filters.activeConditions', '当前生效条件')}</div>
             <DashboardTokenList
               tokens={filtersView.filterTokens}
-              emptyText="当前未设置任何筛选条件"
+              emptyText={t('auditws.filters.noFilters', '当前未设置任何筛选条件')}
               className="mt-3 flex flex-wrap gap-2"
             />
           </div>
@@ -309,8 +341,11 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
       ) : (
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
-            title={`审计日志列表 (${logsView.totalCount} 条记录)`}
-            description="清晰还原谁在什么时间对哪个项目或激活码做了什么变更。"
+            title={t('auditws.logs.title', '审计日志列表 ({count} 条记录)').replace('{count}', String(logsView.totalCount))}
+            description={t(
+                'auditws.logs.description',
+                '清晰还原谁在什么时间对哪个项目或激活码做了什么变更。',
+              )}
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button
@@ -318,7 +353,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
                   onClick={() => onTabChange('filters')}
                   className={ghostButtonClassName}
                 >
-                  查看筛选器
+                  {t('auditws.logs.viewFilters', '查看筛选器')}
                 </button>
                 <button
                   type="button"
@@ -326,7 +361,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
                   disabled={loading || logsView.totalCount === 0}
                   className={successButtonClassName}
                 >
-                  导出筛选结果
+                  {t('auditws.filters.export', '导出筛选结果')}
                 </button>
               </div>
             }
@@ -337,23 +372,34 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
             leading={
               <DashboardTokenList
                 tokens={logsView.filterTokens}
-                emptyText="当前显示全部管理员审计日志"
+                emptyText={t('auditws.logs.allTokens', '当前显示全部管理员审计日志')}
               />
             }
             trailing={
               <div className="text-sm text-ink-500">
-                当前展示第 {logsView.startIndex} - {logsView.endIndex} 条，共 {logsView.totalCount}{' '}
-                条记录
+                {t('auditws.logs.showingRange', '当前展示第 {start} - {end} 条，共 {total} 条记录')
+                  .replace('{start}', String(logsView.startIndex))
+                  .replace('{end}', String(logsView.endIndex))
+                  .replace('{total}', String(logsView.totalCount))}
               </div>
             }
           />
 
           {loading ? (
-            <DashboardLoadingState message="加载中..." />
+            <DashboardLoadingState message={t('auditws.logs.loading', '加载中...')} />
           ) : (
             <>
               <DashboardDataTable
-                headers={['操作类型', '管理员', '项目', '激活码', '目标', '原因', '详情', '操作时间']}
+                headers={[
+                  t('auditws.logs.col.operationType', '操作类型'),
+                  t('auditws.logs.col.admin', '管理员'),
+                  t('auditws.logs.col.project', '项目'),
+                  t('auditws.logs.col.code', '激活码'),
+                  t('auditws.logs.col.target', '目标'),
+                  t('auditws.logs.col.reason', '原因'),
+                  t('auditws.logs.col.detail', '详情'),
+                  t('auditws.logs.col.operatedAt', '操作时间'),
+                ]}
                 tableClassName="w-full min-w-[1280px] divide-y divide-surface-200"
               >
                 {logsView.logs.map((log) => (
@@ -388,7 +434,10 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
 
               {logsView.logs.length === 0 ? (
                 <DashboardEmptyState
-                  message="暂无匹配的管理员审计日志，建议切换到“筛选与导出”调整关键词、项目、操作类型或时间范围。"
+                  message={t(
+                    'auditws.logs.empty',
+                    '暂无匹配的管理员审计日志，建议切换到“筛选与导出”调整关键词、项目、操作类型或时间范围。',
+                  )}
                   className="mt-5"
                 />
               ) : null}
@@ -396,7 +445,10 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
               <DashboardPaginationBar
                 currentPage={logsView.currentPage}
                 totalPages={logsView.totalPages}
-                summary={`显示第 ${logsView.startIndex} - ${logsView.endIndex} 条，共 ${logsView.totalCount} 条记录`}
+                summary={t('auditws.logs.pageSummary', '显示第 {start} - {end} 条，共 {total} 条记录')
+                  .replace('{start}', String(logsView.startIndex))
+                  .replace('{end}', String(logsView.endIndex))
+                  .replace('{total}', String(logsView.totalCount))}
                 onPageChange={logsView.onPageChange}
                 buttonClassName={paginationButtonClassName}
                 activeButtonClassName={paginationActiveButtonClassName}

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 import { getEnabledPaymentConfig, getPaymentProvider } from '@/lib/shop-payment-registry'
 import { fulfillShopOrder } from '@/lib/shop-fulfillment-service'
@@ -20,9 +21,10 @@ export async function POST(
   { params }: { params: { provider: string } },
 ) {
   const { provider } = params
+  const t = serverT(resolveServerLocale(request))
 
   if (!NOTIFY_SUPPORTED_PROVIDERS.has(provider)) {
-    return NextResponse.json({ success: false, message: '不支持的回调渠道' }, { status: 404 })
+    return NextResponse.json({ success: false, message: t('payment.channelUnsupported') }, { status: 404 })
   }
 
   const rateLimit = guardShopApiRateLimit(request, `/api/shop/payment/notify/${provider}`)
@@ -37,28 +39,28 @@ export async function POST(
 
   if (!paymentProvider || !config) {
     return NextResponse.json(
-      { success: false, message: '支付渠道未启用' },
+      { success: false, message: t('shop.paymentProviderDisabled') },
       { status: 400 },
     )
   }
 
   const context = await paymentProvider.verifyCallback(bodyText, config)
   if (!context) {
-    return NextResponse.json({ success: false, message: '签名校验失败' }, { status: 400 })
+    return NextResponse.json({ success: false, message: t('payment.callbackVerifyFailed') }, { status: 400 })
   }
 
   if (!context.paid) {
-    return NextResponse.json({ success: true, message: '未支付，忽略' })
+    return NextResponse.json({ success: true, message: t('payment.callbackNotPaid') })
   }
 
   const result = await fulfillShopOrder({
     orderNo: context.orderNo,
     transactionId: context.transactionId,
-  })
+  }, t)
 
   if (!result.success && !result.alreadyProcessed) {
-    return NextResponse.json({ success: false, message: result.message ?? '发卡失败' }, { status: 400 })
+    return NextResponse.json({ success: false, message: result.message ?? t('payment.fulfillFailed') }, { status: 400 })
   }
 
-  return NextResponse.json({ success: true, message: '回调处理成功' })
+  return NextResponse.json({ success: true, message: t('payment.callbackVerified') })
 }

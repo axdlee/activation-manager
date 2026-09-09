@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client'
 
 import { prisma } from '@/lib/db'
 import { getConfigWithDefault } from '@/lib/config-service'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import {
   createLicenseErrorResponse,
   createLegacyLicenseResponse,
@@ -24,6 +25,7 @@ import {
 import { recordLicenseApiRequest } from '@/lib/license-api-metrics'
 
 type LicenseRouteOptions = {
+  /** catch 兜底错误消息的词典 key（i18n），按请求语言翻译 */
   errorMessage: string
   legacyOnly?: boolean
 }
@@ -34,6 +36,7 @@ async function executeLicenseRequest(
   options: LicenseRouteOptions,
   rateLimiter: LicenseApiRateLimiter = defaultLicenseApiRateLimiter,
 ) {
+  const t = serverT(resolveServerLocale(request))
   const path = new URL(request.url).pathname
   const rateLimitKey = buildLicenseApiRateLimitKey(request, path)
   const rateLimitResult = rateLimiter.check(rateLimitKey)
@@ -48,7 +51,7 @@ async function executeLicenseRequest(
     return new Response(
       JSON.stringify({
         success: false,
-        message: '请求过于频繁，请稍后重试',
+        message: t('api.rateLimited'),
       }),
       {
         status: 429,
@@ -80,7 +83,7 @@ async function executeLicenseRequest(
       success: false,
       durationMs: Math.round(performance.now() - startedAt),
     })
-    return createLicenseErrorResponse(options.errorMessage, error)
+    return createLicenseErrorResponse(t(options.errorMessage), error)
   }
 }
 
@@ -115,7 +118,7 @@ export const handleActivateLicenseRequest = createLicenseRouteHandler(
       machineId,
     }),
   {
-    errorMessage: '激活激活码失败',
+    errorMessage: 'code.activateFailed',
   },
 )
 
@@ -128,7 +131,7 @@ export const handleConsumeLicenseRequest = createLicenseRouteHandler(
       requestId,
     }),
   {
-    errorMessage: '消费激活码失败',
+    errorMessage: 'code.consumeFailed',
   },
 )
 
@@ -140,7 +143,7 @@ export const handleLicenseStatusRequest = createLicenseRouteHandler(
       machineId,
     }),
   {
-    errorMessage: '获取激活码状态失败',
+    errorMessage: 'code.statusFailed',
   },
 )
 
@@ -152,7 +155,7 @@ export const handleVerifyLicenseRequest = createLicenseRouteHandler(
       machineId,
     }),
   {
-    errorMessage: '验证激活码失败',
+    errorMessage: 'code.verifyFailed',
     legacyOnly: true,
   },
 )

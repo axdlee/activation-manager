@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { updateActivationCodeRebindSettings } from '@/lib/license-code-admin-service'
 
-function parseActivationCodeId(value: string) {
+function parseActivationCodeId(value: string, t: (key: string) => string) {
   const id = Number(value)
 
   if (!Number.isInteger(id) || id <= 0) {
-    throw new Error('激活码ID无效')
+    throw new Error(t('api.codeIdInvalid'))
   }
 
   return id
@@ -16,8 +17,9 @@ function parseActivationCodeId(value: string) {
 
 // GET 单码详情：含绑定历史与管理员审计（列表页改为服务端分页后按需加载）
 export const GET = createProtectedAdminRouteHandler(
-  async (_request: NextRequest, _authResult, context: { params: { id: string } }) => {
-    const id = parseActivationCodeId(context.params.id)
+  async (request: NextRequest, _authResult, context: { params: { id: string } }) => {
+    const t = serverT(resolveServerLocale(request))
+    const id = parseActivationCodeId(context.params.id, t)
 
     const activationCode = await prisma.activationCode.findUnique({
       where: { id },
@@ -45,7 +47,7 @@ export const GET = createProtectedAdminRouteHandler(
 
     if (!activationCode) {
       return NextResponse.json(
-        { success: false, message: '激活码不存在' },
+        { success: false, message: t('code.notFound') },
         { status: 404 },
       )
     }
@@ -58,7 +60,7 @@ export const GET = createProtectedAdminRouteHandler(
   {
     logLabel: '获取激活码详情时发生错误',
     errorStatus: 500,
-    errorMessage: '服务器内部错误',
+    errorMessageKey: 'api.internalError',
   },
 )
 
@@ -68,7 +70,8 @@ export const PATCH = createProtectedAdminRouteHandler(
     authResult,
     context: { params: { id: string } },
   ) => {
-    const id = parseActivationCodeId(context.params.id)
+    const t = serverT(resolveServerLocale(request))
+    const id = parseActivationCodeId(context.params.id, t)
     const payload = await request.json()
 
     if (
@@ -77,7 +80,7 @@ export const PATCH = createProtectedAdminRouteHandler(
       !Object.prototype.hasOwnProperty.call(payload, 'autoRebindMaxCount')
     ) {
       return NextResponse.json(
-        { success: false, message: '至少需要提供 allowAutoRebind、autoRebindCooldownMinutes 或 autoRebindMaxCount' },
+        { success: false, message: t('rebind.policyRequired') },
         { status: 400 },
       )
     }
@@ -93,14 +96,14 @@ export const PATCH = createProtectedAdminRouteHandler(
 
     return NextResponse.json({
       success: true,
-      message: '激活码换绑策略已更新',
+      message: t('code.rebindPolicyUpdated'),
       activationCode,
     })
   },
   {
     logLabel: '更新激活码换绑策略失败',
     errorStatus: 400,
-    errorMessage: '更新激活码换绑策略失败',
+    errorMessageKey: 'code.rebindPolicyUpdateFailed',
     exposeErrorMessage: true,
   },
 )

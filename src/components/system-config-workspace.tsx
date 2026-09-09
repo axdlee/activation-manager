@@ -8,12 +8,14 @@ import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
 import { AppInput } from '@/components/ui/app-input'
 import { AppSelect } from '@/components/ui/app-select'
 import { AppTextarea } from '@/components/ui/app-textarea'
+import { useI18n } from '@/lib/i18n/i18n-provider'
 import {
   buildSystemConfigWorkspaceTabs,
   type SystemConfigWorkspaceTab,
 } from '@/lib/dashboard-workspace-tabs'
 import {
   type SystemConfigGroup,
+  type SystemConfigGroupKey,
   type SystemConfigPageModel,
   type SystemConfigValue,
 } from '@/lib/system-config-ui'
@@ -92,20 +94,38 @@ const systemConfigGroupThemeMap = {
   },
 } as const
 
-const systemConfigFocusNoteMap = {
+const systemConfigFocusNoteKeyMap: Record<SystemConfigGroupKey, string> = {
+  access: 'sysconfws.focusNote.access',
+  rebind: 'sysconfws.focusNote.rebind',
+  security: 'sysconfws.focusNote.security',
+  branding: 'sysconfws.focusNote.branding',
+  notification: 'sysconfws.focusNote.notification',
+  advanced: 'sysconfws.focusNote.advanced',
+}
+
+const systemConfigFocusNoteFallbackMap: Record<SystemConfigGroupKey, string> = {
   access: '修改白名单前先核对当前访问 IP，避免把自己锁在系统外。',
   rebind: '这里配置的是系统级默认策略，项目级与单码级可继续覆盖；建议结合冷却时间与次数上限一起审视。',
   security: '这里的修改会立即影响登录态与密码安全成本，建议优先复核。',
   branding: '展示项会直接出现在登录页和后台标题区，建议与实际产品名称保持一致。',
   notification: '通知渠道全部可选：Webhook、邮件、短信至少配置其一即可生效；敏感的 SMTP 授权码保存后不会回显。',
   advanced: '高级配置通常承载扩展项，变更前请先确认其消费方与默认回退逻辑。',
-} as const
+}
 
 const overviewChecklistItems = [
-  '修改 JWT 密钥后，当前所有管理员会话都需要重新登录。',
-  '调整 IP 白名单前，请确认当前访问 IP 已被包含，避免把自己锁在系统外。',
-  '系统级换绑策略只提供默认值，最终生效优先级仍然是：系统级配置 < 项目级配置 < 单码级配置。',
-  '提升 bcrypt 轮数会增强安全性，但登录与改密耗时也会增加。',
+  { key: 'sysconfws.checklist.jwtSecret', fallback: '修改 JWT 密钥后，当前所有管理员会话都需要重新登录。' },
+  {
+    key: 'sysconfws.checklist.whitelist',
+    fallback: '调整 IP 白名单前，请确认当前访问 IP 已被包含，避免把自己锁在系统外。',
+  },
+  {
+    key: 'sysconfws.checklist.rebindPriority',
+    fallback: '系统级换绑策略只提供默认值，最终生效优先级仍然是：系统级配置 < 项目级配置 < 单码级配置。',
+  },
+  {
+    key: 'sysconfws.checklist.bcrypt',
+    fallback: '提升 bcrypt 轮数会增强安全性，但登录与改密耗时也会增加。',
+  },
 ]
 
 const overviewActionButtonClassName =
@@ -125,6 +145,7 @@ function renderGroupSection({
   updateConfigValue,
   toggleSensitiveConfigVisibility,
   isSensitiveConfigVisible,
+  t,
 }: {
   group: SystemConfigGroup
   panelClassName: string
@@ -132,6 +153,7 @@ function renderGroupSection({
   updateConfigValue: (key: string, value: SystemConfigValue) => void
   toggleSensitiveConfigVisibility: (key: string) => void
   isSensitiveConfigVisible: (key: string) => boolean
+  t: (key: string, fallback?: string) => string
 }) {
   const groupTheme = systemConfigGroupThemeMap[group.key]
 
@@ -143,23 +165,23 @@ function renderGroupSection({
             className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-[0.18em] ${groupTheme.badge}`}
           >
             <span className={`h-2 w-2 rounded-full ${groupTheme.dot}`} />
-            当前分区配置
+            {t('sysconfws.badge.currentSection', '当前分区配置')}
           </div>
           <h3 className={`mt-4 text-xl font-semibold tracking-tight ${groupTheme.title}`}>
             {group.title}
           </h3>
           <p className="mt-2 text-sm leading-7 text-ink-500">{group.description}</p>
           <div className={`mt-4 rounded-md border px-4 py-3 text-sm leading-6 ${groupTheme.note}`}>
-            {systemConfigFocusNoteMap[group.key]}
+            {t(systemConfigFocusNoteKeyMap[group.key], systemConfigFocusNoteFallbackMap[group.key])}
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-            {group.items.length} 项配置
+            {`${group.items.length} ${t('sysconfws.badge.itemsCount', '项配置')}`}
           </span>
           <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-            {group.items.filter((item) => item.sensitive).length} 个敏感项
+            {`${group.items.filter((item) => item.sensitive).length} ${t('sysconfws.badge.sensitiveCount', '个敏感项')}`}
           </span>
         </div>
       </div>
@@ -189,7 +211,9 @@ function renderGroupSection({
                   onClick={() => toggleSensitiveConfigVisibility(item.key)}
                   className="inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 py-2 text-xs font-medium text-ink-300 shadow-sm transition hover:border-surface-300 hover:bg-surface-50"
                 >
-                  {isSensitiveConfigVisible(item.key) ? '隐藏内容' : '显示内容'}
+                  {isSensitiveConfigVisible(item.key)
+                    ? t('sysconfws.action.hideContent', '隐藏内容')
+                    : t('sysconfws.action.showContent', '显示内容')}
                 </button>
               ) : null}
             </div>
@@ -266,7 +290,7 @@ function renderGroupSection({
               {item.previewTokens ? (
                 <div className="rounded-md border border-surface-200 bg-surface-50 p-4">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-500">
-                    当前白名单预览
+                    {t('sysconfws.label.whitelistPreview', '当前白名单预览')}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {item.previewTokens.length > 0 ? (
@@ -280,7 +304,7 @@ function renderGroupSection({
                       ))
                     ) : (
                       <span className="rounded-full border border-dashed border-surface-200 px-3 py-1.5 text-xs text-ink-500">
-                        尚未填写 IP 地址
+                        {t('sysconfws.label.whitelistPreviewEmpty', '尚未填写 IP 地址')}
                       </span>
                     )}
                   </div>
@@ -290,7 +314,7 @@ function renderGroupSection({
 
             <div className={`mt-4 rounded-lg border px-4 py-3 ${groupTheme.note}`}>
               <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] opacity-70">
-                操作建议
+                {t('sysconfws.label.hint', '操作建议')}
               </div>
               <div className="text-sm leading-6">{item.hint}</div>
             </div>
@@ -316,6 +340,8 @@ export function SystemConfigWorkspace({
   toggleSensitiveConfigVisibility,
   isSensitiveConfigVisible,
 }: SystemConfigWorkspaceProps) {
+  const { t } = useI18n()
+
   const handleScanExpired = async () => {
     setScanningExpired(true)
     setScanMessage('')
@@ -323,12 +349,12 @@ export function SystemConfigWorkspace({
       const response = await fetch('/api/admin/notifications/scan-expired', { method: 'POST' })
       const data = (await response.json()) as { success: boolean; message?: string }
       if (!data.success) {
-        setScanMessage(data.message ?? '扫描失败')
+        setScanMessage(data.message ?? t('sysconfws.scan.failed', '扫描失败'))
         return
       }
-      setScanMessage(data.message ?? '扫描完成')
+      setScanMessage(data.message ?? t('sysconfws.scan.completed', '扫描完成'))
     } catch {
-      setScanMessage('扫描失败，请稍后重试')
+      setScanMessage(t('sysconfws.scan.failedRetry', '扫描失败，请稍后重试'))
     } finally {
       setScanningExpired(false)
     }
@@ -366,11 +392,13 @@ export function SystemConfigWorkspace({
       <section className={`${panelClassName} p-6 sm:p-7`}>
         <div className="max-w-3xl">
           <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-ink-300">
-            配置工作台
+            {t('sysconfws.header.badge', '配置工作台')}
           </div>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-50">系统配置中心</h2>
+          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-50">
+            {t('sysconfws.header.title', '系统配置中心')}
+          </h2>
           <p className="mt-2 text-sm leading-7 text-ink-500 sm:text-base">
-            按分区集中管理系统配置，修改后统一保存并立即生效。
+            {t('sysconfws.header.description', '按分区集中管理系统配置，修改后统一保存并立即生效。')}
           </p>
         </div>
 
@@ -392,10 +420,16 @@ export function SystemConfigWorkspace({
 
       {loading && pageModel.groups.length === 0 ? (
         <div className={panelClassName}>
-          <DashboardLoadingState message="正在加载系统配置..." className="py-10 text-center" />
+          <DashboardLoadingState
+            message={t('sysconfws.state.loading', '正在加载系统配置...')}
+            className="py-10 text-center"
+          />
         </div>
       ) : pageModel.groups.length === 0 ? (
-        <DashboardEmptyState className={panelClassName} message="暂无系统配置数据" />
+        <DashboardEmptyState
+          className={panelClassName}
+          message={t('sysconfws.state.empty', '暂无系统配置数据')}
+        />
       ) : activeGroup ? (
         <form onSubmit={onSubmit} className="space-y-6">
           {renderGroupSection({
@@ -405,27 +439,30 @@ export function SystemConfigWorkspace({
             updateConfigValue,
             toggleSensitiveConfigVisibility,
             isSensitiveConfigVisible,
+            t,
           })}
 
           <section className={`${panelClassName} p-5`}>
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-ink-300">
-                  保存后立即生效
+                  {t('sysconfws.save.badge', '保存后立即生效')}
                 </div>
-                <h3 className="mt-3 text-lg font-semibold text-ink-50">准备保存本次配置变更？</h3>
+                <h3 className="mt-3 text-lg font-semibold text-ink-50">
+                  {t('sysconfws.save.title', '准备保存本次配置变更？')}
+                </h3>
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-500">
-                  保存后配置立即生效，涉及访问控制与认证的变更会马上影响后台行为。
+                  {t('sysconfws.save.description', '保存后配置立即生效，涉及访问控制与认证的变更会马上影响后台行为。')}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-                    {systemConfigsCount} 项配置
+                    {`${systemConfigsCount} ${t('sysconfws.badge.itemsCount', '项配置')}`}
                   </span>
                   <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-                    {sensitiveCount} 个敏感项
+                    {`${sensitiveCount} ${t('sysconfws.badge.sensitiveCount', '个敏感项')}`}
                   </span>
                   <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-                    {whitelistEntryCount} 个白名单地址
+                    {`${whitelistEntryCount} ${t('sysconfws.badge.whitelistAddresses', '个白名单地址')}`}
                   </span>
                 </div>
               </div>
@@ -435,7 +472,7 @@ export function SystemConfigWorkspace({
                 disabled={loading}
                 className="inline-flex w-full items-center justify-center rounded-md bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
               >
-                {loading ? '保存中...' : '保存配置'}
+                {loading ? t('sysconfws.action.saving', '保存中...') : t('sysconfws.action.saveConfig', '保存配置')}
               </button>
               <button
                 type="button"
@@ -443,7 +480,9 @@ export function SystemConfigWorkspace({
                 disabled={scanningExpired}
                 className="inline-flex w-full items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-medium text-ink-300 transition hover:text-ink-50 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
               >
-                {scanningExpired ? '扫描中...' : '扫描到期通知'}
+                {scanningExpired
+                  ? t('sysconfws.action.scanning', '扫描中...')
+                  : t('sysconfws.action.scanExpired', '扫描到期通知')}
               </button>
             </div>
             {scanMessage ? (
@@ -456,31 +495,38 @@ export function SystemConfigWorkspace({
           <section className={`${panelClassName} p-6`}>
             <div className="mb-5">
               <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-300">
-                配置总览
+                {t('sysconfws.overview.badge', '配置总览')}
               </div>
-              <h3 className="mt-4 text-xl font-semibold text-ink-50">先确认这些关键影响</h3>
+              <h3 className="mt-4 text-xl font-semibold text-ink-50">
+                {t('sysconfws.overview.title', '先确认这些关键影响')}
+              </h3>
               <p className="mt-2 text-sm leading-6 text-ink-500">
-                所有配置更改即时生效，建议从影响面最大的项目开始调整。
+                {t('sysconfws.overview.description', '所有配置更改即时生效，建议从影响面最大的项目开始调整。')}
               </p>
             </div>
 
             <div className="space-y-3">
               {overviewChecklistItems.map((item, index) => (
                 <div
-                  key={item}
+                  key={item.key}
                   className="rounded-md border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-7 text-ink-300"
                 >
                   <span className="mr-2 font-semibold text-ink-50">0{index + 1}</span>
-                  {item}
+                  {t(item.key, item.fallback)}
                 </div>
               ))}
             </div>
 
             <div className="mt-6 border-t border-surface-200 pt-6">
               <div className="mb-5">
-                <div className="text-sm font-semibold text-ink-50">分区速览</div>
+                <div className="text-sm font-semibold text-ink-50">
+                  {t('sysconfws.overview.quickView', '分区速览')}
+                </div>
                 <p className="mt-2 text-sm leading-6 text-ink-500">
-                  先按影响面选择要进入的分区；进入后只显示该分区字段，页面更短，定位更快。
+                  {t(
+                    'sysconfws.overview.quickViewDescription',
+                    '先按影响面选择要进入的分区；进入后只显示该分区字段，页面更短，定位更快。',
+                  )}
                 </p>
               </div>
 
@@ -510,16 +556,16 @@ export function SystemConfigWorkspace({
                           onClick={() => setActiveTab(group.key)}
                           className={overviewActionButtonClassName}
                         >
-                          进入分区
+                          {t('sysconfws.action.enterSection', '进入分区')}
                         </button>
                       </div>
 
                       <div className="mt-5 flex flex-wrap gap-2">
                         <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-                          {group.items.length} 项配置
+                          {`${group.items.length} ${t('sysconfws.badge.itemsCount', '项配置')}`}
                         </span>
                         <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-                          {group.items.filter((item) => item.sensitive).length} 个敏感项
+                          {`${group.items.filter((item) => item.sensitive).length} ${t('sysconfws.badge.sensitiveCount', '个敏感项')}`}
                         </span>
                       </div>
                     </article>
@@ -532,22 +578,24 @@ export function SystemConfigWorkspace({
           <section className={`${panelClassName} p-6`}>
             <div>
               <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-300">
-                保存方式
+                {t('sysconfws.saveMode.badge', '保存方式')}
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-ink-50">按分区编辑，统一保存</h3>
+              <h3 className="mt-4 text-lg font-semibold text-ink-50">
+                {t('sysconfws.saveMode.title', '按分区编辑，统一保存')}
+              </h3>
               <p className="mt-2 text-sm leading-6 text-ink-500">
-                从总览进入各分区，编辑完成后统一保存生效。
+                {t('sysconfws.saveMode.description', '从总览进入各分区，编辑完成后统一保存生效。')}
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
                 <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-                  {systemConfigsCount} 项配置
+                  {`${systemConfigsCount} ${t('sysconfws.badge.itemsCount', '项配置')}`}
                 </span>
                 <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-                  {sensitiveCount} 个敏感项
+                  {`${sensitiveCount} ${t('sysconfws.badge.sensitiveCount', '个敏感项')}`}
                 </span>
                 <span className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
-                  {whitelistEntryCount} 个白名单地址
+                  {`${whitelistEntryCount} ${t('sysconfws.badge.whitelistAddresses', '个白名单地址')}`}
                 </span>
               </div>
 
@@ -556,7 +604,7 @@ export function SystemConfigWorkspace({
                 onClick={() => setActiveTab(pageModel.groups[0]?.key || 'overview')}
                 className="mt-5 inline-flex w-full items-center justify-center rounded-md bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 lg:w-auto"
               >
-                前往首个分区
+                {t('sysconfws.action.goFirstSection', '前往首个分区')}
               </button>
             </div>
           </section>

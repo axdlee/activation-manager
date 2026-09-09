@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { isShopEnabled } from '@/lib/shop-access'
 
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
 
@@ -13,8 +14,10 @@ export const dynamic = 'force-dynamic'
  * 校验联系方式匹配后返回订单与已发卡密。
  */
 export async function POST(request: NextRequest) {
+  const t = serverT(resolveServerLocale(request))
+
   if (!(await isShopEnabled())) {
-    return NextResponse.json({ success: false, message: '购买中心已停用' }, { status: 403 })
+    return NextResponse.json({ success: false, message: t('shop.disabled') }, { status: 403 })
   }
 
   const rateLimit = guardShopApiRateLimit(request, '/api/shop/orders/query')
@@ -31,13 +34,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!body.orderNo) {
-      return NextResponse.json({ success: false, message: '缺少订单号' }, { status: 400 })
+      return NextResponse.json({ success: false, message: t('shop.orderNoRequired') }, { status: 400 })
     }
 
     const contact = body.contactEmail?.trim() || body.contactPhone?.trim() || body.contactWechat?.trim()
     if (!contact) {
       return NextResponse.json(
-        { success: false, message: '请提供下单时留的邮箱、手机号或微信号' },
+        { success: false, message: t('shop.contactQueryRequired') },
         { status: 400 },
       )
     }
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!order) {
-      return NextResponse.json({ success: false, message: '订单不存在' }, { status: 404 })
+      return NextResponse.json({ success: false, message: t('shop.orderNotFound') }, { status: 404 })
     }
 
     // 联系方式校验（三项任一匹配即可）
@@ -59,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     if (!contactMatched) {
       return NextResponse.json(
-        { success: false, message: '联系方式与订单不匹配' },
+        { success: false, message: t('shop.contactMismatch') },
         { status: 403 },
       )
     }
@@ -93,6 +96,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('查询订单失败:', error)
-    return NextResponse.json({ success: false, message: '查询失败' }, { status: 500 })
+    return NextResponse.json({ success: false, message: t('api.internalError') }, { status: 500 })
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { type AdminAuthSuccessResult } from '@/lib/admin-auth-shared'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import {
   deleteProject,
@@ -11,11 +12,11 @@ import {
   updateProjectStatus,
 } from '@/lib/license-project-service'
 
-function parseProjectId(value: string) {
+function parseProjectId(value: string, t: (key: string) => string) {
   const id = Number(value)
 
   if (!Number.isInteger(id) || id <= 0) {
-    throw new Error('项目ID无效')
+    throw new Error(t('api.projectIdInvalid'))
   }
 
   return id
@@ -27,7 +28,8 @@ export const PATCH = createProtectedAdminRouteHandler(
     authResult: AdminAuthSuccessResult,
     context: { params: { id: string } },
   ) => {
-    const id = parseProjectId(context.params.id)
+    const t = serverT(resolveServerLocale(request))
+    const id = parseProjectId(context.params.id, t)
     const payload = await request.json()
 
     if (Object.prototype.hasOwnProperty.call(payload, 'name')) {
@@ -35,7 +37,7 @@ export const PATCH = createProtectedAdminRouteHandler(
 
       if (typeof name !== 'string') {
         return NextResponse.json(
-          { success: false, message: 'name 必须为字符串' },
+          { success: false, message: t('api.nameMustBeString') },
           { status: 400 },
         )
       }
@@ -48,7 +50,7 @@ export const PATCH = createProtectedAdminRouteHandler(
 
       return NextResponse.json({
         success: true,
-        message: '项目名称已更新',
+        message: t('project.nameUpdated'),
         project,
       })
     }
@@ -58,7 +60,7 @@ export const PATCH = createProtectedAdminRouteHandler(
 
       if (description !== null && typeof description !== 'string') {
         return NextResponse.json(
-          { success: false, message: 'description 必须为字符串或 null' },
+          { success: false, message: t('api.descriptionMustBeStringOrNull') },
           { status: 400 },
         )
       }
@@ -71,7 +73,7 @@ export const PATCH = createProtectedAdminRouteHandler(
 
       return NextResponse.json({
         success: true,
-        message: '项目描述已更新',
+        message: t('project.descriptionUpdated'),
         project,
       })
     }
@@ -91,7 +93,7 @@ export const PATCH = createProtectedAdminRouteHandler(
 
       return NextResponse.json({
         success: true,
-        message: '项目换绑策略已更新',
+        message: t('project.rebindPolicyUpdated'),
         project,
       })
     }
@@ -100,7 +102,7 @@ export const PATCH = createProtectedAdminRouteHandler(
 
     if (typeof isEnabled !== 'boolean') {
       return NextResponse.json(
-        { success: false, message: 'isEnabled 必须为布尔值' },
+        { success: false, message: t('api.isEnabledMustBeBoolean') },
         { status: 400 },
       )
     }
@@ -113,14 +115,14 @@ export const PATCH = createProtectedAdminRouteHandler(
 
     return NextResponse.json({
       success: true,
-      message: isEnabled ? '项目已启用' : '项目已停用',
+      message: isEnabled ? '项目已启用' : t('project.disabled'),
       project,
     })
   },
   {
     logLabel: '更新项目失败',
     errorStatus: 400,
-    errorMessage: '更新项目失败',
+    errorMessageKey: 'project.updateFailed',
     exposeErrorMessage: true,
   },
 )
@@ -131,7 +133,8 @@ export const DELETE = createProtectedAdminRouteHandler(
     authResult: AdminAuthSuccessResult,
     context: { params: { id: string } },
   ) => {
-    const id = parseProjectId(context.params.id)
+    const t = serverT(resolveServerLocale(_request))
+    const id = parseProjectId(context.params.id, t)
     const project = await deleteProject(prisma, {
       id,
       adminUsername: authResult.payload?.username,
@@ -139,14 +142,14 @@ export const DELETE = createProtectedAdminRouteHandler(
 
     return NextResponse.json({
       success: true,
-      message: '项目删除成功',
+      message: t('project.deleteSuccess'),
       project,
     })
   },
   {
     logLabel: '删除项目失败',
     errorStatus: 400,
-    errorMessage: '删除项目失败',
+    errorMessageKey: 'project.deleteFailed',
     exposeErrorMessage: true,
   },
 )

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 import { prisma } from '@/lib/db'
 import { cancelExpiredPendingOrders } from '@/lib/shop-order-cleanup-service'
@@ -10,7 +11,8 @@ import { cancelExpiredPendingOrders } from '@/lib/shop-order-cleanup-service'
  * 管理员后台按钮触发，或外部 cron 定时调用。
  */
 export const POST = createProtectedAdminRouteHandler(
-  async (_request: NextRequest, authResult) => {
+  async (request: NextRequest, authResult) => {
+    const t = serverT(resolveServerLocale(request))
     const { cancelled } = await cancelExpiredPendingOrders()
 
     await recordAdminOperationAuditLog(prisma, {
@@ -23,7 +25,7 @@ export const POST = createProtectedAdminRouteHandler(
     return NextResponse.json({
       success: true,
       cancelled,
-      message: `已取消 ${cancelled} 笔超时未支付订单`,
+      message: t('cleanup.expiredOrders', { cancelled }),
     })
   },
   { logLabel: 'shop-order-cleanup' },

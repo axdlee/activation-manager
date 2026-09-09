@@ -1,16 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 
 export const DELETE = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult) => {
+    const t = serverT(resolveServerLocale(request))
     const { id } = await request.json()
 
     if (!id) {
       return NextResponse.json(
-        { success: false, message: '激活码ID不能为空' },
+        { success: false, message: t('code.idRequired') },
         { status: 400 }
       )
     }
@@ -24,7 +26,7 @@ export const DELETE = createProtectedAdminRouteHandler(
 
     if (!existingCode) {
       return NextResponse.json(
-        { success: false, message: '激活码不存在' },
+        { success: false, message: t('code.notFound') },
         { status: 404 }
       )
     }
@@ -45,12 +47,12 @@ export const DELETE = createProtectedAdminRouteHandler(
 
     return NextResponse.json({
       success: true,
-      message: '激活码删除成功',
+      message: t('code.deleteSuccess'),
     })
   },
   {
     logLabel: '删除激活码时发生错误',
     errorStatus: 500,
-    errorMessage: '服务器内部错误',
+    errorMessageKey: 'api.internalError',
   },
 )

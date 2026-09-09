@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { fulfillShopOrder } from '@/lib/shop-fulfillment-service'
 
 /**
@@ -8,6 +9,7 @@ import { fulfillShopOrder } from '@/lib/shop-fulfillment-service'
  */
 export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult, { params }: { params: { orderNo: string } }) => {
+    const t = serverT(resolveServerLocale(request))
     const orderNo = params.orderNo
     const body = (await request.json()) as { transactionId?: string }
 
@@ -15,11 +17,11 @@ export const POST = createProtectedAdminRouteHandler(
       orderNo,
       transactionId: body.transactionId,
       adminUsername: authResult.payload?.username ?? 'unknown',
-    })
+    }, t)
 
     if (!result.success) {
       return NextResponse.json(
-        { success: false, message: result.message ?? '确认失败' },
+        { success: false, message: result.message ?? t('api.confirmFailed') },
         { status: 400 },
       )
     }

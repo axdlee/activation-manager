@@ -88,6 +88,7 @@ export async function listAvailablePaymentChannels() {
   const channels: Array<{
     id: string
     name: string
+    nameKey?: string
     supportsOnlinePayment: boolean
   }> = []
 
@@ -104,6 +105,7 @@ export async function listAvailablePaymentChannels() {
     channels.push({
       id: provider.id,
       name: provider.name,
+      nameKey: provider.nameKey,
       supportsOnlinePayment: provider.supportsOnlinePayment,
     })
   }

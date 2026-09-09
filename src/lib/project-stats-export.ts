@@ -1,5 +1,7 @@
 import { createCsvRow } from './csv-utils'
 
+export type ProjectStatsExportTranslate = (key: string, fallback?: string) => string
+
 type ProjectStatsLike = {
   name: string
   projectKey: string
@@ -12,14 +14,31 @@ type ProjectStatsLike = {
   countConsumedTotal: number
 }
 
-export function buildProjectStatsCsv(projectStats: ProjectStatsLike[]) {
+export function buildProjectStatsCsv(
+  projectStats: ProjectStatsLike[],
+  t?: ProjectStatsExportTranslate,
+) {
+  const header = [
+    t?.('stats.csv.project') ?? '项目',
+    t?.('stats.csv.projectKey') ?? '项目标识',
+    t?.('stats.csv.status') ?? '状态',
+    t?.('stats.csv.totalCodes') ?? '总激活码',
+    t?.('stats.csv.activated') ?? '已激活',
+    t?.('stats.csv.active') ?? '有效',
+    t?.('stats.csv.expired') ?? '已过期',
+    t?.('stats.csv.remaining') ?? '次数剩余',
+    t?.('stats.csv.consumed') ?? '次数消耗',
+  ]
+  const enabledLabel = t?.('stats.csv.enabled') ?? '启用中'
+  const disabledLabel = t?.('stats.csv.disabled') ?? '已停用'
+
   const rows = [
-    createCsvRow(['项目', '项目标识', '状态', '总激活码', '已激活', '有效', '已过期', '次数剩余', '次数消耗']),
+    createCsvRow(header),
     ...projectStats.map((project) =>
       createCsvRow([
         project.name,
         project.projectKey,
-        project.isEnabled ? '启用中' : '已停用',
+        project.isEnabled ? enabledLabel : disabledLabel,
         project.totalCodes,
         project.usedCodes,
         project.activeCodes,

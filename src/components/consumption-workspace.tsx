@@ -13,8 +13,10 @@ import { DashboardTokenList } from '@/components/dashboard-token-list'
 import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
 import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
 import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
+import { useI18n } from '@/lib/i18n/i18n-provider'
 import {
   consumptionWorkspaceTabs,
+  translateWorkspaceTabs,
   type ConsumptionWorkspaceTab,
 } from '@/lib/dashboard-workspace-tabs'
 import { type LicenseModeValue } from '@/lib/license-status'
@@ -135,39 +137,45 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
   paginationButtonClassName = defaultPaginationButtonClassName,
   paginationActiveButtonClassName = defaultPaginationActiveButtonClassName,
 }: ConsumptionWorkspaceProps<TLog>) {
+  const { t } = useI18n()
+  const workspaceTabs = translateWorkspaceTabs(consumptionWorkspaceTabs, t)
+
   return (
     <div className="space-y-6">
       <div className={panelClassName}>
         <WorkspaceHeroPanel
-          badge="消费日志工作区"
-          title="消费日志排查中心"
-          description="通过筛选与自动刷新定位消费明细，长表格专注阅读与导出。"
+          badge={t('consumews.badge', '消费日志工作区')}
+          title={t('consumews.title', '消费日志排查中心')}
+          description={t(
+            'consumews.description',
+            '通过筛选与自动刷新定位消费明细，长表格专注阅读与导出。',
+          )}
           gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]"
           metrics={
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <WorkspaceMetricCard
-                label="匹配日志"
+                label={t('consumews.metric.matched', '匹配日志')}
                 value={matchedCount}
-                description="当前条件下的消费记录数"
+                description={t('consumews.metric.matchedDesc', '当前条件下的消费记录数')}
                 className={workspaceSummaryCardClassName}
               />
               <WorkspaceMetricCard
-                label="涉及项目"
+                label={t('consumews.metric.projects', '涉及项目')}
                 value={projectCoverage}
-                description="当前页涉及的项目数"
+                description={t('consumews.metric.projectsDesc', '当前页涉及的项目数')}
                 className={workspaceSummaryCardClassName}
               />
               <WorkspaceMetricCard
-                label="涉及激活码"
+                label={t('consumews.metric.codes', '涉及激活码')}
                 value={codeCoverage}
-                description="当前页覆盖的激活码数"
+                description={t('consumews.metric.codesDesc', '当前页覆盖的激活码数')}
                 className={workspaceSummaryCardClassName}
               />
             </div>
           }
           tabs={
             <WorkspaceTabNav
-              tabs={consumptionWorkspaceTabs}
+              tabs={workspaceTabs}
               activeTab={activeTab}
               onChange={onTabChange}
             />
@@ -178,8 +186,11 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
       {activeTab === 'filters' ? (
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
-            title="筛选与刷新"
-            description="适合排查插件调用链路、幂等请求与真实扣次波动。"
+            title={t('consumews.filters.title', '筛选与刷新')}
+            description={t(
+              'consumews.filters.description',
+              '适合排查插件调用链路、幂等请求与真实扣次波动。',
+            )}
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button
@@ -188,14 +199,14 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                   disabled={filtersView.filterTokens.length === 0}
                   className={ghostButtonClassName}
                 >
-                  重置筛选
+                  {t('consumews.filters.reset', '重置筛选')}
                 </button>
                 <button
                   type="button"
                   onClick={() => onTabChange('logs')}
                   className={primaryButtonClassName}
                 >
-                  查看日志列表
+                  {t('consumews.filters.viewLogs', '查看日志列表')}
                 </button>
               </div>
             }
@@ -203,8 +214,11 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
             <DashboardFilterFieldCard
-              label="搜索 requestId / 机器ID / 激活码"
-              description="适合追踪单次插件调用、设备异常与具体激活码的扣次链路。"
+              label={t('consumews.filters.searchLabel', '搜索 requestId / 机器ID / 激活码')}
+              description={t(
+                'consumews.filters.searchDesc',
+                '适合追踪单次插件调用、设备异常与具体激活码的扣次链路。',
+              )}
               htmlFor="consumption-search-term"
             >
               <input
@@ -213,13 +227,19 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                 value={filtersView.searchTerm}
                 onChange={(event) => filtersView.onSearchTermChange(event.target.value)}
                 className={compactInputClassName}
-                placeholder="输入 requestId、机器ID 或激活码"
+                placeholder={t(
+                  'consumews.filters.searchPlaceholder',
+                  '输入 requestId、机器ID 或激活码',
+                )}
               />
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="项目筛选"
-              description="只看某一个项目时，更容易判断插件版本发布后的真实扣次波动。"
+              label={t('consumews.filters.projectLabel', '项目筛选')}
+              description={t(
+                'consumews.filters.projectDesc',
+                '只看某一个项目时，更容易判断插件版本发布后的真实扣次波动。',
+              )}
               htmlFor="consumption-project-filter"
             >
               <select
@@ -228,7 +248,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                 onChange={(event) => filtersView.onProjectFilterChange(event.target.value)}
                 className={compactInputClassName}
               >
-                <option value="all">全部项目</option>
+                <option value="all">{t('dash.project.all', '全部项目')}</option>
                 {filtersView.projectOptions.map((project) => (
                   <option key={project.id} value={project.projectKey}>
                     {project.name}
@@ -238,8 +258,11 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="开始时间"
-              description="用于圈定回溯窗口起点，适合配合错误工单或发布日期定位问题。"
+              label={t('consumews.filters.fromLabel', '开始时间')}
+              description={t(
+                'consumews.filters.fromDesc',
+                '用于圈定回溯窗口起点，适合配合错误工单或发布日期定位问题。',
+              )}
               htmlFor="consumption-created-from"
             >
               <input
@@ -252,8 +275,11 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="结束时间"
-              description="与开始时间共同限定查询范围，让结果更精确。"
+              label={t('consumews.filters.toLabel', '结束时间')}
+              description={t(
+                'consumews.filters.toDesc',
+                '与开始时间共同限定查询范围，让结果更精确。',
+              )}
               htmlFor="consumption-created-to"
             >
               <input
@@ -266,8 +292,11 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
             </DashboardFilterFieldCard>
 
             <DashboardFilterFieldCard
-              label="刷新当前日志"
-              description="立即按当前条件重新拉取，适合观察最新扣次或刚完成的线上操作。"
+              label={t('consumews.filters.refreshLabel', '刷新当前日志')}
+              description={t(
+                'consumews.filters.refreshDesc',
+                '立即按当前条件重新拉取，适合观察最新扣次或刚完成的线上操作。',
+              )}
             >
               <button
                 type="button"
@@ -275,41 +304,41 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                 disabled={loading}
                 className={`w-full ${primaryButtonClassName}`}
               >
-                {loading ? '刷新中...' : '刷新消费日志'}
+                {loading ? t('consumews.filters.refreshing', '刷新中...') : t('consumews.filters.refresh', '刷新消费日志')}
               </button>
             </DashboardFilterFieldCard>
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
             <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
-              <div className="text-xs uppercase tracking-[0.18em] text-ink-500">快捷时间范围</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{t('consumews.filters.quickRange', '快捷时间范围')}</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button type="button" onClick={filtersView.onApplyToday} className={ghostButtonClassName}>
-                  今天
+                  {t('consumews.filters.today', '今天')}
                 </button>
                 <button type="button" onClick={filtersView.onApplyLast7Days} className={ghostButtonClassName}>
-                  最近7天
+                  {t('consumews.filters.last7Days', '最近7天')}
                 </button>
                 <button type="button" onClick={filtersView.onApplyLast30Days} className={ghostButtonClassName}>
-                  最近30天
+                  {t('consumews.filters.last30Days', '最近30天')}
                 </button>
                 <button type="button" onClick={filtersView.onClearTimeRange} className={ghostButtonClassName}>
-                  清空时间
+                  {t('consumews.filters.clearTime', '清空时间')}
                 </button>
               </div>
 
               <DashboardTokenList
                 tokens={filtersView.filterTokens}
-                emptyText="当前未设置任何筛选条件"
+                emptyText={t('consumews.filters.noFilters', '当前未设置任何筛选条件')}
                 className="mt-4 flex flex-wrap gap-2"
               />
             </div>
 
             <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
-              <div className="text-xs uppercase tracking-[0.18em] text-ink-500">刷新状态</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{t('consumews.filters.refreshStatus', '刷新状态')}</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-sm text-brand-400">
-                  自动刷新已开启（{filtersView.autoRefreshDelayMs}ms 防抖）
+                  {t('consumews.filters.autoRefreshOn', '自动刷新已开启（{ms}ms 防抖）').replace('{ms}', String(filtersView.autoRefreshDelayMs))}
                 </span>
                 <span
                   className={`rounded-full border px-3 py-1.5 text-sm ${filtersView.refreshStatusBadgeClassName}`}
@@ -323,7 +352,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                 disabled={loading || filtersView.totalCount === 0}
                 className={`mt-4 w-full ${successButtonClassName}`}
               >
-                导出筛选结果
+                {t('consumews.filters.export', '导出筛选结果')}
               </button>
             </div>
           </div>
@@ -331,8 +360,11 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
       ) : (
         <div className={`${panelClassName} p-6`}>
           <DashboardSectionHeader
-            title={`消费日志 (${logsView.totalCount} 条记录)`}
-            description="仅记录次数型激活码的真实扣次请求，适合对账与问题回溯。"
+            title={t('consumews.logs.title', '消费日志 ({count} 条记录)').replace('{count}', String(logsView.totalCount))}
+            description={t(
+                'consumews.logs.description',
+                '仅记录次数型激活码的真实扣次请求，适合对账与问题回溯。',
+              )}
             trailing={
               <div className="flex flex-wrap gap-3">
                 <button
@@ -340,7 +372,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                   onClick={() => onTabChange('filters')}
                   className={ghostButtonClassName}
                 >
-                  查看筛选器
+                  {t('consumews.logs.viewFilters', '查看筛选器')}
                 </button>
                 <button
                   type="button"
@@ -348,7 +380,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                   disabled={loading}
                   className={primaryButtonClassName}
                 >
-                  {loading ? '刷新中...' : '刷新消费日志'}
+                  {loading ? t('consumews.filters.refreshing', '刷新中...') : t('consumews.filters.refresh', '刷新消费日志')}
                 </button>
                 <button
                   type="button"
@@ -356,7 +388,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                   disabled={loading || logsView.totalCount === 0}
                   className={successButtonClassName}
                 >
-                  导出筛选结果
+                  {t('consumews.filters.export', '导出筛选结果')}
                 </button>
               </div>
             }
@@ -367,7 +399,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
             leading={
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-sm text-brand-400">
-                  自动刷新已开启（{logsView.autoRefreshDelayMs}ms 防抖）
+                  {t('consumews.filters.autoRefreshOn', '自动刷新已开启（{ms}ms 防抖）').replace('{ms}', String(logsView.autoRefreshDelayMs))}
                 </span>
                 <span
                   className={`rounded-full border px-3 py-1.5 text-sm ${logsView.refreshStatusBadgeClassName}`}
@@ -376,7 +408,7 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
                 </span>
                 <DashboardTokenList
                   tokens={logsView.filterTokens}
-                  emptyText="当前显示全部消费日志"
+                  emptyText={t('consumews.logs.allTokens', '当前显示全部消费日志')}
                   className="contents"
                   tokenClassName="rounded-full border border-brand-500/20 bg-surface-100 px-3 py-1.5 text-sm text-ink-300"
                 />
@@ -384,8 +416,10 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
             }
             trailing={
               <div className="text-sm text-ink-500">
-                当前展示第 {logsView.startIndex} - {logsView.endIndex} 条，共 {logsView.totalCount}{' '}
-                条记录
+                {t('consumews.logs.showingRange', '当前展示第 {start} - {end} 条，共 {total} 条记录')
+                  .replace('{start}', String(logsView.startIndex))
+                  .replace('{end}', String(logsView.endIndex))
+                  .replace('{total}', String(logsView.totalCount))}
               </div>
             }
           />
@@ -395,7 +429,15 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
           ) : (
             <>
               <DashboardDataTable
-                headers={['项目', '激活码', 'requestId', '机器ID', '授权类型', '剩余次数', '消费时间']}
+                headers={[
+                  t('dash.col.project', '项目'),
+                  t('dash.col.code', '激活码'),
+                  t('consumews.logs.col.requestId', 'requestId'),
+                  t('consumews.logs.col.machineId', '机器ID'),
+                  t('dash.col.licenseMode', '授权类型'),
+                  t('dash.col.remaining', '剩余次数'),
+                  t('consumews.logs.col.consumedAt', '消费时间'),
+                ]}
                 tableClassName="w-full min-w-[980px] divide-y divide-surface-200"
                 bodyClassName="bg-surface-100 divide-y divide-surface-200"
               >
@@ -428,7 +470,10 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
 
               {logsView.logs.length === 0 ? (
                 <DashboardEmptyState
-                  message="暂无匹配的消费日志，建议切换到“筛选与刷新”调整关键词、项目或时间范围。"
+                  message={t(
+                    'consumews.logs.empty',
+                    '暂无匹配的消费日志，建议切换到“筛选与刷新”调整关键词、项目或时间范围。',
+                  )}
                   className="mt-5"
                 />
               ) : null}
@@ -436,7 +481,10 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
               <DashboardPaginationBar
                 currentPage={logsView.currentPage}
                 totalPages={logsView.totalPages}
-                summary={`显示第 ${logsView.startIndex} - ${logsView.endIndex} 条，共 ${logsView.totalCount} 条记录`}
+                summary={t('consumews.logs.pageSummary', '显示第 {start} - {end} 条，共 {total} 条记录')
+                  .replace('{start}', String(logsView.startIndex))
+                  .replace('{end}', String(logsView.endIndex))
+                  .replace('{total}', String(logsView.totalCount))}
                 onPageChange={logsView.onPageChange}
                 buttonClassName={paginationButtonClassName}
                 activeButtonClassName={paginationActiveButtonClassName}

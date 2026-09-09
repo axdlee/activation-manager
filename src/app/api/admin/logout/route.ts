@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function POST() {
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
+
+export async function POST(request: NextRequest) {
+  const t = serverT(resolveServerLocale(request))
+
   const response = NextResponse.json({
     success: true,
-    message: '已成功登出'
+    message: t('auth.logoutSuccess')
   })
 
   // 清除认证cookie
@@ -15,4 +19,4 @@ export async function POST() {
   })
 
   return response
-} 
+}

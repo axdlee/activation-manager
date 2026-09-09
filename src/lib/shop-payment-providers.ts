@@ -6,6 +6,14 @@ import {
   type PaymentQueryResult,
   type ShopOrderInfo,
 } from './shop-payment-types'
+import { type ServerT } from './i18n/server'
+
+/** 服务端消息词典 key（未注入 t 时回退中文原文） */
+export const SHOP_PAYMENT_MESSAGE_KEYS = {
+  instructionsManual: 'shop.instructionsManual',
+  noteWebhook: 'shop.noteWebhook',
+  callbackVerifyFailed: 'payment.callbackVerifyFailed',
+} as const
 
 /**
  * 手动收款确认适配器（无商户资质兜底）。
@@ -14,6 +22,7 @@ import {
 export const manualPaymentProvider: PaymentProvider = {
   id: 'manual',
   name: '手动收款确认',
+  nameKey: 'shop.channel.manual',
   supportsOnlinePayment: false,
   // 手动收款是兜底渠道：无强制配置（account/qrCode 可选，instructions 有默认）*/
   requiredConfigKeys: [],
@@ -21,14 +30,19 @@ export const manualPaymentProvider: PaymentProvider = {
   async createPayment(
     order: ShopOrderInfo,
     config: Record<string, string>,
+    t?: ServerT,
   ): Promise<CreatePaymentResult> {
+    const defaultInstructions = t?.(SHOP_PAYMENT_MESSAGE_KEYS.instructionsManual, {
+      amount: (order.amountInCents / 100).toFixed(2),
+      orderNo: order.orderNo,
+    }) ?? `请向收款账户支付 ${(order.amountInCents / 100).toFixed(2)} 元，并在备注中填写订单号 ${order.orderNo}`
     return {
       payParams: {
         account: config.account ?? '',
         qrCodeImage: config.qrCodeImage ?? '',
         instructions:
           config.instructions ??
-          `请向收款账户支付 ${(order.amountInCents / 100).toFixed(2)} 元，并在备注中填写订单号 ${order.orderNo}`,
+          defaultInstructions,
       },
       requirePaymentNote: true,
     }
@@ -58,16 +72,21 @@ export const manualPaymentProvider: PaymentProvider = {
 export const webhookPaymentProvider: PaymentProvider = {
   id: 'webhook',
   name: '通用支付回调',
+  nameKey: 'shop.channel.webhook',
   supportsOnlinePayment: true,
   requiredConfigKeys: [],
 
   async createPayment(
     order: ShopOrderInfo,
     _config: Record<string, string>,
+    t?: ServerT,
   ): Promise<CreatePaymentResult> {
     return {
       payParams: {
-        note: `请向指定收款渠道支付 ${(order.amountInCents / 100).toFixed(2)} 元，订单号 ${order.orderNo}`,
+        note: t?.(SHOP_PAYMENT_MESSAGE_KEYS.noteWebhook, {
+          amount: (order.amountInCents / 100).toFixed(2),
+          orderNo: order.orderNo,
+        }) ?? `请向指定收款渠道支付 ${(order.amountInCents / 100).toFixed(2)} 元，订单号 ${order.orderNo}`,
       },
       requirePaymentNote: true,
     }
@@ -109,11 +128,12 @@ export function handleWebhookCallback(
   provider: PaymentProvider,
   body: string,
   config: Record<string, string>,
+  t?: ServerT,
 ): Promise<PaymentCallbackResult> {
   return (async () => {
     const context = await provider.verifyCallback(body, config)
     if (!context) {
-      return { success: false, message: '回调校验失败' }
+      return { success: false, message: t?.(SHOP_PAYMENT_MESSAGE_KEYS.callbackVerifyFailed) ?? '回调校验失败' }
     }
     return { success: true, paid: context.paid, transactionId: context.transactionId }
   })()

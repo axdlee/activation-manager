@@ -61,32 +61,49 @@ test('buildSystemConfigWorkspaceTabs 会按总览、访问控制、换绑策略�
       label: '配置总览',
       shortLabel: '总览',
       description: '先看影响提示、分区入口与保存建议',
+      labelKey: 'tabs.systemConfig.overview.label',
+      descriptionKey: 'tabs.systemConfig.overview.desc',
     },
     {
       key: 'access',
       label: '访问控制',
       shortLabel: '访问',
       description: '集中维护后台访问白名单与来源限制',
+      labelKey: 'tabs.systemConfig.access.label',
+      descriptionKey: 'tabs.systemConfig.access.desc',
     },
     {
       key: 'rebind',
       label: '换绑策略',
       shortLabel: '换绑',
       description: '维护系统级默认换绑规则，项目级与单码级可继续覆盖',
+      labelKey: 'tabs.systemConfig.rebind.label',
+      descriptionKey: 'tabs.systemConfig.rebind.desc',
     },
     {
       key: 'security',
       label: '认证与会话',
       shortLabel: '安全',
       description: '统一处理 JWT、会话时长与密码强度',
+      labelKey: 'tabs.systemConfig.security.label',
+      descriptionKey: 'tabs.systemConfig.security.desc',
     },
     {
       key: 'branding',
       label: '系统展示',
       shortLabel: '展示',
       description: '维护管理员侧可见的系统名称与品牌信息',
+      labelKey: 'tabs.systemConfig.branding.label',
+      descriptionKey: 'tabs.systemConfig.branding.desc',
     },
   ])
+})
+
+test('buildSystemConfigWorkspaceTabs 不传 t 时保持默认中文行为', () => {
+  const tabs = buildSystemConfigWorkspaceTabs(pageModel.groups)
+
+  assert.equal(tabs[0].label, '配置总览')
+  assert.equal(tabs[0].description, '先看影响提示、分区入口与保存建议')
 })
 
 test('SystemConfigWorkspace 支持以 security tab 作为初始工作区聚焦渲染安全配置', () => {

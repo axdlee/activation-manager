@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { type AdminAuthSuccessResult } from '@/lib/admin-auth-shared'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { getAllConfigsWithMeta, sanitizeSystemConfigsForAdmin } from '@/lib/config-service'
 import { prepareSystemConfigUpdates } from '@/lib/system-config-updates'
@@ -21,20 +22,21 @@ export const GET = createProtectedAdminRouteHandler(
   {
     logLabel: '获取系统配置失败',
     errorStatus: 500,
-    errorMessage: '获取系统配置失败',
+    errorMessageKey: 'sysconf.getFailed',
   },
 )
 
 // 更新系统配置
 export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult: AdminAuthSuccessResult) => {
+    const t = serverT(resolveServerLocale(request))
     const { configs } = await request.json()
 
     if (!configs || !Array.isArray(configs)) {
       return NextResponse.json(
         {
           success: false,
-          message: '配置数据格式错误',
+          message: t('sysconf.payloadInvalid'),
         },
         { status: 400 },
       )
@@ -51,19 +53,25 @@ export const POST = createProtectedAdminRouteHandler(
 
     return NextResponse.json({
       success: true,
-      message: '系统配置更新成功',
+      message: t('sysconf.updateSuccess'),
     })
   },
   {
     logLabel: '更新系统配置失败',
     errorStatus: 500,
-    errorMessage: '更新系统配置失败',
-    resolveErrorResponse: (error) =>
-      error instanceof InvalidSystemConfigPayloadError
-        ? {
-            status: 400,
-            message: error.message,
-          }
-        : null,
+    errorMessageKey: 'sysconf.updateFailed',
+    resolveErrorResponse: (error, request) => {
+      if (!(error instanceof InvalidSystemConfigPayloadError)) {
+        return null
+      }
+
+      const t = serverT(resolveServerLocale(request))
+      return {
+        status: 400,
+        message: error.messageKey
+          ? t(error.messageKey, error.messageParams)
+          : error.message,
+      }
+    },
   },
 )

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 
@@ -19,10 +20,11 @@ type UpdateProductBody = {
 
 export const PATCH = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult, { params }: { params: { id: string } }) => {
+    const t = serverT(resolveServerLocale(request))
     const id = Number(params.id)
     const existing = await prisma.shopProduct.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ success: false, message: '商品不存在' }, { status: 404 })
+      return NextResponse.json({ success: false, message: t('shop.productNotFound') }, { status: 404 })
     }
 
     const body = (await request.json()) as UpdateProductBody
@@ -30,7 +32,7 @@ export const PATCH = createProtectedAdminRouteHandler(
     if (body.priceInCents !== undefined) {
       const price = Number(body.priceInCents)
       if (!Number.isFinite(price) || price < 0) {
-        return NextResponse.json({ success: false, message: '价格必须是非负数' }, { status: 400 })
+        return NextResponse.json({ success: false, message: t('shop.priceInvalid') }, { status: 400 })
       }
     }
 
@@ -65,11 +67,12 @@ export const PATCH = createProtectedAdminRouteHandler(
 )
 
 export const DELETE = createProtectedAdminRouteHandler(
-  async (_request: NextRequest, authResult, { params }: { params: { id: string } }) => {
+  async (request: NextRequest, authResult, { params }: { params: { id: string } }) => {
+    const t = serverT(resolveServerLocale(request))
     const id = Number(params.id)
     const existing = await prisma.shopProduct.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ success: false, message: '商品不存在' }, { status: 404 })
+      return NextResponse.json({ success: false, message: t('shop.productNotFound') }, { status: 404 })
     }
 
     // 有历史订单的商品不能删除（外键保护），给出明确提示而非 500
@@ -78,7 +81,7 @@ export const DELETE = createProtectedAdminRouteHandler(
       return NextResponse.json(
         {
           success: false,
-          message: `该商品已有 ${orderCount} 笔订单，无法删除。建议改为「下架」以停止新订单，历史订单与卡密找回仍可用。`,
+          message: t('shop.productHasOrders', { count: orderCount }),
         },
         { status: 409 },
       )

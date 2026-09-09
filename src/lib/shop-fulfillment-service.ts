@@ -4,7 +4,8 @@ import {
   notifyShopOrderFulfilledEvent,
   sendBuyerOrderFulfilledEmail,
 } from './notification-events'
-import { SHOP_ORDER_STATUS } from './shop-order-service'
+import { SHOP_ORDER_STATUS, SHOP_ORDER_MESSAGE_KEYS } from './shop-order-service'
+import { type ServerT } from './i18n/server'
 
 /**
  * 自动发卡服务：支付成功后事务性发码并关联订单。
@@ -31,6 +32,7 @@ export type FulfillShopOrderResult = {
 
 export async function fulfillShopOrder(
   params: FulfillShopOrderParams,
+  t?: ServerT,
 ): Promise<FulfillShopOrderResult> {
   const order = await prisma.shopOrder.findUnique({
     where: { orderNo: params.orderNo },
@@ -38,11 +40,11 @@ export async function fulfillShopOrder(
   })
 
   if (!order) {
-    return { success: false, message: '订单不存在' }
+    return { success: false, message: t?.(SHOP_ORDER_MESSAGE_KEYS.orderNotFound) ?? '订单不存在' }
   }
 
   if (order.status === SHOP_ORDER_STATUS.CANCELLED) {
-    return { success: false, message: '订单已取消' }
+    return { success: false, message: t?.(SHOP_ORDER_MESSAGE_KEYS.orderCancelled) ?? '订单已取消' }
   }
 
   if (order.status === SHOP_ORDER_STATUS.FULFILLED) {
@@ -89,7 +91,7 @@ export async function fulfillShopOrder(
           codes: await readFulfilledCodes(latest.fulfilledCodeIds),
         }
       }
-      return { success: false, message: '订单状态已变化，无法发卡' }
+      return { success: false, message: t?.(SHOP_ORDER_MESSAGE_KEYS.orderStateConflictFulfill) ?? '订单状态已变化，无法发卡' }
     }
 
     // 抢占成功：按商品发卡模式与订单数量发卡（失败则整个事务回滚，订单保持原状态）
@@ -173,7 +175,10 @@ export async function fulfillShopOrder(
     if (error instanceof Error && error.message.startsWith('SHOP_')) {
       return {
         success: false,
-        message: error.message === 'SHOP_OUT_OF_STOCK' ? '商品已售罄' : '库存变更冲突，请重试',
+        message:
+          error.message === 'SHOP_OUT_OF_STOCK'
+            ? t?.('shop.productSoldOut') ?? '商品已售罄'
+            : t?.('payment.fulfillConflict') ?? '库存变更冲突，请重试',
       }
     }
     throw error

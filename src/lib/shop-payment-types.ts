@@ -49,6 +49,8 @@ export type PaymentQueryResult = {
 export interface PaymentProvider {
   readonly id: string
   readonly name: string
+  /** 渠道名的 i18n key（展示给买家时优先用它翻译，name 作为默认回退） */
+  readonly nameKey?: string
   /** 是否支持在线支付（false = 需人工确认） */
   readonly supportsOnlinePayment: boolean
   /** 必需配置键：渠道启用后还需补齐这些配置才对外展示 */

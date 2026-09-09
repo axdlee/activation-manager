@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
+import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { scanExpiredActivationCodes } from '@/lib/license-expiry-scan-service'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 import { prisma } from '@/lib/db'
@@ -11,7 +12,8 @@ import { prisma } from '@/lib/db'
  *   curl -X POST -b "auth-token=<cookie>" /api/admin/notifications/scan-expired
  */
 export const POST = createProtectedAdminRouteHandler(
-  async (_request: NextRequest, authResult) => {
+  async (request: NextRequest, authResult) => {
+    const t = serverT(resolveServerLocale(request))
     const { scanned, notified } = await scanExpiredActivationCodes()
 
     await recordAdminOperationAuditLog(prisma, {
@@ -25,7 +27,7 @@ export const POST = createProtectedAdminRouteHandler(
       success: true,
       scanned,
       notified,
-      message: `扫描 ${scanned} 个到期激活码，发送 ${notified} 条通知`,
+      message: t('notify.scanResult', { scanned, notified }),
     })
   },
   { logLabel: 'scan-expired-notifications' },
