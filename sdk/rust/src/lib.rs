@@ -249,6 +249,16 @@ impl Client {
         };
 
         let status_code = response.status().as_u16();
+        let signature_header = response
+            .headers()
+            .get(SIGNATURE_HEADER)
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
+        let timestamp_header = response
+            .headers()
+            .get(TIMESTAMP_HEADER)
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
         let raw = response.text().map_err(|e| ClientError {
             kind: ErrorKind::NetworkError,
             message: e.to_string(),
@@ -257,7 +267,11 @@ impl Client {
         })?;
 
         if !self.opts.response_secret.is_empty() {
-            self.verify_signature(&response, &raw)?;
+            self.verify_signature_parts(
+                signature_header.as_deref(),
+                timestamp_header.as_deref(),
+                &raw,
+            )?;
         }
 
         let result = SdkResult::parse(&raw).ok_or_else(|| ClientError {
@@ -278,21 +292,14 @@ impl Client {
         Ok(result)
     }
 
-    fn verify_signature(
+    fn verify_signature_parts(
         &self,
-        response: &reqwest::blocking::Response,
+        signature: Option<&str>,
+        timestamp: Option<&str>,
         raw_body: &str,
     ) -> Result<(), ClientError> {
-        let signature = response
-            .headers()
-            .get(SIGNATURE_HEADER)
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("");
-        let timestamp = response
-            .headers()
-            .get(TIMESTAMP_HEADER)
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("");
+        let signature = signature.unwrap_or("");
+        let timestamp = timestamp.unwrap_or("");
         if signature.is_empty() || timestamp.is_empty() {
             return Err(ClientError {
                 kind: ErrorKind::SignatureMissing,

@@ -296,11 +296,7 @@ static void am_header_get(const char *header_text, const char *name, char *out, 
 #ifdef AM_HAVE_OPENSSL
 static bool am_now_ms(long long *out) {
     struct timespec ts;
-#ifdef CLOCK_REALTIME
     if (clock_gettime(CLOCK_REALTIME, &ts) != 0) return false;
-#else
-    if (clock_gettime(CLOCK_REAL, &ts) != 0) return false;
-#endif
     *out = (long long)ts.tv_sec * 1000LL + ts.tv_nsec / 1000000LL;
     return true;
 }
