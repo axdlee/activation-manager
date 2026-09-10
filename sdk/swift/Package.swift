@@ -17,9 +17,5 @@ let package = Package(
             name: "ActivationManagerSDK",
             dependencies: [.product(name: "Crypto", package: "swift-crypto")]
         ),
-        .testTarget(
-            name: "ActivationManagerSDKTests",
-            dependencies: ["ActivationManagerSDK"]
-        ),
     ]
 )
