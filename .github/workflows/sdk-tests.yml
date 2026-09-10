@@ -164,6 +164,7 @@ jobs:
           sudo luarocks install luasocket
           sudo luarocks install luaossl
           curl -sL "https://raw.githubusercontent.com/LuaDist/dkjson/master/dkjson.lua" -o /tmp/dkjson.lua
+          sudo mkdir -p /usr/local/share/lua/5.4
           sudo cp /tmp/dkjson.lua /usr/local/share/lua/5.4/dkjson.lua
       - name: Run Lua SDK syntax + smoke test
         run: |

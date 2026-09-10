@@ -34,6 +34,6 @@ import ActivationManagerClient.Options
   val r2 = client.consume("C", "m", Some("req-1"))
   check(r2.success, "consume retried with requestId succeeded")
 
-  server.exit()
+  server.destroy()
   println(if failures == 0 then "✅ Scala SDK 自测全部通过" else s"❌ $failures 个断言失败")
   if failures > 0 then sys.exit(1)
