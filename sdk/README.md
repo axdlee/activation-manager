@@ -25,6 +25,41 @@
 | Java | [`sdk/java/.../ActivationManagerClient.java`](../java/activation-manager/src/main/java/com/activationmanager/sdk/ActivationManagerClient.java) | Java 17+ 标准库；Maven 构建（测试用 JUnit 5） | `cd sdk/java/activation-manager && mvn test` |
 | PHP | [`sdk/php/src/ActivationManagerClient.php`](../php/src/ActivationManagerClient.php) | PHP 7.4+（curl/hash/json 扩展） | `php sdk/php/test_sdk.php`（需本机 8931 端口可用） |
 | Ruby | [`sdk/ruby/activation_manager_client.rb`](../ruby/activation_manager_client.rb) | Ruby 3.0+ 标准库 | `ruby sdk/ruby/test_sdk.rb` |
+| C | [`sdk/c/activation_manager.h`](../c/activation_manager.h) + `.c` | C11 + libcurl + OpenSSL（验签需 `-DAM_HAVE_OPENSSL`） | 见下方 C 章节 |
+| C++ | [`sdk/cpp/activation_manager.hpp`](../cpp/activation_manager.hpp)（header-only） | C++17 + libcurl + OpenSSL（验签需 `-DAM_HAVE_OPENSSL`） | 见下方 C++ 章节 |
+
+### C
+
+```bash
+cd sdk/c
+python3 test_server.py 18971 &        # 本地 mock 服务
+cc -std=c11 -DAM_HAVE_OPENSSL -c activation_manager.c -I<openssl-include> -o am.o
+cc -std=c11 -DAM_HAVE_OPENSSL test_client.c am.o -I<openssl-include> -L<openssl-lib> -lssl -lcrypto -lcurl -o test_client
+./test_client "http://127.0.0.1:18971"
+```
+
+```c
+am_client *c = am_client_new(&(am_client_options){.base_url = "http://127.0.0.1:3000", .project_key = "browser-plugin"});
+am_result *r = am_activate(c, "A1B2C3D4E5F6G7H8", "machine-001", NULL);
+if (!r->success) printf("激活失败: %s\n", r->message);
+am_result_free(r);
+am_client_free(c);
+```
+
+### C++
+
+```bash
+cd sdk/cpp
+python3 ../c/test_server.py 18975 &
+c++ -std=c++17 -DAM_HAVE_OPENSSL test_client.cpp -I<openssl-include> -L<openssl-lib> -lssl -lcrypto -lcurl -o test_client
+./test_client "http://127.0.0.1:18975"
+```
+
+```cpp
+activation_manager::client client({.base_url = "http://127.0.0.1:3000", .project_key = "browser-plugin"});
+auto result = client.activate("A1B2C3D4E5F6G7H8", "machine-001");
+if (!result.success) std::cout << "激活失败: " << result.message << "\n";
+```
 
 各文件头部 docstring / 注释含完整用法示例。
 
@@ -89,7 +124,8 @@ puts "激活失败: #{result['message']}" unless result['success']
 - **企业 JVM 环境** → Java
 - **传统 Web 主机** → PHP
 - **运维脚本 / DevOps** → Ruby
+- **桌面软件 / 嵌入式 / 系统集成** → C 或 C++（发行单个可执行文件、无运行时依赖时首选）
 
 ## 覆盖说明
 
-`.NET`（C#）实现已编写但**本仓库不随附**：构建环境无 .NET SDK，无法验证编译与运行时行为，未验证的代码不进入仓库。如需 C# 版本，可按 `sdk/go` 的契约（错误分类、验签算法、幂等重试规则）自行实现。
+C#（.NET）：构建环境无 .NET SDK，无法验证编译与运行时行为，**未随附**（未验证的代码不进仓库）。如需可按 `sdk/go` 的契约（错误分类、验签算法、幂等重试规则）自行实现。Rust / Kotlin 同理（无工具链）。JS/TS 使用仓库内 `src/lib/license-sdk.ts`，无需独立包。
