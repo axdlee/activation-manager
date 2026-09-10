@@ -98,8 +98,19 @@ import { ProjectWorkspace } from '@/components/project-workspace'
 import { ShopAdminPanel } from '@/components/shop-admin-panel'
 import { LicenseApiMetricsPanel } from '@/components/license-api-metrics-panel'
 import { SystemConfigWorkspace } from '@/components/system-config-workspace'
-import { ThemeSwitcher } from '@/components/theme-switcher'
-import { LanguageSwitcher, useI18n } from '@/lib/i18n/i18n-provider'
+import { SidebarNav } from '@/components/admin/sidebar-nav'
+import {
+  LayoutDashboard,
+  FolderKanban,
+  KeyRound,
+  ListTree,
+  ScrollText,
+  BookOpen,
+  Store,
+  Settings2,
+  KeySquare,
+} from 'lucide-react'
+import { useI18n } from '@/lib/i18n/i18n-provider'
 import { useToast } from '@/components/toast-provider'
 import { AppInput } from '@/components/ui/app-input'
 import { AppSelect } from '@/components/ui/app-select'
@@ -114,7 +125,6 @@ import { handleCardTypeChange } from '@/lib/dashboard-form-utils'
 import { buildExportUrl, triggerFileDownload } from '@/lib/download-utils'
 import {
   compactInputClassName,
-  dangerButtonClassName,
   ghostButtonClassName,
   inputClassName,
   mutedPanelClassName,
@@ -127,6 +137,19 @@ import {
   workspaceSummaryCardClassName,
 } from '@/lib/dashboard-class-names'
 import { cardTypes, statusFilterLabelMap } from '@/lib/dashboard-page-types'
+
+const workspaceIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  stats: LayoutDashboard,
+  projects: FolderKanban,
+  generate: KeyRound,
+  list: ListTree,
+  consumptions: ScrollText,
+  auditLogs: BookOpen,
+  apiDocs: BookOpen,
+  shop: Store,
+  changePassword: KeySquare,
+  systemConfig: Settings2,
+}
 
 export default function DashboardPage() {
   const { t } = useI18n()
@@ -1032,23 +1055,6 @@ export default function DashboardPage() {
     ? `${statsScopeLabel} 相比 ${selectedComparisonProject.name} 的累计扣次差值`
     : '主项目与对比项目的累计扣次差值'
   const activeTabMeta = getDashboardTabMeta(activeTab, t)
-  const heroMetricCards = [
-    {
-      label: '项目总数',
-      value: projects.length,
-      description: '当前后台已接入的项目数量',
-    },
-    {
-      label: '激活码总量',
-      value: stats.total || 0,
-      description: '基于全局统计汇总的发码规模',
-    },
-    {
-      label: '消费日志',
-      value: consumptionLogs.length,
-      description: '已拉取的次数扣减记录数量',
-    },
-  ]
   const projectManagementPage = buildProjectManagementPage(projects, {
     keyword: projectManagementSearchTerm,
     status: projectManagementStatusFilter,
@@ -1728,78 +1734,21 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-surface-100 px-4 py-5 text-ink-50 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8">
       <div className="mx-auto h-full w-full max-w-none">
         <div className="flex h-full flex-col gap-5 lg:flex-row">
-          <aside className="lg:flex lg:w-[300px] lg:shrink-0 lg:self-stretch">
-            <section className={`${shellClassName} p-5 lg:flex lg:h-full lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden`}>
-              <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0">
-                <div className="shrink-0 border-b border-surface-200 pb-5">
-                  <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100" />
-                    {t('dash.brand.badge', '授权运营中台')}
-                  </div>
-                  <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink-50">
-                    {t('dash.brand.title', '激活码管理后台')}
-                  </h1>
-                  <p className="mt-2 text-sm leading-6 text-ink-500">
-                    {t('dash.brand.subtitle', '项目、发码、激活码、消费、审计与 API 接入统一工作台。')}
-                  </p>
-                </div>
-
-                <div className="dashboard-scroll-area mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
-                  <nav className="space-y-1">
-                    {translateWorkspaceTabs(dashboardTabs, t).map((tab) => {
-                      const isActive = activeTab === tab.key
-
-                      return (
-                        <button
-                          key={tab.key}
-                          onClick={() => setActiveTab(tab.key)}
-                          className={`group flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-all ${
-                            isActive
-                              ? 'border-brand-500/20 bg-brand-500/10 text-brand-300'
-                              : 'border-transparent text-ink-300 hover:border-surface-200 hover:bg-surface-50 hover:text-ink-50'
-                          }`}
-                        >
-                          <span
-                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold ${
-                              isActive ? 'bg-brand-600 text-white' : 'bg-surface-200 text-ink-500'
-                            }`}
-                          >
-                            {tab.shortLabel}
-                          </span>
-                          <span className="min-w-0">
-                            <span className={`block text-sm font-medium ${isActive ? 'text-brand-300' : 'text-ink-100'}`}>
-                              {tab.label}
-                            </span>
-                            <span className={`mt-0.5 block truncate text-xs leading-5 ${isActive ? 'text-brand-400' : 'text-ink-500'}`}>
-                              {tab.description}
-                            </span>
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </nav>
-
-                  <div className="mt-5 grid grid-cols-1 gap-2.5">
-                    {heroMetricCards.map((item) => (
-                      <div key={item.label} className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3.5">
-                        <div className="text-xs font-medium text-ink-500">{item.label}</div>
-                        <div className="tabular-nums mt-1.5 text-2xl font-semibold tracking-tight text-ink-50">{item.value}</div>
-                        <div className="mt-1 text-xs leading-5 text-ink-500">{item.description}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="shrink-0 space-y-2 pt-4">
-                  <LanguageSwitcher className="w-full" />
-                  <ThemeSwitcher />
-                  <button onClick={handleLogout} className={`w-full ${dangerButtonClassName}`}>
-                    {t('dash.nav.logout', '登出')}
-                  </button>
-                </div>
-              </div>
-            </section>
-          </aside>
+          <SidebarNav
+            tabs={translateWorkspaceTabs(dashboardTabs, t).map((tab) => ({
+              key: tab.key,
+              label: tab.label,
+              shortLabel: tab.shortLabel,
+              description: tab.description,
+              icon: workspaceIcons[tab.key] ?? ListTree,
+            }))}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            brandTitle={t('dash.brand.title', '激活码管理后台')}
+            brandBadge={t('dash.brand.badge', '授权运营中台')}
+            username={'admin'}
+            onLogout={handleLogout}
+          />
 
           <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-hidden">
             <div className="space-y-5 lg:h-full lg:overflow-y-auto lg:pr-2 dashboard-scroll-area">
