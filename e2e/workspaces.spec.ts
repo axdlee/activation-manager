@@ -158,7 +158,7 @@ test.describe.serial('补全工作区与页面 e2e', () => {
     await page.locator('#currentPassword').fill('wrong-password')
     await page.locator('#newPassword').fill('NewPass123!')
     await page.locator('#confirmPassword').fill('NewPass123!')
-    await page.getByRole('button', { name: '修改密码', exact: true }).click()
+    await page.locator('form').getByRole('button', { name: '修改密码' }).click()
 
     await expect(page.getByText('当前密码不正确').first()).toBeVisible({ timeout: 15_000 })
   })
