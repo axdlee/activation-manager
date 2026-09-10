@@ -28,15 +28,13 @@ fn start_mock() -> String {
             };
             let payload_str = payload.to_string();
 
-            // 业务失败（code=BAD）不加签名头，其余加
+            // 全部响应都带正确签名（验签失败路径由 wrong-secret client 覆盖）
             let mut headers = String::from("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n");
-            if req.get("code").and_then(|c| c.as_str()) != Some("BAD") {
-                let mut mac = Hmac::<Sha256>::new_from_slice(SECRET.as_bytes()).unwrap();
-                mac.update(payload_str.as_bytes());
-                let sig = hex::encode(mac.finalize().into_bytes());
-                let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
-                headers.push_str(&format!("x-license-signature: {}\r\nx-license-timestamp: {}\r\n", sig, ts));
-            }
+            let mut mac = Hmac::<Sha256>::new_from_slice(SECRET.as_bytes()).unwrap();
+            mac.update(payload_str.as_bytes());
+            let sig = hex::encode(mac.finalize().into_bytes());
+            let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+            headers.push_str(&format!("x-license-signature: {}\r\nx-license-timestamp: {}\r\n", sig, ts));
             headers.push_str(&format!("Content-Length: {}\r\n\r\n", payload_str.len()));
             let _ = stream.write_all(headers.as_bytes());
             let _ = stream.write_all(payload_str.as_bytes());
