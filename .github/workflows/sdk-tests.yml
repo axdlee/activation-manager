@@ -105,7 +105,7 @@ jobs:
         run: |
           npm install -g typescript@5.6
           cd sdk/typescript
-          tsc --noEmit --strict --target ES2020 --module ESNext --moduleResolution bundler --lib ES2020,DOM license-sdk.ts
+          tsc --noEmit --strict --target ES2020 --module ESNext --moduleResolution bundler --lib ES2020,DOM,DOM.Iterable license-sdk.ts
 
   swift:
     runs-on: macos-14
@@ -166,7 +166,7 @@ jobs:
       - name: Run Lua SDK syntax + smoke test
         run: |
           cd sdk/lua
-          export LUA_PATH="/usr/local/share/lua/5.4/?.lua;/usr/local/lib/lua/5.4/?.lua;./?.lua;;"
+          export LUA_PATH="/usr/local/share/lua/5.4/?.lua;/usr/local/share/lua/5.4/?/init.lua;/usr/local/lib/lua/5.4/?.lua;$(luarocks path --lua-version 5.4 2>/dev/null | grep LUA_PATH | sed 's/^.*LUA_PATH="//;s/".*$//');./?.lua;;"
           export LUA_CPATH="/usr/local/lib/lua/5.4/?.so;;"
           lua5.4 -e "local am=require('activation_manager'); print('lua sdk loaded OK')"
 

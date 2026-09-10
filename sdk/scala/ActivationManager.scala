@@ -157,16 +157,18 @@ final class ActivationManagerClient(options: ActivationManagerClient.Options):
     val body = payload.result()
 
     val totalAttempts = if allowRetry && options.maxRetries > 0 then options.maxRetries + 1 else 1
-    var lastError: ClientException = ClientException(ErrorKind.NetworkError, "unreachable")
+    var lastError: Option[ClientException] = None
 
-    for attempt <- 1 to totalAttempts do
+    var attempt = 1
+    while attempt <= totalAttempts do
       attemptOnce(path, body, attempt) match
         case Success(result) => return result
         case Failure(e: ClientException) =>
-          lastError = e
+          lastError = Some(e)
           if attempt < totalAttempts then Thread.sleep(options.retryDelayMs)
         case Failure(e) => throw e
-    lastError
+      attempt += 1
+    throw lastError.getOrElse(ClientException(ErrorKind.NetworkError, "unreachable"))
 
   private def attemptOnce(path: String, body: String, attempt: Int): Try[Result] =
     val request = HttpRequest.newBuilder()

@@ -10,9 +10,8 @@ import ActivationManagerClient.Options
     else { println(s"❌ $msg"); failures += 1 }
 
   // 与 C/C++ SDK 相同的本地 mock（Python）
-  import sys.process._
   val port = 18991
-  val server = Process(Seq("python3", "../c/test_server.py", port.toString)).run()
+  val server = scala.sys.process.Process(Seq("python3", "../c/test_server.py", port.toString)).run()
   Thread.sleep(1000)
 
   val client = ActivationManagerClient(Options(

@@ -193,8 +193,7 @@ public final class ActivationManagerClient: @unchecked Sendable {
         let raw = responseData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
 
         if !options.responseSecret.isEmpty {
-            let sig = responseHeaders[options.self.dynamicSignatureKey] as? String
-                ?? (responseHeaders[ActivationManagerClient.signatureHeader] as? String) ?? ""
+            let sig = (responseHeaders[ActivationManagerClient.signatureHeader] as? String) ?? ""
             let ts = (responseHeaders[ActivationManagerClient.timestampHeader] as? String) ?? ""
             try Self.verifySignature(signature: sig, timestamp: ts, body: raw, secret: options.responseSecret)
         }
@@ -220,8 +219,6 @@ public final class ActivationManagerClient: @unchecked Sendable {
             rawBody: raw
         )
     }
-
-    var dynamicSignatureKey: String { ActivationManagerClient.signatureHeader }
 
     static func verifySignature(signature: String, timestamp: String, body: String, secret: String) throws {
         if signature.isEmpty || timestamp.isEmpty {
