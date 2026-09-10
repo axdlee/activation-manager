@@ -32,25 +32,25 @@ export function WorkspaceTabNav<T extends string>({
             onClick={() => onChange(tab.key)}
             className={`rounded-lg border p-4 text-left transition ${
               isActive
-                ? 'border-brand-500/20 bg-brand-500/10 shadow-card'
-                : 'border-surface-200 bg-surface-100 hover:-translate-y-0.5 hover:border-ink-300 hover:bg-surface-50'
+                ? 'border-primary/25 bg-primary/10 shadow-card'
+                : 'border-border bg-card hover:-translate-y-0.5 hover:border-ink-300 hover:bg-muted/50'
             }`}
           >
             <div className="flex items-start gap-3">
               <div
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md font-semibold ${
                   isActive
-                    ? 'bg-brand-600 text-white shadow-card'
+                    ? 'bg-primary text-white shadow-card'
                     : 'bg-ink-900 text-white/90'
                 } ${badgeTextClassName}`}
               >
                 {tab.shortLabel}
               </div>
               <div className="min-w-0">
-                <div className={`text-sm font-semibold ${isActive ? 'text-brand-300' : 'text-ink-50'}`}>
+                <div className={`text-sm font-semibold ${isActive ? 'text-primary' : 'text-foreground'}`}>
                   {tab.label}
                 </div>
-                <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-brand-400' : 'text-ink-500'}`}>
+                <div className={`mt-1 text-xs leading-6 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
                   {tab.description}
                 </div>
               </div>

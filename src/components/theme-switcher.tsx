@@ -37,7 +37,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         title={t('theme.switchTitle', '切换主题')}
-        className="inline-flex w-full items-center justify-between gap-3 rounded-md border border-surface-200 bg-surface-100 px-3 py-2.5 text-sm text-ink-300 shadow-sm transition-all hover:border-brand-500/30 hover:text-ink-50"
+        className="inline-flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-sm text-foreground/80 shadow-sm transition-all hover:border-primary/40 hover:text-foreground"
       >
         <span className="flex min-w-0 items-center gap-2.5">
           <span className="flex shrink-0 items-center">
@@ -66,7 +66,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
         <div
           role="listbox"
           aria-label={t('theme.switchTitle', '切换主题')}
-          className="absolute bottom-full left-0 z-50 mb-2 w-64 max-h-[min(70vh,26rem)] overflow-y-auto rounded-lg border border-surface-200 bg-surface-100 p-1.5 shadow-modal animate-fade-in-up theme-scroll"
+          className="absolute bottom-full left-0 z-50 mb-2 w-64 max-h-[min(70vh,26rem)] overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-modal animate-fade-in-up theme-scroll"
         >
           {THEMES.map((item) => {
             const isActive = item.id === theme
@@ -79,8 +79,8 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
                 onClick={() => handleSelect(item.id)}
                 className={`flex w-full items-start gap-3 rounded-md px-3 py-2.5 text-left transition-all ${
                   isActive
-                    ? 'bg-brand-500/10 text-ink-50'
-                    : 'text-ink-300 hover:bg-surface-50 hover:text-ink-50'
+                    ? 'bg-primary/10 text-foreground'
+                    : 'text-foreground/80 hover:bg-muted/50 hover:text-foreground'
                 }`}
               >
                 <span className="mt-0.5 flex shrink-0 items-center">
@@ -94,12 +94,12 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
                 </span>
                 <span className="min-w-0">
                   <span className="block text-sm font-medium">{item.name}</span>
-                  <span className="mt-0.5 block text-xs leading-5 text-ink-500">
+                  <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
                     {item.description}
                   </span>
                 </span>
                 {isActive && (
-                  <span className="ml-auto mt-0.5 text-brand-400">
+                  <span className="ml-auto mt-0.5 text-primary">
                     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
                       <path d="M5 10.5l3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>

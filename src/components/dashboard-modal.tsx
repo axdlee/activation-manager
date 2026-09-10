@@ -33,7 +33,7 @@ export function DashboardModal({
   onClose,
   size = 'xl',
   panelClassName =
-    'rounded-lg border border-surface-200 bg-surface-100 shadow-modal',
+    'rounded-lg border border-border bg-card shadow-modal',
   bodyClassName = 'max-h-[calc(100vh-14rem)] overflow-y-auto px-6 py-6 sm:px-7',
 }: DashboardModalProps) {
   const titleId = useId()
@@ -80,13 +80,13 @@ export function DashboardModal({
       />
 
       <div className={`relative z-10 w-full ${sizeClassNameMap[size]} ${panelClassName}`}>
-        <div className="flex items-start justify-between gap-4 border-b border-surface-200 px-6 py-5 sm:px-7">
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5 sm:px-7">
           <div className="min-w-0">
-            <h3 id={titleId} className="text-xl font-semibold tracking-tight text-ink-50">
+            <h3 id={titleId} className="text-xl font-semibold tracking-tight text-foreground">
               {title}
             </h3>
             {description ? (
-              <p id={descriptionId} className="mt-2 text-sm leading-6 text-ink-500">
+              <p id={descriptionId} className="mt-2 text-sm leading-6 text-muted-foreground">
                 {description}
               </p>
             ) : null}
@@ -95,7 +95,7 @@ export function DashboardModal({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-surface-200 bg-surface-100 text-lg text-ink-500 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:text-ink-200"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-card text-lg text-muted-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:text-foreground/90"
           >
             ×
           </button>
@@ -103,7 +103,7 @@ export function DashboardModal({
 
         <div className={bodyClassName}>{children}</div>
 
-        {footer ? <div className="border-t border-surface-200 bg-surface-50 px-6 py-5 sm:px-7">{footer}</div> : null}
+        {footer ? <div className="border-t border-border bg-muted/50 px-6 py-5 sm:px-7">{footer}</div> : null}
       </div>
     </div>
   )

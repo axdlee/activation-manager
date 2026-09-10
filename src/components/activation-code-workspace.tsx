@@ -182,11 +182,11 @@ type ActivationCodeWorkspaceProps<TCode extends ActivationCodeWorkspaceCode = Ac
 }
 
 const defaultPanelClassName =
-  'rounded-lg border border-surface-200/70 bg-surface-100 shadow-card'
+  'rounded-lg border border-border/70 bg-card shadow-card'
 const defaultWorkspaceSummaryCardClassName =
-  'rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 shadow-sm'
+  'rounded-lg border border-border bg-card px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
-  'w-full rounded-md border border-surface-200 bg-surface-100 px-4 py-2.5 text-sm text-ink-50 shadow-sm outline-none transition placeholder:text-ink-500 focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/10 disabled:bg-surface-100 disabled:text-ink-500'
+  'w-full rounded-md border border-border bg-card px-4 py-2.5 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/50 focus:ring-4 focus:ring-primary/20 disabled:bg-card disabled:text-muted-foreground'
 const defaultPrimaryButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-ink-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultSuccessButtonClassName =
@@ -194,9 +194,9 @@ const defaultSuccessButtonClassName =
 const defaultWarningButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultGhostButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-4 py-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md border border-border bg-card px-4 py-3 text-sm font-medium text-foreground/80 shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-card disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationButtonClassName =
-  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground/80 shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
   'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 
@@ -228,12 +228,12 @@ function ActivationCodeManagementPanel({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border border-surface-200 bg-surface-100 px-5 py-4 shadow-sm">
-        <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
+      <div className="rounded-lg border border-border bg-card px-5 py-4 shadow-sm">
+        <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
           {t('codews.currentSelection', '当前选中')}
         </div>
-        <div className="mt-3 text-xl font-semibold text-ink-50">{managementView.selectedCodeTitle}</div>
-        <div className="mt-2 text-sm text-ink-500">{managementView.selectedCodeSubtitle}</div>
+        <div className="mt-3 text-xl font-semibold text-foreground">{managementView.selectedCodeTitle}</div>
+        <div className="mt-2 text-sm text-muted-foreground">{managementView.selectedCodeSubtitle}</div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
@@ -247,34 +247,34 @@ function ActivationCodeManagementPanel({
         ].map(([label, value]) => (
           <div
             key={label}
-            className="rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 shadow-sm"
+            className="rounded-lg border border-border bg-card px-4 py-4 shadow-sm"
           >
-            <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{label}</div>
-            <div className="mt-3 text-sm font-medium text-ink-50">{value}</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+            <div className="mt-3 text-sm font-medium text-foreground">{value}</div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">{t('codews.effectivePolicyTitle', '最终生效策略')}</div>
-          <ul className="mt-4 space-y-2 text-sm text-ink-300">
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="text-sm font-semibold text-foreground">{t('codews.effectivePolicyTitle', '最终生效策略')}</div>
+          <ul className="mt-4 space-y-2 text-sm text-foreground/80">
             {managementView.effectivePolicySummary.map((item) => (
-              <li key={item} className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3">
+              <li key={item} className="rounded-md border border-border bg-muted/50 px-4 py-3">
                 {item}
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">{t('codews.overrideTitle', '单码级覆盖配置')}</div>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="text-sm font-semibold text-foreground">{t('codews.overrideTitle', '单码级覆盖配置')}</div>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {t('codews.overrideDescription', '这里是单码级覆盖层；若保持继承，会先回退项目级策略，项目未配置时再回退系统级策略。')}
           </p>
           <div className="mt-4 space-y-4">
             <div>
-              <label htmlFor="activation-code-override-policy" className="text-sm font-medium text-ink-200">
+              <label htmlFor="activation-code-override-policy" className="text-sm font-medium text-foreground/90">
                 {getScopedRebindPolicyLabel('code')}
               </label>
               <select
@@ -289,7 +289,7 @@ function ActivationCodeManagementPanel({
               </select>
             </div>
             <div>
-              <label htmlFor="activation-code-override-cooldown" className="text-sm font-medium text-ink-200">
+              <label htmlFor="activation-code-override-cooldown" className="text-sm font-medium text-foreground/90">
                 {getScopedRebindCooldownLabel('code')}
               </label>
               <input
@@ -303,7 +303,7 @@ function ActivationCodeManagementPanel({
               />
             </div>
             <div>
-              <label htmlFor="activation-code-override-max-count" className="text-sm font-medium text-ink-200">
+              <label htmlFor="activation-code-override-max-count" className="text-sm font-medium text-foreground/90">
                 {getScopedRebindMaxCountLabel('code')}
               </label>
               <input
@@ -329,9 +329,9 @@ function ActivationCodeManagementPanel({
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-        <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm xl:col-span-2">
-          <div className="text-sm font-semibold text-ink-50">{t('codews.adminReasonTitle', '管理员操作说明（选填）')}</div>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm xl:col-span-2">
+          <div className="text-sm font-semibold text-foreground">{t('codews.adminReasonTitle', '管理员操作说明（选填）')}</div>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {t('codews.adminReasonDescription', '会随“保存单码级换绑配置 / 强制解绑 / 强制换绑”一起写入审计日志，建议记录工单号、用户申请原因或排障背景。')}
           </p>
           <textarea
@@ -342,9 +342,9 @@ function ActivationCodeManagementPanel({
           />
         </div>
 
-        <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">{t('codews.forceUnbind', '强制解绑')}</div>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="text-sm font-semibold text-foreground">{t('codews.forceUnbind', '强制解绑')}</div>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {t('codews.forceUnbindDescription', '只释放当前设备绑定，不重置有效期、剩余次数或使用时间。')}
           </p>
           <button
@@ -357,9 +357,9 @@ function ActivationCodeManagementPanel({
           </button>
         </div>
 
-        <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">{t('codews.forceRebind', '强制换绑')}</div>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="text-sm font-semibold text-foreground">{t('codews.forceRebind', '强制换绑')}</div>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {t('codews.forceRebindDescription', '将当前激活码直接迁移到新设备，同时保留原有效期、次数与生命周期。')}
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -383,40 +383,40 @@ function ActivationCodeManagementPanel({
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">{t('codews.bindingHistoryTitle', '绑定历史')}</div>
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="text-sm font-semibold text-foreground">{t('codews.bindingHistoryTitle', '绑定历史')}</div>
           <div className="mt-4 space-y-3">
             {managementView.bindingHistoryEntries.length === 0 ? (
-              <p className="text-sm text-ink-500">{t('codews.noBindingHistory', '暂无绑定历史记录')}</p>
+              <p className="text-sm text-muted-foreground">{t('codews.noBindingHistory', '暂无绑定历史记录')}</p>
             ) : (
               managementView.bindingHistoryEntries.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3"
+                  className="rounded-md border border-border bg-muted/50 px-4 py-3"
                 >
-                  <div className="text-sm font-medium text-ink-50">{item.title}</div>
-                  <div className="mt-1 text-sm text-ink-300">{item.description}</div>
-                  <div className="mt-2 text-xs text-ink-500">{item.timestamp}</div>
+                  <div className="text-sm font-medium text-foreground">{item.title}</div>
+                  <div className="mt-1 text-sm text-foreground/80">{item.description}</div>
+                  <div className="mt-2 text-xs text-muted-foreground">{item.timestamp}</div>
                 </div>
               ))
             )}
           </div>
         </div>
 
-        <div className="rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm">
-          <div className="text-sm font-semibold text-ink-50">{t('codews.auditTitle', '管理员审计')}</div>
+        <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
+          <div className="text-sm font-semibold text-foreground">{t('codews.auditTitle', '管理员审计')}</div>
           <div className="mt-4 space-y-3">
             {managementView.adminAuditEntries.length === 0 ? (
-              <p className="text-sm text-ink-500">{t('codews.noAuditRecords', '暂无管理员操作记录')}</p>
+              <p className="text-sm text-muted-foreground">{t('codews.noAuditRecords', '暂无管理员操作记录')}</p>
             ) : (
               managementView.adminAuditEntries.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3"
+                  className="rounded-md border border-border bg-muted/50 px-4 py-3"
                 >
-                  <div className="text-sm font-medium text-ink-50">{item.title}</div>
-                  <div className="mt-1 text-sm text-ink-300">{item.description}</div>
-                  <div className="mt-2 text-xs text-ink-500">{item.timestamp}</div>
+                  <div className="text-sm font-medium text-foreground">{item.title}</div>
+                  <div className="mt-1 text-sm text-foreground/80">{item.description}</div>
+                  <div className="mt-2 text-xs text-muted-foreground">{item.timestamp}</div>
                 </div>
               ))
             )}
@@ -621,10 +621,10 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
             </DashboardFilterFieldCard>
           </div>
 
-          <div className="mt-5 rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
+          <div className="mt-5 rounded-lg border border-border bg-card p-5 shadow-card">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl">
-                <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   {t('codews.activeFilters', '当前生效条件')}
                 </div>
                 <DashboardTokenList
@@ -701,7 +701,7 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                 />
               }
               trailing={
-                <div className="text-sm text-ink-500">
+                <div className="text-sm text-muted-foreground">
                   {t('codews.pageSummary', '当前展示第 {start} - {end} 条，共 {total} 条记录')
                     .replace('{start}', String(resultsView.startIndex))
                     .replace('{end}', String(resultsView.endIndex))
@@ -734,35 +734,35 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                     const isSelected = resultsView.managementView?.selectedCodeId === code.id
 
                     return (
-                      <tr key={code.id} className="transition hover:bg-surface-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
+                      <tr key={code.id} className="transition hover:bg-muted/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {resultsView.getProjectDisplay(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-100">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-foreground">
                           {code.code}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {resultsView.getStatusBadge(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {resultsView.getLicenseModeDisplay(code.licenseMode)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {resultsView.getSpecDisplay(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {new Date(code.createdAt).toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {resultsView.getExpiryDisplay(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {resultsView.getRemainingDisplay(code)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {code.usedAt ? new Date(code.usedAt).toLocaleString() : '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                           {code.usedBy || t('codews.unbound', '未绑定')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -776,8 +776,8 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
                               onClick={() => handleOpenManagement(code.id)}
                               className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${
                                 isSelected
-                                  ? 'border-brand-500/20 bg-brand-500/10 text-brand-400'
-                                  : 'border-surface-200 bg-surface-100 text-ink-300 hover:border-surface-300 hover:bg-surface-50'
+                                  ? 'border-primary/25 bg-primary/10 text-primary'
+                                  : 'border-border bg-card text-foreground/80 hover:border-input hover:bg-muted/50'
                               }`}
                             >
                               {t('codews.viewManage', '查看 / 管理')}

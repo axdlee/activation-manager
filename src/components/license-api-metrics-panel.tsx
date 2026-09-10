@@ -65,17 +65,17 @@ export function LicenseApiMetricsPanel({ panelClassName }: { panelClassName: str
     <section className={`${panelClassName} p-6`}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400">
+          <div className="inline-flex items-center gap-2 rounded-sm border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
             {t('metrics.title', 'License API 运行指标')}
           </div>
-          <h3 className="mt-3 text-xl font-semibold text-ink-50">
+          <h3 className="mt-3 text-xl font-semibold text-foreground">
             {t('metrics.windowOverview', '近 {minutes} 分钟请求概览').replace(
               '{minutes}',
               String(Math.round((metrics?.windowSeconds ?? 300) / 60)),
             )}
           </h3>
-          <p className="mt-1 text-sm leading-6 text-ink-500">
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
             {t(
               'metrics.subtitle',
               '激活 / 状态 / 消费接口的请求量、成功率与平均耗时（内存窗口，重启清零）。',
@@ -85,14 +85,14 @@ export function LicenseApiMetricsPanel({ panelClassName }: { panelClassName: str
         <button
           type="button"
           onClick={() => void load()}
-          className="rounded-md border border-surface-200 bg-surface-100 px-3 py-1.5 text-xs text-ink-300 transition hover:text-ink-50"
+          className="rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground/80 transition hover:text-foreground"
         >
           {t('metrics.refresh', '刷新')}
         </button>
       </div>
 
       {loading && !metrics ? (
-        <div className="mt-5 py-6 text-center text-sm text-ink-500">
+        <div className="mt-5 py-6 text-center text-sm text-muted-foreground">
           {t('metrics.loading', '正在加载指标…')}
         </div>
       ) : error ? (
@@ -108,9 +108,9 @@ export function LicenseApiMetricsPanel({ panelClassName }: { panelClassName: str
               [t('metrics.failures', '失败'), metrics.failure],
               [t('metrics.rateLimited', '被限流'), metrics.rateLimited],
             ].map(([label, value]) => (
-              <div key={String(label)} className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{label}</div>
-                <div className="mt-1 text-xl font-semibold text-ink-50">{value}</div>
+              <div key={String(label)} className="rounded-lg border border-border bg-muted/50 px-4 py-3">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+                <div className="mt-1 text-xl font-semibold text-foreground">{value}</div>
               </div>
             ))}
           </div>
@@ -118,7 +118,7 @@ export function LicenseApiMetricsPanel({ panelClassName }: { panelClassName: str
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">
               <thead>
-                <tr className="border-b border-surface-200 text-xs uppercase tracking-[0.18em] text-ink-500">
+                <tr className="border-b border-border text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   <th className="py-2 pr-4">{t('metrics.table.endpoint', '接口')}</th>
                   <th className="py-2 pr-4">{t('metrics.table.requests', '请求数')}</th>
                   <th className="py-2 pr-4">{t('metrics.table.success', '成功')}</th>
@@ -130,21 +130,21 @@ export function LicenseApiMetricsPanel({ panelClassName }: { panelClassName: str
               <tbody className="divide-y divide-surface-200">
                 {metrics.points.map((point) => (
                   <tr key={point.path}>
-                    <td className="py-3 pr-4 font-medium text-ink-50">
+                    <td className="py-3 pr-4 font-medium text-foreground">
                       {pathLabelKeyMap[point.path]
                         ? t(pathLabelKeyMap[point.path]!, point.path)
                         : point.path}
                     </td>
-                    <td className="py-3 pr-4 text-ink-300">{point.total}</td>
+                    <td className="py-3 pr-4 text-foreground/80">{point.total}</td>
                     <td className="py-3 pr-4 text-emerald-400">{point.success}</td>
                     <td className="py-3 pr-4 text-rose-400">{point.failure}</td>
                     <td className="py-3 pr-4 text-amber-400">{point.rateLimited}</td>
-                    <td className="py-3 pr-4 text-ink-300">{point.avgDurationMs}ms</td>
+                    <td className="py-3 pr-4 text-foreground/80">{point.avgDurationMs}ms</td>
                   </tr>
                 ))}
                 {metrics.points.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-ink-500">
+                    <td colSpan={6} className="py-6 text-center text-muted-foreground">
                       {t('metrics.emptyWindow', '近窗口内暂无请求')}
                     </td>
                   </tr>

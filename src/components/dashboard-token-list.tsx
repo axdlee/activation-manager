@@ -9,8 +9,8 @@ type DashboardTokenListProps = {
 }
 
 const defaultClassName = 'flex flex-wrap gap-2'
-const defaultTokenClassName = 'rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-sm text-brand-400'
-const defaultEmptyClassName = 'rounded-full border border-surface-200 bg-surface-100 px-3 py-1.5 text-sm text-ink-500'
+const defaultTokenClassName = 'rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-sm text-primary'
+const defaultEmptyClassName = 'rounded-full border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground'
 
 export function DashboardTokenList({
   tokens,

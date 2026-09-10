@@ -76,7 +76,7 @@ const toastToneMap: Record<ToastType, { icon: string; bar: string; title: string
     title: '操作失败',
   },
   info: {
-    icon: 'bg-brand-500/15 text-brand-400 border-brand-500/20',
+    icon: 'bg-primary/15 text-primary border-primary/25',
     bar: 'bg-brand-500',
     title: '提示',
   },
@@ -136,7 +136,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div
               key={item.id}
               role="status"
-              className="pointer-events-auto relative overflow-hidden rounded-lg border border-surface-200 bg-surface-100 shadow-modal animate-toast-in"
+              className="pointer-events-auto relative overflow-hidden rounded-lg border border-border bg-card shadow-modal animate-toast-in"
             >
               <div className={`absolute inset-y-0 left-0 w-1 ${tone.bar}`} />
               <div className="flex items-start gap-3 pl-4 pr-3 py-3">
@@ -146,16 +146,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   {toastIconMap[item.type]}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold text-ink-50">{item.title}</div>
+                  <div className="text-sm font-semibold text-foreground">{item.title}</div>
                   {item.message ? (
-                    <div className="mt-0.5 text-sm leading-6 text-ink-400">{item.message}</div>
+                    <div className="mt-0.5 text-sm leading-6 text-muted-foreground">{item.message}</div>
                   ) : null}
                 </div>
                 <button
                   type="button"
                   onClick={() => dismiss(item.id)}
                   aria-label="关闭提示"
-                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-ink-500 transition hover:bg-surface-50 hover:text-ink-200"
+                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted/50 hover:text-foreground/90"
                 >
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-3.5 w-3.5">
                     <path d="M6 6l8 8M14 6l-8 8" strokeLinecap="round" />

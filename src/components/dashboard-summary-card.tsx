@@ -22,9 +22,9 @@ export function DashboardSummaryCard({
   className,
   panelClassName,
   accentClassName = 'bg-ink-900',
-  labelClassName = 'text-xs uppercase tracking-[0.18em] text-ink-500',
-  valueClassName = 'mt-3 text-3xl font-semibold tracking-tight text-ink-50',
-  descriptionClassName = 'mt-2 text-sm leading-6 text-ink-500',
+  labelClassName = 'text-xs uppercase tracking-[0.18em] text-muted-foreground',
+  valueClassName = 'mt-3 text-3xl font-semibold tracking-tight text-foreground',
+  descriptionClassName = 'mt-2 text-sm leading-6 text-muted-foreground',
 }: DashboardSummaryCardProps) {
   const containerClassName = [baseClassName, panelClassName, className].filter(Boolean).join(' ')
 

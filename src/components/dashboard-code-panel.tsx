@@ -12,11 +12,11 @@ type DashboardCodePanelProps = {
 }
 
 const defaultPanelClassName =
-  'rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card'
+  'rounded-lg border border-border bg-card p-5 shadow-card'
 const defaultHeaderClassName =
   'mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'
 const defaultCodeClassName =
-  'overflow-x-auto rounded-md border border-surface-300 bg-ink-950 px-4 py-4 font-mono text-xs leading-6 text-surface-100 shadow-card'
+  'overflow-x-auto rounded-md border border-input bg-ink-950 px-4 py-4 font-mono text-xs leading-6 text-surface-100 shadow-card'
 
 export function DashboardCodePanel({
   header,

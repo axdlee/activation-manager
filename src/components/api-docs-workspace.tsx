@@ -30,17 +30,17 @@ type ApiDocsWorkspaceProps = {
 
 const summaryCardThemeMap = {
   sky: {
-    panel: 'border-surface-200 bg-surface-100',
+    panel: 'border-border bg-card',
     accent: 'bg-brand-500',
-    value: 'text-brand-300',
+    value: 'text-primary',
   },
   emerald: {
-    panel: 'border-surface-200 bg-surface-100',
+    panel: 'border-border bg-card',
     accent: 'bg-emerald-500',
     value: 'text-emerald-300',
   },
   violet: {
-    panel: 'border-surface-200 bg-surface-100',
+    panel: 'border-border bg-card',
     accent: 'bg-violet-500',
     value: 'text-violet-300',
   },
@@ -52,35 +52,35 @@ const audienceBadgeClassNameMap = {
 } as const
 
 const methodBadgeClassNameMap = {
-  GET: 'border-brand-500/20 bg-brand-500/10 text-brand-400',
+  GET: 'border-primary/25 bg-primary/10 text-primary',
   POST: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   PATCH: 'border-amber-200 bg-amber-50 text-amber-700',
   DELETE: 'border-rose-200 bg-rose-50 text-rose-700',
 } as const
 
 const tableContainerClassName =
-  'rounded-lg border border-surface-200 bg-surface-100 shadow-card'
+  'rounded-lg border border-border bg-card shadow-card'
 
 const inlineActionButtonClassName =
-  'inline-flex items-center justify-center rounded-full border border-surface-200 bg-surface-100 px-3 py-1.5 text-xs font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground/80 shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50'
 
 const publicCodeBlockClassName =
-  'overflow-x-auto rounded-lg border border-brand-500/20 bg-surface-50 px-4 py-4 font-mono text-[12px] leading-6 text-ink-100 shadow-inner shadow-sky-100/50'
+  'overflow-x-auto rounded-lg border border-primary/25 bg-muted/50 px-4 py-4 font-mono text-[12px] leading-6 text-foreground shadow-inner shadow-sky-100/50'
 
 const docsPublicPanelClassName =
-  'rounded-lg border border-surface-200 bg-surface-100 shadow-card'
+  'rounded-lg border border-border bg-card shadow-card'
 
 const docsPublicFeatureCardClassName =
-  'rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card transition-all hover:border-brand-500/30 hover:shadow-card-hover'
+  'rounded-lg border border-border bg-card p-5 shadow-card transition-all hover:border-primary/40 hover:shadow-card-hover'
 
 const docsPublicPillClassName =
-  'inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-400 shadow-sm'
+  'inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-primary shadow-sm'
 
 const docsPublicPrimaryButtonClassName =
-  'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-glow transition-all hover:from-brand-400 hover:via-brand-500 hover:to-brand-600 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-primary via-primary to-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition-all hover:from-primary/90 hover:via-primary/90 hover:to-primary/90 disabled:cursor-not-allowed disabled:opacity-50'
 
 const docsPublicSecondaryButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-semibold text-ink-200 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/10'
+  'inline-flex items-center justify-center rounded-md border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/90 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/10'
 
 /** 公开文档页的分区标签（客户端词典渲染，供服务端壳复用） */
 export function ApiDocsPageHero() {
@@ -120,10 +120,10 @@ export function ApiDocsPageHero() {
           <span className="h-2 w-2 rounded-full bg-brand-500" />
           {t('api.docsPill', '对外接入说明')}
         </div>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink-50 sm:text-4xl">
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           {t('api.docsHeroTitle', '面向插件与客户端的 API 文档中心')}
         </h1>
-        <p className="mt-3 text-sm leading-7 text-ink-500 sm:text-base">
+        <p className="mt-3 text-sm leading-7 text-muted-foreground sm:text-base">
           {t(
             'api.docsHeroDescription',
             '该页面可直接发给插件开发者、桌面端、测试同学与合作方，无需进入后台即可查看完整接入路径与示例代码。',
@@ -142,13 +142,13 @@ export function ApiDocsPageHero() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:max-w-3xl">
         {docsHighlights.map((item) => (
           <div key={item.label} className={apiDocsHighlightCardClassName}>
-            <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
+            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               {item.label}
             </div>
-            <div className="mt-3 text-2xl font-semibold tracking-tight text-ink-50">
+            <div className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
               {item.value}
             </div>
-            <div className="mt-2 text-sm leading-6 text-ink-500">
+            <div className="mt-2 text-sm leading-6 text-muted-foreground">
               {item.description}
             </div>
           </div>
@@ -159,16 +159,16 @@ export function ApiDocsPageHero() {
 }
 
 const apiDocsPillClassName =
-  'inline-flex items-center gap-2 rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-brand-400 shadow-sm'
+  'inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-primary shadow-sm'
 
 const apiDocsPrimaryButtonClassName =
-  'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-glow transition-all hover:from-brand-400 hover:via-brand-500 hover:to-brand-600 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md bg-gradient-to-r from-primary via-primary to-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition-all hover:from-primary/90 hover:via-primary/90 hover:to-primary/90 disabled:cursor-not-allowed disabled:opacity-50'
 
 const apiDocsSecondaryButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-5 py-3 text-sm font-semibold text-ink-200 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/10'
+  'inline-flex items-center justify-center rounded-md border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/90 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/10'
 
 const apiDocsHighlightCardClassName =
-  'rounded-lg border border-surface-200 bg-surface-100 px-5 py-5 shadow-card'
+  'rounded-lg border border-border bg-card px-5 py-5 shadow-card'
 
 export function ApiDocsWorkspace({
   mode = 'dashboard',
@@ -295,17 +295,17 @@ export function ApiDocsWorkspace({
                 <span className="h-2 w-2 rounded-full bg-brand-500" />
                 {heroContent.badge}
               </div>
-              <h2 className="mt-4 text-2xl font-semibold tracking-tight text-ink-50">
+              <h2 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
                 {heroContent.title}
               </h2>
-              <p className="mt-2 text-sm leading-7 text-ink-500 sm:text-base">
+              <p className="mt-2 text-sm leading-7 text-muted-foreground sm:text-base">
                 {heroContent.description}
               </p>
             </div>
 
-            <div className="rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 text-sm leading-6 text-ink-300 shadow-card">
-              <div className="font-semibold text-ink-50">{heroContent.asideTitle}</div>
-              <div className="mt-1 text-ink-500">{heroContent.asideDescription}</div>
+            <div className="rounded-lg border border-border bg-card px-4 py-4 text-sm leading-6 text-foreground/80 shadow-card">
+              <div className="font-semibold text-foreground">{heroContent.asideTitle}</div>
+              <div className="mt-1 text-muted-foreground">{heroContent.asideDescription}</div>
             </div>
           </div>
 
@@ -350,17 +350,17 @@ export function ApiDocsWorkspace({
                   onClick={() => setActiveTab(tab.key)}
                   className={`rounded-lg border p-4 text-left transition ${
                     isActive
-                      ? 'border-brand-500/20 bg-brand-500/10 shadow-card'
-                      : 'border-surface-200 bg-surface-100 hover:-translate-y-0.5 hover:border-brand-500/20 hover:bg-brand-500/60'
+                      ? 'border-primary/25 bg-primary/10 shadow-card'
+                      : 'border-border bg-card hover:-translate-y-0.5 hover:border-primary/25 hover:bg-brand-500/60'
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-xs font-semibold ${
                         isActive
-                          ? 'bg-brand-600 text-white shadow-card'
+                          ? 'bg-primary text-white shadow-card'
                           : isPublicMode
-                            ? 'bg-brand-500/10 text-brand-400 ring-1 ring-brand-100'
+                            ? 'bg-primary/10 text-primary ring-1 ring-brand-100'
                             : 'bg-ink-900 text-white/90'
                       }`}
                     >
@@ -369,14 +369,14 @@ export function ApiDocsWorkspace({
                     <div className="min-w-0">
                       <div
                         className={`text-sm font-semibold ${
-                          isActive ? 'text-brand-300' : 'text-ink-50'
+                          isActive ? 'text-primary' : 'text-foreground'
                         }`}
                       >
                         {tab.label}
                       </div>
                       <div
                         className={`mt-1 text-xs leading-6 ${
-                          isActive ? 'text-brand-400' : 'text-ink-500'
+                          isActive ? 'text-primary' : 'text-muted-foreground'
                         }`}
                       >
                         {tab.description}
@@ -394,8 +394,8 @@ export function ApiDocsWorkspace({
         <div className="space-y-6">
           <div className={`${publicPanelClassName} p-6`}>
             <div className="mb-5">
-              <h3 className="text-xl font-semibold text-ink-50">{t('apiws.researchPathTitle', '推荐调研路径')}</h3>
-              <p className="mt-1 text-sm leading-6 text-ink-500">
+              <h3 className="text-xl font-semibold text-foreground">{t('apiws.researchPathTitle', '推荐调研路径')}</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {t(
                   'apiws.researchPathDescription',
                   '建议把接口调研理解为一个业务闭环：先准备 projectKey，再绑定、查询、扣次，最后用后台日志和 smoke 脚本回证。',
@@ -411,14 +411,14 @@ export function ApiDocsWorkspace({
                       {step.step}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-base font-semibold text-ink-50">
+                      <h4 className="text-base font-semibold text-foreground">
                         {step.title}
                       </h4>
-                      <p className="mt-2 text-sm leading-6 text-ink-500">
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
                         {step.description}
                       </p>
-                      <div className="mt-3 rounded-md border border-brand-500/20 bg-brand-500/10 px-4 py-3 text-sm leading-6 text-brand-400">
-                        <span className="font-medium text-brand-300">
+                      <div className="mt-3 rounded-md border border-primary/25 bg-primary/10 px-4 py-3 text-sm leading-6 text-primary">
+                        <span className="font-medium text-primary">
                           {t('apiws.outcomePrefix', '你会得到：')}
                         </span>{' '}
                         {step.outcome}
@@ -433,16 +433,16 @@ export function ApiDocsWorkspace({
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             {apiDocsPageModel.licenseModels.map((card) => (
               <div key={card.badge} className={`${panelClassName} p-6`}>
-                <div className="inline-flex items-center rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-brand-400">
+                <div className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-primary">
                   {card.badge}
                 </div>
-                <h3 className="mt-4 text-xl font-semibold text-ink-50">{card.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-ink-500">{card.description}</p>
+                <h3 className="mt-4 text-xl font-semibold text-foreground">{card.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{card.description}</p>
                 <div className="mt-4 space-y-3">
                   {card.bullets.map((bullet) => (
                     <div
                       key={bullet}
-                      className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-6 text-ink-300"
+                      className="flex items-start gap-3 rounded-lg border border-border bg-muted/50 px-4 py-4 text-sm leading-6 text-foreground/80"
                     >
                       <span className="mt-1 h-2.5 w-2.5 rounded-full bg-brand-500" />
                       <span>{bullet}</span>
@@ -456,8 +456,8 @@ export function ApiDocsWorkspace({
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
-                <h3 className="text-xl font-semibold text-ink-50">{t('apiws.requestFieldsTitle', '通用请求字段')}</h3>
-                <p className="mt-1 text-sm leading-6 text-ink-500">
+                <h3 className="text-xl font-semibold text-foreground">{t('apiws.requestFieldsTitle', '通用请求字段')}</h3>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   {t(
                     'apiws.requestFieldsDescription',
                     '正式接口支持 camelCase / snake_case 双写法，便于不同语言和历史客户端接入。',
@@ -466,7 +466,7 @@ export function ApiDocsWorkspace({
               </div>
               <DashboardTableContainer className={tableContainerClassName}>
                 <table className="w-full min-w-max divide-y divide-slate-200">
-                  <thead className="bg-surface-50">
+                  <thead className="bg-muted/50">
                     <tr>
                       {[
                         t('apiws.table.field', '字段'),
@@ -476,24 +476,24 @@ export function ApiDocsWorkspace({
                       ].map((title) => (
                         <th
                           key={title}
-                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-500"
+                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                         >
                           {title}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 bg-surface-100">
+                  <tbody className="divide-y divide-slate-200 bg-card">
                     {apiDocsPageModel.requestFields.map((field) => (
-                      <tr key={field.field} className="transition hover:bg-surface-50">
-                        <td className="px-6 py-4 text-sm font-mono text-ink-50">
+                      <tr key={field.field} className="transition hover:bg-muted/50">
+                        <td className="px-6 py-4 text-sm font-mono text-foreground">
                           {field.field}
                         </td>
-                        <td className="px-6 py-4 text-sm text-ink-500">{field.type}</td>
-                        <td className="px-6 py-4 text-sm text-ink-500">
+                        <td className="px-6 py-4 text-sm text-muted-foreground">{field.type}</td>
+                        <td className="px-6 py-4 text-sm text-muted-foreground">
                           {field.required}
                         </td>
-                        <td className="px-6 py-4 text-sm text-ink-500">
+                        <td className="px-6 py-4 text-sm text-muted-foreground">
                           {field.description}
                         </td>
                       </tr>
@@ -505,8 +505,8 @@ export function ApiDocsWorkspace({
 
             <div className={`${panelClassName} p-6`}>
               <div className="mb-5">
-                <h3 className="text-xl font-semibold text-ink-50">{t('apiws.responseFieldsTitle', '统一响应字段')}</h3>
-                <p className="mt-1 text-sm leading-6 text-ink-500">
+                <h3 className="text-xl font-semibold text-foreground">{t('apiws.responseFieldsTitle', '统一响应字段')}</h3>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   {t(
                     'apiws.responseFieldsDescription',
                     '正式接口会同时返回 camelCase 与 snake_case，便于浏览器插件、桌面端和脚本工具统一接入。',
@@ -515,7 +515,7 @@ export function ApiDocsWorkspace({
               </div>
               <DashboardTableContainer className={tableContainerClassName}>
                 <table className="w-full min-w-max divide-y divide-slate-200">
-                  <thead className="bg-surface-50">
+                  <thead className="bg-muted/50">
                     <tr>
                       {[
                         t('apiws.table.field', '字段'),
@@ -525,24 +525,24 @@ export function ApiDocsWorkspace({
                       ].map((title) => (
                         <th
                           key={title}
-                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-ink-500"
+                          className="whitespace-nowrap px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                         >
                           {title}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 bg-surface-100">
+                  <tbody className="divide-y divide-slate-200 bg-card">
                     {apiDocsPageModel.responseFields.map((field) => (
-                      <tr key={field.field} className="transition hover:bg-surface-50">
-                        <td className="px-6 py-4 text-sm font-mono text-ink-50">
+                      <tr key={field.field} className="transition hover:bg-muted/50">
+                        <td className="px-6 py-4 text-sm font-mono text-foreground">
                           {field.field}
                         </td>
-                        <td className="px-6 py-4 text-sm text-ink-500">{field.type}</td>
-                        <td className="px-6 py-4 text-sm text-ink-500">
+                        <td className="px-6 py-4 text-sm text-muted-foreground">{field.type}</td>
+                        <td className="px-6 py-4 text-sm text-muted-foreground">
                           {field.required}
                         </td>
-                        <td className="px-6 py-4 text-sm text-ink-500">
+                        <td className="px-6 py-4 text-sm text-muted-foreground">
                           {field.description}
                         </td>
                       </tr>
@@ -575,14 +575,14 @@ export function ApiDocsWorkspace({
                         : t('apiws.audience.compat', '兼容旧接口')}
                     </span>
                   </div>
-                  <h3 className="mt-4 text-xl font-semibold text-ink-50">
+                  <h3 className="mt-4 text-xl font-semibold text-foreground">
                     {endpoint.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-ink-500">
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     {endpoint.summary}
                   </p>
-                  <div className="mt-3 rounded-md border border-surface-200 bg-surface-50 px-4 py-3 text-sm leading-6 text-ink-300">
-                    <span className="font-medium text-ink-50">
+                  <div className="mt-3 rounded-md border border-border bg-muted/50 px-4 py-3 text-sm leading-6 text-foreground/80">
+                    <span className="font-medium text-foreground">
                       {t('apiws.whenToUsePrefix', '适用时机：')}
                     </span>{' '}
                     {endpoint.whenToUse}
@@ -590,7 +590,7 @@ export function ApiDocsWorkspace({
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <div className="rounded-lg border border-surface-200 bg-surface-100 px-4 py-3 text-sm font-mono text-ink-200 shadow-sm">
+                  <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm font-mono text-foreground/90 shadow-sm">
                     {endpoint.path}
                   </div>
                   <button
@@ -610,7 +610,7 @@ export function ApiDocsWorkspace({
                   {endpoint.highlights.map((highlight) => (
                     <div
                       key={highlight}
-                      className="flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-4 text-sm leading-6 text-ink-300"
+                      className="flex items-start gap-3 rounded-lg border border-border bg-muted/50 px-4 py-4 text-sm leading-6 text-foreground/80"
                     >
                       <span className="mt-1 h-2.5 w-2.5 rounded-full bg-brand-500" />
                       <span>{highlight}</span>
@@ -622,10 +622,10 @@ export function ApiDocsWorkspace({
                   <DashboardCodePanel
                     header={
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
+                        <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                           {t('apiws.requestExampleTitle', '请求示例')}
                         </div>
-                        <div className="mt-1 text-sm text-ink-500">
+                        <div className="mt-1 text-sm text-muted-foreground">
                           {t(
                             'apiws.requestExampleDescription',
                             '可直接用于 Postman、脚本或插件侧联调。',
@@ -654,10 +654,10 @@ export function ApiDocsWorkspace({
                   <DashboardCodePanel
                     header={
                       <div>
-                        <div className="text-xs uppercase tracking-[0.18em] text-ink-500">
+                        <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                           {t('apiws.responseExampleTitle', '响应示例')}
                         </div>
-                        <div className="mt-1 text-sm text-ink-500">
+                        <div className="mt-1 text-sm text-muted-foreground">
                           {t(
                             'apiws.responseExampleDescription',
                             '用于核对业务是否成功、字段是否匹配以及是否命中幂等。',
@@ -698,13 +698,13 @@ export function ApiDocsWorkspace({
               headerClassName="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
               header={
                 <div className="max-w-3xl">
-                  <div className="inline-flex items-center rounded-full border border-surface-200 bg-surface-50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-ink-300">
+                  <div className="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-foreground/80">
                     {snippet.label}
                   </div>
-                  <h3 className="mt-4 text-xl font-semibold text-ink-50">
+                  <h3 className="mt-4 text-xl font-semibold text-foreground">
                     {snippet.label}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-ink-500">
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     {snippet.description}
                   </p>
                 </div>
@@ -737,10 +737,10 @@ export function ApiDocsWorkspace({
         <div className="space-y-6">
           <div className={`${panelClassName} p-6`}>
             <div className="mb-5">
-              <h3 className="text-xl font-semibold text-ink-50">
+              <h3 className="text-xl font-semibold text-foreground">
                 {t('apiws.adminEndpointsTitle', '联调时常用的后台接口')}
               </h3>
-              <p className="mt-1 text-sm leading-6 text-ink-500">
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {t(
                   'apiws.adminEndpointsDescription',
                   '当你需要生成测试码、核对 requestId、导出日志或确认项目是否启用时，可直接参考这些管理接口。',
@@ -763,10 +763,10 @@ export function ApiDocsWorkspace({
 
           <div className={`${panelClassName} p-6`}>
             <div className="mb-5">
-              <h3 className="text-xl font-semibold text-ink-50">
+              <h3 className="text-xl font-semibold text-foreground">
                 {t('apiws.localDebuggingTitle', '本地联调与排查辅助')}
               </h3>
-              <p className="mt-1 text-sm leading-6 text-ink-500">
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {t(
                   'apiws.localDebuggingDescription',
                   '除了接口本身，建议同时把 smoke 脚本、SDK 源码和完整文档路径暴露给接入者，降低沟通成本。',

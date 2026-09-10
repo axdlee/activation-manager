@@ -271,8 +271,8 @@ export function ShopPage() {
         <header className={`${publicShellClassName} p-6`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-xl font-semibold tracking-tight text-ink-50 sm:text-2xl">{t("shop.title", "激活码购买中心")}</h1>
-              <p className="mt-1 text-sm leading-6 text-ink-500">{t("shop.subtitle", "选择套餐、填写联系方式下单，支付成功后自动发放卡密。")}</p>
+              <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{t("shop.title", "激活码购买中心")}</h1>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("shop.subtitle", "选择套餐、填写联系方式下单，支付成功后自动发放卡密。")}</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link href="/" className={publicSecondaryButtonClassName}>
@@ -290,19 +290,19 @@ export function ShopPage() {
         <section className={`${publicShellClassName} p-6`}>
           {shopDisabled ? (
             <div className="py-10 text-center">
-              <div className="text-lg font-semibold text-ink-50">购买中心已停用</div>
-              <p className="mt-2 text-sm leading-6 text-ink-500">
+              <div className="text-lg font-semibold text-foreground">购买中心已停用</div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 管理员已停用购买能力。如需购买，请联系卖家开通。
               </p>
             </div>
           ) : loading ? (
-            <div className="py-10 text-center text-sm text-ink-500">{t("common.loading", "正在加载…")}</div>
+            <div className="py-10 text-center text-sm text-muted-foreground">{t("common.loading", "正在加载…")}</div>
           ) : (
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <div className="space-y-5">
                 <div>
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <label className="block text-sm font-medium text-ink-200">{t("shop.selectPlan", "选择套餐")}</label>
+                    <label className="block text-sm font-medium text-foreground/90">{t("shop.selectPlan", "选择套餐")}</label>
                     <AppSelect
                       value={sortBy}
                       onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
@@ -322,20 +322,20 @@ export function ShopPage() {
                         onClick={() => setSelectedProductId(product.id)}
                         className={`rounded-lg border p-4 text-left transition ${
                           selectedProductId === product.id
-                            ? 'border-brand-500/50 bg-brand-500/10 shadow-glow'
-                            : 'border-surface-200 bg-surface-100 hover:border-brand-500/30'
+                            ? 'border-primary/50 bg-primary/10 shadow-glow'
+                            : 'border-border bg-card hover:border-primary/40'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <span className="font-semibold text-ink-50">{product.name}</span>
-                          <span className="shrink-0 text-base font-bold text-brand-400">
+                          <span className="font-semibold text-foreground">{product.name}</span>
+                          <span className="shrink-0 text-base font-bold text-primary">
                             {formatPrice(product.priceInCents)}
                           </span>
                         </div>
                         {product.description ? (
-                          <p className="mt-1 text-xs leading-5 text-ink-500">{product.description}</p>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{product.description}</p>
                         ) : null}
-                        <p className="mt-2 text-xs text-ink-500">
+                        <p className="mt-2 text-xs text-muted-foreground">
                           {product.licenseMode === 'TIME'
                             ? `有效期 ${product.validDays ?? '-'} 天`
                             : `共 ${product.totalCount ?? '-'} 次`}
@@ -343,14 +343,14 @@ export function ShopPage() {
                             product.availableStock === 0 ? (
                               <span className="ml-1 font-semibold text-rose-400">已售罄</span>
                             ) : (
-                              <span className="ml-1 text-ink-400">剩余 {product.availableStock} 张</span>
+                              <span className="ml-1 text-muted-foreground">剩余 {product.availableStock} 张</span>
                             )
                           ) : null}
                         </p>
                       </button>
                     ))}
                     {products.length === 0 ? (
-                      <div className="col-span-full py-8 text-center text-sm text-ink-500">
+                      <div className="col-span-full py-8 text-center text-sm text-muted-foreground">
                         暂无在售套餐
                       </div>
                     ) : null}
@@ -358,7 +358,7 @@ export function ShopPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-ink-200">{t("shop.paymentMethod", "支付方式")}</label>
+                  <label className="mb-2 block text-sm font-medium text-foreground/90">{t("shop.paymentMethod", "支付方式")}</label>
                   <AppSelect value={providerId} onChange={(event) => setProviderId(event.target.value)}>
                     {channels.map((channel) => (
                       <option key={channel.id} value={channel.id}>
@@ -370,10 +370,10 @@ export function ShopPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="order-quantity" className="mb-2 block text-sm font-medium text-ink-200">
+                  <label htmlFor="order-quantity" className="mb-2 block text-sm font-medium text-foreground/90">
                     购买数量
                     {selectedProduct ? (
-                      <span className="ml-2 text-xs text-ink-500">
+                      <span className="ml-2 text-xs text-muted-foreground">
                         合计 ￥{((selectedProduct.priceInCents * quantity) / 100).toFixed(2)}
                       </span>
                     ) : null}
@@ -396,8 +396,8 @@ export function ShopPage() {
 
                 <div className="space-y-3">
                   <div>
-                    <label htmlFor="contact-email" className="mb-1.5 block text-sm font-medium text-ink-200">
-                      邮箱 <span className="text-xs text-ink-500">（用于找回卡密，建议填写）</span>
+                    <label htmlFor="contact-email" className="mb-1.5 block text-sm font-medium text-foreground/90">
+                      邮箱 <span className="text-xs text-muted-foreground">（用于找回卡密，建议填写）</span>
                     </label>
                     <AppInput
                       id="contact-email"
@@ -408,7 +408,7 @@ export function ShopPage() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="contact-phone" className="mb-1.5 block text-sm font-medium text-ink-200">
+                    <label htmlFor="contact-phone" className="mb-1.5 block text-sm font-medium text-foreground/90">
                       手机号
                     </label>
                     <AppInput
@@ -420,7 +420,7 @@ export function ShopPage() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="contact-wechat" className="mb-1.5 block text-sm font-medium text-ink-200">
+                    <label htmlFor="contact-wechat" className="mb-1.5 block text-sm font-medium text-foreground/90">
                       微信号
                     </label>
                     <AppInput
@@ -452,38 +452,38 @@ export function ShopPage() {
               <div className="space-y-5">
                 {createdOrder ? (
                   <div className={`${publicShellClassName} p-6`}>
-                    <div className="flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400">
+                    <div className="flex items-center gap-2 rounded-sm border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                       <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
                       {t("shop.orderCreated", "订单已生成")}
                     </div>
                     <div className="mt-4 space-y-3">
                       <div className="flex justify-between text-sm">
-                        <span className="text-ink-500">订单号</span>
-                        <span className="break-all font-mono text-ink-50">{createdOrder.orderNo}</span>
+                        <span className="text-muted-foreground">订单号</span>
+                        <span className="break-all font-mono text-foreground">{createdOrder.orderNo}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-ink-500">商品</span>
-                        <span className="text-ink-50">{createdOrder.productName}</span>
+                        <span className="text-muted-foreground">商品</span>
+                        <span className="text-foreground">{createdOrder.productName}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-ink-500">金额</span>
-                        <span className="font-semibold text-ink-50">
+                        <span className="text-muted-foreground">金额</span>
+                        <span className="font-semibold text-foreground">
                           {formatPrice(createdOrder.amountInCents)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-ink-500">状态</span>
+                        <span className="text-muted-foreground">状态</span>
                         <span className="text-amber-400">{t("shop.waitingPayment", "等待支付")}</span>
                       </div>
                     </div>
 
                     {/* 支付信息 */}
                     {payment ? (
-                      <div className="mt-5 rounded-lg border border-surface-200 bg-surface-50 p-4">
-                        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-500">
+                      <div className="mt-5 rounded-lg border border-border bg-muted/50 p-4">
+                        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                           支付方式 · {selectedChannel?.name ?? '待确认'}
                         </div>
-                        <p className="mt-2 text-sm leading-6 text-ink-300">
+                        <p className="mt-2 text-sm leading-6 text-foreground/80">
                           {payment.payParams.instructions ?? '请完成支付'}
                         </p>
                         {payment.payParams.qrCodeImage ? (
@@ -491,12 +491,12 @@ export function ShopPage() {
                           <img
                             src={payment.payParams.qrCodeImage}
                             alt="收款二维码"
-                            className="mx-auto mt-3 h-48 w-48 rounded-lg border border-surface-200 object-contain"
+                            className="mx-auto mt-3 h-48 w-48 rounded-lg border border-border object-contain"
                           />
                         ) : null}
                         {payment.requirePaymentNote ? (
                           <div className="mt-3">
-                            <label className="mb-1.5 block text-xs text-ink-500">
+                            <label className="mb-1.5 block text-xs text-muted-foreground">
                               支付后请填写交易号 / 备注（便于核对）
                             </label>
                             <AppInput
@@ -506,7 +506,7 @@ export function ShopPage() {
                             />
                           </div>
                         ) : null}
-                        <p className="mt-3 text-xs leading-5 text-ink-500">
+                        <p className="mt-3 text-xs leading-5 text-muted-foreground">
                           支付完成后将自动发放卡密，页面会实时刷新。
                         </p>
                       </div>
@@ -519,13 +519,13 @@ export function ShopPage() {
                           {fulfilled.codes.map((item) => (
                             <div
                               key={item.id}
-                              className="break-all rounded-md border border-surface-200 bg-surface-100 px-4 py-3 font-mono text-sm text-ink-50"
+                              className="break-all rounded-md border border-border bg-card px-4 py-3 font-mono text-sm text-foreground"
                             >
                               {item.code}
                             </div>
                           ))}
                         </div>
-                        <p className="mt-3 text-xs leading-5 text-ink-500">
+                        <p className="mt-3 text-xs leading-5 text-muted-foreground">
                           请妥善保存卡密。如遗失，可在下方用订单号 + 联系方式找回。
                         </p>
                       </div>
@@ -539,8 +539,8 @@ export function ShopPage() {
 
         {/* 找回卡密区 */}
         <section className={`${publicShellClassName} p-6`}>
-          <h2 className="text-lg font-semibold text-ink-50">{t("shop.findCode", "找回卡密")}</h2>
-          <p className="mt-1 text-sm leading-6 text-ink-500">{t("shop.findCodeDesc", "忘记卡密时，用下单时填写的邮箱 / 手机号 / 微信号 + 订单号即可重新获取。")}</p>
+          <h2 className="text-lg font-semibold text-foreground">{t("shop.findCode", "找回卡密")}</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{t("shop.findCodeDesc", "忘记卡密时，用下单时填写的邮箱 / 手机号 / 微信号 + 订单号即可重新获取。")}</p>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             <AppInput
               value={lookupOrderNo}
@@ -568,7 +568,7 @@ export function ShopPage() {
               {lookupResult.codes.map((item) => (
                 <div
                   key={item.id}
-                  className="break-all rounded-md border border-surface-200 bg-surface-100 px-4 py-3 font-mono text-sm text-ink-50"
+                  className="break-all rounded-md border border-border bg-card px-4 py-3 font-mono text-sm text-foreground"
                 >
                   {item.code}
                 </div>
