@@ -1,0 +1,123 @@
+name: SDK Tests
+
+on:
+  push:
+    paths:
+      - 'sdk/**'
+      - '.github/workflows/sdk-tests.yml'
+  pull_request:
+    paths:
+      - 'sdk/**'
+      - '.github/workflows/sdk-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run Python SDK self-test
+        run: python3 sdk/python/test_sdk.py
+
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Run Go SDK tests
+        run: cd sdk/go && go vet ./... && go test ./... -v
+
+  java:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Run Java SDK tests
+        run: cd sdk/java/activation-manager && mvn -B test
+
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl, hash, json
+      - name: Run PHP SDK self-test
+        run: php sdk/php/test_sdk.php
+
+  ruby:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - name: Run Ruby SDK self-test
+        run: ruby sdk/ruby/test_sdk.rb
+
+  c:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run C SDK test
+        run: |
+          cd sdk/c
+          cc -std=c11 -DAM_HAVE_OPENSSL -c activation_manager.c -I/usr/include -o am.o
+          cc -std=c11 -DAM_HAVE_OPENSSL test_client.c am.o -lssl -lcrypto -lcurl -o test_client
+          python3 test_server.py 18971 &
+          sleep 1
+          ./test_client "http://127.0.0.1:18971"
+
+  cpp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run C++ SDK test
+        run: |
+          cd sdk/cpp
+          c++ -std=c++17 -DAM_HAVE_OPENSSL test_client.cpp -lssl -lcrypto -lcurl -o test_client
+          python3 ../c/test_server.py 18975 &
+          sleep 1
+          ./test_client "http://127.0.0.1:18975"
+
+  csharp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build and run C# SDK test
+        run: |
+          cd sdk/csharp
+          dotnet build -v q
+          dotnet test -v q
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run Rust SDK tests
+        run: cd sdk/rust && cargo test --release
+
+  kotlin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Kotlin toolchain via Maven
+        run: cd sdk/kotlin && mvn -B test
