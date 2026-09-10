@@ -260,7 +260,7 @@ impl Client {
             self.verify_signature(&response, &raw)?;
         }
 
-        let result = Result::parse(&raw).ok_or_else(|| ClientError {
+        let result = SdkResult::parse(&raw).ok_or_else(|| ClientError {
             kind: ErrorKind::InvalidResponse,
             message: "response is not a JSON object".into(),
             path: path.into(),
