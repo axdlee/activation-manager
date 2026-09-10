@@ -161,3 +161,7 @@ __pycache__/
 
 # Java/Maven build artifacts
 sdk/java/**/target/
+# C/C++ SDK 构建产物
+sdk/c/*.o
+sdk/c/test_client
+sdk/cpp/test_client
