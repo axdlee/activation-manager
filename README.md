@@ -877,7 +877,7 @@ BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
 项目内已提供可直接复用的 SDK：
 
 - JS/TS：`src/lib/license-sdk.ts`
-- Python / Go / Java / PHP / Ruby / C / C++：`sdk/` 各语言目录（零第三方依赖，含响应验签；自测见 [sdk/README.md](./sdk/README.md)）
+- Python / Go / Java / PHP / Ruby / C / C++ / TypeScript / Swift / Dart / Scala / Perl / Lua / Groovy：`sdk/` 各语言目录（含响应验签；总览见 [sdk/README.md](./sdk/README.md)）
 
 最小使用示例：
 

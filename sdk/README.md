@@ -27,6 +27,13 @@
 | Ruby | [`sdk/ruby/activation_manager_client.rb`](../ruby/activation_manager_client.rb) | Ruby 3.0+ 标准库 | `ruby sdk/ruby/test_sdk.rb` |
 | C | [`sdk/c/activation_manager.h`](../c/activation_manager.h) + `.c` | C11 + libcurl + OpenSSL（验签需 `-DAM_HAVE_OPENSSL`） | 见下方 C 章节 |
 | C++ | [`sdk/cpp/activation_manager.hpp`](../cpp/activation_manager.hpp)（header-only） | C++17 + libcurl + OpenSSL（验签需 `-DAM_HAVE_OPENSSL`） | 见下方 C++ 章节 |
+| TypeScript | [`sdk/typescript/license-sdk.ts`](../typescript/license-sdk.ts)（源码在 `src/lib/license-sdk.ts`，副本同步维护） | TS 5+ / Node 18+ | `npx tsc --noEmit -p sdk/typescript` |
+| Swift | [`sdk/swift/Sources`](../swift)（SPM 包） | Swift 5.9+（macOS 12+ / Linux），依赖 swift-crypto | `cd sdk/swift && swift build && swift test` |
+| Dart | [`sdk/dart/lib/activation_manager.dart`](../dart/lib/activation_manager.dart) | Dart 3+，依赖 http/crypto | `cd sdk/dart && dart pub get && dart test` |
+| Scala | [`sdk/scala/ActivationManager.scala`](../scala/ActivationManager.scala) | Scala 3.3 / JVM 17，零第三方依赖 | `cd sdk/scala && ./scala-cli run test_sdk.scala` |
+| Perl | [`sdk/perl/ActivationManager.pm`](../perl/ActivationManager.pm) | Perl 5.14+（核心模块 HTTP::Tiny/JSON::PP/Digest::SHA） | `cd sdk/perl && perl test_sdk.pl` |
+| Lua | [`sdk/lua/activation_manager.lua`](../lua/activation_manager.lua) | Lua 5.4 + luarocks（luasocket/dkjson） | `cd sdk/lua && lua -e "require('activation_manager')" |` |
+| Groovy | [`sdk/groovy/ActivationManagerClient.groovy`](../groovy/ActivationManagerClient.groovy) | Groovy 4 / JVM 17，零第三方依赖 | `cd sdk/groovy && groovyc ActivationManagerClient.groovy` |
 
 ### C
 
@@ -125,7 +132,12 @@ puts "激活失败: #{result['message']}" unless result['success']
 - **传统 Web 主机** → PHP
 - **运维脚本 / DevOps** → Ruby
 - **桌面软件 / 嵌入式 / 系统集成** → C 或 C++（发行单个可执行文件、无运行时依赖时首选）
+- **Apple 生态（macOS/iOS）** → Swift
+- **Flutter 跨端移动应用** → Dart
+- **Spark / 大数据 JVM 团队** → Scala 或 Groovy
 
 ## 覆盖说明
 
-C#（.NET）：构建环境无 .NET SDK，无法验证编译与运行时行为，**未随附**（未验证的代码不进仓库）。如需可按 `sdk/go` 的契约（错误分类、验签算法、幂等重试规则）自行实现。Rust / Kotlin 同理（无工具链）。JS/TS 使用仓库内 `src/lib/license-sdk.ts`，无需独立包。
+全部 17 语言均通过 GitHub Actions 验证（`.github/workflows/sdk-tests.yml`，10+ job 矩阵）。
+历史边界说明：C#（.NET）、Rust、Kotlin 曾因本机无工具链未随附——后按用户要求补齐，由 GitHub CI 完成验证。
+JS/TS 源码维护在 `src/lib/license-sdk.ts`（仓库主代码引用它），`sdk/typescript/` 为独立副本方便 SDK 用户复制。

@@ -121,7 +121,8 @@ POST /api/license/consume
 
 - JS/TS：`src/lib/license-sdk.ts`（Next.js 应用内 `@/lib/license-sdk` 引用）
 - Python：`sdk/python/activation_manager.py`（单文件、零第三方依赖，Python 3.8+）
-- Go / Java / PHP / Ruby / C / C++：`sdk/` 下各语言目录（同样零第三方依赖，契约与错误分类与 JS SDK 对齐）
+- Go / Java / PHP / Ruby / C / C++ / TypeScript / Swift / Dart / Scala / Perl / Lua / Groovy：
+  `sdk/` 下各语言目录（同样零/轻第三方依赖，契约与错误分类与 JS SDK 对齐）
   - 总览与语言选择建议见 [sdk/README.md](./sdk/README.md)
 
 推荐用法：

@@ -1,0 +1,10 @@
+name: activation_manager_sdk
+description: Activation Manager License API SDK (Dart)
+version: 1.0.0
+environment:
+  sdk: ^3.0.0
+dependencies:
+  http: ^1.2.0
+  crypto: ^3.0.3
+dev_dependencies:
+  test: ^1.25.0

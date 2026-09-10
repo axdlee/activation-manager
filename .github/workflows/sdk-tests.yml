@@ -94,6 +94,96 @@ jobs:
           sleep 1
           ./test_client "http://127.0.0.1:18975"
 
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Typecheck standalone TS copy
+        run: |
+          cd sdk/typescript
+          npx -y typescript@5.6 tsc --noEmit --strict --target ES2020 --module ESNext --moduleResolution bundler --lib ES2020,DOM license-sdk.ts
+
+  swift:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Swift SDK
+        run: cd sdk/swift && swift build
+      - name: Run Swift SDK tests
+        run: cd sdk/swift && swift test
+
+  dart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.5'
+      - name: Run Dart SDK tests
+        run: |
+          cd sdk/dart
+          dart pub get
+          dart analyze
+          dart test
+
+  scala:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Run Scala SDK test
+        run: |
+          cd sdk/scala
+          curl -sL "https://github.com/VirtusLab/scala-cli/releases/latest/download/scala-cli-x86_64-pc-linux.gz" | gzip -d > scala-cli
+          chmod +x scala-cli
+          ./scala-cli run test_sdk.scala
+
+  perl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Perl SDK self-test
+        run: |
+          cd sdk/perl
+          perl -c ActivationManager.pm
+          perl test_sdk.pl
+
+  lua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4 liblua5.4-dev luarocks
+          sudo luarocks install dkjson
+          sudo luarocks install luasocket
+      - name: Run Lua SDK syntax + smoke test
+        run: |
+          cd sdk/lua
+          lua5.4 -e "package.path='./?.lua;'..package.path; local am=require('activation_manager'); print('lua sdk loaded OK')"
+
+  groovy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Run Groovy SDK syntax + compile check
+        run: |
+          cd sdk/groovy
+          curl -sL "https://archive.apache.org/dist/groovy/4.0.24/distribution/apache-groovy-binary-4.0.24.zip" -o groovy.zip
+          unzip -q groovy.zip
+          apache-groovy-4.0.24/bin/groovyc ActivationManagerClient.groovy
+
   csharp:
     runs-on: ubuntu-latest
     steps:
