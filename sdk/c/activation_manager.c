@@ -7,8 +7,11 @@
  * 验签用 OpenSSL HMAC，编译期定义 AM_HAVE_OPENSSL 启用。
  */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include "activation_manager.h"
 
+#include <strings.h> /* strncasecmp（_POSIX_C_SOURCE） */
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <string.h>

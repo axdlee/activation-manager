@@ -6,7 +6,7 @@ use std::thread;
 
 const SECRET: &str = "test-secret";
 
-fn start_mock() -> (String, thread::JoinHandle<()>) {
+fn start_mock() -> String {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     let handle = thread::spawn(move || {
@@ -42,12 +42,13 @@ fn start_mock() -> (String, thread::JoinHandle<()>) {
             let _ = stream.write_all(payload_str.as_bytes());
         }
     });
-    (format!("http://127.0.0.1:{}", port), handle)
+    std::mem::forget(handle); // 后台线程随测试进程退出
+    format!("http://127.0.0.1:{}", port)
 }
 
 #[test]
 fn activate_success_and_signature() {
-    let (base, handle) = start_mock();
+    let base = start_mock();
     let client = Client::new(ClientOptions {
         base_url: base.clone(),
         project_key: "demo".into(),
@@ -73,13 +74,11 @@ fn activate_success_and_signature() {
     });
     let err = bad_client.status("CODE-1", "m", None).unwrap_err();
     assert!(err.kind == ErrorKind::SignatureInvalid || err.kind == ErrorKind::SignatureMissing);
-
-    handle.abort();
 }
 
 #[test]
 fn consume_retry_rules() {
-    // 无 requestId 时 allow_retry=false：单次请求（用不可达地址验证只调一次——超时短）
+    // 无 requestId 时 allow_retry=false：单次请求（用不可达地址验证只调一次）
     let client = Client::new(ClientOptions {
         base_url: "http://127.0.0.1:1".into(), // 端口 1 不可达
         max_retries: 3,
