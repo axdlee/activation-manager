@@ -160,14 +160,14 @@ jobs:
       - name: Install Lua toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y lua5.4 liblua5.4-dev luarocks
-          sudo luarocks install dkjson
+          sudo apt-get install -y lua5.4 liblua5.4-dev luarocks libssl-dev
           sudo luarocks install luasocket
+          sudo luarocks install luaossl
+          curl -sL "https://raw.githubusercontent.com/LuaDist/dkjson/master/dkjson.lua" -o /tmp/dkjson.lua
+          sudo cp /tmp/dkjson.lua /usr/local/share/lua/5.4/dkjson.lua
       - name: Run Lua SDK syntax + smoke test
         run: |
           cd sdk/lua
-          export LUA_PATH="/usr/local/share/lua/5.4/?.lua;/usr/local/share/lua/5.4/?/init.lua;/usr/local/lib/lua/5.4/?.lua;$(luarocks path --lua-version 5.4 2>/dev/null | grep LUA_PATH | sed 's/^.*LUA_PATH="//;s/".*$//');./?.lua;;"
-          export LUA_CPATH="/usr/local/lib/lua/5.4/?.so;;"
           lua5.4 -e "local am=require('activation_manager'); print('lua sdk loaded OK')"
 
   groovy:

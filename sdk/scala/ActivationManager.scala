@@ -14,6 +14,7 @@
 //   val result = client.activate("A1B2C3D4E5F6G7H8", "machine-001")
 //   if (!result.success) println(s"激活失败: ${result.message}")
 
+import java.security.MessageDigest
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import java.net.URI

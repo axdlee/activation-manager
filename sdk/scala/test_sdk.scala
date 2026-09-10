@@ -11,7 +11,7 @@ import ActivationManagerClient.Options
 
   // 与 C/C++ SDK 相同的本地 mock（Python）
   val port = 18991
-  val server = scala.sys.process.Process(Seq("python3", "../c/test_server.py", port.toString)).run()
+  val server: scala.sys.process.Process = scala.sys.process.Process(Seq("python3", "../c/test_server.py", port.toString)).run()
   Thread.sleep(1000)
 
   val client = ActivationManagerClient(Options(
