@@ -91,7 +91,7 @@ import { ConsumptionWorkspace } from '@/components/consumption-workspace'
 import { DashboardDataTable } from '@/components/dashboard-data-table'
 import { DashboardFormField } from '@/components/dashboard-form-field'
 import { DashboardInlineActionButton } from '@/components/dashboard-inline-action-button'
-import { DashboardStatsOverviewPanel } from '@/components/dashboard-stats-overview-panel'
+import { DashboardStatsOverviewPanel } from '@/components/admin/stats-overview-panel'
 import { DashboardStatusBadge } from '@/components/dashboard-status-badge'
 import { DashboardSubmitField } from '@/components/dashboard-submit-field'
 import { ProjectWorkspace } from '@/components/project-workspace'
@@ -127,7 +127,6 @@ import {
   compactInputClassName,
   ghostButtonClassName,
   inputClassName,
-  mutedPanelClassName,
   paginationActiveButtonClassName,
   paginationButtonClassName,
   panelClassName,
@@ -1782,8 +1781,6 @@ export default function DashboardPage() {
               countUsageRateDescription={countUsageRateDescription}
               peakConsumptionProjectText={peakConsumptionProjectText}
               peakConsumptionProjectDescription={peakConsumptionProjectDescription}
-              panelClassName={panelClassName}
-              mutedPanelClassName={mutedPanelClassName}
             />
 
             <LicenseApiMetricsPanel panelClassName={panelClassName} />
@@ -2121,7 +2118,6 @@ export default function DashboardPage() {
             loading={loading}
             createForm={projectWorkspaceCreateForm}
             manageView={projectWorkspaceManageView}
-            panelClassName={panelClassName}
             workspaceSummaryCardClassName={workspaceSummaryCardClassName}
             compactInputClassName={compactInputClassName}
             primaryButtonClassName={primaryButtonClassName}
@@ -2346,7 +2342,6 @@ export default function DashboardPage() {
             riskCount={activationCodeStatusSummary.risk}
             filtersView={activationCodeFiltersView}
             resultsView={activationCodeResultsView}
-            panelClassName={panelClassName}
             workspaceSummaryCardClassName={workspaceSummaryCardClassName}
             compactInputClassName={compactInputClassName}
             primaryButtonClassName={primaryButtonClassName}
@@ -2368,7 +2363,6 @@ export default function DashboardPage() {
             loading={consumptionLoading}
             filtersView={consumptionFiltersView}
             logsView={consumptionLogsView}
-            panelClassName={panelClassName}
             workspaceSummaryCardClassName={workspaceSummaryCardClassName}
             compactInputClassName={compactInputClassName}
             primaryButtonClassName={primaryButtonClassName}
@@ -2389,7 +2383,6 @@ export default function DashboardPage() {
             projectCoverage={auditLogProjectCoverage}
             filtersView={auditLogFiltersView}
             logsView={auditLogLogsView}
-            panelClassName={panelClassName}
             workspaceSummaryCardClassName={workspaceSummaryCardClassName}
             compactInputClassName={compactInputClassName}
             primaryButtonClassName={primaryButtonClassName}
@@ -2413,7 +2406,6 @@ export default function DashboardPage() {
             confirmPassword={confirmPassword}
             loading={loading}
             inputClassName={inputClassName}
-            panelClassName={panelClassName}
             onSubmit={handleChangePassword}
             onCurrentPasswordChange={setCurrentPassword}
             onNewPasswordChange={setNewPassword}
@@ -2431,7 +2423,6 @@ export default function DashboardPage() {
             whitelistEntryCount={systemConfigWhitelistEntryCount}
             loading={loading}
             inputClassName={inputClassName}
-            panelClassName={panelClassName}
             onSubmit={handleUpdateSystemConfig}
             updateConfigValue={updateConfigValue}
             toggleSensitiveConfigVisibility={toggleSensitiveConfigVisibility}
