@@ -7,8 +7,11 @@
  * 验签用 OpenSSL HMAC，编译期定义 AM_HAVE_OPENSSL 启用。
  */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include "activation_manager.h"
 
+#include <strings.h> /* strncasecmp（_POSIX_C_SOURCE） */
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -296,11 +299,7 @@ static void am_header_get(const char *header_text, const char *name, char *out, 
 #ifdef AM_HAVE_OPENSSL
 static bool am_now_ms(long long *out) {
     struct timespec ts;
-#ifdef CLOCK_REALTIME
     if (clock_gettime(CLOCK_REALTIME, &ts) != 0) return false;
-#else
-    if (clock_gettime(CLOCK_REAL, &ts) != 0) return false;
-#endif
     *out = (long long)ts.tv_sec * 1000LL + ts.tv_nsec / 1000000LL;
     return true;
 }

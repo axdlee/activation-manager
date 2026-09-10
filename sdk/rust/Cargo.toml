@@ -1,0 +1,19 @@
+[package]
+name = "activation-manager-sdk"
+version = "1.0.0"
+edition = "2021"
+description = "Activation Manager License API SDK (Rust)"
+license = "MIT"
+
+[dependencies]
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false }
+serde_json = "1"
+hmac = "0.12"
+sha2 = "0.10"
+
+[dev-dependencies]
+hex = "0.4"
+
+[[test]]
+name = "integration"
+path = "tests/integration.rs"
