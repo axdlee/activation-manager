@@ -126,6 +126,13 @@ public sealed class ActivationManagerClient
         _http = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds) };
     }
 
+    /// <summary>测试/高级场景：注入自定义 HttpMessageHandler。</summary>
+    public ActivationManagerClient(ActivationManagerClientOptions options, HttpMessageHandler handler)
+    {
+        _options = options;
+        _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds) };
+    }
+
     /// <summary>激活：绑定设备；TIME 型首次激活起算有效期；COUNT 型不扣次数。</summary>
     public Task<ActivationResult> ActivateAsync(string code, string machineId, string? projectKey = null, CancellationToken ct = default) =>
         CallAsync("/api/license/activate", code, machineId, null, projectKey, allowRetry: true, ct);

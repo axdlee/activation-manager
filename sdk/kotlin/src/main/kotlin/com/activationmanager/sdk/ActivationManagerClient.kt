@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets
 import java.time.Duration
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import java.security.MessageDigest
 
 /**
  * Activation Manager License API SDK (Kotlin)

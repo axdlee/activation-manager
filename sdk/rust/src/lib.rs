@@ -11,6 +11,7 @@
 // 用法见 tests；cargo test 运行。
 
 use hmac::{Hmac, Mac};
+use std::result::Result as StdResult;
 use serde_json::{json, Value};
 use sha2::Sha256;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -65,7 +66,7 @@ impl std::error::Error for ClientError {}
 
 /// 服务端响应（双字段归一化取值：camelCase 优先，回退 snake_case）。
 #[derive(Debug, Clone)]
-pub struct Result {
+pub struct SdkResult {
     pub success: bool,
     pub message: Option<String>,
     pub license_mode: Option<String>,
@@ -96,8 +97,8 @@ fn bool_field(v: &Value, camel: &str, snake: &str) -> Option<bool> {
         .or_else(|| v.get(snake).and_then(|x| x.as_bool()))
 }
 
-impl Result {
-    fn parse(body: &str) -> Option<Self> {
+impl SdkResult {
+    fn parse(body: &str) -> Option<SdkResult> {
         let v: Value = serde_json::from_str(body).ok()?;
         Some(Self {
             success: v.get("success")?.as_bool()?,
@@ -153,12 +154,12 @@ impl Client {
     }
 
     /// 激活：绑定设备；TIME 型首次激活起算有效期；COUNT 型不扣次数。
-    pub fn activate(&self, code: &str, machine_id: &str, project_key: Option<&str>) -> Result<Result, ClientError> {
+    pub fn activate(&self, code: &str, machine_id: &str, project_key: Option<&str>) -> std::result::Result<SdkResult, ClientError> {
         self.call("/api/license/activate", code, machine_id, None, project_key, true)
     }
 
     /// 查询状态：剩余次数 / 过期时间 / 是否已绑定。
-    pub fn status(&self, code: &str, machine_id: &str, project_key: Option<&str>) -> Result<Result, ClientError> {
+    pub fn status(&self, code: &str, machine_id: &str, project_key: Option<&str>) -> std::result::Result<SdkResult, ClientError> {
         self.call("/api/license/status", code, machine_id, None, project_key, true)
     }
 
@@ -170,7 +171,7 @@ impl Client {
         machine_id: &str,
         request_id: Option<&str>,
         project_key: Option<&str>,
-    ) -> Result<Result, ClientError> {
+    ) -> std::result::Result<SdkResult, ClientError> {
         let allow_retry = request_id.map(|s| !s.is_empty()).unwrap_or(false);
         self.call("/api/license/consume", code, machine_id, request_id, project_key, allow_retry)
     }
@@ -183,7 +184,7 @@ impl Client {
         request_id: Option<&str>,
         project_key: Option<&str>,
         allow_retry: bool,
-    ) -> Result<Result, ClientError> {
+    ) -> std::result::Result<SdkResult, ClientError> {
         let pk = project_key
             .filter(|s| !s.is_empty())
             .unwrap_or(&self.opts.project_key);
@@ -218,7 +219,7 @@ impl Client {
         Err(last_error.unwrap())
     }
 
-    fn attempt_once(&self, path: &str, payload: &Value, attempt: u32) -> Result<Result, ClientError> {
+    fn attempt_once(&self, path: &str, payload: &Value, attempt: u32) -> std::result::Result<SdkResult, ClientError> {
         let url = format!("{}{}", self.opts.base_url.trim_end_matches('/'), path);
         let response = self
             .http
