@@ -37,6 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui-admin/dropdown-menu'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 import {
   LanguageSwitcher,
   useI18n,
@@ -136,8 +137,9 @@ export function SidebarNav({ tabs, activeTab, onTabChange, brandTitle, brandBadg
       {/* 用户区 */}
       <div className={cn('space-y-2 border-t p-3', collapsed && 'px-2')}>
         {!collapsed && (
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2 px-1">
             <LanguageSwitcher />
+            <ThemeSwitcher />
           </div>
         )}
         <div className={cn('flex items-center gap-2', collapsed && 'flex-col')}>
