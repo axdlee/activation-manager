@@ -22,7 +22,7 @@ export function DashboardActionPanel({
   action,
   children,
   background,
-  className = 'rounded-lg border border-ink-950/10 bg-ink-950/95 p-5 text-white shadow-card',
+  className = 'rounded-lg border border-ink-950/10 bg-popover p-5 text-white shadow-card',
   innerClassName = 'flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between',
   contentClassName,
   badgeClassName = 'inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-foreground/80',

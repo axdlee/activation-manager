@@ -76,7 +76,7 @@ export function DashboardModal({
         type="button"
         aria-label="关闭弹框"
         onClick={onClose}
-        className="absolute inset-0 bg-ink-950/30-sm"
+        className="absolute inset-0 bg-zinc-950/30-sm"
       />
 
       <div className={`relative z-10 w-full ${sizeClassNameMap[size]} ${panelClassName}`}>

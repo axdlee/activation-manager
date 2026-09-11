@@ -16,7 +16,7 @@ test('DashboardCodePanel 会渲染默认代码展示面板结构', () => {
 
   assert.match(
     html,
-    /rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card/,
+    /rounded-lg border border-border bg-card p-5 shadow-card/,
   )
   assert.match(
     html,
@@ -25,7 +25,7 @@ test('DashboardCodePanel 会渲染默认代码展示面板结构', () => {
   assert.match(html, /header-slot/)
   assert.match(
     html,
-    /overflow-x-auto rounded-md border border-surface-300 bg-ink-950 px-4 py-4 font-mono text-xs leading-6 text-surface-100 shadow-card/,
+    /overflow-x-auto rounded-md border border-input bg-zinc-950 px-4 py-4 font-mono text-xs leading-6 text-zinc-100 shadow-card/,
   )
   assert.match(html, /curl -X POST https:\/\/example\.com\/api\/license\/activate/)
 })

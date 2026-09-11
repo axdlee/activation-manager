@@ -33,7 +33,7 @@ export function WorkspaceTabNav<T extends string>({
             className={`rounded-lg border p-4 text-left transition ${
               isActive
                 ? 'border-primary/25 bg-primary/10 shadow-card'
-                : 'border-border bg-card hover:-translate-y-0.5 hover:border-ink-300 hover:bg-muted/50'
+                : 'border-border bg-card hover:-translate-y-0.5 hover:border-border hover:bg-muted/50'
             }`}
           >
             <div className="flex items-start gap-3">

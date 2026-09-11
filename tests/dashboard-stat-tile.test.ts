@@ -17,10 +17,10 @@ test('DashboardStatTile 会渲染默认小型指标卡', () => {
 
   assert.match(
     html,
-    /rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 shadow-card/,
+    /rounded-lg border border-border bg-card px-4 py-4 shadow-card/,
   )
-  assert.match(html, /text-xs uppercase tracking-\[0\.18em\] text-ink-500[^>]*>自动登出</)
-  assert.match(html, /text-2xl font-semibold tracking-tight text-ink-50[^>]*>3 秒</)
+  assert.match(html, /text-xs uppercase tracking-\[0\.18em\] text-muted-foreground[^>]*>自动登出</)
+  assert.match(html, /text-2xl font-semibold tracking-tight text-foreground[^>]*>3 秒</)
   assert.match(html, /修改成功后的安全退出窗口/)
 })
 
