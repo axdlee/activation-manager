@@ -33,38 +33,38 @@ export function DashboardProjectManagementRow({
   const isDefaultProject = project.projectKey === 'default'
 
   return (
-    <tr className="transition hover:bg-surface-50">
-      <td className="px-6 py-4 text-sm text-ink-50">
+    <tr className="transition hover:bg-muted/50">
+      <td className="px-6 py-4 text-sm text-foreground">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-ink-50">{project.name}</span>
+            <span className="font-semibold text-foreground">{project.name}</span>
             {isDefaultProject ? (
-              <span className="inline-flex items-center rounded-full border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-[11px] font-medium text-brand-400">
+              <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
                 默认项目
               </span>
             ) : null}
           </div>
-          <p className="text-sm leading-6 text-ink-500">
+          <p className="text-sm leading-6 text-muted-foreground">
             {project.description?.trim() || '未填写项目描述'}
           </p>
         </div>
       </td>
 
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
         <div className="space-y-2">
-          <div className="font-mono text-sm text-ink-200">{project.projectKey}</div>
-          <div className="text-xs leading-5 text-ink-500">
+          <div className="font-mono text-sm text-foreground/90">{project.projectKey}</div>
+          <div className="text-xs leading-5 text-muted-foreground">
             {isDefaultProject ? '默认项目不可停用，也不可删除。' : '用于 API 接入、发码隔离与筛选。'}
           </div>
         </div>
       </td>
 
-      <td className="px-6 py-4 text-sm text-ink-500">
+      <td className="px-6 py-4 text-sm text-muted-foreground">
         <div className="max-w-sm space-y-2">
           {policySummary.map((item) => (
             <div
               key={item}
-              className="rounded-md border border-surface-200 bg-surface-50 px-4 py-3 text-sm leading-6 text-ink-300"
+              className="rounded-md border border-border bg-muted/50 px-4 py-3 text-sm leading-6 text-foreground/80"
             >
               {item}
             </div>
@@ -72,7 +72,7 @@ export function DashboardProjectManagementRow({
         </div>
       </td>
 
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
         {project.isEnabled ? (
           <DashboardStatusBadge label="启用中" tone="success" />
         ) : (

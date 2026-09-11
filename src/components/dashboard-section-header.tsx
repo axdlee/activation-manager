@@ -16,8 +16,8 @@ export function DashboardSectionHeader({
   return (
     <div className={className}>
       <div>
-        <h3 className="text-xl font-semibold text-ink-50">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-ink-500">{description}</p>
+        <h3 className="text-xl font-semibold text-foreground">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
       {trailing ? <div>{trailing}</div> : null}
     </div>

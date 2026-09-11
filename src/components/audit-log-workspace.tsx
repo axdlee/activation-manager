@@ -101,19 +101,19 @@ type AuditLogWorkspaceProps<TLog extends AuditLogWorkspaceLog = AuditLogWorkspac
 }
 
 const defaultPanelClassName =
-  'rounded-lg border border-surface-200/70 bg-surface-100 shadow-card'
+  'rounded-lg border border-border/70 bg-card shadow-card'
 const defaultWorkspaceSummaryCardClassName =
-  'rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 shadow-sm'
+  'rounded-lg border border-border bg-card px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
-  'w-full rounded-md border border-surface-200 bg-surface-100 px-4 py-2.5 text-sm text-ink-50 shadow-sm outline-none transition placeholder:text-ink-500 focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/10 disabled:bg-surface-100 disabled:text-ink-500'
+  'w-full rounded-md border border-border bg-card px-4 py-2.5 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/50 focus:ring-4 focus:ring-primary/20 disabled:bg-card disabled:text-muted-foreground'
 const defaultPrimaryButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-ink-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultSuccessButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultGhostButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-4 py-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md border border-border bg-card px-4 py-3 text-sm font-medium text-foreground/80 shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-card disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationButtonClassName =
-  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground/80 shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
   'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 
@@ -329,8 +329,8 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
             </DashboardFilterFieldCard>
           </div>
 
-          <div className="mt-5 rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card">
-            <div className="text-xs uppercase tracking-[0.18em] text-ink-500">{t('auditws.filters.activeConditions', '当前生效条件')}</div>
+          <div className="mt-5 rounded-lg border border-border bg-card p-5 shadow-card">
+            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t('auditws.filters.activeConditions', '当前生效条件')}</div>
             <DashboardTokenList
               tokens={filtersView.filterTokens}
               emptyText={t('auditws.filters.noFilters', '当前未设置任何筛选条件')}
@@ -376,7 +376,7 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
               />
             }
             trailing={
-              <div className="text-sm text-ink-500">
+              <div className="text-sm text-muted-foreground">
                 {t('auditws.logs.showingRange', '当前展示第 {start} - {end} 条，共 {total} 条记录')
                   .replace('{start}', String(logsView.startIndex))
                   .replace('{end}', String(logsView.endIndex))
@@ -403,29 +403,29 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
                 tableClassName="w-full min-w-[1280px] divide-y divide-surface-200"
               >
                 {logsView.logs.map((log) => (
-                  <tr key={log.id} className="transition hover:bg-surface-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink-200">
+                  <tr key={log.id} className="transition hover:bg-muted/50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground/90">
                       {log.operationTypeLabel}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {log.adminUsername}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {log.project ? `${log.project.name} (${log.project.projectKey})` : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-ink-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-foreground">
                       {log.activationCode?.code || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {log.targetLabel || '-'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-ink-500">
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
                       {log.reason || '-'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-ink-500">
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
                       {log.detailSummary || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {new Date(log.createdAt).toLocaleString()}
                     </td>
                   </tr>

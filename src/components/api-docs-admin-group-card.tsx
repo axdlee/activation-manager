@@ -13,10 +13,10 @@ type ApiDocsAdminGroupCardProps = {
 }
 
 const defaultClassName =
-  'rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-card'
+  'rounded-lg border border-border bg-card p-5 shadow-card'
 const defaultEndpointListClassName = 'mt-4 space-y-3'
 const defaultEndpointClassName =
-  'rounded-lg border border-surface-200 bg-surface-50 px-4 py-4'
+  'rounded-lg border border-border bg-muted/50 px-4 py-4'
 
 export function ApiDocsAdminGroupCard({
   title,
@@ -29,8 +29,8 @@ export function ApiDocsAdminGroupCard({
 }: ApiDocsAdminGroupCardProps) {
   return (
     <div className={className}>
-      <h4 className="text-lg font-semibold text-ink-50">{title}</h4>
-      <p className="mt-2 text-sm leading-6 text-ink-500">{description}</p>
+      <h4 className="text-lg font-semibold text-foreground">{title}</h4>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
       <div className={endpointListClassName}>
         {endpoints.map((endpoint) => (
           <div
@@ -45,9 +45,9 @@ export function ApiDocsAdminGroupCard({
               >
                 {endpoint.method}
               </span>
-              <span className="text-sm font-mono text-ink-50">{endpoint.path}</span>
+              <span className="text-sm font-mono text-foreground">{endpoint.path}</span>
             </div>
-            <p className="mt-3 text-sm leading-6 text-ink-500">{endpoint.description}</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">{endpoint.description}</p>
           </div>
         ))}
       </div>

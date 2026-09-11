@@ -72,7 +72,7 @@ const statusToneMap: Record<string, string> = {
   pending: 'text-amber-400',
   paid: 'text-blue-400',
   fulfilled: 'text-emerald-400',
-  cancelled: 'text-ink-500',
+  cancelled: 'text-muted-foreground',
 }
 
 export function ShopAdminPanel() {
@@ -481,8 +481,8 @@ export function ShopAdminPanel() {
             onClick={() => setTab(key)}
             className={`rounded-md px-4 py-2 text-sm font-medium transition ${
               tab === key
-                ? 'bg-brand-600 text-white shadow-glow'
-                : 'border border-surface-200 bg-surface-100 text-ink-300 hover:text-ink-50'
+                ? 'bg-primary text-white shadow-glow'
+                : 'border border-border bg-card text-foreground/80 hover:text-foreground'
             }`}
           >
             {label}
@@ -505,8 +505,8 @@ export function ShopAdminPanel() {
       {tab === 'products' ? (
         <div className="space-y-5">
           <div className={`${panelClassName} p-6`}>
-            <h3 className="text-lg font-semibold text-ink-50">{t('shopadmin.newProduct', '新建商品')}</h3>
-            <p className="mt-1 text-sm leading-6 text-ink-500">
+            <h3 className="text-lg font-semibold text-foreground">{t('shopadmin.newProduct', '新建商品')}</h3>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               {t('shopadmin.newProductDesc', '商品绑定项目 + 授权套餐，买家下单支付后自动发放卡密。')}
             </p>
             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -577,7 +577,7 @@ export function ShopAdminPanel() {
               <button
                 type="button"
                 onClick={() => void handleCreateProduct()}
-                className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 px-4 py-2.5 text-sm font-medium text-white shadow-glow transition hover:from-brand-400 hover:via-brand-500 hover:to-brand-600"
+                className="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-primary via-primary to-primary px-4 py-2.5 text-sm font-medium text-white shadow-glow transition hover:from-primary/90 hover:via-primary/90 hover:to-primary/90"
               >
                 {t('shopadmin.createProduct', '创建商品')}
               </button>
@@ -585,11 +585,11 @@ export function ShopAdminPanel() {
           </div>
 
           <div className={`${panelClassName} p-6`}>
-            <h3 className="text-lg font-semibold text-ink-50">{t('shopadmin.productsOnSale', '在售商品')}</h3>
+            <h3 className="text-lg font-semibold text-foreground">{t('shopadmin.productsOnSale', '在售商品')}</h3>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-surface-200 text-xs uppercase tracking-[0.18em] text-ink-500">
+                  <tr className="border-b border-border text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     <th className="py-2 pr-4">{t('shopadmin.colName', '名称')}</th>
                     <th className="py-2 pr-4">{t('shopadmin.colProject', '项目')}</th>
                     <th className="py-2 pr-4">{t('shopadmin.colType', '类型')}</th>
@@ -602,30 +602,30 @@ export function ShopAdminPanel() {
                 <tbody className="divide-y divide-surface-200">
                   {products.map((product) => (
                     <tr key={product.id}>
-                      <td className="py-3 pr-4 font-medium text-ink-50">{product.name}</td>
-                      <td className="py-3 pr-4 text-ink-400">{product.projectKey}</td>
-                      <td className="py-3 pr-4 text-ink-400">
+                      <td className="py-3 pr-4 font-medium text-foreground">{product.name}</td>
+                      <td className="py-3 pr-4 text-muted-foreground">{product.projectKey}</td>
+                      <td className="py-3 pr-4 text-muted-foreground">
                         {product.licenseMode === 'TIME' ? t('shopadmin.licenseModeTime', '时间型') : t('shopadmin.licenseModeCount', '次数型')}
                         <span
                           className={`ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-medium ${
                             product.stockMode === 'PREDEFINED'
-                              ? 'bg-brand-500/10 text-brand-400'
-                              : 'bg-surface-100 text-ink-500'
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-card text-muted-foreground'
                           }`}
                         >
                           {product.stockMode === 'PREDEFINED' ? t('shopadmin.predefinedBadge', '预存码') : t('shopadmin.dynamicBadge', '动态')}
                         </span>
                       </td>
-                      <td className="py-3 pr-4 text-ink-400">
+                      <td className="py-3 pr-4 text-muted-foreground">
                         {product.licenseMode === 'TIME'
                           ? t('shopadmin.specTime', '{{cardType}}（{{days}} 天）').replace('{{cardType}}', product.cardType ?? '-').replace('{{days}}', String(product.validDays ?? '-'))
                           : t('shopadmin.specCount', '{{count}} 次').replace('{{count}}', String(product.totalCount ?? '-'))}
                       </td>
-                      <td className="py-3 pr-4 font-semibold text-brand-400">
+                      <td className="py-3 pr-4 font-semibold text-primary">
                         {formatPrice(product.priceInCents)}
                       </td>
                       <td className="py-3 pr-4">
-                        <span className={product.isEnabled ? 'text-emerald-400' : 'text-ink-500'}>
+                        <span className={product.isEnabled ? 'text-emerald-400' : 'text-muted-foreground'}>
                           {product.isEnabled ? t('shopadmin.onSale', '在售') : t('shopadmin.offSale', '已下架')}
                         </span>
                       </td>
@@ -634,7 +634,7 @@ export function ShopAdminPanel() {
                           <button
                             type="button"
                             onClick={() => void handleToggleProduct(product)}
-                            className="rounded-md border border-surface-200 bg-surface-100 px-2.5 py-1 text-xs text-ink-300 hover:text-ink-50"
+                            className="rounded-md border border-border bg-card px-2.5 py-1 text-xs text-foreground/80 hover:text-foreground"
                           >
                             {product.isEnabled ? t('shopadmin.takeOffSale', '下架') : t('shopadmin.putOnSale', '上架')}
                           </button>
@@ -642,7 +642,7 @@ export function ShopAdminPanel() {
                             <button
                               type="button"
                               onClick={() => void handleRestockProduct(product)}
-                              className="rounded-md border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs text-brand-400"
+                              className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs text-primary"
                             >
                               {t('shopadmin.restock', '补货')}
                             </button>
@@ -650,7 +650,7 @@ export function ShopAdminPanel() {
                           <button
                             type="button"
                             onClick={() => handleOpenEditProduct(product)}
-                            className="rounded-md border border-surface-200 bg-surface-100 px-2.5 py-1 text-xs text-ink-300 hover:text-ink-50"
+                            className="rounded-md border border-border bg-card px-2.5 py-1 text-xs text-foreground/80 hover:text-foreground"
                           >
                             {t('shopadmin.edit', '编辑')}
                           </button>
@@ -667,7 +667,7 @@ export function ShopAdminPanel() {
                   ))}
                   {products.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-ink-500">
+                      <td colSpan={7} className="py-8 text-center text-muted-foreground">
                         {t('shopadmin.noProducts', '暂无商品，请先创建')}
                       </td>
                     </tr>
@@ -681,8 +681,8 @@ export function ShopAdminPanel() {
 
       {tab === 'orders' ? (
         <div className={`${panelClassName} p-6`}>
-          <h3 className="text-lg font-semibold text-ink-50">{t('shopadmin.tabOrders', '订单管理')}</h3>
-          <p className="mt-1 text-sm leading-6 text-ink-500">
+          <h3 className="text-lg font-semibold text-foreground">{t('shopadmin.tabOrders', '订单管理')}</h3>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
             {t('shopadmin.ordersDesc', 'manual 渠道需人工核对收款后点击确认，系统自动发放卡密。')}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
@@ -720,7 +720,7 @@ export function ShopAdminPanel() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[880px] text-left text-sm">
               <thead>
-                <tr className="border-b border-surface-200 text-xs uppercase tracking-[0.18em] text-ink-500">
+                <tr className="border-b border-border text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   <th className="py-2 pr-4">{t('shopadmin.colOrderNo', '订单号')}</th>
                   <th className="py-2 pr-4">{t('shopadmin.colProduct', '商品')}</th>
                   <th className="py-2 pr-4">{t('shopadmin.colAmount', '金额')}</th>
@@ -734,16 +734,16 @@ export function ShopAdminPanel() {
               <tbody className="divide-y divide-surface-200">
                 {orders.map((order) => (
                   <tr key={order.id}>
-                    <td className="py-3 pr-4 font-mono text-xs text-ink-300">{order.orderNo}</td>
-                    <td className="py-3 pr-4 text-ink-50">
+                    <td className="py-3 pr-4 font-mono text-xs text-foreground/80">{order.orderNo}</td>
+                    <td className="py-3 pr-4 text-foreground">
                       {order.productName}
                       {(order.quantity ?? 1) > 1 ? (
-                        <span className="ml-1.5 rounded bg-surface-200 px-1.5 py-0.5 text-xs text-ink-300">
+                        <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-xs text-foreground/80">
                           ×{order.quantity}
                         </span>
                       ) : null}
                     </td>
-                    <td className="py-3 pr-4 font-semibold text-ink-50">
+                    <td className="py-3 pr-4 font-semibold text-foreground">
                       {formatPrice(order.amountInCents)}
                     </td>
                     <td className={`py-3 pr-4 font-medium ${statusToneMap[order.status] ?? ''}`}>
@@ -751,13 +751,13 @@ export function ShopAdminPanel() {
                         ? t(statusLabelMap[order.status][0], statusLabelMap[order.status][1])
                         : order.status}
                     </td>
-                    <td className="py-3 pr-4 text-xs text-ink-400">
+                    <td className="py-3 pr-4 text-xs text-muted-foreground">
                       {[order.contactEmail, order.contactPhone, order.contactWechat]
                         .filter(Boolean)
                         .join(' / ') || '-'}
                     </td>
-                    <td className="py-3 pr-4 text-xs text-ink-400">{order.paymentNote ?? '-'}</td>
-                    <td className="py-3 pr-4 text-xs text-ink-400">
+                    <td className="py-3 pr-4 text-xs text-muted-foreground">{order.paymentNote ?? '-'}</td>
+                    <td className="py-3 pr-4 text-xs text-muted-foreground">
                       {new Date(order.createdAt).toLocaleString()}
                     </td>
                     <td className="py-3 pr-4">
@@ -788,7 +788,7 @@ export function ShopAdminPanel() {
                 ))}
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-ink-500">
+                    <td colSpan={8} className="py-8 text-center text-muted-foreground">
                       {t('shopadmin.noOrders', '暂无订单')}
                     </td>
                   </tr>
@@ -801,18 +801,18 @@ export function ShopAdminPanel() {
 
       {tab === 'channels' ? (
         <div className={`${panelClassName} p-6`}>
-          <h3 className="text-lg font-semibold text-ink-50">{t('shopadmin.tabChannels', '支付渠道')}</h3>
-          <p className="mt-1 text-sm leading-6 text-ink-500">
+          <h3 className="text-lg font-semibold text-foreground">{t('shopadmin.tabChannels', '支付渠道')}</h3>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
             {t('shopadmin.channelsDesc', '启用渠道后，买家可在下单页选择该支付方式。')}
           </p>
           <div className="mt-4 space-y-3">
             {configs.map((config) => (
               <div
                 key={config.provider}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3"
               >
                 <div>
-                  <div className="text-sm font-medium text-ink-50">
+                  <div className="text-sm font-medium text-foreground">
                     {config.provider === 'manual'
                       ? t('shop.channel.manual', '手动收款确认')
                       : config.provider === 'webhook'
@@ -825,7 +825,7 @@ export function ShopAdminPanel() {
                               ? t('shop.channel.alipay', '支付宝（官方）')
                               : config.provider}
                   </div>
-                  <div className="mt-0.5 text-xs text-ink-500">
+                  <div className="mt-0.5 text-xs text-muted-foreground">
                     {config.provider === 'manual'
                       ? t('shopadmin.channelDescManual', '展示收款信息，管理员人工确认后发卡')
                       : config.provider === 'webhook'
@@ -850,7 +850,7 @@ export function ShopAdminPanel() {
                   className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
                     config.isEnabled
                       ? 'bg-emerald-500/15 text-emerald-400'
-                      : 'border border-surface-200 bg-surface-100 text-ink-300'
+                      : 'border border-border bg-card text-foreground/80'
                   }`}
                 >
                   {config.isEnabled ? t('shopadmin.channelEnabled', '已启用') : t('shopadmin.channelDisabled', '未启用')}
@@ -858,9 +858,9 @@ export function ShopAdminPanel() {
               </div>
             ))}
             {webhookSecretLoaded ? (
-              <div className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                <div className="text-sm font-medium text-ink-50">{t('shopadmin.webhookSecretTitle', '通用回调密钥（webhook）')}</div>
-                <p className="mt-0.5 text-xs leading-5 text-ink-500">
+              <div className="rounded-lg border border-border bg-muted/50 px-4 py-4">
+                <div className="text-sm font-medium text-foreground">{t('shopadmin.webhookSecretTitle', '通用回调密钥（webhook）')}</div>
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
                   {t('shopadmin.webhookSecretDesc', '配置后，回调请求必须携带 x-webhook-secret 请求头且值匹配，否则拒绝（防止未授权调用触发免费发卡）。留空则不校验。')}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -873,7 +873,7 @@ export function ShopAdminPanel() {
                   <button
                     type="button"
                     onClick={() => void handleSaveWebhookSecret()}
-                    className="rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-brand-500/20"
+                    className="rounded-md border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
                   >
                     {t('shopadmin.saveSecret', '保存密钥')}
                   </button>
@@ -881,9 +881,9 @@ export function ShopAdminPanel() {
               </div>
             ) : null}
             {configs.find((c) => c.provider === 'yipay') ? (
-              <div className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                <div className="text-sm font-medium text-ink-50">{t('shopadmin.yipayConfigTitle', '易支付配置')}</div>
-                <p className="mt-0.5 text-xs leading-5 text-ink-500">
+              <div className="rounded-lg border border-border bg-muted/50 px-4 py-4">
+                <div className="text-sm font-medium text-foreground">{t('shopadmin.yipayConfigTitle', '易支付配置')}</div>
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
                   {t('shopadmin.yipayConfigDesc', '配置易支付网关地址、商户PID和密钥，回调地址为 /api/shop/payment/yipay')}
                 </p>
                 <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -910,7 +910,7 @@ export function ShopAdminPanel() {
                   <button
                     type="button"
                     onClick={() => void handleSaveYipayConfig()}
-                    className="rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-brand-500/20"
+                    className="rounded-md border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
                   >
                     {t('shopadmin.saveConfig', '保存配置')}
                   </button>
@@ -918,9 +918,9 @@ export function ShopAdminPanel() {
               </div>
             ) : null}
             {configs.find((c) => c.provider === 'wechat') ? (
-              <div className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                <div className="text-sm font-medium text-ink-50">{t('shopadmin.wechatConfigTitle', '微信支付配置')}</div>
-                <p className="mt-0.5 text-xs leading-5 text-ink-500">
+              <div className="rounded-lg border border-border bg-muted/50 px-4 py-4">
+                <div className="text-sm font-medium text-foreground">{t('shopadmin.wechatConfigTitle', '微信支付配置')}</div>
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
                   {t('shopadmin.wechatConfigDesc', '需微信商户号，回调地址为 /api/shop/payment/wechat')}
                 </p>
                 <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -947,7 +947,7 @@ export function ShopAdminPanel() {
                   <button
                     type="button"
                     onClick={() => void handleSaveWechatConfig()}
-                    className="rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-brand-500/20"
+                    className="rounded-md border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
                   >
                     {t('shopadmin.saveConfig', '保存配置')}
                   </button>
@@ -955,9 +955,9 @@ export function ShopAdminPanel() {
               </div>
             ) : null}
             {configs.find((c) => c.provider === 'alipay') ? (
-              <div className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-4">
-                <div className="text-sm font-medium text-ink-50">{t('shopadmin.alipayConfigTitle', '支付宝配置')}</div>
-                <p className="mt-0.5 text-xs leading-5 text-ink-500">
+              <div className="rounded-lg border border-border bg-muted/50 px-4 py-4">
+                <div className="text-sm font-medium text-foreground">{t('shopadmin.alipayConfigTitle', '支付宝配置')}</div>
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
                   {t('shopadmin.alipayConfigDesc', '需支付宝商户资质，回调地址为 /api/shop/payment/alipay')}
                 </p>
                 <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -978,7 +978,7 @@ export function ShopAdminPanel() {
                   <button
                     type="button"
                     onClick={() => void handleSaveAlipayConfig()}
-                    className="rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-400 hover:bg-brand-500/20"
+                    className="rounded-md border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
                   >
                     {t('shopadmin.saveConfig', '保存配置')}
                   </button>
@@ -986,7 +986,7 @@ export function ShopAdminPanel() {
               </div>
             ) : null}
             {configs.length === 0 ? (
-              <p className="py-6 text-center text-sm text-ink-500">{t('shopadmin.noChannelConfigs', '暂无支付渠道配置')}</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">{t('shopadmin.noChannelConfigs', '暂无支付渠道配置')}</p>
             ) : null}
           </div>
         </div>
@@ -1004,7 +1004,7 @@ export function ShopAdminPanel() {
             <button
               type="button"
               onClick={() => setEditingProduct(null)}
-              className="rounded-md border border-surface-200 bg-surface-100 px-4 py-2 text-sm text-ink-300 hover:text-ink-50"
+              className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground/80 hover:text-foreground"
             >
               {t('common.cancel', '取消')}
             </button>
@@ -1012,7 +1012,7 @@ export function ShopAdminPanel() {
               type="button"
               onClick={() => void handleSaveEditProduct()}
               disabled={editSaving}
-              className="rounded-md bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 px-4 py-2 text-sm font-medium text-white shadow-glow transition hover:from-brand-400 hover:via-brand-500 hover:to-brand-600 disabled:opacity-50"
+              className="rounded-md bg-gradient-to-r from-primary via-primary to-primary px-4 py-2 text-sm font-medium text-white shadow-glow transition hover:from-primary/90 hover:via-primary/90 hover:to-primary/90 disabled:opacity-50"
             >
               {editSaving ? t('shopadmin.saving', '保存中…') : t('shopadmin.saveChanges', '保存修改')}
             </button>
@@ -1021,7 +1021,7 @@ export function ShopAdminPanel() {
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink-200">{t('shopadmin.productNameLabel', '商品名称')}</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground/90">{t('shopadmin.productNameLabel', '商品名称')}</label>
             <AppInput
               value={editForm.name}
               onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
@@ -1029,7 +1029,7 @@ export function ShopAdminPanel() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink-200">{t('shopadmin.productDescLabel', '商品描述')}</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground/90">{t('shopadmin.productDescLabel', '商品描述')}</label>
             <AppInput
               value={editForm.description}
               onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
@@ -1037,7 +1037,7 @@ export function ShopAdminPanel() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink-200">{t('shopadmin.priceLabel', '价格（元）')}</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground/90">{t('shopadmin.priceLabel', '价格（元）')}</label>
             <AppInput
               type="number"
               step="0.01"
@@ -1046,12 +1046,12 @@ export function ShopAdminPanel() {
               placeholder={t('shopadmin.pricePlaceholder', '价格（元）')}
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-ink-300">
+          <label className="flex items-center gap-2 text-sm text-foreground/80">
             <input
               type="checkbox"
               checked={editForm.isEnabled}
               onChange={(e) => setEditForm({ ...editForm, isEnabled: e.target.checked })}
-              className="h-4 w-4 rounded border-surface-300"
+              className="h-4 w-4 rounded border-input"
             />
             {t('shopadmin.listForSale', '上架销售')}
           </label>

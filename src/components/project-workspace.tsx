@@ -117,24 +117,24 @@ type ProjectWorkspaceProps = {
 }
 
 const defaultPanelClassName =
-  'rounded-lg border border-surface-200/70 bg-surface-100 shadow-card'
+  'rounded-lg border border-border/70 bg-card shadow-card'
 const defaultWorkspaceSummaryCardClassName =
-  'rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 shadow-sm'
+  'rounded-lg border border-border bg-card px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
-  'w-full rounded-md border border-surface-200 bg-surface-100 px-4 py-2.5 text-sm text-ink-50 shadow-sm outline-none transition placeholder:text-ink-500 focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/10 disabled:bg-surface-100 disabled:text-ink-500'
+  'w-full rounded-md border border-border bg-card px-4 py-2.5 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/50 focus:ring-4 focus:ring-primary/20 disabled:bg-card disabled:text-muted-foreground'
 const defaultPrimaryButtonClassName =
   'inline-flex items-center justify-center rounded-md bg-ink-900 px-4 py-3 text-sm font-semibold text-white shadow-card transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultGhostButtonClassName =
-  'inline-flex items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-4 py-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-100 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center rounded-md border border-border bg-card px-4 py-3 text-sm font-medium text-foreground/80 shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-card disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationButtonClassName =
-  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-surface-200 bg-surface-100 px-3 text-sm font-medium text-ink-300 shadow-sm transition hover:-translate-y-0.5 hover:border-surface-300 hover:bg-surface-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground/80 shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50'
 const defaultPaginationActiveButtonClassName =
   'border-sky-500 bg-brand-500 text-white shadow-card hover:border-sky-500 hover:bg-brand-500'
 const modalFooterClassName = 'flex flex-col-reverse gap-3 sm:flex-row sm:justify-end'
-const subtleModalSectionClassName = 'rounded-lg border border-surface-200 bg-surface-50 p-5'
-const modalSectionTitleClassName = 'text-base font-semibold text-ink-50'
-const modalSectionDescriptionClassName = 'mt-2 text-sm leading-6 text-ink-500'
-const modalFormFieldClassName = 'rounded-lg border border-surface-200 bg-surface-100 p-5 shadow-sm'
+const subtleModalSectionClassName = 'rounded-lg border border-border bg-muted/50 p-5'
+const modalSectionTitleClassName = 'text-base font-semibold text-foreground'
+const modalSectionDescriptionClassName = 'mt-2 text-sm leading-6 text-muted-foreground'
+const modalFormFieldClassName = 'rounded-lg border border-border bg-card p-5 shadow-sm'
 
 function resolveProjectRebindPolicyValue(project: ProjectManagementListItem) {
   if (project.allowAutoRebind === true) {
@@ -377,7 +377,7 @@ export function ProjectWorkspace({
               .replace('{matched}', String(manageView.page.totalItems))
               .replace('{total}', String(manageView.totalProjects))}
             trailing={
-              <div className="rounded-full border border-surface-200 bg-surface-50 px-3 py-1.5 text-xs font-medium text-ink-500">
+              <div className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                 {t('projws.defaultProjectBadge', '默认项目名称固定，且不可停用')}
               </div>
             }
@@ -481,7 +481,7 @@ export function ProjectWorkspace({
             activeButtonClassName={paginationActiveButtonClassName}
           />
         ) : (
-          <div className="mt-6 text-sm text-ink-300">{paginationSummary}</div>
+          <div className="mt-6 text-sm text-foreground/80">{paginationSummary}</div>
         )}
       </div>
 
@@ -534,7 +534,7 @@ export function ProjectWorkspace({
               description={
                 <>
                   {t(PROJECT_KEY_RULE_HINT_KEY)} {t('projws.projectKeyExamplePrefix', '例如')}{' '}
-                  <span className="font-medium text-ink-200">browser-plugin</span>
+                  <span className="font-medium text-foreground/90">browser-plugin</span>
                   {t('projws.projectKeyExampleSuffix', '。')}
                 </>
               }
@@ -640,7 +640,7 @@ export function ProjectWorkspace({
             </DashboardFormField>
           </section>
 
-          <div className="rounded-lg border border-dashed border-surface-200 bg-surface-50/70 px-4 py-4 text-sm leading-6 text-ink-500">
+          <div className="rounded-lg border border-dashed border-border bg-muted/50/70 px-4 py-4 text-sm leading-6 text-muted-foreground">
             {t('projws.createFooterNote', '创建后会立即出现在项目列表、发码页、统计页和筛选器中；建议先确认 projectKey 命名稳定后再保存。')}
           </div>
         </form>
@@ -690,7 +690,7 @@ export function ProjectWorkspace({
         {editingBasicsProject ? (
           <div className="space-y-4">
             {editingBasicsProject.projectKey === 'default' ? (
-              <div className="rounded-lg border border-surface-200 bg-brand-500/80 px-5 py-4 text-sm leading-6 text-brand-400">
+              <div className="rounded-lg border border-border bg-brand-500/80 px-5 py-4 text-sm leading-6 text-primary">
                 {t('projws.defaultProjectBasicsNote', '默认项目的名称固定，建议仅在这里维护描述说明，方便后台识别其兼容用途。')}
               </div>
             ) : null}
@@ -801,7 +801,7 @@ export function ProjectWorkspace({
                 {buildProjectPolicySummary(editingRebindProject).map((item) => (
                   <div
                     key={item}
-                    className="rounded-md border border-surface-200 bg-surface-100 px-4 py-3 text-sm leading-6 text-ink-300"
+                    className="rounded-md border border-border bg-card px-4 py-3 text-sm leading-6 text-foreground/80"
                   >
                     {item}
                   </div>

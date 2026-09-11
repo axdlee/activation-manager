@@ -16,7 +16,7 @@ test('DashboardNumberedList 会渲染默认编号卡片列表', () => {
   assert.match(html, /space-y-3/)
   assert.match(
     html,
-    /flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 text-sm leading-7 text-ink-300 shadow-card/,
+    /flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-4 text-sm leading-7 text-foreground\/80 shadow-card/,
   )
   assert.match(
     html,

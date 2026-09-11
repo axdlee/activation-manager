@@ -6,10 +6,10 @@ import { ApiDocsPageHero, ApiDocsWorkspace } from '@/components/api-docs-workspa
 import { publicContainerClassName } from '@/lib/public-ui'
 
 export const apiDocsPageClassName =
-  'min-h-screen bg-surface-50 px-4 py-6 text-ink-50 sm:px-6 lg:px-8'
+  'min-h-screen bg-muted/50 px-4 py-6 text-foreground sm:px-6 lg:px-8'
 
 export const apiDocsShellClassName =
-  'rounded-lg border border-brand-500/20 bg-surface-100 shadow-card'
+  'rounded-lg border border-primary/25 bg-card shadow-card'
 
 /** 公开文档页壳：'use client'，客户端词典渲染标题区与工作区 */
 export function ApiDocsPageShell() {

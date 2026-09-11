@@ -10,7 +10,7 @@ type DashboardNumberedListProps = {
 }
 
 const defaultItemClassName =
-  'flex items-start gap-3 rounded-lg border border-surface-200 bg-surface-100 px-4 py-4 text-sm leading-7 text-ink-300 shadow-card'
+  'flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-4 text-sm leading-7 text-foreground/80 shadow-card'
 const defaultIndexClassName =
   'flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-ink-900 text-xs font-semibold text-white shadow-sm'
 

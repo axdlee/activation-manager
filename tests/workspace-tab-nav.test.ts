@@ -32,8 +32,8 @@ test('WorkspaceTabNav 会渲染所有 tab 文案并高亮当前激活项', () =>
   assert.match(html, /项目列表/)
   assert.match(html, /新建项目/)
   assert.match(html, /创建新的项目名称、标识与描述/)
-  assert.match(html, /border-brand-500\/20 bg-brand-500\/10 shadow-card/)
-  assert.match(html, /bg-brand-600 text-white/)
+  assert.match(html, /border-primary\/25 bg-primary\/10 shadow-card/)
+  assert.match(html, /bg-primary text-white/)
   assert.match(html, /text-sm/)
 })
 
@@ -59,7 +59,7 @@ test('WorkspaceTabNav 会为非激活项保留默认卡片样式', () => {
     }),
   )
 
-  assert.match(html, /border-surface-200 bg-surface-100/)
+  assert.match(html, /border-border bg-card/)
   assert.match(html, /bg-ink-900 text-white\/90/)
   assert.match(html, /筛选与刷新/)
 })
