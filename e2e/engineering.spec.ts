@@ -68,7 +68,8 @@ test.describe.serial('工程化能力 e2e', () => {
     await page.goto('/admin/dashboard')
     await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible({ timeout: 15_000 })
 
-    await page.locator('button[title="切换主题"]').first().click()
+    const themeButton4 = page.locator('aside button[title="切换主题"]').first()
+    await themeButton4.click()
     await expect(page.locator('text=极简浅色').first()).toBeVisible({ timeout: 10_000 })
     await page.locator('text=极简浅色').first().click()
     await page.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'aurora')
