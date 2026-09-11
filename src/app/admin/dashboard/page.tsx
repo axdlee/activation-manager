@@ -1732,7 +1732,7 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-surface-100 px-4 py-5 text-ink-50 sm:px-6 lg:h-screen lg:overflow-hidden lg:px-8">
       <div className="mx-auto h-full w-full max-w-none">
-        <div className="flex h-full flex-col gap-5 lg:flex-row">
+        <div className="flex h-full flex-col lg:flex-row">
           <SidebarNav
             tabs={translateWorkspaceTabs(dashboardTabs, t).map((tab) => ({
               key: tab.key,
