@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 // 定义激活码接口
 import {
@@ -151,8 +151,22 @@ const workspaceIcons: Record<string, React.ComponentType<{ className?: string }>
 }
 
 export default function DashboardPage() {
-  const { t } = useI18n()
-  const [activeTab, setActiveTab] = useState<TabType>('stats')
+    const { t } = useI18n()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialTab = (() => {
+    const raw = searchParams.get('tab')
+    return dashboardTabs.some((tab) => tab.key === raw) ? (raw as TabType) : 'stats'
+  })()
+  const [activeTab, setActiveTabState] = useState<TabType>(initialTab)
+  const setActiveTab = useCallback(
+    (key: TabType) => {
+      setActiveTabState(key)
+      router.replace(`/admin/dashboard?tab=${key}`, { scroll: false })
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [searchParams, router],
+  )
   const [licenseMode, setLicenseMode] = useState<LicenseModeValue>('TIME')
   const [selectedProjectKey, setSelectedProjectKey] = useState('default')
   const consumption = useConsumptionLogs()
@@ -233,7 +247,6 @@ export default function DashboardPage() {
   const [auditLogWorkspaceTab, setAuditLogWorkspaceTab] =
     useState<AuditLogWorkspaceTab>('logs')
   const [projectWorkspaceTab, setProjectWorkspaceTab] = useState<ProjectWorkspaceTab>('manage')
-  const router = useRouter()
   const hasConsumptionAutoRefreshInitializedRef = useRef(false)
   const skipNextConsumptionAutoRefreshRef = useRef(false)
   const hasAuditLogAutoRefreshInitializedRef = useRef(false)
@@ -1251,8 +1264,6 @@ export default function DashboardPage() {
         : consumptionRefreshStatus.tone === 'info'
           ? 'border-brand-500/20 bg-brand-500/10 text-brand-400'
           : 'border-surface-200 bg-surface-50 text-ink-500'
-  const shellClassName =
-    'rounded-lg border border-surface-200 bg-surface-100 shadow-card'
   const handleExportConsumptionLogs = () => {
     const params = buildConsumptionQueryParams(buildCurrentConsumptionFilters())
     triggerFileDownload(buildExportUrl('/api/admin/consumptions/export', params))
@@ -1739,6 +1750,7 @@ export default function DashboardPage() {
               label: tab.label,
               shortLabel: tab.shortLabel,
               description: tab.description,
+              group: (tab as { group?: string }).group,
               icon: workspaceIcons[tab.key] ?? ListTree,
             }))}
             activeTab={activeTab}
@@ -1747,29 +1759,19 @@ export default function DashboardPage() {
             brandBadge={t('dash.brand.badge', '授权运营中台')}
             username={'admin'}
             onLogout={handleLogout}
+            onOpenChangePassword={() => setActiveTab('changePassword')}
           />
 
           <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-hidden">
             <div className="space-y-5 lg:h-full lg:overflow-y-auto lg:pr-2 dashboard-scroll-area">
-              <section className={`${shellClassName} p-6`}>
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                  <div className="max-w-3xl">
-                    <div className="inline-flex items-center gap-2 rounded-sm border border-brand-500/20 bg-brand-500/10 px-2.5 py-1 text-xs font-medium text-brand-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-500/100" />
-                      当前模块 · {activeTabMeta.label}
-                    </div>
-                    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink-50">
-                      {activeTabMeta.label}
-                    </h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-7 text-ink-500">
-                      {activeTabMeta.description}
-                    </p>
-                  </div>
-                  <div className="max-w-sm rounded-md border border-surface-200 bg-surface-50 px-4 py-3 text-sm leading-6 text-ink-500 xl:shrink-0">
-                    在此查看项目、激活码与消费数据的实时概况，所有操作集中在左侧导航。
-                  </div>
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                  <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                    {activeTabMeta.label}
+                  </h2>
+                  <span className="text-sm text-muted-foreground">{activeTabMeta.description}</span>
                 </div>
-              </section>
+              </div>
 
               {activeTab === 'stats' && (
                 <div className="space-y-6">

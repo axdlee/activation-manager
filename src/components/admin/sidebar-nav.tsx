@@ -74,16 +74,44 @@ export interface SidebarNavProps {
   brandBadge: string
   username: string
   onLogout: () => void
+  onOpenChangePassword?: () => void
 }
 
-export function SidebarNav({ tabs, activeTab, onTabChange, brandTitle, brandBadge, username, onLogout }: SidebarNavProps) {
+const GROUP_LABELS: Record<string, { zh: string; en: string }> = {
+  overview: { zh: '概览', en: 'Overview' },
+  ops: { zh: '运营', en: 'Operations' },
+  integration: { zh: '集成与销售', en: 'Integration & Sales' },
+  settings: { zh: '设置', en: 'Settings' },
+}
+
+export function SidebarNav({ tabs, activeTab, onTabChange, brandTitle, brandBadge, username, onLogout, onOpenChangePassword }: SidebarNavProps) {
   const { t } = useI18n()
   const [collapsed, setCollapsed] = React.useState(false)
   const [mobileOpen, setMobileOpen] = React.useState(false)
 
-  const navList = (collapsedMode: boolean, onNavigate?: () => void) => (
-    <ul className="flex flex-col gap-0.5">
-      {tabs.map((tab) => {
+  const { locale } = useI18n()
+  const groupOrder = ['overview', 'ops', 'integration', 'settings'] as const
+  const navList = (collapsedMode: boolean, onNavigate?: () => void) => {
+    const visible = tabs.filter((tab) => tab.key !== 'changePassword')
+    const sections = groupOrder
+      .map((group) => ({
+        group,
+        items: visible.filter((tab) => (tab as { group?: string }).group === group),
+      }))
+      .filter((section) => section.items.length > 0)
+
+    return (
+      <div className="flex flex-col gap-4">
+        {sections.map((section) => (
+          <div key={section.group} className="flex flex-col gap-0.5">
+            {!collapsedMode && (
+              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {GROUP_LABELS[section.group][locale === 'en-US' ? 'en' : 'zh']}
+              </div>
+            )}
+            {collapsedMode && <div className="mx-3 my-1 border-t" />}
+            <ul className="flex flex-col gap-0.5">
+              {section.items.map((tab) => {
         const Icon = NAV_ICONS[tab.key] ?? ListTree
         const isActive = tab.key === activeTab
         return (
@@ -110,10 +138,13 @@ export function SidebarNav({ tabs, activeTab, onTabChange, brandTitle, brandBadg
               {!collapsedMode && <span className="truncate">{tab.label}</span>}
             </button>
           </li>
-        )
-      })}
-    </ul>
-  )
+              )})}
+            </ul>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   const brandBlock = (collapsedMode: boolean) => (
     <div className={cn('border-b px-4 py-5', collapsedMode && 'px-3')}>
@@ -165,6 +196,16 @@ export function SidebarNav({ tabs, activeTab, onTabChange, brandTitle, brandBadg
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="top" className="w-48">
             <DropdownMenuLabel>{username || 'admin'}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                onNavigate?.()
+                onOpenChangePassword?.()
+              }}
+            >
+              <KeySquare />
+              {tabs.find((tab) => tab.key === 'changePassword')?.label ?? '修改密码'}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {

@@ -152,7 +152,8 @@ test.describe.serial('补全工作区与页面 e2e', () => {
 
   test('6. 修改密码：错误当前密码给出明确提示（不真正改密）', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '修改密码')
+    await page.locator('aside button:has-text("admin")').first().click()
+    await page.getByRole('menuitem').filter({ hasText: '修改密码' }).click()
     await expect(page.getByRole('heading', { name: '管理员密码工作台' })).toBeVisible()
 
     await page.locator('#currentPassword').fill('wrong-password')
