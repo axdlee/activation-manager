@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { useI18n } from '@/lib/i18n/i18n-provider'
+import { LicenseMetricsChart } from '@/components/admin/license-metrics-chart'
 
 type LicenseApiMetricPoint = {
   path: string
@@ -61,8 +62,13 @@ export function LicenseApiMetricsPanel({ panelClassName }: { panelClassName: str
     return () => window.clearInterval(timer)
   }, [load])
 
+  const metricsPoints = metrics?.points ?? []
+
   return (
     <section className={`${panelClassName} p-6`}>
+      <div className="mb-4">
+        <LicenseMetricsChart points={metricsPoints} />
+      </div>
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="inline-flex items-center gap-2 rounded-sm border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
