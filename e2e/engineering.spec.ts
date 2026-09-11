@@ -47,7 +47,7 @@ test.describe.serial('工程化能力 e2e', () => {
     await page.waitForURL(/\/admin\/dashboard/, { timeout: 30_000 })
 
     // 主题切换按钮（侧边栏，title="切换主题"）
-    const themeButton = page.locator('button[title="切换主题"]').first()
+    const themeButton = page.locator('aside button[title="切换主题"]').first()
     await expect(themeButton).toBeVisible({ timeout: 15_000 })
     await themeButton.click()
 
