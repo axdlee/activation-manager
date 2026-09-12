@@ -75,9 +75,9 @@ const statusToneMap: Record<string, string> = {
   cancelled: 'text-muted-foreground',
 }
 
-export function ShopAdminPanel() {
+export function ShopAdminPanel({ initialTab = 'products' }: { initialTab?: ShopAdminTab }) {
   const { t } = useI18n()
-  const [tab, setTab] = useState<ShopAdminTab>('products')
+  const [tab, setTab] = useState<ShopAdminTab>(initialTab)
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [orders, setOrders] = useState<ShopOrder[]>([])
   const [configs, setConfigs] = useState<PaymentConfig[]>([])
