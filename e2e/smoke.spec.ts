@@ -20,7 +20,7 @@ async function clickDashboardTab(page: Page, tabLabel: string) {
 }
 
 async function gotoDashboard(page: Page) {
-  await page.goto('/admin/dashboard')
+  await page.goto('/admin/overview')
   await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible()
 }
 
@@ -31,7 +31,7 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
     projectName = `E2E冒烟项目-${runId}`
 
     await gotoDashboard(page)
-    await clickDashboardTab(page, '项目管理')
+    await page.goto('/admin/projects')
     await expect(page.getByRole('button', { name: '新建项目' })).toBeVisible()
 
     await page.getByRole('button', { name: '新建项目' }).click()
@@ -51,7 +51,7 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
 
   test('2. 生成激活码（次数型）', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '生成激活码')
+    await page.goto('/admin/licenses/generate')
     await expect(page.locator('#generate-selected-project-key')).toBeVisible()
 
     await page.locator('#generate-selected-project-key').selectOption(projectKey)
@@ -167,7 +167,7 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
 
     // UI 侧：消费日志工作区，切到筛选 tab 搜索 requestId2
     await gotoDashboard(page)
-    await clickDashboardTab(page, '消费日志')
+    await page.goto('/admin/consumptions')
     await page.getByRole('button', { name: /筛选与刷新/ }).first().click()
     await page.locator('#consumption-search-term').fill(requestId2)
     await page.getByRole('button', { name: /查看日志列表/ }).first().click()
@@ -178,7 +178,7 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
 
   test('5. 审计中心：应记录创建项目与批量发码', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '审计中心')
+    await page.goto('/admin/audit')
     await expect(
       page.locator('h3', { hasText: '审计日志列表' }),
     ).toBeVisible({ timeout: 15_000 })
@@ -194,7 +194,7 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
 
   test('6. 审计筛选自动刷新（回归：筛选变更后列表自动更新）', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '审计中心')
+    await page.goto('/admin/audit')
     await expect(
       page.locator('h3', { hasText: '审计日志列表' }),
     ).toBeVisible({ timeout: 15_000 })
@@ -220,7 +220,7 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
 
   test('7. 激活码列表服务端分页：筛选后可看到生成码', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '激活码管理')
+    await page.goto('/admin/licenses')
     await expect(
       page.locator('h2', { hasText: '激活码管理中心' }).first(),
     ).toBeVisible({ timeout: 15_000 })

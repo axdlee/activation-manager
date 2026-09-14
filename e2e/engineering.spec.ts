@@ -44,7 +44,7 @@ test.describe.serial('工程化能力 e2e', () => {
     await page.locator('#username').fill('admin')
     await page.locator('#password').fill('123456')
     await page.getByRole('button', { name: '登录后台' }).click()
-    await page.waitForURL(/\/admin\/dashboard/, { timeout: 30_000 })
+    await page.waitForURL(/\/admin\/(overview|dashboard)/, { timeout: 30_000 })
 
     // 主题切换按钮（侧边栏，title="切换主题"）
     const themeButton = page.locator('aside button[title="切换主题"]').first()
@@ -65,7 +65,7 @@ test.describe.serial('工程化能力 e2e', () => {
 
   test('4. 主题选择持久化到 localStorage 并刷新保持', async ({ page }) => {
     // 本用例独立选主题（serial 不共享 localStorage）
-    await page.goto('/admin/dashboard')
+    await page.goto('/admin/overview')
     await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible({ timeout: 15_000 })
 
     const themeButton4 = page.locator('aside button[title="切换主题"]').first()
@@ -101,12 +101,12 @@ test.describe.serial('工程化能力 e2e', () => {
   })
 
   test('7. 数据统计页展示 License API 运行指标面板', async ({ page }) => {
-    await page.goto('/admin/dashboard')
+    await page.goto('/admin/overview')
     await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible({ timeout: 15_000 })
 
     // 切到数据统计
     await page.locator('nav button', { hasText: '数据统计' }).first().click()
-    await expect(page.getByText('License API 运行指标').first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('License API 指标').first()).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(/请求概览/).first()).toBeVisible({ timeout: 10_000 })
 
     // 指标 API 可访问
@@ -117,7 +117,7 @@ test.describe.serial('工程化能力 e2e', () => {
   })
 
   test('8. 系统配置：换绑策略分区可见并可修改设备绑定开关', async ({ page }) => {
-    await page.goto('/admin/dashboard')
+    await page.goto('/admin/overview')
     await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible({ timeout: 15_000 })
 
     await page.locator('nav button', { hasText: '系统配置' }).first().click()
@@ -130,7 +130,7 @@ test.describe.serial('工程化能力 e2e', () => {
   })
 
   test('9. 系统配置：系统展示分区包含到期通知接口字段', async ({ page }) => {
-    await page.goto('/admin/dashboard')
+    await page.goto('/admin/overview')
     await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible({ timeout: 15_000 })
 
     await page.locator('nav button', { hasText: '系统配置' }).first().click()
@@ -142,7 +142,7 @@ test.describe.serial('工程化能力 e2e', () => {
   })
 
   test('10. 系统配置：认证与会话分区包含响应签名密钥字段', async ({ page }) => {
-    await page.goto('/admin/dashboard')
+    await page.goto('/admin/overview')
     await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible({ timeout: 15_000 })
 
     await page.locator('nav button', { hasText: '系统配置' }).first().click()

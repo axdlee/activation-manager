@@ -5,16 +5,12 @@ import { expect, test, type Page } from '@playwright/test'
 // 依赖 playwright.config.ts 的 webServer（全新 e2e.db + dev server）
 // =============================================================
 
-async function clickDashboardTab(page: Page, tabLabel: string) {
-  await page.locator('nav button', { hasText: tabLabel }).first().click()
-}
-
 async function loginAsAdmin(page: Page) {
   await page.goto('/admin/login')
   await page.locator('#username').fill('admin')
   await page.locator('#password').fill('123456')
   await page.getByRole('button', { name: '登录后台' }).click()
-  await page.waitForURL(/\/admin\/dashboard/, { timeout: 30_000 })
+  await page.waitForURL(/\/admin\/(overview|dashboard)/, { timeout: 30_000 })
   await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible()
 }
 
@@ -24,7 +20,7 @@ let generatedCode = ''
 test.describe.serial('支付自动发卡 e2e', () => {
   test('0. 后台创建卡密商品', async ({ page }) => {
     await loginAsAdmin(page)
-    await clickDashboardTab(page, '购买中心')
+    await page.goto('/admin/shop/products')
     await expect(page.getByText('商品管理').first()).toBeVisible({ timeout: 15_000 })
 
     await page.getByText('商品管理').first().click()
@@ -72,7 +68,7 @@ test.describe.serial('支付自动发卡 e2e', () => {
     expect(createdOrderNo).not.toBe('')
 
     await loginAsAdmin(page)
-    await clickDashboardTab(page, '购买中心')
+    await page.goto('/admin/shop/products')
     await page.getByText('订单管理').first().click()
 
     const orderRow = page.locator('tbody tr').filter({ hasText: createdOrderNo })

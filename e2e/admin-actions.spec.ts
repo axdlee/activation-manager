@@ -6,12 +6,8 @@ import { expect, test, type Page } from '@playwright/test'
 // 依赖 playwright.config.ts 的 webServer（全新 e2e.db + dev server）
 // =============================================================
 
-async function clickDashboardTab(page: Page, tabLabel: string) {
-  await page.locator('nav button', { hasText: tabLabel }).first().click()
-}
-
 async function gotoDashboard(page: Page) {
-  await page.goto('/admin/dashboard')
+  await page.goto('/admin/overview')
   await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible()
 }
 
@@ -24,7 +20,7 @@ test.describe.serial('后台管理操作 e2e', () => {
     adminProjectKey = `e2e-admin-${runId}`
 
     await gotoDashboard(page)
-    await clickDashboardTab(page, '项目管理')
+    await page.goto('/admin/projects')
     await page.getByRole('button', { name: '新建项目' }).click()
     await expect(page.locator('#create-project-form')).toBeVisible()
     await page.locator('#create-project-name').fill(`管理操作项目-${runId}`)
@@ -37,7 +33,7 @@ test.describe.serial('后台管理操作 e2e', () => {
     ).toBeVisible({ timeout: 15_000 })
 
     // 生成 2 个激活码
-    await clickDashboardTab(page, '生成激活码')
+    await page.goto('/admin/licenses/generate')
     await page.locator('#generate-selected-project-key').selectOption(adminProjectKey)
     await page.locator('#generate-license-mode').selectOption('COUNT')
     await page.locator('#generate-amount').fill('2')
@@ -50,7 +46,7 @@ test.describe.serial('后台管理操作 e2e', () => {
 
   test('1. 激活码管理：筛选后导出 CSV', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '激活码管理')
+    await page.goto('/admin/licenses')
     await expect(page.locator('h2', { hasText: '激活码管理中心' })).toBeVisible({ timeout: 15_000 })
 
     // 触发导出下载
@@ -70,7 +66,7 @@ test.describe.serial('后台管理操作 e2e', () => {
 
   test('2. 激活码管理：删除一个激活码', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '激活码管理')
+    await page.goto('/admin/licenses')
     await expect(page.locator('h2', { hasText: '激活码管理中心' })).toBeVisible({ timeout: 15_000 })
 
     // 第一行删除按钮
@@ -89,7 +85,7 @@ test.describe.serial('后台管理操作 e2e', () => {
 
   test('3. 项目管理：编辑项目名称', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '项目管理')
+    await page.goto('/admin/projects')
 
     const row = page.locator('table tbody tr').filter({ hasText: adminProjectKey })
     await expect(row).toBeVisible({ timeout: 15_000 })
@@ -110,7 +106,7 @@ test.describe.serial('后台管理操作 e2e', () => {
 
   test('4. 项目管理：停用后启用', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '项目管理')
+    await page.goto('/admin/projects')
 
     const row = page.locator('table tbody tr').filter({ hasText: adminProjectKey })
     await expect(row).toBeVisible({ timeout: 15_000 })
@@ -130,7 +126,7 @@ test.describe.serial('后台管理操作 e2e', () => {
 
   test('5. 审计中心：导出审计日志 CSV', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '审计中心')
+    await page.goto('/admin/audit')
     await expect(page.locator('h3', { hasText: '审计日志列表' })).toBeVisible({ timeout: 15_000 })
 
     const downloadPromise = page.waitForEvent('download', { timeout: 15_000 })
@@ -146,7 +142,7 @@ test.describe.serial('后台管理操作 e2e', () => {
 
   test('6. 消费日志：筛选后导出 CSV（空结果也应正常导出）', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '消费日志')
+    await page.goto('/admin/consumptions')
 
     // 用不存在的关键词筛选
     await page.getByRole('button', { name: /筛选与刷新/ }).first().click()
@@ -161,7 +157,7 @@ test.describe.serial('后台管理操作 e2e', () => {
 
   test('7. 系统配置：修改 JWT 有效期并保存', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '系统配置')
+    await page.goto('/admin/settings')
     await expect(page.getByRole('heading', { name: '系统配置中心' })).toBeVisible({
       timeout: 15_000,
     })

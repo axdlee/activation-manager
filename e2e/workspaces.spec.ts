@@ -17,7 +17,7 @@ async function clickDashboardTab(page: Page, tabLabel: string) {
 }
 
 async function gotoDashboard(page: Page) {
-  await page.goto('/admin/dashboard')
+  await page.goto('/admin/overview')
   await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible()
 }
 
@@ -59,7 +59,7 @@ test.describe.serial('补全工作区与页面 e2e', () => {
 
   test('3. 数据统计页渲染统计卡片与运营洞察', async ({ page }) => {
     await gotoDashboard(page)
-    await expect(page.getByRole('heading', { name: '数据统计' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '概览' })).toBeVisible()
     for (const label of ['总激活码数', '已使用', '可用激活码']) {
       await expect(page.getByText(label, { exact: true }).first()).toBeVisible()
     }
@@ -72,7 +72,7 @@ test.describe.serial('补全工作区与页面 e2e', () => {
     timeProjectKey = `e2e-time-${runId}`
 
     await gotoDashboard(page)
-    await clickDashboardTab(page, '项目管理')
+    await page.goto('/admin/projects')
     await page.getByRole('button', { name: '新建项目' }).click()
     await expect(page.locator('#create-project-form')).toBeVisible()
     await page.locator('#create-project-name').fill(`时间卡项目-${runId}`)
@@ -85,7 +85,7 @@ test.describe.serial('补全工作区与页面 e2e', () => {
     ).toBeVisible({ timeout: 15_000 })
 
     // 生成时间卡
-    await clickDashboardTab(page, '生成激活码')
+    await page.goto('/admin/licenses/generate')
     await page.locator('#generate-selected-project-key').selectOption(timeProjectKey)
     await page.locator('#generate-license-mode').selectOption('TIME')
     await expect(page.locator('#generate-card-type')).toBeVisible()
@@ -127,7 +127,7 @@ test.describe.serial('补全工作区与页面 e2e', () => {
 
   test('5. 系统配置：修改系统名称并保存成功', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, '系统配置')
+    await page.goto('/admin/settings')
     await expect(page.getByRole('heading', { name: '系统配置中心' })).toBeVisible({ timeout: 15_000 })
 
     // 切到「品牌与展示」分区（含 systemName 字段）
@@ -166,7 +166,7 @@ test.describe.serial('补全工作区与页面 e2e', () => {
 
   test('7. API 接入工作区（后台模式）渲染四个分区', async ({ page }) => {
     await gotoDashboard(page)
-    await clickDashboardTab(page, 'API 接入')
+    await page.goto('/admin/integration')
     // 工作区 tab 导航容器（侧边栏按钮描述也含「正式接口」，需限定在 mt-6 grid 容器内）
     const workspaceTabs = page.locator('div.mt-6.grid')
     await expect(workspaceTabs.getByRole('button', { name: '接入概览' }).first()).toBeVisible({
