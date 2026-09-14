@@ -10,8 +10,6 @@ import { DashboardPaginationBar } from '@/components/dashboard-pagination-bar'
 import { DashboardSectionHeader } from '@/components/dashboard-section-header'
 import { DashboardSummaryStrip } from '@/components/dashboard-summary-strip'
 import { DashboardTokenList } from '@/components/dashboard-token-list'
-import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
-import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
 import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
 import { useI18n } from '@/lib/i18n/i18n-provider'
 import {
@@ -91,7 +89,6 @@ type AuditLogWorkspaceProps<TLog extends AuditLogWorkspaceLog = AuditLogWorkspac
   filtersView: AuditLogWorkspaceFiltersView
   logsView: AuditLogWorkspaceLogsView<TLog>
   panelClassName?: string
-  workspaceSummaryCardClassName?: string
   compactInputClassName?: string
   primaryButtonClassName?: string
   successButtonClassName?: string
@@ -102,8 +99,6 @@ type AuditLogWorkspaceProps<TLog extends AuditLogWorkspaceLog = AuditLogWorkspac
 
 const defaultPanelClassName =
   'rounded-lg border border-border/70 bg-card shadow-card'
-const defaultWorkspaceSummaryCardClassName =
-  'rounded-lg border border-border bg-card px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
   'w-full rounded-md border border-border bg-card px-4 py-2.5 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/50 focus:ring-4 focus:ring-primary/20 disabled:bg-card disabled:text-muted-foreground'
 const defaultPrimaryButtonClassName =
@@ -127,7 +122,6 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
   filtersView,
   logsView,
   panelClassName = defaultPanelClassName,
-  workspaceSummaryCardClassName = defaultWorkspaceSummaryCardClassName,
   compactInputClassName = defaultCompactInputClassName,
   primaryButtonClassName = defaultPrimaryButtonClassName,
   successButtonClassName = defaultSuccessButtonClassName,
@@ -140,45 +134,26 @@ export function AuditLogWorkspace<TLog extends AuditLogWorkspaceLog>({
 
   return (
     <div className="space-y-6">
-      <div className={panelClassName}>
-        <WorkspaceHeroPanel
-          badge={t('auditws.badge', '审计日志工作区')}
-          title={t('auditws.title', '全局审计中心')}
-          description={t(
-            'auditws.description',
-            '完整记录管理员关键操作，支持筛选、分页与导出，随时回溯变更痕迹。',
-          )}
-          gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(244,114,182,0.1),transparent_30%)]"
-          metrics={
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <WorkspaceMetricCard
-                label={t('auditws.metric.matched', '匹配日志')}
-                value={matchedCount}
-                description={t('auditws.metric.matchedDesc', '当前条件下的管理员操作数')}
-                className={workspaceSummaryCardClassName}
-              />
-              <WorkspaceMetricCard
-                label={t('auditws.metric.operators', '涉及管理员')}
-                value={operatorCoverage}
-                description={t('auditws.metric.operatorsDesc', '当前结果包含的操作账号数')}
-                className={workspaceSummaryCardClassName}
-              />
-              <WorkspaceMetricCard
-                label={t('auditws.metric.projects', '涉及项目')}
-                value={projectCoverage}
-                description={t('auditws.metric.projectsDesc', '当前结果覆盖的项目数')}
-                className={workspaceSummaryCardClassName}
-              />
-            </div>
-          }
-          tabs={
-            <WorkspaceTabNav
-              tabs={workspaceTabs}
-              activeTab={activeTab}
-              onChange={onTabChange}
-            />
-          }
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <WorkspaceTabNav
+          tabs={workspaceTabs}
+          activeTab={activeTab}
+          onChange={onTabChange}
         />
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+          <span>
+            {t('auditws.metric.matched', '匹配日志')}{' '}
+            <span className="tabular-nums text-foreground">{matchedCount}</span>
+          </span>
+          <span>
+            {t('auditws.metric.operators', '涉及管理员')}{' '}
+            <span className="tabular-nums text-foreground">{operatorCoverage}</span>
+          </span>
+          <span>
+            {t('auditws.metric.projects', '涉及项目')}{' '}
+            <span className="tabular-nums text-foreground">{projectCoverage}</span>
+          </span>
+        </div>
       </div>
 
       {activeTab === 'filters' ? (

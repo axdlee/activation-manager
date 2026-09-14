@@ -137,7 +137,7 @@ test.describe.serial('后台管理操作 e2e', () => {
   test('5. 审计中心：导出审计日志 CSV', async ({ page }) => {
     await gotoDashboard(page)
     await page.goto('/admin/audit')
-    await expect(page.locator('h3', { hasText: '审计日志列表' })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('heading', { name: '审计中心', exact: true })).toBeVisible({ timeout: 15_000 })
 
     const downloadPromise = page.waitForEvent('download', { timeout: 15_000 })
     await page.getByRole('button', { name: '导出筛选结果' }).first().click()
@@ -154,11 +154,9 @@ test.describe.serial('后台管理操作 e2e', () => {
     await gotoDashboard(page)
     await page.goto('/admin/consumptions')
 
-    // 用不存在的关键词筛选
-    await page.getByRole('button', { name: /筛选与刷新/ }).first().click()
-    await page.locator('#consumption-search-term').fill(`no-such-req-${Date.now()}`)
-    await page.getByRole('button', { name: /查看日志列表/ }).first().click()
-    await expect(page.getByText(/0 条记录|暂无匹配/).first()).toBeVisible({ timeout: 15_000 })
+    // 用不存在的关键词筛选（自动刷新开启，输入后自动拉取）
+    await page.getByLabel('搜索 requestId / 机器ID / 激活码').fill(`no-such-req-${Date.now()}`)
+    await expect(page.getByText('没有匹配的消费日志').first()).toBeVisible({ timeout: 15_000 })
 
     // 空结果时导出按钮被禁用（业务保护：无数据不可导出）
     const exportButton = page.getByRole('button', { name: '导出筛选结果' }).first()

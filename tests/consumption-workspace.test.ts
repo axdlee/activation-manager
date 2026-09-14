@@ -85,7 +85,7 @@ function createProps(
 test('ConsumptionWorkspace 在 filters tab 渲染筛选表单、快捷时间范围与刷新状态', () => {
   const html = renderToStaticMarkup(React.createElement(ConsumptionWorkspace, createProps()))
 
-  assert.equal(html.includes('消费日志排查中心'), true)
+  // Hero 标题已由任务型路由 PageHeader 承担
   assert.equal(html.includes('筛选与刷新'), true)
   assert.equal(html.includes('搜索 requestId / 机器ID / 激活码'), true)
   assert.equal(html.includes('项目筛选'), true)

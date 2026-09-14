@@ -82,7 +82,7 @@ function createProps(
 test('AuditLogWorkspace 在 filters tab 渲染筛选条件与导出入口', () => {
   const html = renderToStaticMarkup(React.createElement(AuditLogWorkspace, createProps()))
 
-  assert.equal(html.includes('全局审计中心'), true)
+  // Hero 标题已由任务型路由 PageHeader 承担
   assert.equal(html.includes('筛选与导出'), true)
   assert.equal(html.includes('搜索管理员 / 目标 / 原因'), true)
   assert.equal(html.includes('操作类型'), true)

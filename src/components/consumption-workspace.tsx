@@ -10,8 +10,6 @@ import { DashboardPaginationBar } from '@/components/dashboard-pagination-bar'
 import { DashboardSectionHeader } from '@/components/dashboard-section-header'
 import { DashboardSummaryStrip } from '@/components/dashboard-summary-strip'
 import { DashboardTokenList } from '@/components/dashboard-token-list'
-import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
-import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
 import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
 import { useI18n } from '@/lib/i18n/i18n-provider'
 import {
@@ -93,7 +91,6 @@ type ConsumptionWorkspaceProps<TLog extends ConsumptionWorkspaceLogLike = Consum
   filtersView: ConsumptionWorkspaceFiltersView
   logsView: ConsumptionWorkspaceLogsView<TLog>
   panelClassName?: string
-  workspaceSummaryCardClassName?: string
   compactInputClassName?: string
   primaryButtonClassName?: string
   successButtonClassName?: string
@@ -104,8 +101,6 @@ type ConsumptionWorkspaceProps<TLog extends ConsumptionWorkspaceLogLike = Consum
 
 const defaultPanelClassName =
   'rounded-lg border border-border/70 bg-card shadow-card'
-const defaultWorkspaceSummaryCardClassName =
-  'rounded-lg border border-border bg-card px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
   'w-full rounded-md border border-border bg-card px-4 py-2.5 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/50 focus:ring-4 focus:ring-primary/20 disabled:bg-card disabled:text-muted-foreground'
 const defaultPrimaryButtonClassName =
@@ -129,7 +124,6 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
   filtersView,
   logsView,
   panelClassName = defaultPanelClassName,
-  workspaceSummaryCardClassName = defaultWorkspaceSummaryCardClassName,
   compactInputClassName = defaultCompactInputClassName,
   primaryButtonClassName = defaultPrimaryButtonClassName,
   successButtonClassName = defaultSuccessButtonClassName,
@@ -142,45 +136,26 @@ export function ConsumptionWorkspace<TLog extends ConsumptionWorkspaceLogLike>({
 
   return (
     <div className="space-y-6">
-      <div className={panelClassName}>
-        <WorkspaceHeroPanel
-          badge={t('consumews.badge', '消费日志工作区')}
-          title={t('consumews.title', '消费日志排查中心')}
-          description={t(
-            'consumews.description',
-            '通过筛选与自动刷新定位消费明细，长表格专注阅读与导出。',
-          )}
-          gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]"
-          metrics={
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <WorkspaceMetricCard
-                label={t('consumews.metric.matched', '匹配日志')}
-                value={matchedCount}
-                description={t('consumews.metric.matchedDesc', '当前条件下的消费记录数')}
-                className={workspaceSummaryCardClassName}
-              />
-              <WorkspaceMetricCard
-                label={t('consumews.metric.projects', '涉及项目')}
-                value={projectCoverage}
-                description={t('consumews.metric.projectsDesc', '当前页涉及的项目数')}
-                className={workspaceSummaryCardClassName}
-              />
-              <WorkspaceMetricCard
-                label={t('consumews.metric.codes', '涉及激活码')}
-                value={codeCoverage}
-                description={t('consumews.metric.codesDesc', '当前页覆盖的激活码数')}
-                className={workspaceSummaryCardClassName}
-              />
-            </div>
-          }
-          tabs={
-            <WorkspaceTabNav
-              tabs={workspaceTabs}
-              activeTab={activeTab}
-              onChange={onTabChange}
-            />
-          }
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <WorkspaceTabNav
+          tabs={workspaceTabs}
+          activeTab={activeTab}
+          onChange={onTabChange}
         />
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+          <span>
+            {t('consumews.metric.matched', '匹配日志')}{' '}
+            <span className="tabular-nums text-foreground">{matchedCount}</span>
+          </span>
+          <span>
+            {t('consumews.metric.projects', '涉及项目')}{' '}
+            <span className="tabular-nums text-foreground">{projectCoverage}</span>
+          </span>
+          <span>
+            {t('consumews.metric.codes', '涉及激活码')}{' '}
+            <span className="tabular-nums text-foreground">{codeCoverage}</span>
+          </span>
+        </div>
       </div>
 
       {activeTab === 'filters' ? (

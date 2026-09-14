@@ -33,7 +33,7 @@ export default defineConfig({
     },
     {
       name: 'smoke',
-      testMatch: /(smoke|workspaces|admin-actions|admin-projects|admin-licenses|shop-flow|engineering|payment-callbacks|shop-features)\.spec\.ts/,
+      testMatch: /(smoke|workspaces|admin-actions|admin-projects|admin-licenses|admin-logs|shop-flow|engineering|payment-callbacks|shop-features)\.spec\.ts/,
       dependencies: ['setup'],
       use: {
         storageState: 'e2e/.auth/admin.json',
