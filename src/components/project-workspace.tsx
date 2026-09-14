@@ -325,7 +325,7 @@ export function ProjectWorkspace({
 
   return (
     <div className="space-y-6">
-      <div className={panelClassName}>
+      <div className={panelClassName + ' !py-3'}>
         <WorkspaceHeroPanel
           badge={t('projws.badge', '项目工作区')}
           title={t('projws.title', '项目管理中心')}
