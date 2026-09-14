@@ -26,7 +26,7 @@ export function DashboardFilterFieldCard({
       ) : (
         <div className="text-sm font-semibold text-foreground">{label}</div>
       )}
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p>
       <div className={bodyClassName}>{children}</div>
     </div>
   )

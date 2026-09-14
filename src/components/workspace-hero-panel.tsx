@@ -18,7 +18,7 @@ export function WorkspaceHeroPanel({
   gradientClassName,
 }: WorkspaceHeroPanelProps) {
   return (
-    <div className="relative overflow-hidden p-6 sm:p-7">
+    <div className="relative overflow-hidden px-5 py-4">
       <div className={`absolute inset-0 ${gradientClassName}`} />
       <div className="relative">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -27,8 +27,8 @@ export function WorkspaceHeroPanel({
               <span className="h-2 w-2 rounded-full bg-brand-500" />
               {badge}
             </div>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
-            <p className="mt-2 text-sm leading-7 text-muted-foreground sm:text-base">{description}</p>
+            <h2 className="mt-4 text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground sm:text-base">{description}</p>
           </div>
 
           {metrics}
