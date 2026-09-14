@@ -128,20 +128,7 @@ export function ChangePasswordWorkspace({
   return (
     <div className="space-y-6">
       <section className={`${panelClassName} p-6 sm:p-7`}>
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-foreground/80">
-            <span className="h-2 w-2 rounded-full bg-surface-500" />
-            {t('pwdws.badge', '凭证安全')}
-          </div>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
-            {t('pwdws.title', '管理员密码工作台')}
-          </h2>
-          <p className="mt-2 text-sm leading-7 text-muted-foreground sm:text-base">
-            {t('pwdws.subtitle', '修改管理员登录密码，左侧填写、右侧实时校验，改后需重新登录。')}
-          </p>
-        </div>
-
-        <div className="mt-5 flex flex-wrap gap-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5">
             {t('pwdws.checklistProgress', '已完成 {completed} / {total} 项安全检查')
               .replace('{completed}', String(completedChecklistCount))

@@ -38,7 +38,7 @@ test('ChangePasswordWorkspace 会渲染简化后的密码工作台、实时校�
     }),
   )
 
-  assert.equal(html.includes('管理员密码工作台'), true)
+  // 工作台标题已上移到 SecurityPage 的 PageHeader（单 h1）
   assert.equal(html.includes('密码表单'), true)
   assert.equal(html.includes('实时校验'), true)
   assert.equal(html.includes('操作提示'), true)

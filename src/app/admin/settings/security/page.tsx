@@ -1,5 +1,12 @@
-import { CanonicalAdminPage } from '@/components/admin/canonical-admin-page'
+'use client'
+
+import { AdminShell } from '@/components/admin/admin-shell'
+import { SecurityPage } from '@/components/admin/security-page'
 
 export default function AdminSecurityPage() {
-  return <CanonicalAdminPage tab="changePassword" />
+  return (
+    <AdminShell activeTab="changePassword">
+      <SecurityPage />
+    </AdminShell>
+  )
 }

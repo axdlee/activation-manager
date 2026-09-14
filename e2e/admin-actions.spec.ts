@@ -166,11 +166,12 @@ test.describe.serial('后台管理操作 e2e', () => {
   test('7. 系统配置：修改 JWT 有效期并保存', async ({ page }) => {
     await gotoDashboard(page)
     await page.goto('/admin/settings')
-    await expect(page.getByRole('heading', { name: '系统配置中心' })).toBeVisible({
+    await expect(page.getByRole('heading', { name: '系统设置', exact: true })).toBeVisible({
       timeout: 15_000,
     })
 
-    await page.getByRole('button', { name: '认证与会话' }).first().click()
+    // 分区导航改为概览页链接卡（?section= 可寻址）
+    await page.getByRole('link', { name: /认证与会话/ }).first().click()
     await expect(page.getByText('JWT 密钥').first()).toBeVisible({ timeout: 15_000 })
 
     // 切换登录有效期到 12h

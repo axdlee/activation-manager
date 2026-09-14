@@ -124,10 +124,10 @@ test.describe.serial('补全工作区与页面 e2e', () => {
   test('5. 系统配置：修改系统名称并保存成功', async ({ page }) => {
     await gotoDashboard(page)
     await page.goto('/admin/settings')
-    await expect(page.getByRole('heading', { name: '系统配置中心' })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('heading', { name: '系统设置', exact: true })).toBeVisible({ timeout: 15_000 })
 
-    // 切到「品牌与展示」分区（含 systemName 字段）
-    await page.getByRole('button', { name: '系统展示' }).first().click()
+    // 分区导航已改为概览链接卡（?section=branding 可寻址）
+    await page.getByRole('link', { name: /系统展示/ }).first().click()
     const nameInput = page.getByPlaceholder('例如：浏览器插件授权中心')
     await expect(nameInput).toBeVisible({ timeout: 15_000 })
 
@@ -139,8 +139,7 @@ test.describe.serial('补全工作区与页面 e2e', () => {
     await expect(page.getByText('系统配置更新成功').first()).toBeVisible({ timeout: 15_000 })
 
     // 重新进入分区确认已持久化
-    await page.getByRole('button', { name: '配置总览' }).first().click()
-    await page.getByRole('button', { name: '系统展示' }).first().click()
+    await page.goto('/admin/settings?section=branding')
     await expect(page.getByPlaceholder('例如：浏览器插件授权中心')).toHaveValue(newName, {
       timeout: 15_000,
     })

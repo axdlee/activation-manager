@@ -390,19 +390,7 @@ export function SystemConfigWorkspace({
   return (
     <div className="space-y-6 pb-10">
       <section className={`${panelClassName} p-6 sm:p-7`}>
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-[11px] font-semibold tracking-[0.22em] text-foreground/80">
-            {t('sysconfws.header.badge', '配置工作台')}
-          </div>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
-            {t('sysconfws.header.title', '系统配置中心')}
-          </h2>
-          <p className="mt-2 text-sm leading-7 text-muted-foreground sm:text-base">
-            {t('sysconfws.header.description', '按分区集中管理系统配置，修改后统一保存并立即生效。')}
-          </p>
-        </div>
-
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {pageModel.summaryCards.map((card) => (
             <span
               key={card.label}
@@ -413,7 +401,7 @@ export function SystemConfigWorkspace({
           ))}
         </div>
 
-        <div className="mt-6">
+        <div className="mt-5">
           <WorkspaceTabNav tabs={workspaceTabs} activeTab={activeTab} onChange={setActiveTab} />
         </div>
       </section>
@@ -431,7 +419,7 @@ export function SystemConfigWorkspace({
           message={t('sysconfws.state.empty', '暂无系统配置数据')}
         />
       ) : activeGroup ? (
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form id="system-config-form" onSubmit={onSubmit} className="space-y-6">
           {renderGroupSection({
             group: activeGroup,
             panelClassName,
