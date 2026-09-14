@@ -40,6 +40,6 @@ test('WorkspaceHeroPanel 保留统一头部视觉结构', () => {
 
   assert.match(html, /rounded-full border border-primary\/25 bg-card/)
   assert.match(html, /text-\[11px\] font-semibold tracking-\[0\.22em\] text-primary/)
-  assert.match(html, /text-2xl font-semibold tracking-tight text-foreground/)
-  assert.match(html, /text-sm leading-7 text-muted-foreground sm:text-base/)
+  assert.match(html, /text-lg font-semibold tracking-tight text-foreground/)
+  assert.match(html, /text-xs leading-5 text-muted-foreground sm:text-base/)
 })

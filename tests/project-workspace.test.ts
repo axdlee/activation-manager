@@ -121,8 +121,7 @@ test('ProjectWorkspace 在 create 模式下通过弹框渲染新建表单与换�
     ),
   )
 
-  assert.equal(html.includes('项目管理中心'), true)
-  assert.equal(html.includes('项目工作区'), true)
+  // Hero 已由任务型路由的 PageHeader 承担，workspace 内不再重复标题
   assert.equal(html.includes('新建项目'), true)
   assert.equal(html.includes('用弹框快速创建新的 projectKey'), true)
   assert.equal(html.includes('基础信息'), true)

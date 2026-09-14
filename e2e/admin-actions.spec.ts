@@ -90,11 +90,12 @@ test.describe.serial('后台管理操作 e2e', () => {
     const row = page.locator('table tbody tr').filter({ hasText: adminProjectKey })
     await expect(row).toBeVisible({ timeout: 15_000 })
 
-    // 等待行内按钮可见并稳定后再点击（修复 CI 偶发超时）
-    const editButton = row.getByRole('button', { name: '编辑基础信息' })
-    await expect(editButton).toBeVisible({ timeout: 10_000 })
-    await editButton.scrollIntoViewIfNeeded()
-    await editButton.click()
+    // 新交互：行内「更多」菜单 → 编辑基础信息（共用 Dialog）
+    const moreButton = row.getByRole('button', { name: '更多操作' })
+    await expect(moreButton).toBeVisible({ timeout: 10_000 })
+    await moreButton.scrollIntoViewIfNeeded()
+    await moreButton.click()
+    await page.getByRole('menuitem', { name: '编辑基础信息' }).click()
     await expect(page.locator('#project-modal-name')).toBeVisible({ timeout: 10_000 })
 
     const newName = `管理操作项目改-${Date.now().toString(36)}`
@@ -111,16 +112,19 @@ test.describe.serial('后台管理操作 e2e', () => {
     const row = page.locator('table tbody tr').filter({ hasText: adminProjectKey })
     await expect(row).toBeVisible({ timeout: 15_000 })
 
-    // 停用（原生 confirm 自动接受）
-    page.on('dialog', (dialog) => dialog.accept())
-    await row.getByRole('button', { name: '停用' }).click()
+    // 停用：更多菜单 → 停用 → ConfirmDialog 二次确认
+    await row.getByRole('button', { name: '更多操作' }).click()
+    await page.getByRole('menuitem', { name: '停用', exact: true }).click()
+    await page.getByRole('button', { name: '确认', exact: true }).click()
 
     // 该行出现「已停用」状态徽章（限定在项目行内，避免命中筛选器同名标签）
     const rowDisabled = page.locator('table tbody tr').filter({ hasText: adminProjectKey })
     await expect(rowDisabled.getByText('已停用').first()).toBeVisible({ timeout: 15_000 })
 
     // 启用
-    await rowDisabled.getByRole('button', { name: '启用' }).click()
+    await rowDisabled.getByRole('button', { name: '更多操作' }).click()
+    await page.getByRole('menuitem', { name: '启用', exact: true }).click()
+    await page.getByRole('button', { name: '确认', exact: true }).click()
     await expect(rowDisabled.getByText('已停用')).toHaveCount(0, { timeout: 15_000 })
   })
 

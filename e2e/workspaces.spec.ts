@@ -53,14 +53,14 @@ test.describe.serial('补全工作区与页面 e2e', () => {
     await expect(page.getByText('activate', { exact: false }).first()).toBeVisible({ timeout: 10_000 })
   })
 
-  test('3. 数据统计页渲染统计卡片与运营洞察', async ({ page }) => {
+  test('3. 概览页渲染 KPI、使用率与 License API 指标', async ({ page }) => {
     await gotoDashboard(page)
     await expect(page.getByRole('heading', { name: '概览' })).toBeVisible()
-    for (const label of ['总激活码数', '已使用', '可用激活码']) {
+    for (const label of ['总激活码数', '已使用', '可用', '已过期']) {
       await expect(page.getByText(label, { exact: true }).first()).toBeVisible()
     }
     await expect(page.getByText('使用率统计').first()).toBeVisible()
-    await expect(page.getByText('运营洞察').first()).toBeVisible()
+    await expect(page.getByText(/License API 指标/).first()).toBeVisible()
   })
 
   test('4. 时间卡（TIME 型）发码并在公开 API 激活', async ({ page, request }) => {

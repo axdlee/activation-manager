@@ -10,11 +10,7 @@ import { DashboardModal } from '@/components/dashboard-modal'
 import { DashboardPaginationBar } from '@/components/dashboard-pagination-bar'
 import { DashboardProjectManagementRow } from '@/components/dashboard-project-management-row'
 import { DashboardSectionHeader } from '@/components/dashboard-section-header'
-import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
-import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
-import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
 import {
-  projectWorkspaceTabs,
   type ProjectWorkspaceTab,
 } from '@/lib/dashboard-workspace-tabs'
 import {
@@ -118,8 +114,6 @@ type ProjectWorkspaceProps = {
 
 const defaultPanelClassName =
   'rounded-lg border border-border/70 bg-card shadow-card'
-const defaultWorkspaceSummaryCardClassName =
-  'rounded-lg border border-border bg-card px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
   'w-full rounded-md border border-border bg-card px-4 py-2.5 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/50 focus:ring-4 focus:ring-primary/20 disabled:bg-card disabled:text-muted-foreground'
 const defaultPrimaryButtonClassName =
@@ -209,7 +203,6 @@ export function ProjectWorkspace({
   createForm,
   manageView,
   panelClassName = defaultPanelClassName,
-  workspaceSummaryCardClassName = defaultWorkspaceSummaryCardClassName,
   compactInputClassName = defaultCompactInputClassName,
   primaryButtonClassName = defaultPrimaryButtonClassName,
   ghostButtonClassName = defaultGhostButtonClassName,
@@ -217,7 +210,6 @@ export function ProjectWorkspace({
   paginationActiveButtonClassName = defaultPaginationActiveButtonClassName,
 }: ProjectWorkspaceProps) {
   const { t } = useI18n()
-  const normalizedActiveTab = activeTab === 'create' ? 'manage' : activeTab
   const [editingBasicsProjectId, setEditingBasicsProjectId] = useState<number | null>(null)
   const [editingRebindProjectId, setEditingRebindProjectId] = useState<number | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(activeTab === 'create')
@@ -325,48 +317,18 @@ export function ProjectWorkspace({
 
   return (
     <div className="space-y-6">
-      <div className={panelClassName + ' !py-3'}>
-        <WorkspaceHeroPanel
-          badge={t('projws.badge', '项目工作区')}
-          title={t('projws.title', '项目管理中心')}
-          description={t('projws.description', '以简洁表格呈现项目核心信息，名称、描述与换绑策略均可随时维护。')}
-          gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.1),transparent_30%)]"
-          metrics={
-            <div className="grid grid-cols-2 gap-3">
-              <WorkspaceMetricCard
-                label={t('projws.enabledLabel', '启用中')}
-                value={enabledProjectsCount}
-                description={t('projws.enabledDescription', '当前可正常发码的项目')}
-                className={workspaceSummaryCardClassName}
-              />
-              <WorkspaceMetricCard
-                label={t('projws.disabledLabel', '已停用')}
-                value={disabledProjectsCount}
-                description={t('projws.disabledDescription', '暂不允许继续发码的项目')}
-                className={workspaceSummaryCardClassName}
-              />
-            </div>
-          }
-          tabs={
-            <div className="mt-6 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="min-w-0 xl:flex-1">
-                <WorkspaceTabNav
-                  tabs={projectWorkspaceTabs}
-                  activeTab={normalizedActiveTab}
-                  onChange={onTabChange}
-                  badgeTextClassName="text-sm"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleOpenCreateModal}
-                className={`w-full xl:w-auto ${primaryButtonClassName}`}
-              >
-                {t('projws.createProject', '新建项目')}
-              </button>
-            </div>
-          }
-        />
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="text-sm text-muted-foreground">
+          {t('projws.enabledLabel', '启用中')} {enabledProjectsCount} · {t('projws.disabledLabel', '已停用')}{' '}
+          {disabledProjectsCount}
+        </div>
+        <button
+          type="button"
+          onClick={handleOpenCreateModal}
+          className={`w-full xl:w-auto ${primaryButtonClassName}`}
+        >
+          {t('projws.createProject', '新建项目')}
+        </button>
       </div>
 
       <div className={`${panelClassName} p-6`}>

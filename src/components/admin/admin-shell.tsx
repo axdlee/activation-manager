@@ -23,8 +23,10 @@ import {
   KeySquare,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/i18n-provider'
-import { resolveLegacyAdminTab } from '@/lib/admin-route-map'
+import { resolveLegacyAdminTab, ADMIN_ROUTES } from '@/lib/admin-route-map'
 import type { DashboardTabKey } from '@/lib/dashboard-tab-config'
+
+const ADMIN_SECURITY_ROUTE = ADMIN_ROUTES.security
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   stats: LayoutDashboard,
@@ -84,6 +86,10 @@ export function AdminShell({ activeTab, username = 'admin', onLogout, children }
           activeTab={activeTab as DashboardTabKey}
           onTabChange={(key: DashboardTabKey) => {
             window.location.assign(resolveLegacyAdminTab(key))
+          }}
+          onOpenChangePassword={() => {
+            // 账户安全为独立任务页（设计文档：修改密码移入用户菜单 + 可寻址深链）
+            window.location.assign(ADMIN_SECURITY_ROUTE)
           }}
           brandTitle={t('dash.brand.title', '激活码管理后台')}
           brandBadge={t('dash.brand.badge', '授权运营中台')}

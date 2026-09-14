@@ -14,6 +14,8 @@ export type UseProjectWorkspaceOptions = {
   onSetSelectedProjectKey?: (key: string) => void
   onSetStatsProjectFilter?: (filter: 'all' | string) => void
   onSetConsumptionTrendCompareProjectKey?: (key: 'none' | string) => void
+  /** 危险操作确认；缺省回退原生 confirm（旧 dashboard 行为不变） */
+  onConfirmRequest?: (message: string) => boolean | Promise<boolean>
 }
 
 export function useProjectWorkspace(options: UseProjectWorkspaceOptions) {
@@ -23,7 +25,13 @@ export function useProjectWorkspace(options: UseProjectWorkspaceOptions) {
     onFetchProjects,
     onFetchStats,
     onSetProjectWorkspaceTab,
+    onConfirmRequest,
   } = options
+
+  const requestConfirmation = useCallback(
+    (message: string) => Promise.resolve(onConfirmRequest ? onConfirmRequest(message) : window.confirm(message)),
+    [onConfirmRequest],
+  )
 
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectKey, setNewProjectKey] = useState('')
@@ -92,7 +100,8 @@ export function useProjectWorkspace(options: UseProjectWorkspaceOptions) {
 
   const handleToggleProjectStatus = useCallback(async (project: Project) => {
     const actionLabel = project.isEnabled ? '停用' : '启用'
-    if (!confirm(`确定要${actionLabel}项目「${project.name}」吗？`)) return
+    const confirmed = await requestConfirmation(`确定要${actionLabel}项目「${project.name}」吗？`)
+    if (!confirmed) return
 
     try {
       onLoadingChange?.(true)
@@ -114,7 +123,7 @@ export function useProjectWorkspace(options: UseProjectWorkspaceOptions) {
     } finally {
       onLoadingChange?.(false)
     }
-  }, [onShowMessage, onLoadingChange, onFetchProjects, onFetchStats])
+  }, [onShowMessage, onLoadingChange, onFetchProjects, onFetchStats, requestConfirmation])
 
   const handleProjectNameChange = useCallback((projectId: number, value: string) => {
     setProjectNameDrafts((current) => ({ ...current, [projectId]: value }))
@@ -220,7 +229,10 @@ export function useProjectWorkspace(options: UseProjectWorkspaceOptions) {
   }, [projectRebindPolicyDrafts, projectRebindCooldownMinutesDrafts, projectRebindMaxCountDrafts, onShowMessage, onLoadingChange, onFetchProjects, onFetchStats])
 
   const handleDeleteProject = useCallback(async (project: Project) => {
-    if (!confirm(`确定要删除项目「${project.name}」吗？该操作不可恢复。`)) return
+    const confirmed = await requestConfirmation(
+      `确定要删除项目「${project.name}」吗？该操作不可恢复。`,
+    )
+    if (!confirmed) return
 
     try {
       onLoadingChange?.(true)
@@ -241,7 +253,7 @@ export function useProjectWorkspace(options: UseProjectWorkspaceOptions) {
     } finally {
       onLoadingChange?.(false)
     }
-  }, [onShowMessage, onLoadingChange, onFetchProjects, onFetchStats])
+  }, [onShowMessage, onLoadingChange, onFetchProjects, onFetchStats, requestConfirmation])
 
   return {
     newProjectName,
