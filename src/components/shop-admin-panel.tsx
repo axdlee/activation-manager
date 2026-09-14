@@ -8,58 +8,16 @@ import { panelClassName } from '@/lib/dashboard-class-names'
 import { DashboardModal } from '@/components/dashboard-modal'
 import { useI18n } from '@/lib/i18n/i18n-provider'
 
-type ShopProduct = {
-  id: number
-  name: string
-  description: string | null
-  projectKey: string
-  licenseMode: string
-  cardType: string | null
-  validDays: number | null
-  totalCount: number | null
-  priceInCents: number
-  isEnabled: boolean
-  sortOrder: number
-  stockMode: string
-}
-
-type ShopOrder = {
-  id: number
-  orderNo: string
-  productName: string
-  quantity: number
-  amountInCents: number
-  status: string
-  provider: string
-  contactEmail: string | null
-  contactPhone: string | null
-  contactWechat: string | null
-  paymentNote: string | null
-  paidAt: string | null
-  fulfilledAt: string | null
-  createdAt: string
-}
-
-type PaymentConfig = {
-  provider: string
-  configJson: string
-  isEnabled: boolean
-  requiredConfigKeys?: string[]
-  missingKeys?: string[]
-  configComplete?: boolean
-}
-
-type ProjectOption = {
-  id: number
-  projectKey: string
-  name: string
-}
+import {
+  formatPrice,
+  getShopOrderStatusTone,
+  type ShopOrder,
+  type ShopPaymentConfig,
+  type ShopProduct,
+  type ShopProjectOption,
+} from '@/lib/shop-admin-data'
 
 type ShopAdminTab = 'products' | 'orders' | 'channels'
-
-function formatPrice(cents: number) {
-  return `¥${(cents / 100).toFixed(2)}`
-}
 
 const statusLabelMap: Record<string, [string, string]> = {
   pending: ['shopadmin.statusPending', '待支付'],
@@ -68,20 +26,13 @@ const statusLabelMap: Record<string, [string, string]> = {
   cancelled: ['shopadmin.statusCancelled', '已取消'],
 }
 
-const statusToneMap: Record<string, string> = {
-  pending: 'text-amber-400',
-  paid: 'text-blue-400',
-  fulfilled: 'text-emerald-400',
-  cancelled: 'text-muted-foreground',
-}
-
 export function ShopAdminPanel({ initialTab = 'products' }: { initialTab?: ShopAdminTab }) {
   const { t } = useI18n()
   const [tab, setTab] = useState<ShopAdminTab>(initialTab)
   const [products, setProducts] = useState<ShopProduct[]>([])
   const [orders, setOrders] = useState<ShopOrder[]>([])
-  const [configs, setConfigs] = useState<PaymentConfig[]>([])
-  const [projects, setProjects] = useState<ProjectOption[]>([])
+  const [configs, setConfigs] = useState<ShopPaymentConfig[]>([])
+  const [projects, setProjects] = useState<ShopProjectOption[]>([])
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
   const [webhookSecret, setWebhookSecret] = useState('')
@@ -142,7 +93,7 @@ export function ShopAdminPanel({ initialTab = 'products' }: { initialTab?: ShopA
     ])
     const productData = (await productRes.json()) as { products?: ShopProduct[] }
     const orderData = (await orderRes.json()) as { orders?: ShopOrder[] }
-    const configData = (await configRes.json()) as { configs?: PaymentConfig[] }
+    const configData = (await configRes.json()) as { configs?: ShopPaymentConfig[] }
 
     setProducts(productData.products ?? [])
     setOrders(orderData.orders ?? [])
@@ -449,7 +400,7 @@ export function ShopAdminPanel({ initialTab = 'products' }: { initialTab?: ShopA
     }
   }
 
-  const handleToggleChannel = async (config: PaymentConfig) => {
+  const handleToggleChannel = async (config: ShopPaymentConfig) => {
     try {
       await fetch('/api/admin/shop/payment-configs', {
         method: 'POST',
@@ -746,7 +697,7 @@ export function ShopAdminPanel({ initialTab = 'products' }: { initialTab?: ShopA
                     <td className="py-3 pr-4 font-semibold text-foreground">
                       {formatPrice(order.amountInCents)}
                     </td>
-                    <td className={`py-3 pr-4 font-medium ${statusToneMap[order.status] ?? ''}`}>
+                    <td className={`py-3 pr-4 font-medium ${getShopOrderStatusTone(order.status)}`}>
                       {statusLabelMap[order.status]
                         ? t(statusLabelMap[order.status][0], statusLabelMap[order.status][1])
                         : order.status}

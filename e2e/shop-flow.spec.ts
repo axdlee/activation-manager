@@ -26,6 +26,10 @@ test.describe.serial('支付自动发卡 e2e', () => {
     await page.getByText('商品管理').first().click()
     await expect(page.getByText('新建商品').first()).toBeVisible({ timeout: 10_000 })
 
+    // 新建商品已 Dialog 化：先打开弹框再填充
+    await page.getByRole('button', { name: '新建商品' }).first().click()
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
+
     // 填充商品表单
     const nameInput = page.getByPlaceholder('商品名称（如 月卡）')
     await nameInput.fill('e2e月卡')

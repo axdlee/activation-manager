@@ -1,5 +1,26 @@
-import { CanonicalAdminPage } from '@/components/admin/canonical-admin-page'
+'use client'
+
+import * as React from 'react'
+
+import { AdminShell } from '@/components/admin/admin-shell'
+import { ShopProductsPage } from '@/components/admin/shop-products-page'
+import { useOptionalToast } from '@/components/toast-provider'
 
 export default function AdminShopProductsPage() {
-  return <CanonicalAdminPage tab="shop" />
+  const { toast } = useOptionalToast()
+
+  return (
+    <AdminShell activeTab="shop">
+      <ShopProductsPage
+        onNotify={(message, type = 'success') => {
+          if (!toast) return
+          if (type === 'error') {
+            toast.error(message)
+          } else {
+            toast.success(message)
+          }
+        }}
+      />
+    </AdminShell>
+  )
 }

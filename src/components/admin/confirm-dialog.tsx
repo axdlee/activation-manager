@@ -38,6 +38,7 @@ export function ConfirmDialog({
   loading = false,
   onConfirm,
   onCancel,
+  children,
 }: ConfirmDialogProps) {
   if (!open) return null
 
@@ -63,6 +64,7 @@ export function ConfirmDialog({
           </p>
         ) : null}
         {description ? <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{description}</p> : null}
+        {children}
         <div className="mt-4 flex justify-end gap-2">
           <button
             type="button"
