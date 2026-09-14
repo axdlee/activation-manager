@@ -6,6 +6,7 @@ import { ApiDocsAdminGroupCard } from '@/components/api-docs-admin-group-card'
 import { ApiDocsDebugCommandCard } from '@/components/api-docs-debug-command-card'
 import { DashboardCodePanel } from '@/components/dashboard-code-panel'
 import { DashboardSummaryCard } from '@/components/dashboard-summary-card'
+import { CodeExampleBlock } from '@/components/admin/code-example-block'
 import { DashboardTableContainer } from '@/components/dashboard-table-container'
 import { useOptionalToast } from '@/components/toast-provider'
 import { useI18n } from '@/lib/i18n/i18n-provider'
@@ -26,6 +27,8 @@ type ApiDocsWorkspaceProps = {
   mode?: 'dashboard' | 'public'
   initialTab?: ApiDocsWorkspaceTab
   onFeedback?: (content: string, type?: 'success' | 'error') => void
+  /** false 时隐藏内部 Hero/摘要卡/分区导航，由任务页的 docs-sidebar 接管（Task 9） */
+  showChrome?: boolean
 }
 
 const summaryCardThemeMap = {
@@ -174,6 +177,7 @@ export function ApiDocsWorkspace({
   mode = 'dashboard',
   initialTab = 'overview',
   onFeedback,
+  showChrome = true,
 }: ApiDocsWorkspaceProps) {
   const { t } = useI18n()
   const isPublicMode = mode === 'public'
@@ -189,6 +193,11 @@ export function ApiDocsWorkspace({
     ? docsPublicSecondaryButtonClassName
     : publicSecondaryButtonClassName
   const [activeTab, setActiveTab] = useState<ApiDocsWorkspaceTab>(initialTab)
+
+  // 外部（任务页章节导航）驱动 initialTab 变化时同步内部状态
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [initialTab])
   const [localFeedback, setLocalFeedback] = useState<{
     text: string
     type: 'success' | 'error'
@@ -280,6 +289,7 @@ export function ApiDocsWorkspace({
 
   return (
     <div className="space-y-6">
+      {showChrome && (
       <div className={`${panelClassName} relative overflow-hidden p-6 sm:p-7`}>
         <div
           className="absolute inset-0"
@@ -389,6 +399,7 @@ export function ApiDocsWorkspace({
           </div>
         </div>
       </div>
+      )}
 
       {activeTab === 'overview' && (
         <div className="space-y-6">
@@ -691,45 +702,62 @@ export function ApiDocsWorkspace({
 
       {activeTab === 'examples' && (
         <div className="grid grid-cols-1 gap-6">
-          {apiDocsPageModel.languageSnippets.map((snippet) => (
-            <DashboardCodePanel
-              key={snippet.key}
-              panelClassName={`${panelClassName} p-6`}
-              headerClassName="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
-              header={
-                <div className="max-w-3xl">
-                  <div className="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-foreground/80">
-                    {snippet.label}
+          {apiDocsPageModel.languageSnippets.map((snippet, index) =>
+            isPublicMode ? (
+              <DashboardCodePanel
+                key={snippet.key}
+                panelClassName={`${panelClassName} p-6`}
+                headerClassName="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"
+                header={
+                  <div className="max-w-3xl">
+                    <div className="inline-flex items-center rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-foreground/80">
+                      {snippet.label}
+                    </div>
+                    <h3 className="mt-4 text-xl font-semibold text-foreground">
+                      {snippet.label}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {snippet.description}
+                    </p>
                   </div>
-                  <h3 className="mt-4 text-xl font-semibold text-foreground">
-                    {snippet.label}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {snippet.description}
-                  </p>
-                </div>
-              }
-              action={
-                <button
-                  type="button"
-                  onClick={() =>
-                    void copyToClipboard(
-                      snippet.code,
-                      t('apiws.snippetCopied', '{label} 示例已复制').replace(
-                        '{label}',
-                        snippet.label,
-                      ),
-                    )
-                  }
-                  className={primaryButtonClassName}
-                >
-                  {t('apiws.copySnippetCode', '复制示例代码')}
-                </button>
-              }
-              code={snippet.code}
-              codeClassName={isPublicMode ? publicCodeBlockClassName : undefined}
-            />
-          ))}
+                }
+                action={
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void copyToClipboard(
+                        snippet.code,
+                        t('apiws.snippetCopied', '{label} 示例已复制').replace(
+                          '{label}',
+                          snippet.label,
+                        ),
+                      )
+                    }
+                    className={primaryButtonClassName}
+                  >
+                    {t('apiws.copySnippetCode', '复制示例代码')}
+                  </button>
+                }
+                code={snippet.code}
+                codeClassName={isPublicMode ? publicCodeBlockClassName : undefined}
+              />
+            ) : (
+              <CodeExampleBlock
+                key={snippet.key}
+                title={`${snippet.label} · ${snippet.description}`}
+                code={snippet.code}
+                defaultOpen={index === 0}
+                onCopy={() =>
+                  notify(
+                    t('apiws.snippetCopied', '{label} 示例已复制').replace(
+                      '{label}',
+                      snippet.label,
+                    ),
+                  )
+                }
+              />
+            ),
+          )}
         </div>
       )}
 
