@@ -40,7 +40,7 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (data.success) {
-        router.push('/admin/dashboard')
+        router.push('/admin/overview')
       } else {
         setError(data.message || '登录失败')
       }
