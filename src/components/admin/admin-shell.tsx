@@ -60,6 +60,7 @@ export function AdminShell({ activeTab, username = 'admin', onLogout, children }
             label: meta.label,
             shortLabel: tab.shortLabel,
             description: meta.description,
+            group: tab.group,
             icon: ICONS[tab.key] ?? ListTree,
           }
         }),

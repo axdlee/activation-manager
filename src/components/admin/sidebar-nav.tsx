@@ -50,6 +50,7 @@ export type NavItem = {
   label: string
   shortLabel: string
   description: string
+  group?: string
   icon: React.ComponentType<{ className?: string }>
 }
 
