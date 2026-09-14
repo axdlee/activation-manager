@@ -47,7 +47,9 @@ test.describe.serial('后台管理操作 e2e', () => {
   test('1. 激活码管理：筛选后导出 CSV', async ({ page }) => {
     await gotoDashboard(page)
     await page.goto('/admin/licenses')
-    await expect(page.locator('h2', { hasText: '激活码管理中心' })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('heading', { name: '激活码', exact: true })).toBeVisible({
+      timeout: 15_000,
+    })
 
     // 触发导出下载
     const downloadPromise = page.waitForEvent('download', { timeout: 15_000 })
@@ -67,15 +69,19 @@ test.describe.serial('后台管理操作 e2e', () => {
   test('2. 激活码管理：删除一个激活码', async ({ page }) => {
     await gotoDashboard(page)
     await page.goto('/admin/licenses')
-    await expect(page.locator('h2', { hasText: '激活码管理中心' })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('heading', { name: '激活码', exact: true })).toBeVisible({
+      timeout: 15_000,
+    })
 
-    // 第一行删除按钮
-    const deleteButton = page.locator('table tbody tr').first().getByRole('button', { name: '删除' })
-    await expect(deleteButton).toBeVisible({ timeout: 15_000 })
+    // 第一行「更多」菜单 → 删除
+    const firstRow = page.locator('table tbody tr').first()
+    const moreButton = firstRow.getByRole('button', { name: '更多操作' })
+    await expect(moreButton).toBeVisible({ timeout: 15_000 })
+    await moreButton.click()
+    await page.getByRole('menuitem', { name: '删除', exact: true }).click()
 
-    // 原生 confirm 对话框需要监听并接受
-    page.on('dialog', (dialog) => dialog.accept())
-    await deleteButton.click()
+    // ConfirmDialog 二次确认
+    await page.getByRole('button', { name: '确认', exact: true }).click()
 
     // 删除成功 toast（全局 Toast）
     await expect(page.getByText('激活码删除成功').first()).toBeVisible({

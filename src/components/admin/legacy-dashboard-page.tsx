@@ -2344,7 +2344,6 @@ export default function DashboardPage({ initialTab, shopTab = 'products' }: Dash
             riskCount={activationCodeStatusSummary.risk}
             filtersView={activationCodeFiltersView}
             resultsView={activationCodeResultsView}
-            workspaceSummaryCardClassName={workspaceSummaryCardClassName}
             compactInputClassName={compactInputClassName}
             primaryButtonClassName={primaryButtonClassName}
             successButtonClassName={successButtonClassName}

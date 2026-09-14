@@ -12,10 +12,18 @@ export type UseActivationCodeManagementOptions = {
   // 单码详情（含绑定历史与管理员审计），列表不再嵌套返回
   onFetchActivationCodeDetail?: (id: number) => Promise<ActivationCode | null>
   onFetchStats?: () => Promise<void>
+  /** 危险操作确认；缺省回退原生 confirm（旧 dashboard 行为不变） */
+  onConfirmRequest?: (message: string) => boolean | Promise<boolean>
 }
 
 export function useActivationCodeManagement(options: UseActivationCodeManagementOptions) {
-  const { allCodes, onShowMessage, onLoadingChange, onFetchAllCodes, onFetchActivationCodeDetail, onFetchStats } = options
+  const { allCodes, onShowMessage, onLoadingChange, onFetchAllCodes, onFetchActivationCodeDetail, onFetchStats, onConfirmRequest } = options
+
+  const requestConfirmation = useCallback(
+    (message: string) =>
+      Promise.resolve(onConfirmRequest ? onConfirmRequest(message) : window.confirm(message)),
+    [onConfirmRequest],
+  )
 
   const [selectedActivationCodeId, setSelectedActivationCodeId] = useState<number | null>(null)
   const [selectedActivationCodeDetail, setSelectedActivationCodeDetail] = useState<ActivationCode | null>(null)
@@ -159,9 +167,10 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
       return
     }
 
-    if (!confirm('确定要强制解绑这条激活码吗？这不会重置有效期和剩余次数。')) {
-      return
-    }
+    const confirmed = await requestConfirmation(
+      '确定要强制解绑这条激活码吗？这不会重置有效期和剩余次数。',
+    )
+    if (!confirmed) return
 
     try {
       onLoadingChange?.(true)
@@ -187,7 +196,7 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
     } finally {
       onLoadingChange?.(false)
     }
-  }, [selectedActivationCodeId, selectedActivationCodeAdminReason, onShowMessage, onLoadingChange, refreshActivationCodesAndKeepSelection])
+  }, [selectedActivationCodeId, selectedActivationCodeAdminReason, onShowMessage, onLoadingChange, refreshActivationCodesAndKeepSelection, requestConfirmation])
 
   const handleForceRebindActivationCode = useCallback(async () => {
     if (selectedActivationCodeId === null) {
@@ -201,9 +210,10 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
       return
     }
 
-    if (!confirm(`确定要将该激活码强制换绑到设备「${machineId}」吗？`)) {
-      return
-    }
+    const confirmed = await requestConfirmation(
+      `确定要将该激活码强制换绑到设备「${machineId}」吗？`,
+    )
+    if (!confirmed) return
 
     try {
       onLoadingChange?.(true)
@@ -231,10 +241,11 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
     } finally {
       onLoadingChange?.(false)
     }
-  }, [selectedActivationCodeId, selectedActivationCodeTargetMachineId, selectedActivationCodeAdminReason, onShowMessage, onLoadingChange, refreshActivationCodesAndKeepSelection])
+  }, [selectedActivationCodeId, selectedActivationCodeTargetMachineId, selectedActivationCodeAdminReason, onShowMessage, onLoadingChange, refreshActivationCodesAndKeepSelection, requestConfirmation])
 
   const handleDeleteCode = useCallback(async (id: number) => {
-    if (!confirm('确定要删除这个激活码吗？')) return
+    const confirmed = await requestConfirmation('确定要删除这个激活码吗？')
+    if (!confirmed) return
 
     try {
       const response = await fetch('/api/admin/codes/delete', {
@@ -254,10 +265,13 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
     } catch (error) {
       onShowMessage?.('网络错误，请重试', 'error')
     }
-  }, [onShowMessage, refreshActivationCodesAndKeepSelection, onFetchStats])
+  }, [onShowMessage, refreshActivationCodesAndKeepSelection, onFetchStats, requestConfirmation])
 
   const handleCleanupExpired = useCallback(async () => {
-    if (!confirm('确定要清理所有过期激活码的绑定关系吗？这将允许之前绑定过期激活码的机器使用新激活码。')) return
+    const confirmed = await requestConfirmation(
+      '确定要清理所有过期激活码的绑定关系吗？这将允许之前绑定过期激活码的机器使用新激活码。',
+    )
+    if (!confirmed) return
 
     try {
       onLoadingChange?.(true)
@@ -279,7 +293,7 @@ export function useActivationCodeManagement(options: UseActivationCodeManagement
     } finally {
       onLoadingChange?.(false)
     }
-  }, [onShowMessage, onLoadingChange, refreshActivationCodesAndKeepSelection, onFetchStats])
+  }, [onShowMessage, onLoadingChange, refreshActivationCodesAndKeepSelection, onFetchStats, requestConfirmation])
 
   return {
     selectedActivationCodeId,

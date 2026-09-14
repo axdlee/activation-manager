@@ -13,8 +13,6 @@ import { DashboardSectionHeader } from '@/components/dashboard-section-header'
 import { DashboardStatTile } from '@/components/dashboard-stat-tile'
 import { DashboardSummaryStrip } from '@/components/dashboard-summary-strip'
 import { DashboardTokenList } from '@/components/dashboard-token-list'
-import { WorkspaceHeroPanel } from '@/components/workspace-hero-panel'
-import { WorkspaceMetricCard } from '@/components/workspace-metric-card'
 import { WorkspaceTabNav } from '@/components/workspace-tab-nav'
 import {
   activationCodeWorkspaceTabs,
@@ -171,7 +169,6 @@ type ActivationCodeWorkspaceProps<TCode extends ActivationCodeWorkspaceCode = Ac
   filtersView: ActivationCodeWorkspaceFiltersView
   resultsView: ActivationCodeWorkspaceResultsView<TCode>
   panelClassName?: string
-  workspaceSummaryCardClassName?: string
   compactInputClassName?: string
   primaryButtonClassName?: string
   successButtonClassName?: string
@@ -183,8 +180,6 @@ type ActivationCodeWorkspaceProps<TCode extends ActivationCodeWorkspaceCode = Ac
 
 const defaultPanelClassName =
   'rounded-lg border border-border/70 bg-card shadow-card'
-const defaultWorkspaceSummaryCardClassName =
-  'rounded-lg border border-border bg-card px-4 py-4 shadow-sm'
 const defaultCompactInputClassName =
   'w-full rounded-md border border-border bg-card px-4 py-2.5 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/50 focus:ring-4 focus:ring-primary/20 disabled:bg-card disabled:text-muted-foreground'
 const defaultPrimaryButtonClassName =
@@ -437,7 +432,6 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
   filtersView,
   resultsView,
   panelClassName = defaultPanelClassName,
-  workspaceSummaryCardClassName = defaultWorkspaceSummaryCardClassName,
   compactInputClassName = defaultCompactInputClassName,
   primaryButtonClassName = defaultPrimaryButtonClassName,
   successButtonClassName = defaultSuccessButtonClassName,
@@ -464,42 +458,24 @@ export function ActivationCodeWorkspace<TCode extends ActivationCodeWorkspaceCod
 
   return (
     <div className="space-y-6">
-      <div className={panelClassName}>
-        <WorkspaceHeroPanel
-          badge={t('codews.badge', '激活码工作区')}
-          title={t('codews.title', '激活码管理中心')}
-          description={t('codews.description', '集中查看激活码状态与剩余信息，单码的绑定详情和管理操作可随时展开处理。')}
-          gradientClassName="bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.1),transparent_30%)]"
-          metrics={
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <WorkspaceMetricCard
-                label={t('codews.matchedLabel', '当前匹配')}
-                value={matchedCount}
-                description={t('codews.matchedDescription', '筛选后的激活码记录总数')}
-                className={workspaceSummaryCardClassName}
-              />
-              <WorkspaceMetricCard
-                label={t('codews.coverageLabel', '覆盖项目')}
-                value={projectCoverage}
-                description={t('codews.coverageDescription', '当前结果涉及的项目数')}
-                className={workspaceSummaryCardClassName}
-              />
-              <WorkspaceMetricCard
-                label={t('codews.riskLabel', '风险项')}
-                value={riskCount}
-                description={t('codews.riskDescription', '已过期或已耗尽的记录')}
-                className={workspaceSummaryCardClassName}
-              />
-            </div>
-          }
-          tabs={
-            <WorkspaceTabNav
-              tabs={activationCodeWorkspaceTabs}
-              activeTab={activeTab}
-              onChange={onTabChange}
-            />
-          }
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <WorkspaceTabNav
+          tabs={activationCodeWorkspaceTabs}
+          activeTab={activeTab}
+          onChange={onTabChange}
         />
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+          <span>
+            {t('codews.matchedLabel', '当前匹配')} <span className="tabular-nums text-foreground">{matchedCount}</span>
+          </span>
+          <span>
+            {t('codews.coverageLabel', '覆盖项目')}{' '}
+            <span className="tabular-nums text-foreground">{projectCoverage}</span>
+          </span>
+          <span>
+            {t('codews.riskLabel', '风险项')} <span className="tabular-nums text-foreground">{riskCount}</span>
+          </span>
+        </div>
       </div>
 
       {activeTab === 'filters' ? (

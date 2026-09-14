@@ -168,7 +168,7 @@ test('ActivationCodeWorkspace 在 filters tab 渲染筛选表单、当前条件�
     React.createElement(ActivationCodeWorkspace, createProps()),
   )
 
-  assert.equal(html.includes('激活码管理中心'), true)
+  // Hero 标题已由任务型路由的 PageHeader 承担，workspace 内不再重复
   assert.equal(html.includes('筛选与导出'), true)
   assert.equal(html.includes('搜索激活码或机器ID'), true)
   assert.equal(html.includes('状态筛选'), true)
