@@ -15,10 +15,6 @@ let licenseCode = ''
 let requestId1 = ''
 let requestId2 = ''
 
-async function clickDashboardTab(page: Page, tabLabel: string) {
-  await page.locator('nav button', { hasText: tabLabel }).first().click()
-}
-
 async function gotoDashboard(page: Page) {
   await page.goto('/admin/overview')
   await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible()
