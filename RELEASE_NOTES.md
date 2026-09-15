@@ -1,3 +1,37 @@
+# Release Notes — Activation Manager v2.7.0
+
+> 管理后台任务型全量重构：12 个可深链任务页，旧入口零失效
+> 覆盖范围：`v2.6.0..HEAD`
+
+---
+
+## 🧭 管理后台任务型重构
+
+- **从「功能模块拼装」到「按任务工作」**：原来 10 个 tab 挤在一个单页里，
+  现在拆成 12 个独立路由任务页，浏览器前进/后退/刷新/分享全部可靠：
+
+  ```
+  /admin/overview        /admin/projects         /admin/licenses
+  /admin/licenses/generate                       /admin/consumptions
+  /admin/audit           /admin/integration      /admin/shop/products
+  /admin/shop/orders     /admin/shop/payment     /admin/settings
+  /admin/settings/security
+  ```
+
+- **旧链接兼容**：`/admin/dashboard?tab=xxx` 自动跳转到上表对应路由
+- **信息架构归位**：创建/编辑用 Dialog、详情用抽屉、危险操作二次确认、
+  列表筛选与分页写入 URL、空态/错误态/未保存状态均有明确反馈
+- **可访问性**：页面唯一 h1、icon 按钮 aria-label、弹框 labelledby、
+  触控目标 ≥40px、RTL 支持；桌面/平板/手机三档无横向溢出
+- **操作手册**：见 `docs/admin-console-operations.md`
+
+## 兼容性
+
+- API 契约、数据库模型、权限边界、通知/支付逻辑**完全不变**
+- 旧 dashboard 路由与 e2e 选择器已同步迁移；业务 hooks 复用，行为一致
+
+---
+
 # Release Notes — Activation Manager v2.6.0
 
 > 全项目 i18n：后台组件 + 服务端消息 + 10 语言词典
