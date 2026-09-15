@@ -17,7 +17,7 @@ let requestId2 = ''
 
 async function gotoDashboard(page: Page) {
   await page.goto('/admin/overview')
-  await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '概览', exact: true })).toBeVisible()
 }
 
 test.describe.serial('激活码系统 e2e 冒烟', () => {
@@ -28,9 +28,9 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
 
     await gotoDashboard(page)
     await page.goto('/admin/projects')
-    await expect(page.getByRole('button', { name: '新建项目' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '新建项目' }).first()).toBeVisible()
 
-    await page.getByRole('button', { name: '新建项目' }).click()
+    await page.getByRole('button', { name: '新建项目' }).first().click()
     await expect(page.locator('#create-project-form')).toBeVisible()
 
     await page.locator('#create-project-name').fill(projectName)
@@ -161,14 +161,16 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
     expect(requestIds).toContain(requestId2)
     expect(requestIds.filter((id) => id === requestId1).length).toBe(1)
 
-    // UI 侧：消费日志工作区，切到筛选 tab 搜索 requestId2
+    // UI 侧：消费日志任务页搜索 requestId2（自动刷新开启）
     await gotoDashboard(page)
     await page.goto('/admin/consumptions')
-    await page.getByRole('button', { name: /筛选与刷新/ }).first().click()
-    await page.locator('#consumption-search-term').fill(requestId2)
-    await page.getByRole('button', { name: /查看日志列表/ }).first().click()
+    await page.getByLabel('搜索 requestId / 机器ID / 激活码').fill(requestId2)
+    // 新信息架构：表格不直接展示 requestId，行详情抽屉呈现排障字段
+    const detailButton = page.locator('table tbody tr').first().getByRole('button', { name: '详情' })
+    await expect(detailButton).toBeVisible({ timeout: 15_000 })
+    await detailButton.click()
     await expect(
-      page.locator('table').getByText(requestId2, { exact: true }).first(),
+      page.getByRole('dialog').getByText(requestId2, { exact: true }),
     ).toBeVisible({ timeout: 15_000 })
   })
 
@@ -176,7 +178,7 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
     await gotoDashboard(page)
     await page.goto('/admin/audit')
     await expect(
-      page.locator('h3', { hasText: '审计日志列表' }),
+      page.getByRole('heading', { name: '审计中心', exact: true }),
     ).toBeVisible({ timeout: 15_000 })
 
     // 审计日志是服务端分页，默认最新在前；刚发生的操作应出现在第一页
@@ -192,23 +194,17 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
     await gotoDashboard(page)
     await page.goto('/admin/audit')
     await expect(
-      page.locator('h3', { hasText: '审计日志列表' }),
+      page.getByRole('heading', { name: '审计中心', exact: true }),
     ).toBeVisible({ timeout: 15_000 })
 
-    // 切到「筛选与导出」，输入一个不可能命中的关键词
-    await page.getByRole('button', { name: /筛选与导出/ }).first().click()
-    await page.locator('#audit-log-search-term').fill(`no-such-keyword-${Date.now()}`)
-
-    // 切回日志列表：自动刷新 effect 应以新筛选条件重新拉取，得到空结果
-    await page.getByRole('button', { name: /日志列表/ }).first().click()
+    // 输入不可能命中的关键词：筛选变化自动重新拉取，得到空结果
+    await page.getByLabel('搜索管理员 / 目标 / 原因').fill(`no-such-keyword-${Date.now()}`)
     await expect(
-      page.getByText('暂无匹配的管理员审计日志').first(),
+      page.getByText('没有匹配的操作记录').first(),
     ).toBeVisible({ timeout: 15_000 })
 
-    // 重置筛选：应恢复完整日志列表
-    await page.getByRole('button', { name: /筛选与导出/ }).first().click()
-    await page.getByRole('button', { name: '重置筛选' }).click()
-    await page.getByRole('button', { name: /日志列表/ }).first().click()
+    // 清空关键词：自动恢复完整日志列表
+    await page.getByLabel('搜索管理员 / 目标 / 原因').fill('')
     await expect(
       page.locator('table').getByText('创建项目', { exact: true }).first(),
     ).toBeVisible({ timeout: 15_000 })
@@ -218,7 +214,7 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
     await gotoDashboard(page)
     await page.goto('/admin/licenses')
     await expect(
-      page.locator('h2', { hasText: '激活码管理中心' }).first(),
+      page.getByRole('heading', { name: '激活码', exact: true }),
     ).toBeVisible({ timeout: 15_000 })
 
     // 刚生成的激活码应出现在列表中（服务端分页第一页）
@@ -226,12 +222,10 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
       page.locator('table').getByText(licenseCode, { exact: true }).first(),
     ).toBeVisible({ timeout: 15_000 })
 
-    // 用不存在的关键词筛选应显示空态（搜索框在「筛选与导出」tab）
-    await page.getByRole('button', { name: /筛选与导出/ }).first().click()
-    await page.locator('#activation-code-search-term').fill(`no-such-code-${Date.now()}`)
-    await page.getByRole('button', { name: '查看结果列表' }).click()
+    // 用不存在的关键词筛选应显示空态（工具栏搜索 + 自动刷新）
+    await page.getByLabel('搜索激活码或机器ID').fill(`no-such-code-${Date.now()}`)
     await expect(
-      page.getByText(/暂无匹配的激活码记录/).first(),
+      page.getByText('没有匹配的激活码').first(),
     ).toBeVisible({ timeout: 15_000 })
   })
 })

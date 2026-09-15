@@ -236,7 +236,7 @@ export function ShopOrdersPage({ initialOrders, onNotify }: ShopOrdersPageProps)
                             type="button"
                             onClick={() => void handleConfirmOrder(order)}
                             disabled={busy}
-                            className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow transition hover:bg-primary/90 disabled:opacity-50"
+                            className="inline-flex h-10 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow transition hover:bg-primary/90 disabled:opacity-50"
                           >
                             {t('shopadmin.confirmOrderButton', '确认收款发卡')}
                           </button>

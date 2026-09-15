@@ -50,6 +50,14 @@ export type AdminShellProps = {
 
 export function AdminShell({ activeTab, username = 'admin', onLogout, children }: AdminShellProps) {
   const { t } = useI18n()
+  // Radix 菜单 onSelect 偶发重复派发：对整页跳转做一次性守卫，避免二次导航刷掉用户已填内容
+  const navigatingRef = React.useRef(false)
+  const navigateOnce = React.useCallback((url: string) => {
+    console.log('[NAV-DEBUG] navigateOnce called:', url, 'already:', navigatingRef.current)
+    if (navigatingRef.current) return
+    navigatingRef.current = true
+    window.location.assign(url)
+  }, [])
 
   const navItems: NavItem[] = React.useMemo(
     () =>
@@ -85,11 +93,11 @@ export function AdminShell({ activeTab, username = 'admin', onLogout, children }
           tabs={navItems}
           activeTab={activeTab as DashboardTabKey}
           onTabChange={(key: DashboardTabKey) => {
-            window.location.assign(resolveLegacyAdminTab(key))
+            navigateOnce(resolveLegacyAdminTab(key))
           }}
           onOpenChangePassword={() => {
             // 账户安全为独立任务页（设计文档：修改密码移入用户菜单 + 可寻址深链）
-            window.location.assign(ADMIN_SECURITY_ROUTE)
+            navigateOnce(ADMIN_SECURITY_ROUTE)
           }}
           brandTitle={t('dash.brand.title', '激活码管理后台')}
           brandBadge={t('dash.brand.badge', '授权运营中台')}

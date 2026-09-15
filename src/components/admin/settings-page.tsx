@@ -30,6 +30,7 @@ export type SettingsPageProps = {
  * 系统设置任务页：概览（摘要 + 分区链接）→ 分区（单一表单区 + StickySaveBar）。
  * 分区内容由容器注入（SystemConfigWorkspace 切片）。
  */
+// a11y-ok: exclusive-pageheaders —— 概览/分区两个 PageHeader 互斥渲染，运行时每页仅一个
 export function SettingsPage({
   pageModel,
   activeSection,

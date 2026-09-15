@@ -8,7 +8,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 async function gotoDashboard(page: Page) {
   await page.goto('/admin/overview')
-  await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '概览', exact: true })).toBeVisible()
 }
 
 // 各测试共享数据（workers=1 串行）
@@ -21,7 +21,7 @@ test.describe.serial('后台管理操作 e2e', () => {
 
     await gotoDashboard(page)
     await page.goto('/admin/projects')
-    await page.getByRole('button', { name: '新建项目' }).click()
+    await page.getByRole('button', { name: '新建项目' }).first().click()
     await expect(page.locator('#create-project-form')).toBeVisible()
     await page.locator('#create-project-name').fill(`管理操作项目-${runId}`)
     await page.locator('#create-project-key').fill(adminProjectKey)

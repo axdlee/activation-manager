@@ -70,7 +70,7 @@ export function ConfirmDialog({
             type="button"
             onClick={handleCancel}
             disabled={loading}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -79,7 +79,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={loading}
             className={cn(
-              'inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium shadow transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+              'inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium shadow transition-colors disabled:cursor-not-allowed disabled:opacity-50',
               destructive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'bg-primary text-primary-foreground hover:bg-primary/90',
             )}
           >

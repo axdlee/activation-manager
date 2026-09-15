@@ -41,6 +41,8 @@ test.describe('设置与账户安全 e2e', () => {
     await expect(page.getByRole('heading', { name: '管理员密码工作台' })).toBeVisible({
       timeout: 15_000,
     })
+    // 等 React hydration 完成再填值，避免受控输入被重置
+    await page.waitForLoadState('networkidle')
 
     await page.locator('#currentPassword').fill('wrong-password')
     await page.locator('#newPassword').fill('NewPass123!')

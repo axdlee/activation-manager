@@ -117,7 +117,7 @@ export function ConsumptionDetailDrawer({
                 <button
                   type="button"
                   onClick={() => onCopyText?.(field.value)}
-                  className="inline-flex h-9 shrink-0 items-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground shadow-sm transition hover:bg-accent"
+                  className="inline-flex h-10 shrink-0 items-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground shadow-sm transition hover:bg-accent"
                 >
                   {t('consumptionDetail.copy', '复制')}
                 </button>

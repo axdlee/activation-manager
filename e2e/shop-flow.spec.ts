@@ -11,7 +11,7 @@ async function loginAsAdmin(page: Page) {
   await page.locator('#password').fill('123456')
   await page.getByRole('button', { name: '登录后台' }).click()
   await page.waitForURL(/\/admin\/(overview|dashboard)/, { timeout: 30_000 })
-  await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '概览', exact: true })).toBeVisible()
 }
 
 let createdOrderNo = ''

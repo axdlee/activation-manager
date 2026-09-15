@@ -31,7 +31,7 @@ export function ErrorState({ title = '加载失败', message, retry, retryLabel 
         <button
           type="button"
           onClick={retry}
-          className="mt-2 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+          className="mt-2 inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
         >
           {retryLabel}
         </button>

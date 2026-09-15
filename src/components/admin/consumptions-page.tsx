@@ -205,7 +205,7 @@ export function ConsumptionsPage({
                     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
                   onFiltersChange({ createdFrom: fmt(start), createdTo: fmt(end) })
                 }}
-                className="inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground shadow-sm transition hover:bg-accent"
+                className="inline-flex h-10 items-center rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground shadow-sm transition hover:bg-accent"
               >
                 {range.label}
               </button>
@@ -213,7 +213,7 @@ export function ConsumptionsPage({
             <button
               type="button"
               onClick={() => onFiltersChange({ createdFrom: '', createdTo: '' })}
-              className="inline-flex h-9 items-center rounded-md px-2 text-xs text-muted-foreground transition hover:text-foreground"
+              className="inline-flex h-10 items-center rounded-md px-2 text-xs text-muted-foreground transition hover:text-foreground"
             >
               {t('consumptionPage.clearRange', '清空时间')}
             </button>

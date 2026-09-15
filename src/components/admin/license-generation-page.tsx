@@ -302,7 +302,7 @@ export function LicenseGenerationPage({
                       <button
                         type="button"
                         onClick={() => onCopyCode?.(code.code)}
-                        className="inline-flex h-9 items-center gap-1 rounded-md px-2.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                        className="inline-flex h-10 items-center gap-1 rounded-md px-2.5 text-sm text-muted-foreground transition hover:bg-accent hover:text-foreground"
                       >
                         <Copy className="h-3.5 w-3.5" aria-hidden />
                         {t('licenseGen.copy', '复制')}

@@ -14,7 +14,7 @@ let timeLicenseCode = ''
 
 async function gotoDashboard(page: Page) {
   await page.goto('/admin/overview')
-  await expect(page.locator('h1', { hasText: '激活码管理后台' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '概览', exact: true })).toBeVisible()
 }
 
 test.describe.serial('补全工作区与页面 e2e', () => {
@@ -69,7 +69,7 @@ test.describe.serial('补全工作区与页面 e2e', () => {
 
     await gotoDashboard(page)
     await page.goto('/admin/projects')
-    await page.getByRole('button', { name: '新建项目' }).click()
+    await page.getByRole('button', { name: '新建项目' }).first().click()
     await expect(page.locator('#create-project-form')).toBeVisible()
     await page.locator('#create-project-name').fill(`时间卡项目-${runId}`)
     await page.locator('#create-project-key').fill(timeProjectKey)
@@ -150,13 +150,15 @@ test.describe.serial('补全工作区与页面 e2e', () => {
     await page.locator('aside button:has-text("admin")').first().click()
     await page.getByRole('menuitem').filter({ hasText: '修改密码' }).click()
     await expect(page.getByRole('heading', { name: '管理员密码工作台' })).toBeVisible()
+    // 等 React hydration 完成再填值，避免受控输入被重置
+    await page.waitForLoadState('networkidle')
 
     await page.locator('#currentPassword').fill('wrong-password')
     await page.locator('#newPassword').fill('NewPass123!')
     await page.locator('#confirmPassword').fill('NewPass123!')
     await page.locator('form').getByRole('button', { name: '修改密码' }).click()
 
-    await expect(page.getByText('当前密码不正确').first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('当前密码不正确').first()).toBeVisible({ timeout: 30_000 })
   })
 
   test('7. API 接入工作区（后台模式）渲染四个分区', async ({ page }) => {

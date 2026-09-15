@@ -159,7 +159,7 @@ export function SidebarNav({ tabs, activeTab, onTabChange, brandTitle, brandBadg
         {collapsedMode && <span className="h-2 w-2 rounded-full bg-primary" />}
       </div>
       {!collapsedMode && (
-        <h1 className="mt-3 truncate text-lg font-semibold tracking-tight text-foreground">{brandTitle}</h1>
+        <div className="mt-3 truncate text-lg font-semibold tracking-tight text-foreground">{brandTitle}</div>
       )}
     </div>
   )

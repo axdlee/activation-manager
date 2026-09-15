@@ -3,6 +3,16 @@
 @tailwind utilities;
 
 /* =============================================================
+ * 横向溢出收口（Task 10）：根滚动器禁止横向滚动。
+ * 表格等宽内容由各自的 overflow-x-auto 容器负责横向滚动；
+ * clip 不产生滚动容器，不影响 position: sticky。
+ * ============================================================= */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* =============================================================
  * 主题令牌系统：所有颜色通过 CSS 变量定义，随 <html data-theme="..."> 切换。
  * 内置 14 套主题：深色系（dark-tech / midnight / graphite / emerald /
  *  violet / crimson / ocean / amber）+ 浅色系（aurora / sakura / forest /

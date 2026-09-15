@@ -64,7 +64,7 @@ export function CodeExampleBlock({
             void handleCopy()
           }}
           aria-label={`${t('codeBlock.copy', '复制')} ${title}`}
-          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2 text-xs font-medium text-foreground shadow-sm transition hover:bg-accent"
+          className="inline-flex h-10 shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2 text-xs font-medium text-foreground shadow-sm transition hover:bg-accent"
         >
           {copied ? (
             <Check className="h-3.5 w-3.5 text-emerald-500" aria-hidden />

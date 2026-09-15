@@ -38,7 +38,7 @@ export function StickySaveBar({ dirtyCount, saving = false, onReset, onSave, dir
           type="button"
           onClick={onReset}
           disabled={saving}
-          className="inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           重置
         </button>
@@ -46,7 +46,7 @@ export function StickySaveBar({ dirtyCount, saving = false, onReset, onSave, dir
           type="button"
           onClick={onSave}
           disabled={saving}
-          className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-4 text-xs font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-xs font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? '保存中…' : '保存更改'}
         </button>
