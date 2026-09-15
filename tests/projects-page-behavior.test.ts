@@ -27,7 +27,7 @@ const items: ProjectManagementListItem[] = [
   },
 ]
 
-function createProps(overrides: Partial<ProjectsPageProps> = {}): ProjectsPageProps {
+function createProps(overrides: Partial<ProjectsPageProps> = {}) {
   const page = {
     currentPage: 1,
     totalPages: 1,
@@ -52,10 +52,16 @@ function createProps(overrides: Partial<ProjectsPageProps> = {}): ProjectsPagePr
       spies.deleted = project.id
     },
     patched: undefined as unknown as Record<string, unknown>,
+    createdValues: undefined as unknown as Record<string, unknown>,
+    createdSubmitted: undefined as unknown as boolean,
     page: undefined as unknown as number,
     copied: undefined as unknown as string,
     toggled: undefined as unknown as number,
     deleted: undefined as unknown as number,
+    basicsChanged: undefined as unknown as { projectId: number; patch: Record<string, unknown> },
+    basicsSaved: undefined as unknown as number,
+    policyChanged: undefined as unknown as { projectId: number; patch: Record<string, unknown> },
+    policySaved: undefined as unknown as number,
   }
   const props: ProjectsPageProps = {
     loading: false,
@@ -128,14 +134,6 @@ async function renderPage(overrides?: Partial<ProjectsPageProps>) {
   return { utils, spies }
 }
 
-async function openMoreMenu() {
-  const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: '更多操作' }))
-  await user.click(await screen.findByText('编辑基础信息'))
-  await screen.findByRole('dialog')
-  return user
-}
-
 test.afterEach(() => {
   cleanup()
   document.body.removeAttribute('data-scroll-locked')
@@ -180,7 +178,6 @@ test('项目页：编辑基础信息 Dialog 填写并触发保存', async () => 
 
   // 通过详情 Drawer 进入编辑（菜单路径在 jsdom 下时序不稳定，Drawer 路径等价覆盖 handlers）
   await user.click(await screen.findByRole('button', { name: '浏览器插件' }))
-  const drawer = await screen.findByRole('dialog')
   await user.click(await screen.findByText('编辑基础信息'))
   await screen.findByRole('dialog')
 

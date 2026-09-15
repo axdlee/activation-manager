@@ -10,7 +10,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { ShopOrdersPage } from '../src/components/admin/shop-orders-page'
 import {
-  getPaginationPages,
   getSpecLabel,
   getExpiryLabel,
   getLicenseModeLabel,

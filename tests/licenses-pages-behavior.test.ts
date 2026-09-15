@@ -10,7 +10,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { LicenseGenerationPage } from '../src/components/admin/license-generation-page'
 import { LicensesPage } from '../src/components/admin/licenses-page'
-import { LicenseDetailDrawer } from '../src/components/admin/license-detail-drawer'
 import { cardTypes } from '../src/lib/dashboard-page-types'
 import type { LicenseModeValue } from '../src/lib/license-status'
 
@@ -173,11 +172,10 @@ function mgmtProps(overrides: Record<string, unknown> = {}) {
   }
   const props = {
     loading: false,
-    filters: { keyword: '', status: 'all', projectKey: 'all', cardType: 'all', page: 1 },
+    filters: { keyword: '', status: 'all' as const, projectKey: 'all', cardType: 'all', page: 1 },
     onFiltersChange: (patch: Record<string, unknown>) => {
       spies.filterPatch = patch
     },
-    filterPatch: undefined as unknown as Record<string, unknown>,
     projectOptions: [{ id: 1, name: '浏览器插件', projectKey: 'browser-plugin' }],
     availableCardTypes: ['月卡'],
     statusSummary: { unused: 1, inUse: 0, risk: 0 },

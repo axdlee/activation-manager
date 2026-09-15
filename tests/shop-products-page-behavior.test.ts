@@ -9,7 +9,7 @@ import React from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 import { ShopProductsPage } from '../src/components/admin/shop-products-page'
-import type { ShopProduct } from '../../src/lib/shop-admin-data'
+import type { ShopProduct } from '../src/lib/shop-admin-data'
 
 const products: ShopProduct[] = [
   {

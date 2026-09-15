@@ -50,23 +50,17 @@ test('admin-audit-log-ui：detail 摘要与时间线各形态', () => {
   assert.equal(summaryJson.length > 0 || summaryEmpty.length >= 0, true)
 
   const line = buildAdminOperationTimelineDescription({
-    id: 1,
     adminUsername: 'admin',
     operationType: 'FORCE_REBIND',
-    targetLabel: 'C1',
     reason: '换机',
     detailJson: '{"machineId":"m2"}',
-    createdAt: '2026-03-01T00:00:00.000Z',
   })
   assert.match(line, /admin/)
   const lineNoReason = buildAdminOperationTimelineDescription({
-    id: 2,
     adminUsername: 'root',
     operationType: 'FORCE_REBIND',
-    targetLabel: null,
     reason: null,
     detailJson: null,
-    createdAt: '2026-03-01T00:00:00.000Z',
   })
   assert.match(lineNoReason, /root/)
 })

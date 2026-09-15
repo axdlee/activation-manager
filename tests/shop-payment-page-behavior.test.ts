@@ -9,7 +9,7 @@ import React from 'react'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 import { ShopPaymentPage } from '../src/components/admin/shop-payment-page'
-import type { ShopPaymentConfig } from '../../src/lib/shop-admin-data'
+import type { ShopPaymentConfig } from '../src/lib/shop-admin-data'
 
 const configs: ShopPaymentConfig[] = [
   { provider: 'webhook', configJson: '{"secret":"old"}', isEnabled: true, configComplete: true, missingKeys: [] },
@@ -70,7 +70,7 @@ test('支付页：webhook 密钥显示切换与保存', async () => {
 
   const secret = await screen.findByPlaceholderText('输入回调密钥（留空不校验）') as HTMLInputElement
   assert.equal(secret.type, 'password')
-  fireEvent.click(screen.getByRole('button', { name: '显示', exact: true }))
+  fireEvent.click(screen.getByRole('button', { name: '显示' }))
   assert.equal((screen.getByPlaceholderText('输入回调密钥（留空不校验）') as HTMLInputElement).type, 'text')
 
   fireEvent.change(secret, { target: { value: 'new-secret' } })
