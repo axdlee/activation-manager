@@ -67,16 +67,22 @@ test.describe.serial('激活码系统 e2e 冒烟', () => {
     expect(licenseCode).toMatch(/^[A-Z0-9-]+$/)
   })
 
-  test('3. 公开 API：激活 → 状态 → 消费（含幂等重放）', async ({ request }) => {
+  test('3. 公开 API：激活 → 状态 → 消费（含幂等重放）', async ({ request, page }) => {
     expect(projectKey).not.toBe('')
     expect(licenseCode).not.toBe('')
     requestId1 = `req-e2e-${Date.now()}-a`
     requestId2 = `req-e2e-${Date.now()}-b`
 
-    // 3.1 激活
-    const activate = await request.post('/api/license/activate', {
+    // 3.1 激活（CI runner 上生成→读取→激活链路存在时序竞态，404 时退避重试）
+    let activate = await request.post('/api/license/activate', {
       data: { projectKey, code: licenseCode, machineId: MACHINE_ID },
     })
+    for (let attempt = 0; attempt < 3 && activate.status() === 404; attempt++) {
+      await page.waitForTimeout(1500 * (attempt + 1))
+      activate = await request.post('/api/license/activate', {
+        data: { projectKey, code: licenseCode, machineId: MACHINE_ID },
+      })
+    }
     expect(activate.status()).toBe(200)
     const activateBody = (await activate.json()) as {
       success: boolean
