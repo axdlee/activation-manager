@@ -366,12 +366,12 @@ export function ApiDocsWorkspace({
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white ${
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-xs font-semibold ${
                         isActive
-                          ? 'bg-primary shadow-card'
+                          ? 'bg-primary text-primary-foreground shadow-card'
                           : isPublicMode
                             ? 'bg-primary/10 text-primary ring-1 ring-brand-100'
-                            : 'bg-brand-700'
+                            : 'bg-brand-700 text-white'
                       }`}
                     >
                       {tab.shortLabel}
