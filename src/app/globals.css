@@ -201,7 +201,7 @@ body {
     --secondary: var(--surface-300);
     --secondary-foreground: var(--ink-100);
     --muted: var(--surface-200);
-    --muted-foreground: var(--ink-400);
+    --muted-foreground: var(--ink-300);
     --accent: var(--surface-300);
     --accent-foreground: var(--ink-50);
     --border: var(--surface-300);
@@ -232,7 +232,7 @@ body {
     --secondary: var(--surface-200);
     --secondary-foreground: var(--ink-100);
     --muted: var(--surface-200);
-    --muted-foreground: var(--ink-300);
+    --muted-foreground: var(--ink-200);
     --accent: var(--surface-200);
     --accent-foreground: var(--ink-50);
     --border: var(--surface-300);
