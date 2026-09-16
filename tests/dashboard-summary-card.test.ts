@@ -19,7 +19,7 @@ test('DashboardSummaryCard 会渲染统一摘要卡结构与默认样式', () =>
     html,
     /relative overflow-hidden rounded-lg border px-5 py-5 shadow-card/,
   )
-  assert.match(html, /absolute inset-x-5 top-0 h-1 rounded-full bg-ink-900/)
+  assert.match(html, /absolute inset-x-5 top-0 h-1 rounded-full bg-primary/)
   assert.match(html, /text-xs uppercase tracking-\[0\.18em\] text-muted-foreground[^>]*>配置项</)
   assert.match(html, /text-3xl font-semibold tracking-tight text-foreground[^>]*>8</)
   assert.match(html, /当前系统共有 8 个可管理配置项/) 

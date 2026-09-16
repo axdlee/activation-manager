@@ -206,7 +206,7 @@ export function ChangePasswordWorkspace({
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center rounded-md bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
+                className="inline-flex w-full items-center justify-center rounded-md bg-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
               >
                 {loading ? t('pwdws.submitting', '修改中...') : t('pwdws.submit', '修改密码')}
               </button>

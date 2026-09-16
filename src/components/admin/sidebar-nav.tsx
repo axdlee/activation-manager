@@ -106,7 +106,7 @@ export function SidebarNav({ tabs, activeTab, onTabChange, brandTitle, brandBadg
         {sections.map((section) => (
           <div key={section.group} className="flex flex-col gap-0.5">
             {!collapsedMode && (
-              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {GROUP_LABELS[section.group][locale === 'en-US' ? 'en' : 'zh']}
               </div>
             )}

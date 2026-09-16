@@ -366,12 +366,12 @@ export function ApiDocsWorkspace({
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-xs font-semibold ${
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-xs font-semibold text-white ${
                         isActive
-                          ? 'bg-primary text-white shadow-card'
+                          ? 'bg-primary shadow-card'
                           : isPublicMode
                             ? 'bg-primary/10 text-primary ring-1 ring-brand-100'
-                            : 'bg-ink-900 text-white/90'
+                            : 'bg-brand-700'
                       }`}
                     >
                       {tab.shortLabel}
@@ -418,7 +418,7 @@ export function ApiDocsWorkspace({
               {apiDocsPageModel.researchSteps.map((step) => (
                 <div key={step.step} className={featureCardClassName}>
                   <div className="flex items-start gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-ink-900 text-sm font-semibold text-white shadow-sm">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-700 text-sm font-semibold text-white shadow-sm">
                       {step.step}
                     </div>
                     <div className="min-w-0">

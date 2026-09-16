@@ -64,7 +64,7 @@ export default function LoginPage() {
             Admin Access
           </div>
           <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink-50">{t("login.title", "管理后台登录")}</h1>
-          <p className="mt-2 text-sm leading-6 text-ink-500">
+          <p className="mt-2 text-sm leading-6 text-ink-300">
             {t("login.subtitle", "登录后进入项目管理、发码、消费日志与系统配置工作台。")}
           </p>
 

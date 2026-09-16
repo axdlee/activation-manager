@@ -178,10 +178,10 @@ function renderGroupSection({
 
         <div className="flex flex-wrap gap-2">
           <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            {`${group.items.length} ${t('sysconfws.badge.itemsCount', '项配置')}`}
+            {t('sysconfws.badge.itemsCount', '项配置').replace('{count}', String(group.items.length))}
           </span>
           <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-            {`${group.items.filter((item) => item.sensitive).length} ${t('sysconfws.badge.sensitiveCount', '个敏感项')}`}
+            {t('sysconfws.badge.sensitiveCount', '个敏感项').replace('{count}', String(group.items.filter((item) => item.sensitive).length))}
           </span>
         </div>
       </div>
@@ -313,7 +313,7 @@ function renderGroupSection({
             </div>
 
             <div className={`mt-4 rounded-lg border px-4 py-3 ${groupTheme.note}`}>
-              <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] opacity-70">
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 {t('sysconfws.label.hint', '操作建议')}
               </div>
               <div className="text-sm leading-6">{item.hint}</div>
@@ -444,10 +444,10 @@ export function SystemConfigWorkspace({
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                    {`${systemConfigsCount} ${t('sysconfws.badge.itemsCount', '项配置')}`}
+                    {t('sysconfws.badge.itemsCount', '项配置').replace('{count}', String(systemConfigsCount))}
                   </span>
                   <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                    {`${sensitiveCount} ${t('sysconfws.badge.sensitiveCount', '个敏感项')}`}
+                    {t('sysconfws.badge.sensitiveCount', '个敏感项').replace('{count}', String(sensitiveCount))}
                   </span>
                   <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                     {`${whitelistEntryCount} ${t('sysconfws.badge.whitelistAddresses', '个白名单地址')}`}
@@ -458,7 +458,7 @@ export function SystemConfigWorkspace({
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center rounded-md bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
+                className="inline-flex w-full items-center justify-center rounded-md bg-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
               >
                 {loading ? t('sysconfws.action.saving', '保存中...') : t('sysconfws.action.saveConfig', '保存配置')}
               </button>
@@ -550,10 +550,10 @@ export function SystemConfigWorkspace({
 
                       <div className="mt-5 flex flex-wrap gap-2">
                         <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                          {`${group.items.length} ${t('sysconfws.badge.itemsCount', '项配置')}`}
+                          {t('sysconfws.badge.itemsCount', '项配置').replace('{count}', String(group.items.length))}
                         </span>
                         <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                          {`${group.items.filter((item) => item.sensitive).length} ${t('sysconfws.badge.sensitiveCount', '个敏感项')}`}
+                          {t('sysconfws.badge.sensitiveCount', '个敏感项').replace('{count}', String(group.items.filter((item) => item.sensitive).length))}
                         </span>
                       </div>
                     </article>
@@ -577,10 +577,10 @@ export function SystemConfigWorkspace({
 
               <div className="mt-5 flex flex-wrap gap-2">
                 <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                  {`${systemConfigsCount} ${t('sysconfws.badge.itemsCount', '项配置')}`}
+                  {t('sysconfws.badge.itemsCount', '项配置').replace('{count}', String(systemConfigsCount))}
                 </span>
                 <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                  {`${sensitiveCount} ${t('sysconfws.badge.sensitiveCount', '个敏感项')}`}
+                  {t('sysconfws.badge.sensitiveCount', '个敏感项').replace('{count}', String(sensitiveCount))}
                 </span>
                 <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                   {`${whitelistEntryCount} ${t('sysconfws.badge.whitelistAddresses', '个白名单地址')}`}
@@ -590,7 +590,7 @@ export function SystemConfigWorkspace({
               <button
                 type="button"
                 onClick={() => setActiveTab(pageModel.groups[0]?.key || 'overview')}
-                className="mt-5 inline-flex w-full items-center justify-center rounded-md bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 lg:w-auto"
+                className="mt-5 inline-flex w-full items-center justify-center rounded-md bg-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 lg:w-auto"
               >
                 {t('sysconfws.action.goFirstSection', '前往首个分区')}
               </button>

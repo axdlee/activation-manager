@@ -21,7 +21,7 @@ export function DashboardSummaryCard({
   description,
   className,
   panelClassName,
-  accentClassName = 'bg-ink-900',
+  accentClassName = 'bg-primary',
   labelClassName = 'text-xs uppercase tracking-[0.18em] text-muted-foreground',
   valueClassName = 'mt-3 text-3xl font-semibold tracking-tight text-foreground',
   descriptionClassName = 'mt-2 text-sm leading-6 text-muted-foreground',

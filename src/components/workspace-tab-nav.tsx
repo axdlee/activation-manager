@@ -38,10 +38,10 @@ export function WorkspaceTabNav<T extends string>({
           >
             <div className="flex items-start gap-3">
               <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md font-semibold ${
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md font-semibold text-white ${
                   isActive
-                    ? 'bg-primary text-white shadow-card'
-                    : 'bg-ink-900 text-white/90'
+                    ? 'bg-primary shadow-card'
+                    : 'bg-brand-700'
                 } ${badgeTextClassName}`}
               >
                 {tab.shortLabel}

@@ -20,7 +20,7 @@ test('DashboardNumberedList 会渲染默认编号卡片列表', () => {
   )
   assert.match(
     html,
-    /flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-ink-900 text-xs font-semibold text-white shadow-sm[^>]*>01</,
+    /flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-700 text-xs font-semibold text-white shadow-sm[^>]*>01</,
   )
   assert.match(html, />02</)
   assert.match(html, /修改后会立即登出旧会话/)

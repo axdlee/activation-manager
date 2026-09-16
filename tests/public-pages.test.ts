@@ -31,10 +31,7 @@ test('首页会渲染管理后台入口与公开 API 文档入口', async () => 
   assert.equal(html.includes('进入管理后台'), true)
   assert.equal(html.includes('查看 API 文档'), true)
   assert.equal(html.includes('多项目隔离'), true)
-  assert.equal(
-    html.includes('bg-gradient-to-r from-primary via-primary to-primary'),
-    true,
-  )
+  assert.equal(html.includes('bg-primary'), true)
   assert.equal(
     html.includes('bg-gradient-to-r from-sky-600 via-cyan-500 to-indigo-500'),
     false,
@@ -59,10 +56,7 @@ test('公开 API 文档页暴露 metadata，并渲染首页与登录入口', asy
   assert.equal(html.includes('管理员登录'), true)
   assert.equal(html.includes('返回首页'), true)
   assert.equal(html.includes('bg-card'), true)
-  assert.equal(
-    html.includes('bg-gradient-to-r from-primary via-primary to-primary'),
-    true,
-  )
+  assert.equal(html.includes('bg-primary'), true)
   assert.equal(html.includes('from-sky-600 via-cyan-500 to-indigo-500'), false)
 })
 

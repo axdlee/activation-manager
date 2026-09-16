@@ -174,6 +174,79 @@ body {
   --scrollbar-thumb: 227 229 236;
 }
 
+  /* =========================================================
+   * 语义 token（hsl/shadcn 体系补全）
+   * 此前 --background/--primary 等从未定义，所有 bg-primary /
+   * text-muted-foreground 类实际渲染为透明；浅色主题下墨阶反转
+   * 更造成白字白底。现按各主题色阶派生：
+   *  - 深色组 primary=brand-500（亮品牌色）+ 白字
+   *  - 浅色组 primary=brand-700（深品牌色）+ 白字，文字用深墨阶
+   * ========================================================= */
+  [data-theme='dark-tech'],
+  [data-theme='midnight'],
+  [data-theme='graphite'],
+  [data-theme='emerald'],
+  [data-theme='violet'],
+  [data-theme='crimson'],
+  [data-theme='ocean'],
+  [data-theme='amber'] {
+    --background: var(--surface-950);
+    --foreground: var(--ink-50);
+    --card: var(--surface-100);
+    --card-foreground: var(--ink-50);
+    --popover: var(--surface-200);
+    --popover-foreground: var(--ink-50);
+    --primary: var(--brand-400);
+    --primary-foreground: var(--ink-950);
+    --secondary: var(--surface-300);
+    --secondary-foreground: var(--ink-100);
+    --muted: var(--surface-200);
+    --muted-foreground: var(--ink-400);
+    --accent: var(--surface-300);
+    --accent-foreground: var(--ink-50);
+    --border: var(--surface-300);
+    --input: var(--surface-300);
+    --ring: var(--brand-500);
+    --success: var(--brand-600);
+    --success-foreground: 255 255 255;
+    --warning: var(--brand-600);
+    --warning-foreground: 255 255 255;
+    --destructive: 220 38 38;
+    --destructive-foreground: 255 255 255;
+  }
+
+  [data-theme='aurora'],
+  [data-theme='sakura'],
+  [data-theme='forest'],
+  [data-theme='sunrise'],
+  [data-theme='sepia'],
+  [data-theme='mono'] {
+    --background: var(--surface-100);
+    --foreground: var(--ink-50);
+    --card: var(--surface-100);
+    --card-foreground: var(--ink-50);
+    --popover: var(--surface-50);
+    --popover-foreground: var(--ink-50);
+    --primary: var(--brand-800);
+    --primary-foreground: 255 255 255;
+    --secondary: var(--surface-200);
+    --secondary-foreground: var(--ink-100);
+    --muted: var(--surface-200);
+    --muted-foreground: var(--ink-300);
+    --accent: var(--surface-200);
+    --accent-foreground: var(--ink-50);
+    --border: var(--surface-300);
+    --input: var(--surface-300);
+    --ring: var(--brand-500);
+    --success: var(--brand-700);
+    --success-foreground: 255 255 255;
+    --warning: var(--brand-600);
+    --warning-foreground: 255 255 255;
+    --destructive: 220 38 38;
+    --destructive-foreground: 255 255 255;
+  }
+
+
 /* ===== 极简浅色：白底深字，适合日间办公 ===== */
 [data-theme='aurora'] {
   color-scheme: light;
