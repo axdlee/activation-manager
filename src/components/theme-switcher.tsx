@@ -24,6 +24,22 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
+  // 弹出方向自适应：登录页等顶部场景贴近视口上沿，向上弹会被裁剪；
+  // 按trigger位置与面板最大高度计算，上方放不下则向下弹出。
+  const [dropUp, setDropUp] = useState(true)
+  useEffect(() => {
+    if (!open) return
+    const compute = () => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const panelHeight = Math.min(window.innerHeight * 0.7, 416)
+      setDropUp(rect.top >= panelHeight + 12 || rect.top >= window.innerHeight - rect.bottom)
+    }
+    compute()
+    window.addEventListener('resize', compute)
+    return () => window.removeEventListener('resize', compute)
+  }, [open])
+
   const handleSelect = (id: ThemeId) => {
     setTheme(id)
     setOpen(false)
@@ -66,7 +82,9 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
         <div
           role="listbox"
           aria-label={t('theme.switchTitle', '切换主题')}
-          className="absolute bottom-full left-0 z-50 mb-2 w-64 max-h-[min(70vh,26rem)] overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-modal animate-fade-in-up theme-scroll"
+          className={`absolute left-0 z-50 w-64 max-h-[min(70vh,26rem)] overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-modal theme-scroll ${
+            dropUp ? 'bottom-full mb-2 animate-fade-in-up' : 'top-full mt-2 animate-fade-in'
+          }`}
         >
           {THEMES.map((item) => {
             const isActive = item.id === theme

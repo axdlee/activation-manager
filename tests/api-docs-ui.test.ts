@@ -11,7 +11,7 @@ test('buildApiDocsPageModel 会返回正式接口、兼容接口与多语言示�
   assert.equal(model.endpoints.some((endpoint) => endpoint.path === '/api/verify'), true)
   assert.deepEqual(
     model.languageSnippets.map((snippet) => snippet.key),
-    ['sdk', 'python', 'curl'],
+    ['sdk', 'python', 'sdk-go', 'sdk-java', 'sdk-python', 'sdk-csharp', 'sdk-php', 'sdk-ruby', 'sdk-rust', 'sdk-kotlin', 'sdk-swift', 'sdk-dart', 'sdk-c', 'sdk-cpp', 'sdk-scala', 'sdk-groovy', 'sdk-lua', 'sdk-perl', 'curl'],
   )
 })
 
