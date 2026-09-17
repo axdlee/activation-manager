@@ -185,6 +185,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 export function LanguageSwitcher({ className = '' }: { className?: string }) {
   const { locale, setLocale } = useI18n()
   const [open, setOpen] = useState(false)
+  const [dropUp, setDropUp] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const current = LOCALES.find((item) => item.id === locale) ?? LOCALES[0]
 
@@ -197,6 +198,19 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  // 弹出方向自适应：贴近视口底部（如侧栏底部）时向上弹出，避免面板溢出视口
+  useEffect(() => {
+    if (!open) return
+    const compute = () => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setDropUp(rect.bottom + 288 > window.innerHeight && rect.top > window.innerHeight - rect.bottom)
+    }
+    compute()
+    window.addEventListener('resize', compute)
+    return () => window.removeEventListener('resize', compute)
   }, [open])
 
   return (
@@ -215,7 +229,9 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
       {open ? (
         <ul
           role="listbox"
-          className="absolute right-0 z-50 mt-1 max-h-72 w-40 overflow-y-auto rounded-md border border-surface-200 bg-surface-50 py-1 shadow-lg"
+          className={`absolute right-0 z-50 max-h-72 w-40 overflow-y-auto rounded-md border border-surface-200 bg-surface-50 py-1 shadow-lg ${
+            dropUp ? 'bottom-full mb-1' : 'mt-1'
+          }`}
         >
           {LOCALES.map((item) => (
             <li key={item.id} role="option" aria-selected={item.id === locale}>
