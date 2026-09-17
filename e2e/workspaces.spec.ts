@@ -59,8 +59,10 @@ test.describe.serial('补全工作区与页面 e2e', () => {
     for (const label of ['总激活码数', '已使用', '可用', '已过期']) {
       await expect(page.getByText(label, { exact: true }).first()).toBeVisible()
     }
-    await expect(page.getByText('使用率统计').first()).toBeVisible()
-    await expect(page.getByText(/License API 指标/).first()).toBeVisible()
+    // 新概览：消费趋势面积图 + 激活码构成 donut + License API 汇总
+    await expect(page.getByText('消费趋势（近 7 天）').first()).toBeVisible()
+    await expect(page.getByText('激活码构成').first()).toBeVisible()
+    await expect(page.getByText(/License API/).first()).toBeVisible()
   })
 
   test('4. 时间卡（TIME 型）发码并在公开 API 激活', async ({ page, request }) => {

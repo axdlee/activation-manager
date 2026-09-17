@@ -104,8 +104,8 @@ test.describe.serial('工程化能力 e2e', () => {
     await page.goto('/admin/overview')
     await expect(page.getByRole('heading', { name: '概览', exact: true })).toBeVisible({ timeout: 15_000 })
 
-    // 概览页直接渲染 License API 指标（5 分钟窗口）
-    await expect(page.getByText(/License API 指标/).first()).toBeVisible({ timeout: 15_000 })
+    // 概览页直接渲染 License API 汇总卡（5 分钟窗口）
+    await expect(page.getByText('License API（5 分钟窗口）').first()).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText('总请求', { exact: true }).first()).toBeVisible({ timeout: 10_000 })
 
     // 指标 API 可访问
