@@ -29,6 +29,8 @@ type SystemConfigWorkspaceProps = {
   inputClassName: string
   panelClassName?: string
   initialTab?: SystemConfigWorkspaceTab
+  /** false = 隐藏内部摘要 chips + 分区导航（设置页左导航接管） */
+  showHeader?: boolean
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
   updateConfigValue: (key: string, value: SystemConfigValue) => void
   toggleSensitiveConfigVisibility: (key: string) => void
@@ -335,6 +337,8 @@ export function SystemConfigWorkspace({
   panelClassName =
     'rounded-lg border border-border/70 bg-card shadow-card',
   initialTab = 'overview',
+  /** false = 隐藏内部摘要 chips + 分区导航（由设置页左侧导航接管，Task 8 布局升级） */
+  showHeader = true,
   onSubmit,
   updateConfigValue,
   toggleSensitiveConfigVisibility,
@@ -389,22 +393,24 @@ export function SystemConfigWorkspace({
 
   return (
     <div className="space-y-6 pb-10">
-      <section className={`${panelClassName} p-6 sm:p-7`}>
-        <div className="flex flex-wrap gap-2">
-          {pageModel.summaryCards.map((card) => (
-            <span
-              key={card.label}
-              className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground"
-            >
-              {card.label}：{card.value}
-            </span>
-          ))}
-        </div>
+      {showHeader ? (
+        <section className={`${panelClassName} p-6 sm:p-7`}>
+          <div className="flex flex-wrap gap-2">
+            {pageModel.summaryCards.map((card) => (
+              <span
+                key={card.label}
+                className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground"
+              >
+                {card.label}：{card.value}
+              </span>
+            ))}
+          </div>
 
-        <div className="mt-5">
-          <WorkspaceTabNav tabs={workspaceTabs} activeTab={activeTab} onChange={setActiveTab} />
-        </div>
-      </section>
+          <div className="mt-5">
+            <WorkspaceTabNav tabs={workspaceTabs} activeTab={activeTab} onChange={setActiveTab} />
+          </div>
+        </section>
+      ) : null}
 
       {loading && pageModel.groups.length === 0 ? (
         <div className={panelClassName}>
@@ -450,7 +456,7 @@ export function SystemConfigWorkspace({
                     {t('sysconfws.badge.sensitiveCount', '个敏感项').replace('{count}', String(sensitiveCount))}
                   </span>
                   <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                    {`${whitelistEntryCount} ${t('sysconfws.badge.whitelistAddresses', '个白名单地址')}`}
+                    {t('sysconfws.badge.whitelistAddresses', '个白名单地址').replace('{count}', String(whitelistEntryCount))}
                   </span>
                 </div>
               </div>
@@ -583,7 +589,7 @@ export function SystemConfigWorkspace({
                   {t('sysconfws.badge.sensitiveCount', '个敏感项').replace('{count}', String(sensitiveCount))}
                 </span>
                 <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                  {`${whitelistEntryCount} ${t('sysconfws.badge.whitelistAddresses', '个白名单地址')}`}
+                  {t('sysconfws.badge.whitelistAddresses', '个白名单地址').replace('{count}', String(whitelistEntryCount))}
                 </span>
               </div>
 

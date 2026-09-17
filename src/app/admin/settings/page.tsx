@@ -89,6 +89,7 @@ function AdminSettingsContainer() {
       {activeSection ? (
         <SystemConfigWorkspace
           pageModel={slicedModel}
+          showHeader={false}
           systemConfigsCount={systemConfigs.length}
           sensitiveCount={workspace.systemConfigSensitiveCount}
           whitelistEntryCount={workspace.systemConfigWhitelistEntryCount}
