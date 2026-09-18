@@ -104,3 +104,12 @@ test('支付页：易支付三项字段保存', async () => {
     )
   })
 })
+
+test('支付页：切换支付宝 Tab 渲染公钥字段（敏感）', async () => {
+  setup()
+  await screen.findAllByText('Webhook 回调')
+  fireEvent.click(screen.getByText('支付宝', { selector: 'button[role="tab"]' }))
+  const label = (await screen.findByLabelText('支付宝公钥')) as HTMLInputElement
+  assert.equal(label.type, 'password')
+  assert.ok(screen.getAllByText('启用渠道').length > 0)
+})
