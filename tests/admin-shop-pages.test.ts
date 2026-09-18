@@ -210,11 +210,11 @@ test('ShopPaymentPage：渠道卡展示 enabled/configComplete/missingKeys 与�
   assert.match(html, /易支付/)
   assert.match(html, /微信支付/)
   assert.match(html, /支付宝/)
-  assert.match(html, /已启用/)
-  assert.match(html, /未启用/)
-  assert.match(html, /配置不完整/)
-  assert.match(html, /appId/)
-  assert.match(html, /配置完整/)
+  // 新 Tab UI：仅激活渠道面板在初始 DOM；其他渠道通过 Tab 圆点 title 展示状态
+  assert.match(html, /配置不完整（缺/)
+  assert.match(html, /title="已启用"/)
+  assert.match(html, /回调签名密钥（Secret）/)
+  assert.match(html, /type="password"/)
   // 敏感字段默认折叠（details 未展开时内容仍在 DOM，但密钥输入为 password 型）
   assert.match(html, /type="password"/)
 })

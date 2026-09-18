@@ -43,17 +43,18 @@ function ok(body: unknown) {
 
 test('支付页：渠道卡渲染启用/完整性与缺失字段', async () => {
   setup()
-  await screen.findByText('Webhook 回调')
-  assert.ok(screen.getByText('易支付'))
+  await screen.findAllByText('Webhook 回调')
+  assert.ok(screen.getAllByText('易支付').length > 0)
+  // 新 Tab UI：仅激活渠道（Webhook：已启用+配置完整）徽标在 DOM，其余渠道在 Tab 圆点 title
   assert.ok(screen.getAllByText('已启用').length > 0)
-  assert.ok(screen.getAllByText('未启用').length > 0)
   assert.ok(screen.getAllByText('配置完整').length > 0)
+  assert.ok(document.querySelector('button[role="tab"] span[title*="未启用"]'))
 })
 
 test('支付页：启停渠道发出 isEnabled 配置', async () => {
   const { calls } = setup()
   await screen.findByText('易支付')
-  const toggle = screen.getAllByRole('button', { name: '停用' })[0]
+  const toggle = screen.getAllByRole('button', { name: '停用渠道' })[0]
   fireEvent.click(toggle)
   await waitFor(() => {
     assert.ok(
@@ -66,15 +67,13 @@ test('支付页：启停渠道发出 isEnabled 配置', async () => {
 
 test('支付页：webhook 密钥显示切换与保存', async () => {
   const { calls } = setup()
-  fireEvent.click(await screen.findByText('回调密钥'))
-
   const secret = await screen.findByPlaceholderText('输入回调密钥（留空不校验）') as HTMLInputElement
   assert.equal(secret.type, 'password')
   fireEvent.click(screen.getByRole('button', { name: '显示' }))
   assert.equal((screen.getByPlaceholderText('输入回调密钥（留空不校验）') as HTMLInputElement).type, 'text')
 
   fireEvent.change(secret, { target: { value: 'new-secret' } })
-  fireEvent.click(screen.getAllByRole('button', { name: '保存' })[0])
+  fireEvent.click(screen.getByRole('button', { name: '保存' }))
   await waitFor(() => {
     assert.ok(
       calls.some(
@@ -86,13 +85,14 @@ test('支付页：webhook 密钥显示切换与保存', async () => {
 
 test('支付页：易支付三项字段保存', async () => {
   const { calls } = setup()
-  fireEvent.click(await screen.findByText('网关 / 商户 / 密钥'))
+  await screen.findAllByText('Webhook 回调') // 等 loading 完成后再切 Tab
+  fireEvent.click(screen.getByText('易支付', { ignore: 'script, style' }).closest('button[role="tab"]')!)
 
-  await screen.findByLabelText('网关地址')
-  fireEvent.change(screen.getByLabelText('网关地址'), { target: { value: 'https://gate.new' } })
-  fireEvent.change(screen.getByLabelText('商户 ID'), { target: { value: 'pid-2' } })
-  fireEvent.change(screen.getByLabelText('商户密钥'), { target: { value: 'key-2' } })
-  fireEvent.click(screen.getAllByRole('button', { name: '保存' })[1])
+  await screen.findByLabelText('网关地址（Gateway）')
+  fireEvent.change(screen.getByLabelText('网关地址（Gateway）'), { target: { value: 'https://gate.new' } })
+  fireEvent.change(screen.getByLabelText('商户 ID（PID）'), { target: { value: 'pid-2' } })
+  fireEvent.change(screen.getByLabelText('商户密钥（KEY）'), { target: { value: 'key-2' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存配置' }))
   await waitFor(() => {
     assert.ok(
       calls.some(
