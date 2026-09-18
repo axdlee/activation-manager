@@ -32,7 +32,7 @@ function restoreRect() {
 
 function patchRect(patch: Exclude<RectPatch, null>) {
   rectPatch = patch
-  Element.prototype.getBoundingClientRect = function () {
+  Element.prototype.getBoundingClientRect = function (this: Element) {
     if (rectPatch) {
       return {
         top: rectPatch.top,
@@ -47,7 +47,7 @@ function patchRect(patch: Exclude<RectPatch, null>) {
       } as DOMRect
     }
     return originalGetBoundingClientRect.call(this)
-  } as typeof Element.prototype.getBoundingClientRect
+  }
 }
 
 test('LanguageSwitcher：默认（元素位置为零）向下弹出', async () => {
