@@ -1,1481 +1,240 @@
-# 激活码管理系统
+# 激活码管理系统（Activation Manager）
 
-> 面向 **多项目**、**双授权模型（TIME / COUNT）** 与 **插件 / 客户端正式接入** 场景打造的一体化授权运营后台。  
-> 一套服务同时覆盖 **项目隔离、发码、激活、状态校验、按次扣减、日志排查、换绑治理与公开 API 文档**，适合浏览器插件、桌面工具与多产品授权场景。
+> 面向 **多项目**、**双授权模型（TIME / COUNT）** 与 **插件 / 客户端 / 桌面软件正式接入** 场景的一体化授权运营后台。
+> 一套服务同时覆盖 **项目隔离、发码、激活、状态校验、按次扣减、销售闭环（商城 + 支付 + 自动发卡）、多渠道通知、日志排查、换绑治理与公开 API 文档**。
 
 <p>
   <img src="https://img.shields.io/badge/Next.js-14-111827?logo=nextdotjs" alt="Next.js 14" />
-  <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma" alt="Prisma ORM" />
-  <img src="https://img.shields.io/badge/SQLite-Local%20DB-0F172A?logo=sqlite" alt="SQLite" />
+  <img src="https://img.shields.io/badge/React-18-087EA4?logo=react" alt="React 18" />
+  <img src="https://img.shields.io/badge/Prisma-5-2D3748?logo=prisma" alt="Prisma 5" />
+  <img src="https://img.shields.io/badge/SQLite%20%7C%20PostgreSQL-DB-0F172A" alt="Database" />
   <img src="https://img.shields.io/badge/Node.js-%3E%3D22-15803D?logo=nodedotjs" alt="Node.js >= 22" />
-  <img src="https://img.shields.io/badge/API-activate%20%7C%20status%20%7C%20consume-0369A1" alt="License API" />
+  <img src="https://img.shields.io/badge/Tests-690%2B-16A34A" alt="Tests" />
+  <img src="https://img.shields.io/badge/SDK-16%20Languages-7C3AED" alt="SDK" />
 </p>
 
-## 开箱亮点
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="数据统计驾驶舱" width="860" />
+</p>
 
-- **面向真实接入而不是演示页面**：内置 `activate / status / consume` 正式接口与 `/api/verify` 兼容接口
-- **适合多产品 / 多客户并行运营**：通过 `projectKey` 隔离项目、发码空间、启停状态与治理策略
-- **对浏览器插件尤其友好**：支持次数型授权、`requestId` 幂等扣次、消费日志按请求回查
-- **支付自动发卡闭环**：公开购买页 + 手动收款/易支付/微信/支付宝渠道适配 + 预定义码池防超卖 + 订单超时自动取消
-- **通知系统**：激活码到期、订单发卡、超时取消等事件可同时分发到 Webhook / 邮件 / 短信，发卡自动邮件卡密给买家
-- **交付闭环完整**：公开 API 文档、SDK（JS/TS + Python）、smoke 联调脚本、后台排查工作区、Docker 部署与 DockerHub 自动发布都已就绪
-
-## 快速导航
-
-- [项目定位](#项目定位)
-- [核心能力](#核心能力)
-- [首页概览](#首页概览)
-- [3 分钟快速开始](#3-分钟快速开始)
-- [Docker 部署](#docker-部署)
-- [GitHub 自动发布 DockerHub](#github-自动发布-dockerhub)
-- [推荐接入流程](#推荐接入流程)
-- [管理后台可以做什么](#管理后台可以做什么)
-- [一眼看懂系统原理](#一眼看懂系统原理)
-- [安全与工程保障](#安全与工程保障)
-- [FAQ](#faq)
-
-## 一眼看懂它适合什么场景
-
-| 你要解决的问题 | 这个项目怎么支持 |
-|---|---|
-| 我有多个产品 / 多个客户，需要隔离激活码空间 | 通过 `projectKey` 做多项目隔离，每个项目独立启停、独立发码 |
-| 我既有订阅制，也有按次扣费 | 同时支持 `TIME` 和 `COUNT` 两种授权模型 |
-| 我有浏览器插件 / 客户端，需要正式 API | 内置 `activate / status / consume` 正式接口与兼容 `/api/verify` |
-| 我怕客户端重试导致重复扣次 | `consume` 支持 `requestId` 幂等 |
-| 我不想每次都口头给接入方解释接口 | 公开 API 文档页 `/docs/api` + SDK + smoke 脚本 |
-| 我需要对账和排查问题 | 后台提供消费日志、趋势图、统计、CSV 导出 |
-
-## 项目定位
-
-这个项目不是一个“只能生成激活码”的简单后台，而是一个完整的授权运营中心：
-
-- 支持 **多个项目并行管理**，每个项目都有独立 `projectKey`、启停状态与发码空间
-- 同时支持 **时间型授权** 与 **次数型授权**
-- 内置 **正式 API（activate / status / consume）** 与兼容接口 `/api/verify`
-- 提供 **公开 API 文档页**、**JS/TS SDK**、**本地 smoke 联调脚本**
-- 后台支持 **左侧主导航工作区**、**项目弹框管理**、**单码弹框治理**、**消费日志**、**趋势统计**、**系统配置**、**密码修改**
-- 开发环境支持 **自动初始化**，开箱即可跑起来
+[English](./README.en.md) | 简体中文
 
 ---
+
+## 目录
+
+- [核心能力](#核心能力)
+- [界面预览](#界面预览)
+- [快速开始](#快速开始)
+- [Docker 部署](#docker-部署)
+- [环境变量](#环境变量)
+- [公开 API 与多语言 SDK](#公开-api-与多语言-sdk)
+- [管理后台模块](#管理后台模块)
+- [主题与多语言](#主题与多语言)
+- [测试与质量](#测试与质量)
+- [目录结构](#目录结构)
+- [更多文档](#更多文档)
 
 ## 核心能力
 
-### 1. 多项目隔离
-- 每个项目都有独立的 `projectKey`
-- 激活码归属于项目，避免不同产品 / 客户之间串用
-- 支持项目搜索、排序、分页、启停、空项目删除
-- 默认项目 `default` 保留为兼容入口
+### 授权核心
+- **双授权模型**：`TIME`（时间型，首次激活起算有效期）与 `COUNT`（次数型，`requestId` 幂等扣次）
+- **多项目隔离**：`projectKey` 隔离发码空间、启停状态与治理策略，适配多产品 / 多客户并行运营
+- **换绑治理**：单码换绑策略（继承 / 自定义冷却时间与次数上限）、强制解绑 / 强制换绑、绑定历史与管理员审计时间线
+- **内置响应验签**：配置 `licenseResponseSecret` 后，公开 API 响应附带 HMAC-SHA256 签名（5 分钟时间窗），SDK 一行开启校验
 
-### 2. 双授权模型
+### 公开 API 与客户端
+- **正式接口**：`/api/license/activate` · `/api/license/status` · `/api/license/consume`（含限流、重试语义、响应验签）
+- **兼容接口**：`/api/verify`（snake_case 旧协议平滑迁移）
+- **16 语言 SDK**：TypeScript / Python / Go / Java / C# / PHP / Ruby / Rust / Kotlin / Swift / Dart / C / C++ / Scala / Groovy / Lua / Perl——统一超时、重试、响应归一与验签，单文件即可复制接入
+- **在线 API 文档**：`/docs/api` 面向接入方的完整接口说明、示例代码与在线调试命令
 
-#### 时间型 `TIME`
-- 首次激活时绑定设备
-- **从激活时刻开始**计算有效期
-- 后续 `status / consume` 只做有效性校验，不扣减次数
+### 销售闭环（商城）
+- **公开购买页**：按项目展示商品，下单 → 支付 → 自动发卡 → 邮件送达卡密
+- **支付渠道**：手动收款确认 / 易支付 / 微信支付 / 支付宝，渠道级启停与配置完整性检查
+- **预定义码池防超卖**：商品绑定码池，库存实时扣减；订单超时自动取消并释放码池
+- **订单运营**：确认发卡、补发邮件、订单清理，全部留审计
 
-#### 次数型 `COUNT`
-- 一个激活码可以代表 **N 次使用**
-- `activate` 只绑定设备，不扣次
-- `consume` 每次真实业务发生时扣减 1 次
-- 支持 `requestId` 幂等，避免客户端重试导致重复扣次
+### 通知系统
+- **多渠道分发**：Webhook / 邮件（SMTP）/ 短信可同时启用，关键事件（激活码到期、订单发卡、超时取消）实时推送
+- **发卡自动送码**：订单支付后自动邮件卡密给买家
+- **到期扫描**：一键扫描即将到期激活码并推送提醒
 
-### 3. 正式接入 API
-推荐新插件 / 新客户端优先使用：
+### 运营后台
+- **14 管理页面**：数据统计、项目管理、生成激活码、激活码管理、消费日志、审计中心、API 接入、购买中心（商品/订单/支付）、系统配置、账户安全
+- **数据统计驾驶舱**：KPI 卡、7 天消费趋势、激活码构成、License API 运行指标（5 分钟窗口）、项目统计明细
+- **审计与导出**：管理员操作审计、消费日志、激活码列表全量支持 CSV 导出
+- **14 套主题 × 10 语言**：全部界面随 `data-theme` 即时换肤，中 / 英 / 日 / 韩 / 德 / 法 / 西 / 葡 / 俄 / 阿拉伯语运行时切换
 
-- `POST /api/license/activate`
-- `POST /api/license/status`
-- `POST /api/license/consume`
+## 界面预览
 
-兼容旧接口：
+| 数据统计驾驶舱 | 生成激活码 |
+| --- | --- |
+| ![数据统计](docs/screenshots/dashboard.png) | ![生成激活码](docs/screenshots/generate.png) |
 
-- `POST /api/verify`
+| 激活码管理 | API 接入文档 |
+| --- | --- |
+| ![激活码管理](docs/screenshots/licenses.png) | ![API 接入](docs/screenshots/api-docs.png) |
 
-项目内已内置：
+| 系统设置（分区导航） | 通知渠道 Tab |
+| --- | --- |
+| ![系统设置](docs/screenshots/settings-overview.png) | ![通知渠道](docs/screenshots/settings-notification.png) |
 
-- 公开 API 文档页：`/docs/api`
-- SDK：`src/lib/license-sdk.ts`
-- 自动化联调脚本：`npm run smoke:license-api`
+| 支付渠道 Tab | 移动端适配 |
+| --- | --- |
+| ![支付渠道](docs/screenshots/shop-payment.png) | ![移动端](docs/screenshots/dashboard-mobile.png) |
 
-### 4. 运营与排查能力
-- 后台总览统计与项目级统计
-- 次数使用率、峰值消费项目等运营洞察
-- 最近 7 / 30 天消费趋势
-- 按日 / 周 / 月聚合
-- 项目对比、周期对比、非零桶筛选
-- 消费日志按项目 / `requestId` / 机器 ID / 时间范围检索
-- CSV 导出（激活码、统计、消费日志、趋势）
+> 更多截图见 [`docs/screenshots/`](docs/screenshots/)。
 
-### 5. 换绑治理与审计
-- 换绑策略支持 **系统级配置 < 项目级配置 < 单码级配置** 的三级覆盖优先级
-- 项目列表改为只读字段展示，新建项目、基础信息维护与项目级换绑策略统一通过弹框编辑
-- 激活码列表支持弹框查看绑定设备、最终生效策略、单码级覆盖配置、绑定历史与管理员审计
-- 支持管理员强制解绑 / 强制换绑，并记录原因说明
-- 后台提供审计中心，可统一检索关键操作并导出 CSV
+## 快速开始
 
-### 6. 安全与后台管理
-- 管理员登录 + JWT 会话管理
-- 登录限流，降低暴力破解风险
-- IP 白名单访问控制
-- 管理员密码修改
-- 系统配置管理（白名单 / 系统级换绑策略 / JWT / bcrypt 成本 / 系统名称等）
-
-## 能力总览
-
-| 能力模块 | 支持内容 |
-|---|---|
-| 项目管理 | 项目创建、`projectKey` 复制、搜索、筛选、排序、分页、启停、空项目删除、基础信息 / 项目级换绑策略弹框编辑 |
-| 激活码生成 | 批量生成时间型 / 次数型激活码，并支持单码级换绑覆盖参数 |
-| 激活码管理 | 列表查看、状态判断、规格查看、单码弹框管理、绑定设备查看、删除、过期绑定清理 |
-| 换绑治理 | 系统级配置 < 项目级配置 < 单码级配置、自助换绑限制、强制解绑 / 换绑 |
-| 审计中心 | 管理员操作审计、绑定历史回溯、CSV 导出 |
-| License API | `activate / status / consume / verify` |
-| SDK 与文档 | JS/TS SDK、公开 API 文档页、多语言示例 |
-| 消费日志 | 项目 / `requestId` / 机器 ID / 时间范围过滤、服务端分页、CSV 导出 |
-| 趋势统计 | 7 / 30 天趋势、按日/周/月聚合、周期对比、项目对比、非零桶筛选 |
-| 安全配置 | JWT、白名单、系统级换绑策略、密码强度、管理员密码修改 |
-
----
-
-## 首页概览
-
-首页已经整理成适合对外展示的落地页，首次打开就能看到：
-
-- 多项目隔离
-- TIME / COUNT 双授权模型
-- 管理后台入口
-- 公开 API 文档入口
-
-<p align="center">
-  <img src="./Readmeimg/validation-20260327/public-home.jpg" width="92%" alt="激活码管理系统首页（最新版 UI）" />
-</p>
-
----
-
-## 适用场景
-
-### 浏览器插件按次计费
-- 一个激活码代表 N 次调用额度
-- 插件每次真实使用时调用 `consume`
-- 通过 `requestId` 避免重复扣次
-- 后台可按 `requestId` / 机器 ID / 时间范围排查问题
-
-### 桌面工具按有效期授权
-- 用户首次输入激活码时调用 `activate`
-- 有效期从首次激活开始计算
-- 后续通过 `status` 查询是否仍有效
-
-### 同一套服务支持多个产品 / 客户
-- 每个项目对应独立 `projectKey`
-- 同一台设备可在不同项目下分别绑定授权
-- 同一项目下保持唯一有效绑定，旧卡耗尽 / 过期后才允许切换
-
----
-
-## 3 分钟快速开始
-
-### 环境要求
-- Node.js `>= 22`
-- npm
-- `sqlite3` 与 `openssl` 命令行工具（仅本地 Node 模式的初始化 / 测试需要；如果直接用 Docker 运行，可不在宿主机安装）
-
-> 推荐直接使用仓库根目录的 `.nvmrc` 对齐本地、CI 与 Docker 的 Node 主版本；当前完整 `quality:gate` 依赖 Node 22 的原生测试覆盖率阈值参数。
-
-### 1）安装依赖
+> 要求 Node.js ≥ 22。
 
 ```bash
-nvm use
-npm install
-```
+# 1. 安装依赖
+npm ci
 
-如果你本地没有 `nvm`，只要保证 `node -v` 至少为 `v22.x` 即可。
-如果你是 Linux 开发机，且后续要执行 `bootstrap:dev` / `quality:gate` / 测试，请先安装 `sqlite3` 与 `openssl`。
+# 2. 初始化数据库（默认 SQLite，首次 dev 启动会自动建表并引导管理员账号）
+npx prisma generate
 
-### 2）启动开发环境
-
-```bash
+# 3. 启动开发服务
 npm run dev
-```
 
-> `npm run dev` 会先自动执行 `predev -> bootstrap:dev`，自动补齐本地开发数据库、默认管理员和系统配置。
-
-### 3）访问系统
-
-本地默认地址：
-
-- 首页：`http://localhost:3000`
-- 管理后台登录：`http://localhost:3000/admin/login`
-- 公开 API 文档：`http://localhost:3000/docs/api`
-
-如果你是第一次部署，建议先从登录页进入后台：
-
-<p align="center">
-  <img src="./Readmeimg/validation-20260327/admin-login.jpg" width="88%" alt="管理后台登录页（最新版 UI）" />
-</p>
-
-默认管理员创建规则：
-
-- **开发环境**（`NODE_ENV=development`）：自动创建 `admin / 123456`
-- **生产环境**（`NODE_ENV=production`，如 Docker 部署）：**必须**通过 `ADMIN_INITIAL_PASSWORD` 环境变量设置初始密码，没有默认值；未设置且数据库中无管理员时会直接报错退出
-
-> 无论哪种方式，首次登录后建议立即修改密码。
-
-### 4）如果你想手动初始化
-
-```bash
-# 一次性初始化开发环境
-npm run bootstrap:dev
-
-# 单独初始化默认管理员
-npm run init-default-admin
-
-# 单独初始化系统配置
-npm run init-system-config
-```
-
-系统会自动补齐：
-- `prisma/dev.db`
-- 业务表结构
-- 默认项目 `default`
-- 默认管理员 `admin / 123456`
-- 默认系统配置
-
-### 5）本地联调 smoke
-
-服务启动后可直接执行：
-
-```bash
-BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
-```
-
-这个脚本会自动完成：
-- 管理员登录
-- 创建项目
-- 生成次数型激活码
-- `activate`
-- `status`
-- `consume`
-- 幂等重放验证
-- 后台消费日志 / 统计 / 导出验证
-
-### 6）如果你要跑生产构建模式
-
-```bash
+# 4. 生产构建与启动
 npm run build
-npm run start
+npm start
 ```
 
-> 项目已将开发产物与生产构建产物隔离：`dev` 使用 `.next`，`build/start` 使用 `.next-build`。
+| 入口 | 地址 |
+| --- | --- |
+| 首页 / 购买页 | `http://localhost:3000` |
+| 管理后台登录 | `http://localhost:3000/admin/login` |
+| 公开 API 文档 | `http://localhost:3000/docs/api` |
 
----
+- **开发环境**首次启动自动创建管理员 `admin / 123456`（生产环境请通过 `ADMIN_INITIAL_PASSWORD` 指定初始密码）
+- 登录后可在 **系统配置 → 账户安全** 修改密码（改后重新登录）
 
 ## Docker 部署
 
-这个项目 **已经提供可直接拉取的公共 Docker Hub 镜像**，并且镜像发布链路已经过：
-
-- GitHub Actions 质量门禁
-- Docker Compose smoke 联调
-- 多架构镜像构建与推送
-
-当前公共镜像仓库：
-
-- Docker Hub：`xdlee/activation-manager`
-- 仓库地址：<https://hub.docker.com/r/xdlee/activation-manager>
-
-该仓库当前为 **public**，普通使用者可直接拉取，无需先执行 `docker login`。
-
-部署方式选择建议：
-
-| 场景 | 推荐方式 | 原因 |
-|---|---|---|
-| 我只是要把服务跑起来 | 直接拉 Docker Hub 镜像 | 最快、最稳定、与 CI 发布结果一致 |
-| 我要固定版本、便于回滚 | 使用 `sha-<commit>` 标签 | 可追溯、避免 `latest` 漂移 |
-| 我要改源码或二次开发 | 本地 `docker build` | 可基于当前工作区自定义构建 |
-| 我要统一管理日志 / 环境变量 / 重建流程 | `docker compose` | 运维体验更顺手 |
-
-推荐标签：
-
-- `latest`：默认分支最新稳定镜像
-- `main`：主分支镜像
-- `sha-<commit>`：按提交固定版本，适合追求可追溯部署
-
-默认发布架构：
-
-- `linux/amd64`
-- `linux/arm64`
-
-这个项目 **直接使用 Docker 就可以运行，不依赖 Docker Compose**。
-
-- 如果你只是单机部署一套服务：**推荐直接拉取 Docker Hub 镜像后 `docker run`**
-- 如果你需要修改源码：再使用本地 `docker build`
-- 如果你想顺手管理 `.env`、日志、重建和停止流程：再使用 `docker compose`
-
-仓库内已经补齐：
-
-- `Dockerfile`
-- `docker-compose.yml`
-- `.env.docker.example`
-- `scripts/docker-entrypoint.sh`
-- `scripts/bootstrap-runtime.ts`
-
-其中 `.env.docker.example` 里除了 `JWT_SECRET`，还提供了 `ALLOWED_IPS` 示例配置。
-
-> 注意：`.env.docker.example` 更偏向**本地联调友好**，因此默认放行了常见私网段；正式部署前请务必按真实来源地址收紧。
-
-### 方式 A：直接拉取 Docker Hub 镜像运行（推荐）
-
-#### 一屏快速部署
-
-如果你只是想**尽快跑起来**，直接执行下面这一组命令即可：
-
 ```bash
-cat > .env <<'EOF'
-JWT_SECRET=change-this-to-a-long-random-secret
-PORT=3000
-ALLOWED_IPS=127.0.0.1,::1
-ADMIN_INITIAL_PASSWORD=please-set-a-strong-password
-EOF
+# 已发布镜像（同时更新 :latest）
+docker pull xdlee/activation-manager:v2.8.0
 
-docker pull xdlee/activation-manager:latest
-docker volume create activation_manager_data
-
-docker run -d \
-  --name activation-manager \
-  --env-file .env \
-  -p 3000:3000 \
-  -v activation_manager_data:/app/data \
-  --restart unless-stopped \
-  xdlee/activation-manager:latest
+# 或使用 compose 一键起服务
+docker compose up -d
 ```
 
-默认访问地址：
-
-- 首页：`http://localhost:3000`
-- 管理后台：`http://localhost:3000/admin/login`
-- API 文档：`http://localhost:3000/docs/api`
-
-如果你希望看分步骤说明，再继续往下看。
-
-#### 1）准备环境变量文件
-
-> 如果你刚刚已经执行过上面的“一屏快速部署”，这一小节可直接跳过。
-
-```bash
-cat > .env <<'EOF'
-JWT_SECRET=change-this-to-a-long-random-secret
-PORT=3000
-ALLOWED_IPS=127.0.0.1,::1
-ADMIN_INITIAL_PASSWORD=please-set-a-strong-password
-EOF
-```
-
-至少要把 `JWT_SECRET` 改成你自己的高强度随机字符串。
-
-另外建议同时检查：
-
-- `ADMIN_INITIAL_PASSWORD`：**首次启动时必填**（仅当数据库中还没有管理员时使用）；用它创建初始管理员 `admin`，请登录后立即修改密码。已初始化的存量库可不设置
-- `ALLOWED_IPS`：上面示例只放行本机回环地址，适合最小暴露面部署
-- `ALLOWED_IPS` 在**运行时会优先于后台系统配置表生效**，因此生产环境应以环境变量作为最终访问控制来源，而不是依赖初始化写库
-- 如果你是本地 Docker / Colima / Lima 联调，也可以扩展成：
-
-  ```env
-  ALLOWED_IPS=127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
-  ```
-
-- 如果你前面还有 Nginx Proxy Manager / Nginx / Caddy 这类反向代理，请按**真实来源 IP**收紧；临时联调时可短暂设为：
-
-  ```env
-  ALLOWED_IPS=*
-  ```
-
-  验证链路无误后再收紧回明确 IP / 网段规则
-
-- 如果你部署在正式服务器，请按实际来源 IP 收紧白名单，不要长期保留过宽的私网段规则
-
-#### 2）拉取镜像
-
-```bash
-docker pull xdlee/activation-manager:latest
-```
-
-如果你希望版本更稳定，可优先考虑：
-
-```bash
-docker pull xdlee/activation-manager:main
-# 或
-docker pull xdlee/activation-manager:sha-<commit>
-```
-
-#### 3）创建持久化卷
-
-```bash
-docker volume create activation_manager_data
-```
-
-#### 4）启动容器
-
-```bash
-docker run -d \
-  --name activation-manager \
-  --env-file .env \
-  -p 3000:3000 \
-  -v activation_manager_data:/app/data \
-  --restart unless-stopped \
-  xdlee/activation-manager:latest
-```
-
-> 如果你希望部署结果与某一次提交严格对应，可以把 `latest` 改成 `main` 或 `sha-<commit>`。
-
-> 我已经实测过：**镜像发布链路、容器健康检查和 smoke 联调均已通过**。
-
-> 容器首次启动时会自动初始化数据库与默认配置，通常需要 `10 ~ 60` 秒不等；建议在访问页面前先确认健康状态变为 `healthy`。
-
-#### 5）查看状态、日志与健康检查
-
-```bash
-docker ps
-docker logs -f activation-manager
-docker inspect --format '{{.State.Health.Status}}' activation-manager
-```
-
-#### 6）访问系统
-
-- 首页：`http://localhost:3000`
-- 管理后台登录：`http://localhost:3000/admin/login`
-- 公开 API 文档：`http://localhost:3000/docs/api`
-
-默认管理员创建规则：
-
-- **开发环境**：自动创建 `admin / 123456`
-- **生产环境（Docker）**：必须通过 `ADMIN_INITIAL_PASSWORD` 环境变量提供初始密码，否则容器首次启动会报错退出（不会创建弱口令管理员）
-
-> 容器首次启动后会自动补齐默认管理员、默认项目与默认系统配置；请首登后立即修改密码。
-
-#### 7）如果你没有源码，如何快速验收镜像是否正常
-
-如果你只是从 Docker Hub 拉了镜像，没有 clone 仓库，也可以先做这一组最小验收：
-
-```bash
-curl -I http://127.0.0.1:3000/
-curl -I http://127.0.0.1:3000/admin/login
-curl -I http://127.0.0.1:3000/docs/api
-docker inspect --format '{{.State.Health.Status}}' activation-manager
-```
-
-期望结果：
-
-- 首页返回 `200`
-- 登录页返回 `200`
-- 文档页返回 `200`
-- 容器健康状态为 `healthy`
-
-如果这 4 项都正常，说明镜像、启动脚本、Next.js 服务和基础路由都已工作。
-
-#### 8）可选：基于仓库源码再跑一次真实 smoke 联调
-
-```bash
-BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
-```
-
-如果你本地已经 clone 了本仓库，并且输出 `✅ 联调通过`，说明以下链路都已正常：
-
-- 容器启动
-- Prisma 初始化
-- 默认管理员和系统配置补齐
-- 后台登录
-- 项目创建
-- 次数型激活码生成 / 绑定 / 幂等扣次
-- 消费日志、统计、CSV 导出
-
-#### 9）停止与删除容器
-
-```bash
-docker stop activation-manager
-docker rm activation-manager
-```
-
-#### 10）升级与回滚
-
-升级到最新镜像：
-
-```bash
-docker pull xdlee/activation-manager:latest
-docker stop activation-manager
-docker rm activation-manager
-
-docker run -d \
-  --name activation-manager \
-  --env-file .env \
-  -p 3000:3000 \
-  -v activation_manager_data:/app/data \
-  --restart unless-stopped \
-  xdlee/activation-manager:latest
-```
-
-回滚到指定提交镜像：
-
-```bash
-docker pull xdlee/activation-manager:sha-<commit>
-docker stop activation-manager
-docker rm activation-manager
-
-docker run -d \
-  --name activation-manager \
-  --env-file .env \
-  -p 3000:3000 \
-  -v activation_manager_data:/app/data \
-  --restart unless-stopped \
-  xdlee/activation-manager:sha-<commit>
-```
-
-> 因为数据库挂载在独立卷 `activation_manager_data` 中，所以只要你不手动删除卷，升级或回滚都不会丢失数据。
-
-### 方式 B：从源码构建镜像（可选）
-
-如果你准备二次开发，或者想基于本地源码自行构建镜像，再使用这一方式。
-
-#### 1）准备环境变量
-
-```bash
-cp .env.docker.example .env
-```
-
-至少要把 `.env` 里的 `JWT_SECRET` 改成你自己的高强度随机字符串。
-
-#### 2）构建镜像
-
-```bash
-docker build -t activation-manager:local .
-```
-
-#### 3）创建持久化卷
-
-```bash
-docker volume create activation_manager_data
-```
-
-#### 4）启动容器
-
-```bash
-docker run -d \
-  --name activation-manager \
-  --env-file .env \
-  -p 3000:3000 \
-  -v activation_manager_data:/app/data \
-  --restart unless-stopped \
-  activation-manager:local
-```
-
-### 方式 C：Docker Compose（可选）
-
-如果你已经 clone 了仓库，并且更习惯用 compose 管理环境变量、日志和重建流程，可以使用：
-
-```bash
-docker compose --env-file .env up -d --build
-docker compose --env-file .env logs -f activation-manager
-docker compose --env-file .env down
-```
-
-> 注意：compose 只是为了运维更方便，**不是这个项目的运行前提**。
-
-### 容器启动时自动做了什么
-
-容器入口脚本会在真正启动 Next.js 前自动执行：
-
-1. 创建持久化目录 `/app/data`
-2. 将应用实际访问的 `prisma/dev.db` 链接到 `/app/data/dev.db`
-3. 执行 `npm run bootstrap:runtime`
-4. 自动同步 Prisma schema
-5. 自动补齐默认项目、默认管理员、默认系统配置
-6. 最后再启动 `npm run start`
-
-这意味着：
-
-- **SQLite 数据可持久化**
-- **容器重启不会重复插入种子数据**
-- **生产环境如果没提供 `JWT_SECRET`，会直接失败并提示**
-- **生产环境首次初始化如果没提供 `ADMIN_INITIAL_PASSWORD`，会直接失败并提示（不创建弱口令管理员）**
-- **Docker 运行时与 CI / 本地开发统一使用 Node 22 主版本**
-
-### 数据持久化说明
-
-无论你用 `docker run` 还是 `docker compose`，都推荐把 `/app/data` 挂到命名卷或宿主机目录。
-
-- 容器内持久化目录：`/app/data`
-- 应用内数据库访问路径：`/app/prisma/dev.db`（通过符号链接映射到 `/app/data/dev.db`）
-
-如果你改成宿主机目录挂载，例如挂到 `/app/data`：
-
-- 入口脚本会先以 root 尝试修复 `/app/data` 权限，再降权为非 root 用户运行应用
-- 在大多数本地 Docker / 服务器场景下，普通 `755` 目录也能自动完成首次初始化
-- 如果底层文件系统禁止 `chown`（例如部分受限 NFS / SMB 挂载），仍建议直接使用 Docker named volume，或提前把宿主机目录授权给容器运行用户
-
-### 生产服务器部署建议
-
-如果你是要把它真正部署到服务器，而不是只在本机联调，建议按下面的基线来：
-
-1. `JWT_SECRET` 使用**足够长的随机字符串**
-2. `ALLOWED_IPS` 按真实来源收紧，不要长期保留整个私网段
-3. 如果前面还有 Nginx / Caddy / Traefik，优先把端口只绑定到本机：
-
-   ```bash
-   -p 127.0.0.1:3000:3000
-   ```
-
-4. 使用命名卷或宿主机目录持久化 `/app/data`
-5. 保留 `--restart unless-stopped`
-6. 升级前先做一次数据库备份
-
-一个更适合服务器反向代理场景的启动示例：
-
-```bash
-docker run -d \
-  --name activation-manager \
-  --env-file .env \
-  -p 127.0.0.1:3000:3000 \
-  -v activation_manager_data:/app/data \
-  --restart unless-stopped \
-  xdlee/activation-manager:latest
-```
-
-### 反向代理 / HTTPS 建议
-
-本服务本身可以直接跑在 Docker 中，但正式对外时仍建议：
-
-- 由 Nginx / Caddy / Traefik 统一做 HTTPS 终止
-- 容器仅监听内网或本机回环地址
-- 域名层启用 TLS 证书与自动续期
-
-也就是说，更推荐的拓扑是：
-
-```text
-Internet -> HTTPS Reverse Proxy -> activation-manager container
-```
-
-这样可以把：
-
-- TLS 证书管理
-- 域名路由
-- 限流 / 安全头
-- 日志统一收集
-
-都放在反向代理层处理。
-
-### 备份与恢复
-
-如果你已经开始正式使用，建议把数据库备份作为常规动作：
-
-- 详细指南：[`DATABASE_BACKUP_GUIDE.md`](./DATABASE_BACKUP_GUIDE.md)（含存量库迁移基线流程）
-- 常用命令：
-
-```bash
-npm run db:backup
-npm run db:backup-simple
-npm run db:backup-sql
-```
-
-**日志保留策略**：审计日志与消费日志会随运行持续增长，SQLite 单文件数据库建议定期归档清理（如每周 cron）：
-
-```bash
-# 默认保留 180 天
-npm run db:prune
-
-# 自定义保留窗口（天）
-RETENTION_DAYS=90 bash ./scripts/prune-logs.sh
-```
-
-清理会删除保留窗口之前的审计日志与消费日志并 `VACUUM` 回收空间；数据库路径支持 `DB_PATH` / `DATABASE_URL` 覆盖。
-
-如果你是纯 Docker 镜像部署、机器上没有源码仓库，也至少要保证：
-
-- `activation_manager_data` 卷有宿主机级别快照或备份策略
-- 升级前先复制或导出 SQLite 数据文件
-
-### Docker 部署常见问题
-
-#### 1）为什么容器重启后数据没了？
-
-通常是因为没有挂载卷，或者删除容器时顺手把卷也删了。
-
-请确认你使用了：
-
-```bash
--v activation_manager_data:/app/data
-```
-
-#### 2）为什么后台打不开，或者接口返回 403？
-
-大概率是 `ALLOWED_IPS` 没配对。
-
-- 本机直连：至少保留 `127.0.0.1,::1`
-- 通过 Docker 私网 / 虚拟网桥访问：需要把对应私网段加入白名单
-- 通过 Nginx Proxy Manager / 反向代理访问：需要按真实来源地址精确收紧，且**直接修改环境变量即可覆盖后台数据库中的白名单**
-- 如果你只是想先确认问题是不是白名单导致，可临时设 `ALLOWED_IPS=*` 验证，确认后立即收紧
-
-#### 3）为什么容器一直不是 healthy？
-
-可按这个顺序排查：
-
-```bash
-docker logs -f activation-manager
-docker inspect --format '{{.State.Health.Status}}' activation-manager
-docker inspect activation-manager
-```
-
-常见原因：
-
-- `JWT_SECRET` 缺失
-- SQLite 文件目录权限不对
-- 容器刚启动，初始化尚未完成
-
-#### 4）如果我把宿主机目录挂到 `/app/data`，仍然报 `Permission denied` 怎么办？
-
-优先级建议如下：
-
-1. **优先改用 named volume**
-
-   ```bash
-   docker volume create activation_manager_data
-   docker run -d \
-     --name activation-manager \
-     --env-file .env \
-     -p 3000:3000 \
-     -v activation_manager_data:/app/data \
-     --restart unless-stopped \
-     xdlee/activation-manager:latest
-   ```
-
-2. 如果你必须使用宿主机目录挂载，请提前给目录写权限
-   例如在 Linux 服务器上：
-
-   ```bash
-   mkdir -p ./data
-   sudo chown -R 1000:1000 ./data
-   ```
-
-3. 如果底层挂载本身不允许容器内 `chown`，请不要再用 bind mount，直接改用 named volume
-
-#### 5）我应该用 `latest` 还是 `sha-<commit>`？
-
-- 想省事、接受随主分支更新：用 `latest`
-- 想和某次发布严格绑定、便于回滚：用 `sha-<commit>`
-
----
+`docker-compose.yml` 内置 SQLite 持久化卷映射；PostgreSQL 迁移指引见 [`docs/postgres.md`](docs/postgres.md)。
 
 ## GitHub 自动发布 DockerHub
 
-仓库已新增工作流：
+推送到 `main` 或推送 `v*` tag 时，GitHub Actions 自动执行 **质量门（tsc + 全量测试 + 85% 分支覆盖率阈值）→ Playwright E2E Smoke → Docker Compose Smoke → 构建推送镜像**，发布到 DockerHub：
 
-- `.github/workflows/docker-publish.yml`
-
-当前公共镜像已经发布到：
-
-- `xdlee/activation-manager:latest`
-- `xdlee/activation-manager:main`
-- `xdlee/activation-manager:sha-<commit>`
-
-对于普通使用者来说，**现在可以直接 `docker pull` 后部署，不必先 clone 仓库构建镜像**。
-
-该工作流会在 **每次 push** 和 **手动触发** 时自动执行：
-
-1. 先跑一遍 `npm run quality:gate`
-2. 再用 `docker compose` 真正拉起容器并等待 `healthy`
-3. 然后执行 `scripts/smoke-license-api.sh` 做真实接口联调
-4. 最后构建并推送 DockerHub 镜像
-
-> 这里在 CI 里使用 `docker compose`，只是为了把“启动容器、等待健康检查、执行 smoke”收口成一个稳定的流水线步骤；**项目运行本身并不依赖 compose**。
-
-### 如果你要复用这套自动发布，需要配置的 GitHub Secrets
-
-在 GitHub 仓库 `Settings -> Secrets and variables -> Actions` 中新增：
-
-- `DOCKERHUB_USERNAME`：你的 DockerHub 用户名
-- `DOCKERHUB_TOKEN`：你的 DockerHub Access Token
-
-### 可选的 GitHub Repository Variable
-
-可选新增：
-
-- `DOCKERHUB_IMAGE_NAME`：镜像仓库名
-
-如果不配置，工作流会默认使用当前 GitHub 仓库名作为 DockerHub 镜像名。
-
-### 自动打的标签策略
-
-工作流默认会生成并推送这些标签：
-
-- 分支名标签，例如：`main`、`feature-login`
-- Git tag 标签（如果你推了 tag）
-- 提交 SHA 标签，例如：`sha-abc1234`
-- `latest`（仅默认分支）
-
-### 默认发布的平台架构
-
-工作流默认会发布多架构镜像：
-
-- `linux/amd64`
-- `linux/arm64`
-
-这样无论你的服务器是常见的 x86_64 云主机，还是 ARM 设备 / ARM 服务器，都可以直接拉取同一个镜像标签。
-
-### 维护者推荐的远端发布前自检
-
-在你首次 push 触发自动发布前，建议本地先执行：
-
-```bash
-npm run quality:gate
-docker compose --env-file .env.docker.example up -d --build
-BASE_URL=http://127.0.0.1:3300 npm run smoke:license-api
-docker compose --env-file .env.docker.example down -v
-```
-
-如果这 3 步都通过，通常 GitHub Actions 的 Docker 发布链路也会稳定通过。
-
-如果你只想验证“直接 `docker run` 的运行链路”，也可以按上面的 Docker 部署章节直接启动容器，再执行一次：
-
-```bash
-BASE_URL=http://127.0.0.1:3000 npm run smoke:license-api
-```
-
-### 当前实际发布地址
-
-当前这份仓库的实际公开镜像地址就是：
-
-- `xdlee/activation-manager:latest`
-- `xdlee/activation-manager:main`
-
-如果你要固定到某次提交，也可以使用：
-
-- `xdlee/activation-manager:sha-<commit>`
-
----
-
-## 推荐接入流程
-
-推荐把插件 / 客户端接入理解为一个完整闭环：
-
-1. 在后台创建项目，拿到 `projectKey`
-2. 用户首次输入激活码时，调用 `activate`
-3. 插件展示授权信息时，调用 `status`
-4. 每次真实业务发生时，调用 `consume`
-5. 联调时去后台消费日志按 `requestId` 反查
-6. 最后用 `smoke:license-api` 做回归
-
-如果你要把一个页面直接发给接入方，优先发这个公开文档页：
-
-<p align="center">
-  <img src="./Readmeimg/validation-20260327/docs-api-overview.jpg" width="92%" alt="公开 API 文档总览页（最新版 UI）" />
-</p>
-
-### 行为约定
-
-- `activate`：绑定设备；次数型不扣次
-- `status`：查询当前授权状态
-- `consume`：真实业务发生时扣次；推荐总是传 `requestId`
-
-### SDK
-
-项目内已提供可直接复用的 SDK：
-
-- JS/TS：`src/lib/license-sdk.ts`
-- Python / Go / Java / PHP / Ruby / C / C++ / TypeScript / Swift / Dart / Scala / Perl / Lua / Groovy：`sdk/` 各语言目录（含响应验签；总览见 [sdk/README.md](./sdk/README.md)）
-
-最小使用示例：
-
-```ts
-import { createLicenseClient } from '@/lib/license-sdk'
-
-const client = createLicenseClient({
-  baseUrl: 'http://127.0.0.1:3000',
-  projectKey: 'browser-plugin',
-})
-
-await client.activate({
-  code: 'A1B2C3D4E5F6G7H8',
-  machineId: 'machine-001',
-})
-
-await client.status({
-  code: 'A1B2C3D4E5F6G7H8',
-  machineId: 'machine-001',
-})
-
-await client.consume({
-  code: 'A1B2C3D4E5F6G7H8',
-  machineId: 'machine-001',
-  requestId: 'req-001',
-})
-```
-
-更完整的请求 / 响应 / 多语言示例请查看：
-
-- 本地运行后的公开页面：`http://localhost:3000/docs/api`
-- 仓库内详版文档：[apidocs.md](./apidocs.md)
-
-公开文档页和后台联调工作区都已经按 `2026-03-27` 最新 UI 重拍：
-
-<p>
-  <img src="./Readmeimg/validation-20260327/docs-api-examples.jpg" width="49%" alt="公开 API 文档多语言示例（最新版 UI）" />
-  <img src="./Readmeimg/validation-20260327/admin-api-docs.jpg" width="49%" alt="后台 API 接入工作区（最新版 UI）" />
-</p>
-
----
-
-## 管理后台可以做什么
-
-> **v2.7.0 起**：管理后台重构为 12 个任务型独立路由（概览/项目/生成激活码/激活码管理/
-> 消费日志/审计中心/API 接入/商品/订单/支付渠道/系统设置/账户安全），
-> 筛选与分页写入 URL 可直接分享；旧入口 `/admin/dashboard?tab=...` 自动跳转到对应新路由。
-> 各页面操作细节见 [管理后台操作手册](./docs/admin-console-operations.md)。
-
-### 数据统计
-- 查看总发码量、已使用、可用、已过期
-- 查看项目级统计与次数使用率
-- 查看消费趋势、周期对比与项目对比
-
-<p align="center">
-  <img src="./Readmeimg/validation-20260327/admin-dashboard-stats.jpg" width="92%" alt="后台统计总览（最新版 UI）" />
-</p>
-
-### 项目管理
-- 左侧主导航固定切换工作区，不再占用页面顶部主视觉
-- 项目列表只展示名称、标识、项目级换绑策略、状态等关键字段
-- 新建项目、基础信息维护、项目级换绑策略统一通过弹框完成，表单改为更易读的纵向布局
-- 一键复制 `projectKey`
-- 搜索、筛选、排序、分页
-- 启用 / 停用项目
-- 删除空项目
-
-<p align="center">
-  <img src="./Readmeimg/validation-20260327/admin-project-management.jpg" width="92%" alt="项目管理页面（最新版 UI）" />
-</p>
-
-### 发码与码管理
-- 批量生成时间型或次数型激活码，并支持单码级自助换绑策略、冷却时间与次数上限覆盖
-- 查看激活码状态、规格、过期时间、剩余次数与绑定设备 / `machineId`
-- 单码管理改为弹框查看，集中展示绑定设备、最终生效策略、单码级覆盖配置、绑定历史与管理员审计
-- 支持单码覆盖策略、强制解绑、强制换绑
-- 删除激活码
-- 清理过期绑定
-
-<p>
-  <img src="./Readmeimg/validation-20260327/admin-generate-codes.jpg" width="49%" alt="生成激活码页面（最新版 UI）" />
-  <img src="./Readmeimg/validation-20260327/admin-activation-codes.jpg" width="49%" alt="激活码管理页面（最新版 UI）" />
-</p>
-
-### 换绑治理与审计
-- 明确采用 **系统级配置 < 项目级配置 < 单码级配置** 的三级继承与覆盖优先级
-- 系统配置页新增独立“换绑策略”分区，集中维护系统级默认规则
-- 项目级与单码级都支持继承上级策略，并展示最终生效来源
-- 自助换绑冷却时间与次数上限治理
-- 管理员操作原因说明随审计日志落库
-- 审计中心统一排查项目、激活码与换绑相关动作
-
-### 消费日志
-- 查询次数型真实扣次记录
-- 支持 `projectKey / requestId / machineId / 时间范围` 过滤
-- 服务端分页 + CSV 导出
-
-<p align="center">
-  <img src="./Readmeimg/validation-20260327/admin-consumption-logs.jpg" width="92%" alt="消费日志页面（最新版 UI）" />
-</p>
-
-### 安全与配置
-- 修改管理员密码
-- 管理 IP 白名单
-- 管理 JWT 有效期与密钥
-- 管理密码哈希成本
-- 管理系统展示名称等配置
-- 设置页已拆分为总览、访问控制、换绑策略、认证与会话、系统展示等分区，长页面操作更清晰
-
-<p>
-  <img src="./Readmeimg/validation-20260327/admin-system-config.jpg" width="49%" alt="系统配置页面（最新版 UI）" />
-  <img src="./Readmeimg/validation-20260327/admin-change-password.jpg" width="49%" alt="管理员密码修改页（最新版 UI）" />
-</p>
-
----
-
-## 主题体系（14 套内置主题）
-
-系统内置 **14 套主题**，覆盖深色科技、冷调夜间、自然清新、浅色日间、怀旧文艺等不同审美，所有页面（首页、登录、后台、公开 API 文档）随主题全局换肤。
-
-### 如何切换主题
-
-- **登录页**：右上角主题切换器
-- **管理后台**：左侧导航栏底部（登出按钮上方）
-- 选择后**自动记忆**（localStorage），刷新与重新打开都保持
-- 切换带 300ms 过渡动画，无闪烁（布局预加载主题）
-
-### 主题清单
-
-| 类型 | 主题 | 风格 |
-| --- | --- | --- |
-| 🌌 深色系 | **深空科技**（默认） | 深蓝黑底 + 品牌光晕 |
-| | **午夜蓝** | 冷调蓝黑，沉稳夜间观感 |
-| | **石墨灰** | 中性灰阶，克制商务感 |
-| | **翡翠绿** | 深绿科技感，清爽不刺眼 |
-| | **紫夜** | 深紫赛博，神秘有张力 |
-| | **绯红** | 深红激情，醒目有力 |
-| | **海洋青** | 深青清新，像深海与极光 |
-| | **琥珀金** | 深棕金调，沉稳奢雅 |
-| ☀️ 浅色系 | **极简浅色** | 白底深字，适合日间办公 |
-| | **樱花粉** | 浅粉温柔，治愈系 |
-| | **森林绿** | 浅绿自然，护眼清新 |
-| | **朝霞橙** | 浅橙活力，温暖朝气 |
-| | **复古纸** | 米色纸感，怀旧文艺 |
-| ⬛ 极简 | **黑白极简** | 纯黑白灰，极致克制 |
-
-### 主题如何实现
-
-- 所有颜色通过 CSS 变量（`--brand-*` / `--ink-*` / `--surface-*`）定义
-- Tailwind 颜色类（如 `bg-surface-100`、`text-ink-50`）引用变量，类名不变、值随主题切换
-- 切换 `data-theme` 属性即可整体换肤
-- 新增主题只需在 `src/app/globals.css` 添加变量块，并在 `src/lib/theme-provider.tsx` 注册元数据
-
----
-
-## Toast 提示体系
-
-- 全局右上角 Toast：成功（绿）、错误（红）、信息（蓝）三态，带图标、自动消失、可关闭
-- 支持堆叠展示，入场动画
-- 后台操作（保存配置、改密、复制、导出等）统一走 Toast 反馈
-- 公开 API 文档页的复制反馈同样接入全局 Toast
-- 在任意组件中通过 `useToast()` 调用：`toast.success('...')` / `toast.error('...')` / `toast.info('...')`
-
----
-
-## 定制控件库
-
-内置一套与主题联动的定制表单控件，替换了原生控件的观感：
-
-| 控件 | 说明 |
+| 触发 | 产出 tags |
 | --- | --- |
-| `AppInput` | 支持前置/后置图标插槽、聚焦光晕、主题变量驱动 |
-| `AppTextarea` | 统一深色样式 |
-| `AppSelect` | 保留原生 `select` 语义（无障碍与自动化测试兼容），自定义下拉箭头与样式 |
+| push `main` | `:latest` |
+| push `v*` tag | `:vX.Y.Z` + `:sha-<short>` |
 
-已应用在登录页、系统配置、修改密码、生成激活码等高频表单中。
+## 环境变量
 
----
-
-## 支付自动发卡（购买中心）
-
-系统内置**支付自动发卡能力**：买家在公开购买页选择套餐、填写联系方式下单，支付确认后自动发放卡密，凭订单号 + 联系方式可找回。
-
-### 适用场景
-
-- **无微信/支付宝商户资质**：使用「手动收款确认」或「通用回调」渠道即可跑通闭环
-- **未来有资质**：只需新增一个支付适配器（微信/支付宝/易支付），订单与发卡逻辑不变
-
-### 购买页 `/shop`
-
-- 选择套餐 → 填写联系方式（邮箱 / 手机号 / 微信号，至少一项，用于找回卡密）→ 生成订单
-- 展示支付信息（收款说明 / 二维码 / 订单号）
-- 支付确认后自动轮询并展示卡密
-
-### 支付渠道（适配器抽象）
-
-系统内置 **5 种支付渠道**，通过 `PaymentProvider` 接口统一抽象：
-
-| 渠道 | 资质要求 | 说明 | 自动化 | 回调路由 |
-| --- | --- | --- | --- | --- |
-| **手动收款确认** | 无 | 展示收款信息，管理员确认后发卡 | 半自动 | — |
-| **通用支付回调** | 无 | 自建服务 POST 触发发卡 | 自动 | `/api/shop/payment/webhook` |
-| **易支付** | 个人可注册 | 聚合支付，支持微信/支付宝扫码 | 自动 | `/api/shop/payment/yipay` |
-| **微信支付（官方）** | 需微信商户号 | Native 扫码支付 | 自动 | `/api/shop/payment/wechat` |
-| **支付宝（官方）** | 需商户资质 | 扫码支付 | 自动 | `/api/shop/payment/alipay` |
-
-**易支付（推荐无资质用户）**：个人无需商户资质，注册易支付账号后配置 gateway/pid/key 即可接入微信/支付宝扫码收款。回调采用 MD5 签名验证，支持 form-urlencoded 格式。
-
-**微信/支付宝**：需要对应的商户资质，配置后即可使用官方支付接口。
-
-接入新渠道只需实现 `PaymentProvider` 接口（`createPayment` / `verifyCallback` / `queryPayment`）并在 `shop-payment-registry.ts` 中注册。
-
-### 订单与发卡闭环
-
-- 订单状态机：`pending → paid → fulfilled`；`pending` 订单超过 **30 分钟**未支付会被自动取消（`cancelled`，后台「清理超时订单」按钮或外部 cron 调用清理接口触发）
-- 支付确认后事务生成卡密并关联订单（幂等，重复回调不重复发卡）
-- 卡密找回：`/shop` 页凭「订单号 + 联系方式」重新获取；联系方式不匹配拒绝
-- 发卡成功后可触发管理员通知与买家卡密邮件（见下方「通知系统」）
-
-### 后台
-
-后台侧边栏新增 **购买中心**：商品管理（创建/编辑/上下架/删除/补货）、订单管理（列表/确认收款发卡，支持按状态与支付渠道筛选）、支付渠道启停与配置。
-
-### 购买中心总开关
-
-系统配置 → 系统展示 → **启用购买中心**（默认开启）。关闭后：
-- `/shop` 购买页显示停用提示
-- 商品 / 下单 / 渠道 / 回调公开 API 返回 403
-- 后台购买中心管理不受影响（可继续维护商品与渠道）
-
-### 商品两种发卡模式
-
-| 模式 | 说明 | 适用 |
+| 变量 | 说明 | 默认 |
 | --- | --- | --- |
-| **动态生成** | 下单支付成功后按商品规格实时生成新激活码 | 常规售卖 |
-| **预定义码池** | 后台预先生成/补货一批激活码入池，售出后标记已售 | 需要人工控量、特定码段 |
+| `DATABASE_URL` | Prisma 连接串（SQLite `file:./dev.db` 或 PostgreSQL URL）| `file:./dev.db` |
+| `PORT` | 服务端口 | `3000` |
+| `ADMIN_INITIAL_PASSWORD` | 生产环境初始管理员密码 | 随机 |
+| `LICENSE_API_RATE_LIMIT_MAX` / `LICENSE_API_RATE_LIMIT_WINDOW_MS` | 公开 API 限流（窗口内最大请求数 / 窗口毫秒）| 内置默认 |
+| `LICENSE_RESPONSE_SECRET` | 公开 API 响应验签密钥（也可在后台配置）| 空（不验签）|
 
-- 创建商品时选择模式，商品行显示「预存码 / 动态」徽标
-- 预定义商品：后台「补货」输入数量（1-100）生成码入池；公开列表显示剩余库存，售罄显示「已售罄」并拒绝下单（409）
-- 码池取码在事务内原子完成，并发下单不超卖
+更多部署细节见 [`docs/operations.md`](docs/operations.md)。
 
-### 支付渠道展示规则
+## 公开 API 与多语言 SDK
 
-- 渠道需在后台启用 **且必需配置齐全** 才在购买页展示：
-  - 易支付：gateway / pid / key
-  - 微信支付：appId / mchId / apiKey
-  - 支付宝：appId
-  - 手动收款 / 通用回调：无强制配置
-- 配置不全的渠道后台会提示「配置不完整（缺 xx），购买页不展示」
-- **manual 兜底**：无任何可用渠道且手动收款未被显式禁用时，购买页提供手动收款确认
-
-### 商品排序
-
-购买页支持排序：推荐（sortOrder）、价格从低到高、价格从高到低、最新上架。
-
-### 通知系统（管理员通知中心）
-
-关键业务事件可同时分发到三类渠道，全部在 **系统配置 → 通知与告警** 中配置：
-
-| 事件 | 触发时机 |
+| 接口 | 说明 |
 | --- | --- |
-| `LICENSE_EXPIRED` | 激活码到期 / 次数耗尽（客户端查询触发或主动扫描） |
-| `SHOP_ORDER_PAID_FULFILLED` | 订单支付后发卡成功（回调或人工确认） |
-| `SHOP_ORDER_TIMEOUT_CANCELLED` | 超时未支付订单被清理取消 |
+| `POST /api/license/activate` | 激活：绑定设备；TIME 型首次激活起算有效期，COUNT 型不扣次数 |
+| `POST /api/license/status` | 查询：剩余次数 / 过期时间 / 是否已绑定 |
+| `POST /api/license/consume` | 消费：COUNT 型扣减 1 次（`requestId` 幂等），TIME 型仅校验 |
+| `POST /api/verify` | 旧版兼容接口（snake_case），新接入请使用正式接口 |
 
-| 渠道 | 配置项 | 说明 |
-| --- | --- | --- |
-| **Webhook** | `notifyWebhookUrl` | POST JSON：`{event, title, body, data, notifiedAt}` |
-| **邮件** | `notifyEmailSmtpHost/Port/User/Pass/From/To` | SMTP 发送；收件人逗号/换行分隔可多个 |
-| **短信** | `notifySmsApiUrl` / `notifySmsApiBody` / `notifySmsPhones` | 通用 HTTP 网关；模板占位符 `{phone}` / `{content}` |
+所有请求携带 `projectKey + code + machineId`；完整参数、错误码与验签说明见后台 **API 接入** 页（`/docs/api`）。
 
-行为约定：
+**SDK 一览**（`sdk/` 目录，单文件复制即用，均为标准库实现，部分含验签）：
 
-- 未配置的渠道自动跳过；单渠道失败不影响其他渠道，也不阻塞主业务（fire-and-forget）
-- 配置 `notifyWebhookUrl` 后，到期事件优先走该地址；未配置时回落旧「到期通知接口」`expiryWebhookUrl` 且保持原始扁平 payload（向后兼容）
-- 订单发卡且买家留了邮箱时，邮件渠道会把卡密自动发送到买家邮箱
-- SMTP 授权码为敏感配置：后台掩码显示，保存后不回显
+| 生态 | 语言 |
+| --- | --- |
+| 前端 / 脚本 | TypeScript · Python · PHP · Ruby · Perl · Lua |
+| 系统 / 服务端 | Go · Java · Kotlin · Scala · Groovy · C# · Rust · Dart |
+| 原生 / 移动 | C · C++ · Swift |
 
----
+以 Go 为例：
 
-## 授权与绑定规则
+```go
+client := activationmanager.NewClient(activationmanager.ClientOptions{
+    BaseURL: "http://127.0.0.1:3000", ProjectKey: "demo",
+})
+result, err := client.Activate(ctx, "A1B2C3D4E5F6G7H8", "machine-001", nil)
+```
 
-### `projectKey` 规则
-创建项目时，`projectKey` 需满足：
+其余语言示例见后台 **API 接入 → 示例代码**，或 [`sdk/`](sdk/) 各目录 README。
 
-- 长度 `2 - 50`
-- 仅允许小写字母 `a-z`、数字 `0-9`、短横线 `-`
-- 不能以 `-` 开头或结尾
-- 不能包含连续短横线 `--`
+## 管理后台模块
 
-推荐示例：
+| 模块 | 能力 |
+| --- | --- |
+| 数据统计 | KPI 卡、7 天消费趋势、激活码构成、License API 运行指标、项目统计明细 |
+| 项目管理 | 创建 / 编辑 / 启停项目，换绑策略默认值，项目删除保护 |
+| 生成激活码 | TIME / COUNT 双模式，按项目绑定卡类型与策略，批量生成并导出 |
+| 激活码管理 | 多维筛选、详情抽屉（绑定历史 + 审计时间线 + 危险操作）、换绑设置、强制解绑 / 换绑、导出 |
+| 消费日志 | 按 `requestId` 回查、多维筛选、趋势联动、导出 |
+| 审计中心 | 管理员操作全量审计、详情抽屉、CSV 导出 |
+| API 接入 | 公开接口文档、16 语言 SDK 示例、调试命令、响应验签指引 |
+| 购买中心 | 商品管理（码池绑定 / 上下架 / 补货）、订单管理（确认发卡 / 补发邮件 / 清理）、支付渠道配置 |
+| 系统配置 | 访问控制（IP 白名单）、换绑策略、认证与会话、品牌展示、通知渠道（Webhook/邮件/短信）、高级配置，分区导航 + 未保存变更提示 |
+| 账户安全 | 管理员密码修改（改后重新登录）|
 
-- `browser-plugin`
-- `plugin-a`
-- `desktop-client`
+## 主题与多语言
 
-### 设备绑定规则
-- 同一台设备可以在 **不同项目** 下分别绑定激活码
-- 但在 **同一项目** 下，同时只允许存在一个有效绑定
-- 旧的次数卡已耗尽，或旧的时间卡已过期后，才允许切换到新卡
+- **14 套主题**：深空科技 / 午夜蓝 / 石墨灰 / 翡翠绿 / 紫夜 / 绯红 / 海洋青 / 琥珀金 / 樱花粉 / 森林绿 / 日出橙 / 复古纸 / 极简黑白 / 极光紫，全部基于 CSS 变量即时换肤，并通过 WCAG 对比度自动化审计
+- **10 种界面语言**：简体中文 / English / 日本語 / 한국어 / Deutsch / Français / Español / Português / Русский / العربية（含 RTL），运行时切换无需刷新
 
----
-
-## 安全与工程保障
-
-### 安全侧
-- bcrypt 密码哈希（成本可配置）
-- JWT 会话管理
-- httpOnly Cookie（生产环境附加 Secure）
-- 登录限流
-- IP 白名单访问控制
-- 页面层与 API 层统一后台鉴权 / 白名单判断
-- 公开 License API 限流（IP + 接口维度，默认 120 次/分钟，可通过 `LICENSE_API_RATE_LIMIT_MAX` / `LICENSE_API_RATE_LIMIT_WINDOW_MS` 调整）
-- 内部错误不向客户端泄露具体消息，统一返回通用错误文案
-- 统一安全响应头：CSP（生产环境不含 `unsafe-eval`、`frame-ancestors 'none'`）、`X-Frame-Options: DENY`、`X-Content-Type-Options: nosniff`、`Referrer-Policy`、`Permissions-Policy`，并关闭 `X-Powered-By`
-- CSV 导出公式注入防御（`= + - @` 前缀加 `\t`）
-- 关键管理员操作全量审计：登录、项目创建/删除/改名/描述/启停、发码、单码策略调整、强制解绑/换绑、激活码删除、清理过期、系统配置更新、密码修改
-
-### 工程侧
-- 通过 `.nvmrc` 统一本地、CI 与 Docker 的 Node 主版本
-- `npm run dev` 与 `npm run build` / `npm start` 使用隔离的构建产物目录
-- 开发环境自动初始化，减少首次运行成本
-- 质量门禁：`lint + coverage + build + e2e`
-- GitHub Actions 已配置质量门禁、Playwright e2e 与 Docker 冒烟三道闸
-- 已支持 Docker 镜像构建、容器启动初始化与 DockerHub 自动发布
-
-常用命令：
+## 测试与质量
 
 ```bash
-# 常规测试
+# 全量单测 + 行为测试（node:test，690+ 用例）
 npm test
 
-# 覆盖率门禁
+# 带覆盖率阈值（lines 90% / branches 85% / funcs 90%）——与 CI 质量门一致
 npm run test:coverage
 
-# 提交前完整门禁
-npm run quality:gate
+# Playwright E2E（冒烟 + 页面行为 + 响应式）
+npx playwright test
 ```
 
-端到端冒烟（Playwright，浏览器全链路：登录 → 建项目 → 发码 → 激活 → 消费 → 审计）：
+CI 流水线（Docker Publish）：**质量门（tsc + 测试 + 覆盖率阈值）→ Playwright E2E Smoke → Docker Compose 冒烟 → 构建推送 DockerHub**，任一环节失败即阻断发布。
 
-```bash
-# 首次需安装浏览器（沙箱环境可指定 PLAYWRIGHT_BROWSERS_PATH）
-npx playwright install chromium
+## 目录结构
 
-# 运行 e2e（自动启动独立 3210 端口 dev server + 独立 e2e.db，结束后自动清理）
-npm run test:e2e
-
-# 可视化调试模式
-npm run test:e2e:ui
 ```
-
-e2e 使用独立数据库（`prisma/e2e.db`），每次运行前自动重建，不影响开发数据；详细链路与断言见 `e2e/smoke.spec.ts` 与 `e2e/auth.setup.ts`。
-
-CI 工作流位置：
-
-- `.github/workflows/quality-gate.yml`
-- `.github/workflows/docker-publish.yml`
-
----
-
-## 项目结构
-
-```text
-.
-├── .github/
-│   └── workflows/
-│       ├── docker-publish.yml
-│       └── quality-gate.yml
-├── prisma/
-│   ├── schema.prisma
-│   └── dev.db
-├── scripts/
-│   ├── bootstrap-dev.ts
-│   ├── bootstrap-runtime.ts
-│   ├── docker-entrypoint.sh
-│   ├── init-default-admin.ts
-│   ├── init-system-config.ts
-│   ├── smoke-license-api.sh
-│   └── backup-db.sh
 ├── src/
-│   ├── app/
-│   │   ├── admin/
-│   │   ├── api/
-│   │   ├── docs/api/
-│   │   └── page.tsx
-│   ├── components/
-│   ├── lib/
-│   ├── config.ts
-│   └── middleware.ts
-├── tests/
-├── .env.docker.example
-├── Dockerfile
-├── docker-compose.yml
-├── apidocs.md
-├── docs/            # 运维手册 / Postgres 指南 / 升级计划 / 历史文档归档
-└── README.md
+│   ├── app/                # Next.js App Router（管理后台 / 公开页 / API 路由）
+│   ├── components/         # admin 任务页组件、ui-admin 基础组件、公开页组件
+│   ├── lib/                # 业务服务（license-*）、hooks、i18n、UI 页面模型
+│   └── i18n/               # 10 语言词典（client/server 双份）
+├── sdk/                    # 16 语言官方 SDK（单文件复制即用）
+├── tests/                  # 690+ 用例（node:test + RTL），单元 / 行为 / 路由处理
+├── e2e/                    # Playwright 冒烟与页面行为测试
+├── docs/                   # 运维、PostgreSQL 迁移、截图等文档
+├── scripts/                # 主题对比度审计、全主题截图矩阵等工具
+├── docker-compose.yml      # SQLite 持久化一键部署
+└── .github/workflows/      # 质量门 + E2E + DockerHub 自动发布
 ```
 
----
+## 更多文档
 
-## 一眼看懂系统原理
-
-### 系统体系图
-
-```mermaid
-flowchart TB
-    user["插件 / 客户端 / 接入方"]
-    admin["管理员"]
-
-    subgraph Pages["Next.js 页面层"]
-        home["首页 /"]
-        docs["公开 API 文档 /docs/api"]
-        login["后台登录 /admin/login"]
-        dashboard["后台工作区 /admin/dashboard"]
-    end
-
-    subgraph Middleware["后台访问控制"]
-        mw["middleware.ts"]
-        validate["校验接口 /api/admin/auth/validate"]
-        auth["admin-auth-service"]
-        ip["IP 白名单"]
-        jwt["JWT Cookie 会话"]
-    end
-
-    subgraph Api["业务 API"]
-        activate["POST /api/license/activate"]
-        status["POST /api/license/status"]
-        consume["POST /api/license/consume"]
-        verify["POST /api/verify"]
-        adminApi["后台接口：项目、发码、激活码、日志、配置"]
-    end
-
-    subgraph Service["领域服务"]
-        licenseSvc["授权服务：项目隔离、TIME、COUNT、设备绑定"]
-        idem["requestId 幂等控制"]
-        analytics["统计与日志服务"]
-        configSvc["系统配置服务"]
-    end
-
-    subgraph Data["数据层"]
-        prisma["Prisma Client"]
-        sqlite[("SQLite / prisma/dev.db")]
-    end
-
-    subgraph Runtime["容器 / 运行时"]
-        entry["scripts/docker-entrypoint.sh"]
-        bootstrap["npm run bootstrap:runtime"]
-        start["next start"]
-    end
-
-    user --> home
-    user --> docs
-    user --> activate
-    user --> status
-    user --> consume
-    user --> verify
-
-    admin --> login
-    admin --> dashboard
-    dashboard --> mw
-    mw --> validate
-    validate --> auth
-    auth --> ip
-    auth --> jwt
-    dashboard --> adminApi
-
-    activate --> licenseSvc
-    status --> licenseSvc
-    consume --> idem
-    idem --> licenseSvc
-    verify --> licenseSvc
-    adminApi --> analytics
-    adminApi --> configSvc
-    adminApi --> licenseSvc
-
-    licenseSvc --> prisma
-    analytics --> prisma
-    configSvc --> prisma
-    prisma --> sqlite
-
-    entry --> bootstrap
-    bootstrap --> prisma
-    bootstrap --> sqlite
-    bootstrap --> start
-```
-
-### 客户端验证流程图
-
-```mermaid
-flowchart TD
-    start([开始接入]) --> prepare[准备 projectKey / code / machineId]
-    prepare --> first{是否首次绑定设备?}
-
-    first -- 是 --> activate[调用 /api/license/activate]
-    activate --> activateCheck{授权类型}
-    activateCheck -- TIME --> timeBind[写入 usedBy / usedAt / expiresAt]
-    activateCheck -- COUNT --> countBind[仅绑定设备<br/>remainingCount 不扣减]
-
-    timeBind --> statusCall
-    countBind --> statusCall[调用 /api/license/status]
-
-    first -- 否 --> statusCall
-    statusCall --> stateResult[返回当前状态<br/>valid / expiresAt / remainingCount]
-    stateResult --> biz{是否发生真实业务?}
-
-    biz -- 否 --> end1([结束 / 继续展示状态])
-    biz -- 是 --> req[生成并携带 requestId]
-    req --> consume[调用 /api/license/consume]
-    consume --> typeCheck{授权类型}
-
-    typeCheck -- TIME --> timeVerify[仅校验是否过期 / 是否属于当前设备]
-    timeVerify --> end2([返回有效性结果])
-
-    typeCheck -- COUNT --> idem{requestId 是否已处理?}
-    idem -- 是 --> replay[直接返回历史结果<br/>idempotent = true]
-    idem -- 否 --> remain{remainingCount > 0 ?}
-    remain -- 否 --> exhausted[返回次数耗尽]
-    remain -- 是 --> deduct[扣减 1 次并写入消费日志]
-    deduct --> adminTrace[后台按 requestId / machineId / projectKey 反查]
-    replay --> end3([避免重复扣次])
-    exhausted --> end4([提示额度不足])
-    adminTrace --> end5([联调与对账闭环完成])
-```
-
-> 说明：对次数型授权来说，`activate` 只负责绑定设备，真正扣次只发生在 `consume`；<br/>
-> 对时间型授权来说，首次激活后开始计算有效期，后续 `status / consume` 只做有效性校验。
-
----
-
-## 相关文档
-
-- [API 对接指南（详版）](./apidocs.md)
-- [数据库备份指南](./DATABASE_BACKUP_GUIDE.md)
-- [运维手册（定时任务 / 多实例 / 升级计划）](./docs/operations.md)
-- [Postgres 接入指南](./docs/postgres.md)
-- [更新日志](./CHANGELOG.md)
-- [README 截图清单（最新版）](./Readmeimg/validation-20260327/README_SCREENSHOTS.md)
-- [演进备忘（暂缓项与触发条件）](./docs/ROADMAP.md)
-- 历史文档归档：[工程加固计划](./docs/archive/ENGINEERING_HARDENING_PLAN.md) / [早期开发说明](./docs/archive/xitonkaifa.md)
-
----
-
-## 生产环境提示
-
-生产环境初始化前，建议显式提供安全的 JWT 密钥：
-
-```bash
-JWT_SECRET="请替换为高强度随机字符串" npm run init-system-config
-```
-
-同时建议：
-- 修改默认管理员密码
-- 配置正确的白名单来源
-- 启用 HTTPS
-- 根据实际情况替换 SQLite / 调整部署方案
-
----
-
-## FAQ
-
-### `activate` 和 `consume` 的区别是什么？
-
-- `activate`：首次绑定设备
-- `status`：查询当前授权状态
-- `consume`：真实业务发生时使用；次数型会扣减次数
-
-对次数型授权来说，**不要把 `activate` 当作扣次接口**。
-
-### 为什么推荐每次 `consume` 都传 `requestId`？
-
-因为客户端、插件、网络层都可能发生重试。
-传入 `requestId` 后，同一业务请求可以做到**幂等扣次**，避免重复消耗额度。
-
-### 同一台设备能否在多个项目下使用？
-
-可以。
-同一设备可以在**不同项目**下分别绑定激活码；但在**同一项目**下，同时只允许一个有效绑定。
-
-### 我应该把哪个页面发给接入方？
-
-直接发：`/docs/api`
-
-这个页面已经整理了：
-- 正式接口
-- 字段说明
-- 多语言示例
-- 联调路径
-- 后台排查方式
-
----
-
-## 鸣谢
-
-感谢 [Linux.do](https://linux.do/) 社区支持。尤其是为本项目提供免费codex 5.4 的公益佬们。
-
----
-
-## Stargazers over time
-
-[![Stargazers over time](https://starchart.cc/axdlee/activation-manager.svg?variant=adaptive)](https://starchart.cc/axdlee/activation-manager)
+| 文档 | 内容 |
+| --- | --- |
+| [`docs/operations.md`](docs/operations.md) | 部署与运维手册 |
+| [`docs/postgres.md`](docs/postgres.md) | SQLite → PostgreSQL 迁移 |
+| [`docs/admin-console-operations.md`](docs/admin-console-operations.md) | 管理后台操作指引 |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | 路线图 |
+| [`sdk/README.md`](sdk/README.md) | SDK 总览与接入方式 |
