@@ -86,10 +86,10 @@ test('LicenseDetailDrawer：绑定历史/审计时间线事件类型分支', () 
       { id: 2, eventType: 'FORCE_UNBIND', createdAt: '2026-09-18T01:00:00.000Z', machineId: 'm1' },
       { id: 3, eventType: 'FORCE_REBIND', createdAt: '2026-09-18T02:00:00.000Z', machineId: 'm2' },
       { id: 4, eventType: 'REUSABLE_BINDING_RELEASED', createdAt: '2026-09-18T03:00:00.000Z', machineId: 'm2' },
-    ] as LicenseCodeDetail['bindingHistories'],
+    ] as unknown as LicenseCodeDetail['bindingHistories'],
     adminAuditLogs: [
       { id: 1, action: 'FORCE_UNBIND', adminUsername: 'admin', createdAt: '2026-09-18T01:00:00.000Z' },
-    ] as LicenseCodeDetail['adminAuditLogs'],
+    ] as unknown as LicenseCodeDetail['adminAuditLogs'],
   }
   const draft: LicensePolicyDraft = { policyValue: 'inherit', cooldownValue: '', maxCountValue: '', reason: '' }
   render(
@@ -186,6 +186,7 @@ test('LicenseDetailDrawer：Escape 关闭 + 复制码回调（键盘与回调分
   )
   // open=false 的卸载分支
   assert.equal(openState, false)
+  assert.equal(copied, '')
 })
 
 test('AuditDetailDrawer：关闭态渲染 null + Escape 关闭分支', async () => {

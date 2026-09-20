@@ -142,7 +142,6 @@ test('DashboardNumberedList：空 items 不崩溃', () => {
 })
 
 // ── SecurityPage 交互分支（handleChangePassword 校验链 + 密码显隐）──
-import { fireEvent } from '@testing-library/react'
 
 async function openSecurityPage() {
   render(React.createElement(SecurityPage, {}))
