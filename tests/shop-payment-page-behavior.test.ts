@@ -113,3 +113,13 @@ test('支付页：切换支付宝 Tab 渲染公钥字段（敏感）', async () 
   assert.equal(label.type, 'password')
   assert.ok(screen.getAllByText('启用渠道').length > 0)
 })
+
+test('支付页：webhook 密钥显隐切换（password/text 分支）', async () => {
+  setup()
+  const secret = await screen.findByPlaceholderText('输入回调密钥（留空不校验）') as HTMLInputElement
+  assert.equal(secret.type, 'password')
+  fireEvent.click(screen.getByRole('button', { name: '显示' }))
+  assert.equal((screen.getByPlaceholderText('输入回调密钥（留空不校验）') as HTMLInputElement).type, 'text')
+  fireEvent.click(screen.getByRole('button', { name: '隐藏' }))
+  assert.equal((screen.getByPlaceholderText('输入回调密钥（留空不校验）') as HTMLInputElement).type, 'password')
+})

@@ -240,3 +240,24 @@ test('管理页：更多菜单复制与详情回调', async () => {
     assert.equal(spies.opened?.id, 1)
   })
 })
+
+test('管理页：loading 态渲染加载骨架行', () => {
+  render(
+    React.createElement(LicensesPage, {
+      loading: true,
+      error: null,
+      onRetry: () => {},
+      filters: { keyword: '', projectKey: 'all', status: 'all', page: 1 },
+      onFiltersChange: () => {},
+      pagination: { currentPage: 1, totalPages: 1, totalItems: 0, startIndex: 0, endIndex: 0 },
+      onPageChange: () => {},
+      codes: [],
+      onOpenDetail: () => {},
+      onExport: () => {},
+      statusSummary: { unused: 0, inUse: 0, risk: 0 },
+      projectOptions: [],
+      availableCardTypes: [],
+    } as never),
+  )
+  assert.ok(document.querySelector('tbody'))
+})

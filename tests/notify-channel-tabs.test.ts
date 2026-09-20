@@ -41,6 +41,19 @@ const notificationItems: SystemConfigDisplayItem[] = [
     badges: [{ label: '邮件通知已启用', tone: 'success' }],
   },
   {
+    key: 'notifyEmailSmtpPort',
+    label: 'SMTP 端口',
+    description: 'SMTP 端口描述',
+    hint: '默认 465',
+    value: 465,
+    inputKind: 'number',
+    min: 1,
+    max: 65535,
+    step: 1,
+    layout: 'default',
+    badges: [],
+  },
+  {
     key: 'notifySmsApiUrl',
     label: '短信接口地址',
     description: '短信描述',
@@ -50,6 +63,28 @@ const notificationItems: SystemConfigDisplayItem[] = [
     placeholder: 'https://sms.example.com/send',
     layout: 'full',
     badges: [{ label: '未启用', tone: 'warning' }],
+  },
+  {
+    key: 'notifySmsApiBody',
+    label: '短信请求体模板',
+    description: '短信请求体',
+    hint: 'JSON 模板',
+    value: '',
+    inputKind: 'textarea',
+    placeholder: '{"phone":"{phone}","content":"{content}"}',
+    layout: 'full',
+    badges: [],
+  },
+  {
+    key: 'notifySmsPhones',
+    label: '短信收件人列表',
+    description: '收件人列表',
+    hint: '每行一个号码',
+    value: [],
+    inputKind: 'textarea',
+    placeholder: '13800000000',
+    layout: 'full',
+    badges: [],
   },
 ]
 
@@ -110,4 +145,16 @@ test('未知配置 key 兜底进入 Webhook 渠道桶', () => {
     },
   ])
   assert.ok(screen.getByText('未来通知项'))
+})
+
+test('短信 Tab 渲染 textarea（多号码），邮件 Tab 渲染 number 端口', async () => {
+  renderWorkspace([notificationGroup])
+  fireEvent.click(screen.getByText('短信通知'))
+  const textarea = document.querySelector('textarea')
+  assert.ok(textarea, 'sms phones textarea rendered')
+  fireEvent.click(screen.getByText('邮件通知（SMTP）'))
+  // 重渲染为异步：等待 SMTP 服务器字段出现后再断言 number 端口输入
+  await screen.findByDisplayValue('smtp.qq.com')
+  const portInput = document.querySelector('input[type="number"]') as HTMLInputElement | null
+  assert.ok(portInput, 'smtp port number input rendered')
 })

@@ -150,3 +150,74 @@ test('商品页：预定义码补货确认弹框带数量校验', async () => {
     assert.ok(calls.some((c) => c.url.includes('/restock') && JSON.stringify(c.body).includes('"amount":20')))
   })
 })
+
+// ── 分支补齐：上下架 / 编辑失败 / 补货成功 / 空列表 EmptyState ──
+
+function setupWith(productsResponse: unknown, writeFail = false) {
+  const notifications: Array<{ message: string; type?: 'success' | 'error' }> = []
+  const calls: Array<{ method: string; url: string }> = []
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input.toString()
+    const method = init?.method ?? 'GET'
+    calls.push({ method, url })
+    if (method !== 'GET' && url.includes('/api/admin/shop/products')) {
+      return writeFail
+        ? { ok: true, status: 200, json: async () => ({ success: false, message: '写入失败' }) }
+        : ok({ success: true, message: 'ok' })
+    }
+    if (url.includes('/api/admin/shop/products')) {
+      return ok(productsResponse)
+    }
+    if (url.includes('/api/admin/projects')) {
+      return ok({ projects: [{ id: 1, projectKey: 'default', name: '默认项目' }] })
+    }
+    return ok({ success: true })
+  }) as unknown as typeof fetch
+  render(
+    React.createElement(ShopProductsPage, {
+      onNotify: (message: string, type?: 'success' | 'error') => {
+        notifications.push({ message, type })
+      },
+    }),
+  )
+  return { notifications, calls }
+}
+
+test('商品页：上下架切换发出 isEnabled 翻转', async () => {
+  const { calls } = setupWith({ products })
+  openMoreMenu(await waitForRow())
+  const takeOff = await screen.findByText('下架')
+  fireEvent.pointerDown(takeOff)
+  fireEvent.click(takeOff)
+  await waitFor(() => {
+    assert.ok(calls.some((c) => c.method === 'PATCH' && c.url.includes('/api/admin/shop/products/1')))
+  })
+})
+
+test('商品页：编辑保存失败通知错误', async () => {
+  const { notifications } = setupWith({ products }, true)
+  openMoreMenu(await waitForRow())
+  fireEvent.click(await screen.findByText('编辑商品'))
+  fireEvent.change(await screen.findByLabelText('商品名称'), { target: { value: '改名失败' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存商品' }))
+  await waitFor(() => {
+    assert.ok(notifications.some((n) => n.type === 'error' && n.message === '写入失败'))
+  })
+})
+
+test('商品页：补货成功通知携带数量', async () => {
+  const { notifications } = setupWith({ products })
+  openMoreMenu(await waitForRow())
+  fireEvent.click(await screen.findByText('补货', { exact: true }))
+  fireEvent.change(await screen.findByLabelText('补货数量（1-100）'), { target: { value: '30' } })
+  fireEvent.click(screen.getByRole('button', { name: '确认补货' }))
+  await waitFor(() => {
+    assert.ok(notifications.some((n) => n.message.includes('已补充 30 张激活码到码池')))
+  })
+})
+
+test('商品页：无商品时展示 EmptyState 引导创建', async () => {
+  setupWith({ products: [] })
+  await screen.findByText('还没有商品')
+  assert.ok(screen.getAllByRole('button', { name: '新建商品' }).length > 0)
+})
