@@ -185,7 +185,6 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 export function LanguageSwitcher({ className = '' }: { className?: string }) {
   const { locale, setLocale } = useI18n()
   const [open, setOpen] = useState(false)
-  const [dropUp, setDropUp] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const current = LOCALES.find((item) => item.id === locale) ?? LOCALES[0]
 
@@ -200,17 +199,35 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
-  // 弹出方向自适应：贴近视口底部（如侧栏底部）时向上弹出，避免面板溢出视口
+  // 弹出定位自适应（fixed 视口坐标，逃逸抽屉/滚动容器的 overflow 裁剪）：
+  // 垂直：贴近视口底部时向上弹出；水平：右侧放不下时右对齐。
+  const [menuPos, setMenuPos] = useState<React.CSSProperties>({})
   useEffect(() => {
     if (!open) return
     const compute = () => {
       const rect = containerRef.current?.getBoundingClientRect()
       if (!rect) return
-      setDropUp(rect.bottom + 288 > window.innerHeight && rect.top > window.innerHeight - rect.bottom)
+      const panelHeight = 288
+      const panelWidth = 160
+      const dropUp = rect.bottom + panelHeight > window.innerHeight - 8 && rect.top > window.innerHeight - rect.bottom
+      const alignRight = rect.left + panelWidth > window.innerWidth - 8
+      setMenuPos({
+        position: 'fixed',
+        ...(dropUp
+          ? { bottom: window.innerHeight - rect.top + 4 }
+          : { top: rect.bottom + 4 }),
+        ...(alignRight
+          ? { right: window.innerWidth - rect.right }
+          : { left: rect.left }),
+      })
     }
     compute()
     window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
+    window.addEventListener('scroll', compute, true)
+    return () => {
+      window.removeEventListener('resize', compute)
+      window.removeEventListener('scroll', compute, true)
+    }
   }, [open])
 
   return (
@@ -229,9 +246,8 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
       {open ? (
         <ul
           role="listbox"
-          className={`absolute right-0 z-50 max-h-72 w-40 overflow-y-auto rounded-md border border-surface-200 bg-surface-50 py-1 shadow-lg ${
-            dropUp ? 'bottom-full mb-1' : 'mt-1'
-          }`}
+          style={menuPos}
+          className="fixed z-[60] max-h-72 w-40 overflow-y-auto rounded-md border border-surface-200 bg-surface-50 py-1 shadow-lg"
         >
           {LOCALES.map((item) => (
             <li key={item.id} role="option" aria-selected={item.id === locale}>

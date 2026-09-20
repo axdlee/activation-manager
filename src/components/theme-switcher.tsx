@@ -24,22 +24,36 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
-  // 弹出方向自适应：垂直（上方放不下则向下）+ 水平（右侧放不下则右对齐），
-  // 避免登录页顶部/右上角场景下面板被视口边缘裁剪。
-  const [dropUp, setDropUp] = useState(true)
-  const [alignRight, setAlignRight] = useState(false)
+  // 弹出定位自适应（fixed 视口坐标，逃逸抽屉/滚动容器的 overflow 裁剪）：
+  // 垂直：上方放不下则向下；水平：右侧放不下则右对齐。
+  const [menuPos, setMenuPos] = useState<React.CSSProperties>({})
   useEffect(() => {
     if (!open) return
     const compute = () => {
       const rect = containerRef.current?.getBoundingClientRect()
       if (!rect) return
       const panelHeight = Math.min(window.innerHeight * 0.7, 416)
-      setDropUp(rect.top >= panelHeight + 12 || rect.top >= window.innerHeight - rect.bottom)
-      setAlignRight(rect.right + 272 > window.innerWidth - 8)
+      const panelWidth = 256
+      const dropUp = rect.top >= panelHeight + 12 || rect.top >= window.innerHeight - rect.bottom
+      const alignRight = rect.right + panelWidth > window.innerWidth - 8
+      setMenuPos({
+        position: 'fixed',
+        ...(dropUp
+          ? { bottom: window.innerHeight - rect.top + 8 }
+          : { top: rect.bottom + 8 }),
+        ...(alignRight
+          ? { right: window.innerWidth - rect.right }
+          : { left: rect.left }),
+        maxHeight: Math.min(window.innerHeight * 0.7, 416),
+      })
     }
     compute()
     window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
+    window.addEventListener('scroll', compute, true)
+    return () => {
+      window.removeEventListener('resize', compute)
+      window.removeEventListener('scroll', compute, true)
+    }
   }, [open])
 
   const handleSelect = (id: ThemeId) => {
@@ -84,9 +98,8 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
         <div
           role="listbox"
           aria-label={t('theme.switchTitle', '切换主题')}
-          className={`absolute z-50 w-64 max-h-[min(70vh,26rem)] overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-modal theme-scroll ${
-            dropUp ? 'bottom-full mb-2 animate-fade-in-up' : 'top-full mt-2 animate-fade-in'
-          } ${alignRight ? 'right-0' : 'left-0'}`}
+          style={menuPos}
+          className="fixed z-[60] w-64 overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-modal theme-scroll animate-fade-in"
         >
           {THEMES.map((item) => {
             const isActive = item.id === theme

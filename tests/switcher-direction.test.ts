@@ -76,9 +76,10 @@ test('LanguageSwitcher：贴近视口底部时向上弹出（dropUp 分支）', 
   patchRect({ top: 640, bottom: 700, left: 24, right: 120 })
   fireEvent.click(screen.getByRole('button', { name: /English|中文|Language/i }))
   await waitFor(() => {
-    const menu = document.querySelector('[role="listbox"]')
+    const menu = document.querySelector('[role="listbox"]') as HTMLElement | null
     assert.ok(menu, 'menu rendered')
-    assert.equal(menu.className.includes('bottom-full'), true)
+    assert.equal(menu.style.position, 'fixed')
+    assert.ok(menu.style.bottom, 'drop-up uses bottom coordinate')
   })
 })
 
@@ -94,9 +95,10 @@ test('ThemeSwitcher：右上角场景右对齐且向下弹（alignRight+dropUp=f
   patchRect({ top: 20, bottom: 70, left: 1400, right: 1500 })
   fireEvent.click(screen.getByRole('button', { name: /深空科技/ }))
   await waitFor(() => {
-    const menu = document.querySelector('[role="listbox"]')
+    const menu = document.querySelector('[role="listbox"]') as HTMLElement | null
     assert.ok(menu, 'menu rendered')
-    assert.equal(menu.className.includes('right-0'), true)
-    assert.equal(menu.className.includes('top-full'), true)
+    assert.equal(menu.style.position, 'fixed')
+    assert.ok(menu.style.right, 'right-aligned uses right coordinate')
+    assert.ok(menu.style.top, 'downward uses top coordinate')
   })
 })
