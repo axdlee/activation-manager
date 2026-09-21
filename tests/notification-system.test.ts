@@ -865,9 +865,15 @@ test('超时取消事件日志 relatedId 汇总订单号列表', async () => {
     await waitFor(() => requests.length >= 1)
 
     // webhook 投递与日志落库异步完成：CI 慢机上落库可能晚于捕获，轮询等待
-    await waitFor(() => prisma.notificationLog.findMany({ where: { channel: 'webhook' } }).then((rows) => rows.length >= 1), 5000)
+    const deadline = Date.now() + 5000
+    let webhookLogs: Array<{ id: number; relatedId: string | null }> = []
+    while (Date.now() < deadline) {
+      webhookLogs = await prisma.notificationLog.findMany({ where: { channel: 'webhook' } })
+      if (webhookLogs.length >= 1) break
+      await new Promise((resolve) => setTimeout(resolve, 25))
+    }
 
-    const logs = await prisma.notificationLog.findMany({ where: { channel: 'webhook' } })
+    const logs = webhookLogs.length > 0 ? webhookLogs : await prisma.notificationLog.findMany({ where: { channel: 'webhook' } })
     assert.equal(logs.length, 1)
     assert.equal(logs[0].relatedId, 'SO-A,SO-B')
   } finally {
