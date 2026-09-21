@@ -864,6 +864,9 @@ test('超时取消事件日志 relatedId 汇总订单号列表', async () => {
     notifyShopOrderTimeoutCancelledEvent({ orderNos: ['SO-A', 'SO-B'], timeoutMinutes: 30 })
     await waitFor(() => requests.length >= 1)
 
+    // webhook 投递与日志落库异步完成：CI 慢机上落库可能晚于捕获，轮询等待
+    await waitFor(() => prisma.notificationLog.findMany({ where: { channel: 'webhook' } }).then((rows) => rows.length >= 1), 5000)
+
     const logs = await prisma.notificationLog.findMany({ where: { channel: 'webhook' } })
     assert.equal(logs.length, 1)
     assert.equal(logs[0].relatedId, 'SO-A,SO-B')
