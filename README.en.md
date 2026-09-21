@@ -238,3 +238,15 @@ The Docker Publish pipeline runs **Quality Gate (tsc + tests + coverage threshol
 | [`docs/admin-console-operations.md`](docs/admin-console-operations.md) | Admin console operations guide |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Roadmap |
 | [`sdk/README.md`](sdk/README.md) | SDK overview & integration |
+
+---
+
+## Acknowledgements
+
+Thanks to the [Linux.do](https://linux.do/) community for its support — especially the generous folks who provided free Codex 5.4 access for this project.
+
+---
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/axdlee/activation-manager.svg?variant=adaptive)](https://starchart.cc/axdlee/activation-manager)

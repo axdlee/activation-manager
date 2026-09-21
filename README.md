@@ -238,3 +238,15 @@ CI 流水线（Docker Publish）：**质量门（tsc + 测试 + 覆盖率阈值�
 | [`docs/admin-console-operations.md`](docs/admin-console-operations.md) | 管理后台操作指引 |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | 路线图 |
 | [`sdk/README.md`](sdk/README.md) | SDK 总览与接入方式 |
+
+---
+
+## 鸣谢
+
+感谢 [Linux.do](https://linux.do/) 社区支持。尤其是为本项目提供免费 codex 5.4 的公益佬们。
+
+---
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/axdlee/activation-manager.svg?variant=adaptive)](https://starchart.cc/axdlee/activation-manager)
