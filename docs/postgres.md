@@ -10,7 +10,7 @@
 
 ### 1. 切换 Prisma provider
 
-修改 `prisma/schema.prisma`：
+修改 `prisma/schema.prisma`（连接串已通过 `env("DATABASE_URL")` 注入，无需改动）：
 
 ```prisma
 datasource db {
@@ -18,6 +18,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 ```
+
+然后将 `DATABASE_URL` 指向 Postgres 连接串，例如 `postgresql://user:pass@host:5432/db`。
 
 ### 2. 调整 schema 中的 SQLite 特有写法
 

@@ -1,6 +1,6 @@
 {
   "name": "activation-code-system",
-  "version": "2.6.0",
+  "version": "2.8.0",
   "private": true,
   "engines": {
     "node": ">=22"
@@ -18,7 +18,7 @@
     "lint": "next lint",
     "quality:gate": "npm run lint && npm run typecheck && npm run test:coverage && npm run build",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
+    "db:push": "DATABASE_URL=\"${DATABASE_URL:-file:./dev.db}\" prisma db push",
     "db:backup": "./scripts/backup-db.sh",
     "db:backup-simple": "cp prisma/dev.db prisma/dev.db.backup_$(date +%Y%m%d_%H%M%S)",
     "db:backup-sql": "sqlite3 prisma/dev.db .dump > backup_$(date +%Y%m%d_%H%M%S).sql",

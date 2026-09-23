@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 
 import bcrypt from 'bcryptjs'
@@ -41,7 +40,6 @@ function resolveDefaultDbPath() {
 
 const DEFAULT_DB_PATH = resolveDefaultDbPath()
 const PRISMA_SCHEMA_PATH = path.join(process.cwd(), 'prisma', 'schema.prisma')
-const PRISMA_SCHEMA_DATASOURCE_PATTERN = /url\s+=\s+"file:\.\/dev\.db"/
 const PRISMA_MIGRATIONS_DIR = path.join(process.cwd(), 'prisma', 'migrations')
 
 type BootstrapLogger = Pick<Console, 'log' | 'error'>
@@ -108,17 +106,9 @@ function prismaSqliteUrl(dbPath: string) {
   return `file:${normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`}`
 }
 
-function buildPrismaSchema(dbPath: string) {
-  const schemaTemplate = fs.readFileSync(PRISMA_SCHEMA_PATH, 'utf8')
-
-  if (!PRISMA_SCHEMA_DATASOURCE_PATTERN.test(schemaTemplate)) {
-    throw new Error(`Prisma schema 数据源格式不受支持: ${PRISMA_SCHEMA_PATH}`)
-  }
-
-  return schemaTemplate.replace(
-    PRISMA_SCHEMA_DATASOURCE_PATTERN,
-    `url      = "${prismaSqliteUrl(dbPath)}"`,
-  )
+// schema datasource 使用 env("DATABASE_URL")，调用 Prisma CLI 时显式注入连接串
+function prismaCommandEnv(dbPath: string) {
+  return { ...process.env, DATABASE_URL: prismaSqliteUrl(dbPath) }
 }
 
 function resolvePrismaCommand() {
@@ -143,24 +133,21 @@ function resolvePrismaCommand() {
 }
 
 function pushPrismaSchema(dbPath: string) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-prisma-'))
-  const tempSchemaPath = path.join(tempDir, 'schema.prisma')
   const { command, argsPrefix } = resolvePrismaCommand()
 
-  fs.writeFileSync(tempSchemaPath, buildPrismaSchema(dbPath), 'utf8')
-
-  const nodeEnv = process.env.NODE_ENV || 'development'
   // 生产环境不传 --accept-data-loss，避免 schema 变更时静默丢数据；
   // 若需要破坏性变更（如删列），prisma 会报错提示，需手动处理或迁移。
+  const nodeEnv = process.env.NODE_ENV || 'development'
   const acceptDataLossFlag = nodeEnv !== 'production' ? ['--accept-data-loss'] : []
 
   try {
     execFileSync(
       command,
-      [...argsPrefix, 'db', 'push', '--skip-generate', ...acceptDataLossFlag, '--schema', tempSchemaPath],
+      [...argsPrefix, 'db', 'push', '--skip-generate', ...acceptDataLossFlag, '--schema', PRISMA_SCHEMA_PATH],
       {
         cwd: process.cwd(),
         encoding: 'utf8',
+        env: prismaCommandEnv(dbPath),
         stdio: 'pipe',
       },
     )
@@ -168,27 +155,20 @@ function pushPrismaSchema(dbPath: string) {
     const { details } = extractCommandOutput(error)
 
     throw new Error(details ? `Prisma schema 同步失败: ${details}` : 'Prisma schema 同步失败')
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true })
   }
 }
 
 function migratePrismaSchema(dbPath: string) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-manager-migrate-'))
-  const tempSchemaPath = path.join(tempDir, 'schema.prisma')
   const { command, argsPrefix } = resolvePrismaCommand()
-
-  // migrate deploy 需要 migrations 目录位于 schema 文件同级的 migrations 子目录
-  fs.writeFileSync(tempSchemaPath, buildPrismaSchema(dbPath), 'utf8')
-  fs.cpSync(PRISMA_MIGRATIONS_DIR, path.join(tempDir, 'migrations'), { recursive: true })
 
   try {
     execFileSync(
       command,
-      [...argsPrefix, 'migrate', 'deploy', '--schema', tempSchemaPath],
+      [...argsPrefix, 'migrate', 'deploy', '--schema', PRISMA_SCHEMA_PATH],
       {
         cwd: process.cwd(),
         encoding: 'utf8',
+        env: prismaCommandEnv(dbPath),
         stdio: 'pipe',
       },
     )
@@ -196,8 +176,6 @@ function migratePrismaSchema(dbPath: string) {
     const { details } = extractCommandOutput(error)
 
     throw new Error(details ? `Prisma migrate deploy 失败: ${details}` : 'Prisma migrate deploy 失败')
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true })
   }
 }
 

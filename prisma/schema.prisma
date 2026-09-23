@@ -8,7 +8,8 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  // 通过环境变量注入连接串（开发默认 file:./dev.db，Docker 入口默认 file:/app/data/dev.db）
+  url      = env("DATABASE_URL")
 }
 
 model Project {
