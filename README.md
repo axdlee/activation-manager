@@ -111,7 +111,7 @@ npm start
 | 管理后台登录 | `http://localhost:3000/admin/login` |
 | 公开 API 文档 | `http://localhost:3000/docs/api` |
 
-- **开发环境**首次启动自动创建管理员 `admin / 123456`（生产环境请通过 `ADMIN_INITIAL_PASSWORD` 指定初始密码）
+- **开发环境**首次启动自动创建管理员 `admin / 123456`（生产环境**必须**通过 `ADMIN_INITIAL_PASSWORD` 指定初始密码，未设置时启动初始化会直接报错退出，不会生成随机密码）
 - 登录后可在 **系统配置 → 账户安全** 修改密码（改后重新登录）
 
 ## Docker 部署
@@ -141,7 +141,7 @@ docker compose up -d
 | --- | --- | --- |
 | `DATABASE_URL` | Prisma 连接串（SQLite `file:./dev.db` 或 PostgreSQL URL）| `file:./dev.db` |
 | `PORT` | 服务端口 | `3000` |
-| `ADMIN_INITIAL_PASSWORD` | 生产环境初始管理员密码 | 随机 |
+| `ADMIN_INITIAL_PASSWORD` | 生产环境初始管理员密码 | 无（生产必填，缺失时初始化报错退出）|
 | `LICENSE_API_RATE_LIMIT_MAX` / `LICENSE_API_RATE_LIMIT_WINDOW_MS` | 公开 API 限流（窗口内最大请求数 / 窗口毫秒）| 内置默认 |
 | `LICENSE_RESPONSE_SECRET` | 公开 API 响应验签密钥（也可在后台配置）| 空（不验签）|
 

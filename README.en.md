@@ -111,7 +111,7 @@ npm start
 | Admin login | `http://localhost:3000/admin/login` |
 | Public API docs | `http://localhost:3000/docs/api` |
 
-- **Dev environment** bootstraps `admin / 123456` on first run (in production set `ADMIN_INITIAL_PASSWORD`)
+- **Dev environment** bootstraps `admin / 123456` on first run (in production `ADMIN_INITIAL_PASSWORD` is **required** — bootstrap aborts with an error when missing, no random password is generated)
 - Change the password in **Settings → Account Security** (re-login required afterwards)
 
 ## Docker Deployment
@@ -141,7 +141,7 @@ Pushes to `main` or `v*` tags trigger **Quality Gate (tsc + full tests + 85% bra
 | --- | --- | --- |
 | `DATABASE_URL` | Prisma connection (SQLite `file:./dev.db` or PostgreSQL URL) | `file:./dev.db` |
 | `PORT` | Server port | `3000` |
-| `ADMIN_INITIAL_PASSWORD` | Initial admin password in production | random |
+| `ADMIN_INITIAL_PASSWORD` | Initial admin password in production | unset (required in production; bootstrap aborts if missing) |
 | `LICENSE_API_RATE_LIMIT_MAX` / `LICENSE_API_RATE_LIMIT_WINDOW_MS` | Public API rate limit | built-in |
 | `LICENSE_RESPONSE_SECRET` | Response signature secret (configurable in console) | empty (off) |
 
