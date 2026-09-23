@@ -30,6 +30,8 @@ export type PaymentCallbackContext = {
   paid: boolean
   /** 渠道侧交易号 */
   transactionId?: string
+  /** 渠道侧实付金额（单位：分）。可用于发卡前与订单金额核对 */
+  paidAmountCents?: number
   /** 原始回调体（供验签/审计） */
   rawBody?: string
 }
@@ -55,6 +57,13 @@ export interface PaymentProvider {
   readonly supportsOnlinePayment: boolean
   /** 必需配置键：渠道启用后还需补齐这些配置才对外展示 */
   readonly requiredConfigKeys: string[]
+  /**
+   * 回调可信级别：
+   * - 'verified'：回调已实现真实验签/鉴权，可安全启用
+   * - 'admin'：无在线回调，由管理员人工确认（manual）
+   * - 'placeholder'：验签未实现（占位适配器），禁止后台启用、运行时拒绝回调
+   */
+  readonly callbackTrust: 'verified' | 'admin' | 'placeholder'
   createPayment(order: ShopOrderInfo, config: Record<string, string>): Promise<CreatePaymentResult>
   verifyCallback(body: string, config: Record<string, string>): Promise<PaymentCallbackContext | null>
   queryPayment(orderNo: string, config: Record<string, string>): Promise<PaymentQueryResult>

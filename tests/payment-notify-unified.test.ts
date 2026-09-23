@@ -78,6 +78,7 @@ test('统一回调入口：验签通过后自动发卡（注入 fake 渠道适�
     id: 'yipay',
     name: '易支付(fake)',
     supportsOnlinePayment: true,
+    callbackTrust: 'verified',
     requiredConfigKeys: [],
     async createPayment() {
       return { payParams: {} }

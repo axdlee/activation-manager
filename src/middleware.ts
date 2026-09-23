@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { type AdminAuthResult } from './lib/admin-auth-shared'
+import { extractClientIp } from './lib/client-ip'
 import {
   buildAdminAuthValidationUrl,
   resolveAdminPageAuthMode,
@@ -21,11 +22,7 @@ async function validateAdminPageRequest(request: NextRequest, mode: 'public' | '
     runtimePort: process.env.PORT,
   })
   const validationUrl = buildAdminAuthValidationUrl(request.url, mode, validationOrigin)
-  const forwardedFor =
-    request.ip ||
-    request.headers.get('x-forwarded-for') ||
-    request.headers.get('x-real-ip') ||
-    ''
+  const forwardedFor = extractClientIp(request)
 
   try {
     const response = await fetch(validationUrl, {

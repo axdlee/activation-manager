@@ -56,6 +56,51 @@ export const POST = createProtectedAdminRouteHandler(async (request: NextRequest
     return NextResponse.json({ success: false, message: t('api.channelIdRequired') }, { status: 400 })
   }
 
+  const provider = getPaymentProvider(body.provider)
+  if (!provider) {
+    return NextResponse.json({ success: false, message: t('shop.paymentProviderDisabled') }, { status: 400 })
+  }
+
+  // 启用渠道前的安全闸门：
+  // 1) 回调验签未实现的渠道（callbackTrust === 'placeholder'）禁止启用，
+  //    否则伪造回调即可免费发卡（alipay/wechat 当前属此类）
+  // 2) 必需配置键不齐禁止启用（如 webhook 必须配置 secret）
+  if (body.isEnabled === true) {
+    if (provider.callbackTrust === 'placeholder') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: '该渠道回调验签尚未实现，暂禁止启用；请先完成真实验签接入',
+        },
+        { status: 400 },
+      )
+    }
+
+    let candidateConfig: Record<string, unknown> = {}
+    const rawConfig = body.configJson ?? (await prisma.shopPaymentConfig.findUnique({
+      where: { provider: body.provider },
+    }))?.configJson ?? '{}'
+    try {
+      candidateConfig = JSON.parse(rawConfig) as Record<string, unknown>
+    } catch {
+      return NextResponse.json({ success: false, message: '渠道配置不是合法 JSON' }, { status: 400 })
+    }
+
+    const missingKeys = provider.requiredConfigKeys.filter(
+      (key) => typeof candidateConfig[key] !== 'string' || !(candidateConfig[key] as string).trim(),
+    )
+    if (missingKeys.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `渠道配置不完整，缺少必填项：${missingKeys.join(', ')}`,
+          missingKeys,
+        },
+        { status: 400 },
+      )
+    }
+  }
+
   const config = await prisma.shopPaymentConfig.upsert({
     where: { provider: body.provider },
     update: {

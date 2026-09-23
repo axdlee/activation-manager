@@ -36,13 +36,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: t('payment.callbackChannelDisabled') }, { status: 400 })
   }
 
-  // secret 鉴权：配置了 secret 就必须匹配，未配置时向后兼容（但强烈建议配置）
+  // secret 鉴权：必须配置 secret 才允许处理回调（启用渠道时已强制校验配置）。
+  // 未配置时直接拒绝，避免任何拿到订单号的人伪造「已支付」回调免费发卡。
   const configuredSecret = config.secret?.trim()
-  if (configuredSecret) {
-    const providedSecret = request.headers.get(WEBHOOK_SECRET_HEADER) ?? ''
-    if (!verifySecret(providedSecret, configuredSecret)) {
-      return NextResponse.json({ success: false, message: t('payment.callbackUnauthorized') }, { status: 401 })
-    }
+  if (!configuredSecret) {
+    return NextResponse.json(
+      { success: false, message: '回调渠道未配置 secret，已拒绝处理；请在后台补齐后再启用' },
+      { status: 400 },
+    )
+  }
+  const providedSecret = request.headers.get(WEBHOOK_SECRET_HEADER) ?? ''
+  if (!verifySecret(providedSecret, configuredSecret)) {
+    return NextResponse.json({ success: false, message: t('payment.callbackUnauthorized') }, { status: 401 })
   }
 
   const context = await provider.verifyCallback(bodyText, config)
@@ -57,6 +62,8 @@ export async function POST(request: NextRequest) {
   const result = await fulfillShopOrder({
     orderNo: context.orderNo,
     transactionId: context.transactionId,
+    expectedProvider: 'webhook',
+    ...(context.paidAmountCents !== undefined ? { expectedAmountInCents: context.paidAmountCents } : {}),
   }, t)
 
   if (!result.success) {

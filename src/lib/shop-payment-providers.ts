@@ -24,6 +24,7 @@ export const manualPaymentProvider: PaymentProvider = {
   name: '手动收款确认',
   nameKey: 'shop.channel.manual',
   supportsOnlinePayment: false,
+  callbackTrust: 'admin',
   // 手动收款是兜底渠道：无强制配置（account/qrCode 可选，instructions 有默认）*/
   requiredConfigKeys: [],
 
@@ -74,7 +75,9 @@ export const webhookPaymentProvider: PaymentProvider = {
   name: '通用支付回调',
   nameKey: 'shop.channel.webhook',
   supportsOnlinePayment: true,
-  requiredConfigKeys: [],
+  callbackTrust: 'verified',
+  // 回调必须携带 secret（启用时强制校验配置，回调时 timingSafeEqual 比对）
+  requiredConfigKeys: ['secret'],
 
   async createPayment(
     order: ShopOrderInfo,
@@ -101,6 +104,8 @@ export const webhookPaymentProvider: PaymentProvider = {
         orderNo?: string
         paid?: boolean
         transactionId?: string
+        /** 渠道侧实付金额（单位：分），提供时发卡前会与订单金额核对 */
+        amountCents?: number
       }
       if (!payload.orderNo) {
         return null
@@ -109,6 +114,9 @@ export const webhookPaymentProvider: PaymentProvider = {
         orderNo: payload.orderNo,
         paid: payload.paid !== false,
         transactionId: payload.transactionId,
+        ...(typeof payload.amountCents === 'number' && Number.isFinite(payload.amountCents)
+          ? { paidAmountCents: Math.round(payload.amountCents) }
+          : {}),
         rawBody: body,
       }
     } catch {

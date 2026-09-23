@@ -47,6 +47,7 @@ export const yipayPaymentProvider: PaymentProvider = {
   name: '易支付',
   nameKey: 'shop.channel.yipay',
   supportsOnlinePayment: true,
+  callbackTrust: 'verified',
   requiredConfigKeys: ['gateway', 'pid', 'key'],
 
   async createPayment(
@@ -115,10 +116,12 @@ export const yipayPaymentProvider: PaymentProvider = {
         return null
       }
 
+      const money = Number(rawParams.money)
       return {
         orderNo: rawParams.out_trade_no || '',
         paid: tradeStatus === 'TRADE_SUCCESS' || tradeStatus === '1',
         transactionId: rawParams.trade_no,
+        ...(Number.isFinite(money) ? { paidAmountCents: Math.round(money * 100) } : {}),
         rawBody: body,
       }
     } catch {
@@ -155,6 +158,9 @@ export const wechatPayProvider: PaymentProvider = {
   name: '微信支付（官方）',
   nameKey: 'shop.channel.wechat',
   supportsOnlinePayment: true,
+  // 安全：微信回调验签（v2 签名 / v3 AES-GCM 解密）尚未实现，属占位适配器。
+  // 启用入口已禁止启用；真实接入前不得放开。
+  callbackTrust: 'placeholder',
   requiredConfigKeys: ['appId', 'mchId', 'apiKey'],
 
   async createPayment(
@@ -234,6 +240,9 @@ export const alipayProvider: PaymentProvider = {
   name: '支付宝（官方）',
   nameKey: 'shop.channel.alipay',
   supportsOnlinePayment: true,
+  // 安全：支付宝 RSA2 验签尚未实现（当前仅检查 app_id/trade_status 非空），
+  // 属占位适配器。启用入口已禁止启用；真实接入前不得放开。
+  callbackTrust: 'placeholder',
   requiredConfigKeys: ['appId'],
 
   async createPayment(
@@ -266,10 +275,12 @@ export const alipayProvider: PaymentProvider = {
         return null
       }
 
+      const totalAmount = Number(rawParams.total_amount)
       return {
         orderNo: rawParams.out_trade_no || '',
         paid: tradeStatus === 'TRADE_SUCCESS',
         transactionId: rawParams.trade_no,
+        ...(Number.isFinite(totalAmount) ? { paidAmountCents: Math.round(totalAmount * 100) } : {}),
         rawBody: body,
       }
     } catch {

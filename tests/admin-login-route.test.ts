@@ -167,3 +167,61 @@ test('管理员登录连续输错密码超过阈值后会被限流并返回 Retr
   assert.equal(findAdminCallCount, 5)
   assert.equal(compareCallCount, 5)
 })
+
+test('同一账号跨 IP 轮换爆破时按用户名维度锁定', async (t) => {
+  const originalFindAdmin = prisma.admin.findUnique.bind(prisma.admin)
+  const originalCompare = bcrypt.compare
+  const originalRateLimiter = adminLoginRouteDependencies.rateLimiter
+  let findAdminCallCount = 0
+
+  adminLoginRouteDependencies.rateLimiter = createAsyncRateLimiter()
+
+  prisma.admin.findUnique = (async () => {
+    findAdminCallCount += 1
+
+    return {
+      id: 1,
+      username: 'admin',
+      password: 'hashed-password',
+      createdAt: new Date('2026-03-24T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-24T00:00:00.000Z'),
+    }
+  }) as unknown as typeof prisma.admin.findUnique
+
+  bcrypt.compare = async () => false
+
+  t.after(async () => {
+    prisma.admin.findUnique = originalFindAdmin
+    bcrypt.compare = originalCompare
+    adminLoginRouteDependencies.rateLimiter = originalRateLimiter
+    await prisma.$disconnect()
+  })
+
+  // 每次请求都换一个 X-Forwarded-For：IP 维度永远达不到阈值，
+  // 只能靠用户名维度把同一账号的爆破拦下来
+  for (let index = 0; index < 5; index += 1) {
+    const response = await POST(
+      createLoginRequest(
+        { username: 'admin', password: 'wrong-password' },
+        { 'x-forwarded-for': `203.0.113.${index + 1}` },
+      ),
+    )
+
+    assert.equal(response.status, 401)
+  }
+
+  const blockedResponse = await POST(
+    createLoginRequest(
+      { username: 'admin', password: 'wrong-password' },
+      { 'x-forwarded-for': '198.51.100.99' },
+    ),
+  )
+  const blockedBody = await blockedResponse.json()
+  const retryAfter = blockedResponse.headers.get('retry-after') || ''
+
+  assert.equal(blockedResponse.status, 429)
+  assert.equal(blockedBody.success, false)
+  assert.match(blockedBody.message, /登录失败次数过多/)
+  assert.match(retryAfter, /^[1-9]\d*$/)
+  assert.equal(findAdminCallCount, 5)
+})

@@ -42,7 +42,14 @@ export async function POST(
       { success: false, message: t('shop.paymentProviderDisabled') },
       { status: 400 },
     )
+  }  // 安全闸门：验签未实现的占位渠道一律拒绝回调（即使存量数据误启用）
+  if (paymentProvider.callbackTrust === 'placeholder') {
+    return NextResponse.json(
+      { success: false, message: '该渠道回调验签未实现，已禁用回调' },
+      { status: 400 },
+    )
   }
+
 
   const context = await paymentProvider.verifyCallback(bodyText, config)
   if (!context) {
@@ -56,6 +63,8 @@ export async function POST(
   const result = await fulfillShopOrder({
     orderNo: context.orderNo,
     transactionId: context.transactionId,
+    expectedProvider: provider,
+    ...(context.paidAmountCents !== undefined ? { expectedAmountInCents: context.paidAmountCents } : {}),
   }, t)
 
   if (!result.success && !result.alreadyProcessed) {

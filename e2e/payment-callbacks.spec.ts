@@ -132,8 +132,8 @@ test.describe.serial('支付适配器回调 e2e', () => {
     expect(callbackData.success).toBe(false)
   })
 
-  test('3. 微信支付 XML 回调触发发卡', async ({ request }) => {
-    // 启用微信支付渠道
+  test('3. 微信占位渠道：启用被拒绝，伪造回调也被拒绝', async ({ request }) => {
+    // 微信回调验签（v2 签名 / v3 AES-GCM）尚未实现，后台启用必须被拒绝
     const configRes = await request.post('/api/admin/shop/payment-configs', {
       headers: { cookie: adminCookie },
       data: {
@@ -142,27 +142,17 @@ test.describe.serial('支付适配器回调 e2e', () => {
         isEnabled: true,
       },
     })
-    expect(configRes.status()).toBe(200)
+    expect(configRes.status()).toBe(400)
+    const configData = (await configRes.json()) as { success: boolean; message?: string }
+    expect(configData.success).toBe(false)
 
-    // 下单
-    const orderRes = await request.post('/api/shop/orders', {
-      data: {
-        productId,
-        providerId: 'wechat',
-        contactEmail: 'e2e-wechat@example.com',
-      },
-    })
-    const orderData = (await orderRes.json()) as { success: boolean; order?: { orderNo: string } }
-    expect(orderData.success).toBe(true)
-    const wxOrderNo = orderData.order?.orderNo ?? ''
-
-    // 模拟微信支付 XML 回调
+    // 未启用状态下，伪造「支付成功」XML 回调不得触发发卡
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <xml>
   <return_code><![CDATA[SUCCESS]]></return_code>
   <result_code><![CDATA[SUCCESS]]></result_code>
-  <out_trade_no><![CDATA[${wxOrderNo}]]></out_trade_no>
-  <transaction_id><![CDATA[WX-E2E-001]]></transaction_id>
+  <out_trade_no><![CDATA[SO-FAKE-WECHAT-001]]></out_trade_no>
+  <transaction_id><![CDATA[WX-E2E-FAKE]]></transaction_id>
   <total_fee>1000</total_fee>
 </xml>`
 
@@ -170,23 +160,13 @@ test.describe.serial('支付适配器回调 e2e', () => {
       headers: { 'content-type': 'text/xml' },
       data: xml,
     })
+    expect(callbackRes.status()).toBe(400)
     const callbackData = (await callbackRes.json()) as { success: boolean; message?: string }
-    expect(callbackData.success).toBe(true)
-
-    // 验证订单已发卡
-    const orderDetailRes = await request.get(`/api/shop/orders/${wxOrderNo}`)
-    const orderDetail = (await orderDetailRes.json()) as {
-      success: boolean
-      order?: { status: string }
-      codes?: Array<{ code: string }>
-    }
-    expect(orderDetail.success).toBe(true)
-    expect(orderDetail.order?.status).toBe('fulfilled')
-    expect(orderDetail.codes?.length).toBe(1)
+    expect(callbackData.success).toBe(false)
   })
 
-  test('4. 支付宝 form-urlencoded 回调触发发卡', async ({ request }) => {
-    // 启用支付宝渠道
+  test('4. 支付宝占位渠道：启用被拒绝，伪造回调也被拒绝', async ({ request }) => {
+    // 支付宝 RSA2 验签尚未实现，后台启用必须被拒绝（此前仅检查 app_id/trade_status 非空）
     const configRes = await request.post('/api/admin/shop/payment-configs', {
       headers: { cookie: adminCookie },
       data: {
@@ -195,39 +175,19 @@ test.describe.serial('支付适配器回调 e2e', () => {
         isEnabled: true,
       },
     })
-    expect(configRes.status()).toBe(200)
+    expect(configRes.status()).toBe(400)
+    const configData = (await configRes.json()) as { success: boolean; message?: string }
+    expect(configData.success).toBe(false)
 
-    // 下单
-    const orderRes = await request.post('/api/shop/orders', {
-      data: {
-        productId,
-        providerId: 'alipay',
-        contactEmail: 'e2e-alipay@example.com',
-      },
-    })
-    const orderData = (await orderRes.json()) as { success: boolean; order?: { orderNo: string } }
-    expect(orderData.success).toBe(true)
-    const aliOrderNo = orderData.order?.orderNo ?? ''
-
-    // 模拟支付宝 form-urlencoded 回调
-    const formBody = `out_trade_no=${aliOrderNo}&trade_no=ALI-E2E-001&trade_status=TRADE_SUCCESS&app_id=test-app`
+    // 未启用状态下，不带签名的伪造 form 回调不得触发发卡
+    const formBody = 'out_trade_no=SO-FAKE-ALIPAY-001&trade_no=ALI-E2E-FAKE&trade_status=TRADE_SUCCESS&app_id=test-app'
 
     const callbackRes = await request.post('/api/shop/payment/alipay', {
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       data: formBody,
     })
+    expect(callbackRes.status()).toBe(400)
     const callbackData = (await callbackRes.json()) as { success: boolean; message?: string }
-    expect(callbackData.success).toBe(true)
-
-    // 验证订单已发卡
-    const orderDetailRes = await request.get(`/api/shop/orders/${aliOrderNo}`)
-    const orderDetail = (await orderDetailRes.json()) as {
-      success: boolean
-      order?: { status: string }
-      codes?: Array<{ code: string }>
-    }
-    expect(orderDetail.success).toBe(true)
-    expect(orderDetail.order?.status).toBe('fulfilled')
-    expect(orderDetail.codes?.length).toBe(1)
+    expect(callbackData.success).toBe(false)
   })
 })

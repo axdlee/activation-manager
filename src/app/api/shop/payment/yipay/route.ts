@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
   const result = await fulfillShopOrder({
     orderNo: context.orderNo,
     transactionId: context.transactionId,
+    expectedProvider: 'yipay',
+    ...(context.paidAmountCents !== undefined ? { expectedAmountInCents: context.paidAmountCents } : {}),
   }, t)
 
   if (!result.success) {

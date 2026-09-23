@@ -21,6 +21,10 @@ export type FulfillShopOrderParams = {
   orderNo: string
   transactionId?: string
   adminUsername?: string
+  /** 回调声称的支付渠道：发卡前与订单 payment provider 核对，不一致拒绝 */
+  expectedProvider?: string
+  /** 回调声称的实付金额（分）：提供时与订单金额核对，不一致拒绝 */
+  expectedAmountInCents?: number
 }
 
 export type FulfillShopOrderResult = {
@@ -41,6 +45,20 @@ export async function fulfillShopOrder(
 
   if (!order) {
     return { success: false, message: t?.(SHOP_ORDER_MESSAGE_KEYS.orderNotFound) ?? '订单不存在' }
+  }
+
+  // 渠道一致性：回调渠道必须与下单时选择的渠道一致，防止拿 A 渠道订单
+  // 用 B 渠道伪造回调发卡
+  if (params.expectedProvider && order.provider !== params.expectedProvider) {
+    return { success: false, message: '回调渠道与订单支付渠道不一致，已拒绝发卡' }
+  }
+
+  // 金额一致性：渠道侧实付金额与订单金额不一致时拒绝发卡（防篡改/部分支付）
+  if (
+    params.expectedAmountInCents !== undefined &&
+    params.expectedAmountInCents !== order.amountInCents
+  ) {
+    return { success: false, message: '回调金额与订单金额不一致，已拒绝发卡' }
   }
 
   if (order.status === SHOP_ORDER_STATUS.CANCELLED) {

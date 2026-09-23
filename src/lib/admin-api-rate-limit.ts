@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { createLicenseApiRateLimiter } from './license-api-rate-limit'
+import { extractClientIp } from './client-ip'
 
 /**
  * Admin API 轻量内存限流（防暴力刷接口）。
@@ -20,10 +21,7 @@ export function guardAdminApiRateLimit(
   request: NextRequest,
   path: string,
 ): AdminRateLimitGuardResult {
-  const ip =
-    (request as Request & { ip?: string }).ip ||
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    'unknown'
+  const ip = extractClientIp(request)
 
   const result = adminApiRateLimiter.check(`${path}:${ip}`)
   if (result.allowed) {

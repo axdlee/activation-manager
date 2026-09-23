@@ -10,6 +10,8 @@
 //
 // 并在反向代理层保留兜底限流。
 
+import { extractClientIp } from './client-ip'
+
 export type LicenseApiRateLimitCheckResult =
   | { allowed: true }
   | { allowed: false; retryAfterSeconds: number }
@@ -125,11 +127,7 @@ export const defaultLicenseApiRateLimiter = createLicenseApiRateLimiter({
 })
 
 export function buildLicenseApiRateLimitKey(request: Request, path: string) {
-  const ip =
-    (request as Request & { ip?: string }).ip ||
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    '127.0.0.1'
+  const ip = extractClientIp(request)
 
   return `${path}:${ip}`
 }

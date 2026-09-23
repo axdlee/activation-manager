@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { createLicenseApiRateLimiter } from './license-api-rate-limit'
+import { extractClientIp } from './client-ip'
 
 /**
  * 公开 Shop API（下单/查询/找回/回调）的轻量内存限流。
@@ -12,10 +13,7 @@ const shopApiRateLimiter = createLicenseApiRateLimiter({
 })
 
 export function buildShopApiRateLimitKey(request: NextRequest, path: string) {
-  const ip =
-    (request as Request & { ip?: string }).ip ||
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    'unknown'
+  const ip = extractClientIp(request)
   return `${path}:${ip}`
 }
 

@@ -62,14 +62,9 @@ function resolveAllowedIPsEnvOverride(allowedIPsEnv: string | undefined = proces
   return normalizedAllowedIPs.length > 0 ? normalizedAllowedIPs : null
 }
 
-export function extractClientIp(request: RequestLike) {
-  return (
-    request.ip ||
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    '127.0.0.1'
-  )
-}
+import { extractClientIp } from './client-ip'
+
+export { extractClientIp }
 
 function isIpAllowed(clientIp: string, allowedIPs: string[], nodeEnv: string) {
   if (nodeEnv !== 'production') {
