@@ -1,3 +1,57 @@
+# Release Notes — Activation Manager v2.8.1
+
+> 支付回调链路安全加固：伪造回调无法借道发卡
+> 覆盖范围：`v2.8.0..v2.8.1`
+
+---
+
+## 🔒 支付链路
+
+- **占位渠道双重禁用**：支付宝/微信回调验签未实现（callbackTrust=placeholder），
+  后台启用直接 400，回调路由一律 400——伪造回调无法借道发卡
+- **webhook 强制 secret**：启用前校验必填 secret（缺失 400 + 缺失项清单），
+  回调入口无 secret 直接 400
+- **发卡一致性校验**：回调渠道 ≠ 订单渠道、渠道实付金额 ≠ 订单金额 → 拒绝发卡
+  （易支付/webhook/支付宝回调均已透传实付金额）
+
+## 🔧 其他快速修复
+
+- **客户端 IP 提取统一**：新增 `src/lib/client-ip.ts`，收口鉴权/中间件/三个 API
+  限流器共 5 处实现，兜底值统一 `127.0.0.1`
+- **登录限流叠加用户名维度**：轮换 `X-Forwarded-For` 爆破同一账号也会被锁定
+- **登出 Cookie 修复**：secure 判定与登录一致（`resolveCookieSecure`），
+  明文 HTTP 部署下登出真正生效
+- `next.config.js` 开启 `images.unoptimized`（Next 14.2.35 图片优化 RCE 缓解）；
+  删除从未被加载的 `tailwind.config.ts`
+
+## 质量
+
+- 725 单测全绿（新增 11 例），覆盖率 lines 96.39 / branches 85.61 / functions 91.70
+- E2E 微信/支付宝用例改为「启用被拒 + 伪造回调被拒」断言
+- tsc / lint / build 全过
+
+---
+
+# Release Notes — Activation Manager v2.8.0
+
+> 管理控制台体验升级：设置分区导航 · 渠道 Tab 化 · 概览驾驶舱 · 主题语义色根因修复
+> 覆盖范围：`v2.7.0..v2.8.0`
+
+---
+
+- **系统设置重构**：左侧 sticky 分区导航（账户访问/绑定策略/账户安全/品牌外观/
+  通知渠道/高级），概览页统计卡与分区入口
+- **通知/支付渠道 Tab 化**：webhook/邮件/短信子 Tab；支付渠道改渠道 Tab 布局
+- **概览驾驶舱**：KPI、趋势面积图、授权占比环图、项目表与最近操作
+- **API 接入文档**：16 语言 SDK 接入示例
+- **弹出面板修复**：语言/主题切换器 fixed 视口定位，窄屏与 Radix 抽屉内不再被裁剪
+- **主题语义色根因修复**：Tailwind 语义色改 `rgb(var(--x)/<alpha>)`，
+  14 套主题补全语义 token，浅色主题不再白底白字
+- **README 重写**：中英双版 + 14 张最新截图，恢复 Linux.do 社区鸣谢
+- **工程质量**：Prisma datasource 改 `env("DATABASE_URL")`；714 单测、分支覆盖 85%
+
+---
+
 # Release Notes — Activation Manager v2.7.0
 
 > 管理后台任务型全量重构：12 个可深链任务页，旧入口零失效
