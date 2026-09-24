@@ -6,6 +6,7 @@ import {
   sendBuyerOrderFulfilledEmail,
 } from './notification-events'
 import { SHOP_ORDER_STATUS, SHOP_ORDER_MESSAGE_KEYS } from './shop-order-service'
+import { releaseExpiredShopStockReservations } from './shop-stock-reservation'
 import { type ServerT } from './i18n/server'
 
 /**
@@ -138,6 +139,9 @@ export async function fulfillShopOrder(
       // 预定义码池发卡。下单时库存已预占（RESERVED + soldOrderId）：
       // 优先取本单预占的行；存量订单（预占机制上线前创建）没有预占行，
       // 回退到按 AVAILABLE 抢占。
+      // 先释放过期预占（含本单过期行）：行回 AVAILABLE 后仍可被下方补偿抢占，
+      // 避免其他订单的过期预占把补货来源虚锁。
+      await releaseExpiredShopStockReservations(Date.now(), tx)
       const claimedStocks: Array<{
         stockId: number
         activationCode: { id: number; code: string }
@@ -215,6 +219,7 @@ export async function fulfillShopOrder(
             status: 'SOLD',
             soldOrderId: order.id,
             soldAt: new Date(),
+            reservedUntil: null,
           },
         })
 

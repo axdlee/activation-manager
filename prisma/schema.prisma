@@ -186,6 +186,7 @@ model ShopProductCodeStock {
   product          ShopProduct   @relation(fields: [productId], references: [id])
   activationCodeId Int           @unique
   status           String        @default("AVAILABLE") // AVAILABLE | RESERVED（下单预占） | SOLD
+  reservedUntil    DateTime? // 预占过期时间：与订单状态解耦，过期后可被释放回可售
   soldOrderId      Int?
   soldAt           DateTime?
   createdAt        DateTime      @default(now())

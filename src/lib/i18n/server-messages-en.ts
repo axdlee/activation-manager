@@ -126,6 +126,7 @@ const serverMessagesEn: Record<string, string> = {
   'shop.priceInvalid': 'Price must be a non-negative number',
   'shop.requiredFieldsMissing': 'Missing required fields',
   'shop.quantityInvalid': 'Quantity must be an integer between 1 and 100',
+  'shop.exceedsMaxQuantity': 'At most {max} per order. Please place separate orders or contact support.',
   'shop.orderNotFound': 'Order not found',
   'shop.orderCancelled': 'Order has been cancelled',
   'shop.orderStateConflict': 'Order state has changed',

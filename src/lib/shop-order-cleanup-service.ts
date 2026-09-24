@@ -1,6 +1,7 @@
 import { prisma } from './db'
 import { notifyShopOrderTimeoutCancelledEvent } from './notification-events'
 import { SHOP_ORDER_STATUS } from './shop-order-service'
+import { releaseExpiredShopStockReservations } from './shop-stock-reservation'
 
 export const SHOP_ORDER_PENDING_TIMEOUT_MS = 30 * 60 * 1000 // 30 分钟
 
@@ -15,6 +16,9 @@ export const SHOP_ORDER_PENDING_TIMEOUT_MS = 30 * 60 * 1000 // 30 分钟
  * 供后台按钮 / 外部 cron 调用。
  */
 export async function cancelExpiredPendingOrders(now: number = Date.now()) {
+  // 过期预占释放与订单取消解耦：manual 订单不自动取消，但码池库存必须按 TTL 归还
+  await releaseExpiredShopStockReservations(now)
+
   const cutoff = new Date(now - SHOP_ORDER_PENDING_TIMEOUT_MS)
 
   const expiredOrders = await prisma.shopOrder.findMany({

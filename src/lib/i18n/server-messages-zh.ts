@@ -126,6 +126,7 @@ const serverMessagesZh: Record<string, string> = {
   'shop.priceInvalid': '价格必须是非负数',
   'shop.requiredFieldsMissing': '缺少必填字段',
   'shop.quantityInvalid': '购买数量必须是 1 到 100 之间的整数',
+  'shop.exceedsMaxQuantity': '单笔订单最多购买 {max} 张，请分笔下单或联系客服',
   'shop.orderNotFound': '订单不存在',
   'shop.orderCancelled': '订单已取消',
   'shop.orderStateConflict': '订单状态已变化',

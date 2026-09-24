@@ -13,11 +13,12 @@ export type ShopOrderDetailDrawerProps = {
   order: ShopOrder | null
   onConfirmOrder?: (order: ShopOrder) => void
   onResendEmail?: (order: ShopOrder) => void
+  onCancelOrder?: (order: ShopOrder) => void
   loading?: boolean
 }
 
 /**
- * 订单详情 Drawer：订单摘要 + 投递信息（支付/发卡时间）+ 操作（确认收款 / 重发邮件）。
+ * 订单详情 Drawer：订单摘要 + 投递信息（支付/发卡时间）+ 操作（确认收款 / 重发邮件 / 取消订单）。
  * 卡密明细由公开查询接口按联系方式找回，后台不在此重复展示明文卡密。
  */
 export function ShopOrderDetailDrawer({
@@ -26,6 +27,7 @@ export function ShopOrderDetailDrawer({
   order,
   onConfirmOrder,
   onResendEmail,
+  onCancelOrder,
   loading = false,
 }: ShopOrderDetailDrawerProps) {
   const { t } = useI18n()
@@ -152,6 +154,14 @@ export function ShopOrderDetailDrawer({
                 {t('shopOrder.resendEmail', '重发邮件')}
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => onCancelOrder?.(order)}
+              disabled={loading || order.status !== 'pending'}
+              className="inline-flex h-10 w-full items-center justify-center rounded-md border border-destructive/40 bg-background px-3 text-sm font-medium text-destructive shadow-sm transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {t('shopOrder.cancelOrder', '取消订单')}
+            </button>
           </section>
         </div>
       </div>

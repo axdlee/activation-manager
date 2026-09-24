@@ -194,6 +194,10 @@ export function resendShopOrderEmail(orderNo: string) {
   return postJson(`/api/admin/shop/orders/${orderNo}/resend-email`, {})
 }
 
+export function cancelShopOrder(orderNo: string) {
+  return postJson(`/api/admin/shop/orders/${orderNo}/cancel`, {})
+}
+
 export function cleanupExpiredShopOrders() {
   return postJson('/api/admin/shop/orders/cleanup', {})
 }

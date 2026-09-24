@@ -11,6 +11,7 @@ import { ShopOrderDetailDrawer } from '@/components/admin/shop-order-detail-draw
 import { EmptyState } from '@/components/admin/empty-state'
 import { Skeleton } from '@/components/ui-admin/skeleton'
 import {
+  cancelShopOrder,
   cleanupExpiredShopOrders,
   confirmShopOrder,
   fetchShopOrders,
@@ -92,6 +93,20 @@ export function ShopOrdersPage({ initialOrders, onNotify }: ShopOrdersPageProps)
       return
     }
     notify(result.message ?? t('shopadmin.resendEmailDone', '卡密邮件已重发'))
+  }
+
+  const handleCancelOrder = async (order: ShopOrder) => {
+    if (!window.confirm(t('shopadmin.cancelOrderPrompt', '确认取消订单 {{orderNo}}？未支付订单取消后预占库存立即释放。').replace('{{orderNo}}', order.orderNo))) return
+    setBusy(true)
+    const result = await cancelShopOrder(order.orderNo)
+    setBusy(false)
+    if (!result.success) {
+      notify(result.message ?? t('shopadmin.cancelFailed', '取消失败'), 'error')
+      return
+    }
+    notify(t('shopadmin.cancelDone', '订单已取消，预占库存已释放'))
+    setDetailOrder(null)
+    await load()
   }
 
   const handleCleanup = async () => {
@@ -275,6 +290,7 @@ export function ShopOrdersPage({ initialOrders, onNotify }: ShopOrdersPageProps)
         loading={busy}
         onConfirmOrder={(order) => void handleConfirmOrder(order)}
         onResendEmail={(order) => void handleResendEmail(order)}
+        onCancelOrder={(order) => void handleCancelOrder(order)}
       />
 
       <ConfirmDialog
