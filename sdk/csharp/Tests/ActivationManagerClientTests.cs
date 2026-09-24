@@ -89,13 +89,15 @@ public class ActivationManagerClientTests
         // 与 JS/Python 相同语义：正确密钥 HMAC 失败 → SignatureInvalid
         var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes("test-secret"));
         var body = "{\"success\":true}";
-        var goodSig = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(body))).ToLowerInvariant();
+        var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        var goodSig = Convert.ToHexString(
+            hmac.ComputeHash(Encoding.UTF8.GetBytes($"{ts}.{body}"))).ToLowerInvariant();
 
         var http = new MockHandler(_ => (200, body,
             new Dictionary<string, string>
             {
                 ["x-license-signature"] = goodSig,
-                ["x-license-timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(),
+                ["x-license-timestamp"] = ts,
             }));
         var client = new ActivationManagerClient(
             new ActivationManagerClientOptions { BaseUrl = "http://mock", ResponseSecret = "wrong" }, http);
@@ -109,13 +111,15 @@ public class ActivationManagerClientTests
     {
         var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes("test-secret"));
         var body = "{\"success\":true}";
-        var sig = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(body))).ToLowerInvariant();
+        var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        var sig = Convert.ToHexString(
+            hmac.ComputeHash(Encoding.UTF8.GetBytes($"{ts}.{body}"))).ToLowerInvariant();
 
         var http = new MockHandler(_ => (200, body,
             new Dictionary<string, string>
             {
                 ["x-license-signature"] = sig,
-                ["x-license-timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(),
+                ["x-license-timestamp"] = ts,
             }));
         var client = new ActivationManagerClient(
             new ActivationManagerClientOptions { BaseUrl = "http://mock", ResponseSecret = "test-secret" }, http);

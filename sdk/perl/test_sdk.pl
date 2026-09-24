@@ -33,8 +33,8 @@ my $worker = threads->create(sub {
                 success => JSON::PP::true(), licenseMode => 'COUNT', license_mode => 'COUNT',
                 remainingCount => 9, valid => JSON::PP::true(),
             });
-        my $sig = hmac_sha256_hex($payload, $SECRET);
         my $ts = int(time() * 1000);
+        my $sig = hmac_sha256_hex("$ts.$payload", $SECRET);
         print $conn "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n";
         print $conn "x-license-signature: $sig\r\nx-license-timestamp: $ts\r\n";
         print $conn "Content-Length: " . length($payload) . "\r\n\r\n";
