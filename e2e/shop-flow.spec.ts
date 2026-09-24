@@ -15,6 +15,7 @@ async function loginAsAdmin(page: Page) {
 }
 
 let createdOrderNo = ''
+let createdAccessToken = ''
 let generatedCode = ''
 
 test.describe.serial('支付自动发卡 e2e', () => {
@@ -54,8 +55,17 @@ test.describe.serial('支付自动发卡 e2e', () => {
     await page.locator('#contact-email').fill('e2e-buyer@example.com')
     await page.locator('#contact-phone').fill('13900000000')
 
-    // 下单
+    // 下单（同时捕获创建响应中的访问令牌，供卡密详情查询使用）
+    const orderResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/shop/orders') &&
+        response.request().method() === 'POST',
+    )
     await page.getByRole('button', { name: '立即下单' }).click()
+    const orderJson = (await (await orderResponsePromise).json()) as {
+      order?: { accessToken?: string }
+    }
+    createdAccessToken = orderJson.order?.accessToken ?? ''
 
     // 订单生成 + 支付信息展示
     await expect(page.getByText('订单已生成').first()).toBeVisible({ timeout: 15_000 })
@@ -89,7 +99,22 @@ test.describe.serial('支付自动发卡 e2e', () => {
   test('3. 订单查询返回已发卡密', async ({ page }) => {
     expect(createdOrderNo).not.toBe('')
 
-    const response = await page.request.get(`/api/shop/orders/${createdOrderNo}`)
+    // 无令牌：订单状态可见但卡密不回传（防订单号枚举）
+    const noTokenResponse = await page.request.get(`/api/shop/orders/${createdOrderNo}`)
+    expect(noTokenResponse.status()).toBe(200)
+    const noTokenData = (await noTokenResponse.json()) as {
+      success: boolean
+      order?: { status: string }
+      codes?: Array<{ id: number; code: string }>
+    }
+    expect(noTokenData.success).toBe(true)
+    expect(noTokenData.order?.status).toBe('fulfilled')
+    expect(noTokenData.codes).toEqual([])
+
+    // 携带下单时签发的访问令牌：读到卡密
+    const response = await page.request.get(
+      `/api/shop/orders/${createdOrderNo}?token=${encodeURIComponent(createdAccessToken)}`,
+    )
     expect(response.status()).toBe(200)
     const data = (await response.json()) as {
       success: boolean

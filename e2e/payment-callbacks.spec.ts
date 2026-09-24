@@ -9,6 +9,7 @@ test.describe.serial('支付适配器回调 e2e', () => {
   let adminCookie: string
   let productId: number
   let orderNo: string
+  let orderAccessToken: string
 
   test('0. 后台创建商品并启用易支付渠道', async ({ request }) => {
     // 登录拿 cookie
@@ -63,10 +64,15 @@ test.describe.serial('支付适配器回调 e2e', () => {
         contactEmail: 'e2e-yipay@example.com',
       },
     })
-    const orderData = (await orderRes.json()) as { success: boolean; order?: { orderNo: string } }
+    const orderData = (await orderRes.json()) as {
+      success: boolean
+      order?: { orderNo: string; accessToken?: string }
+    }
     expect(orderData.success).toBe(true)
     orderNo = orderData.order?.orderNo ?? ''
+    orderAccessToken = orderData.order?.accessToken ?? ''
     expect(orderNo).toMatch(/^SO[A-Z0-9]+$/)
+    expect(orderAccessToken).toMatch(/^[0-9a-f]{32}$/)
 
     // 模拟易支付回调（form-urlencoded 格式）
     const { createHash } = await import('node:crypto')
@@ -97,8 +103,14 @@ test.describe.serial('支付适配器回调 e2e', () => {
     expect(callbackData.success).toBe(true)
     expect(callbackData.message).toBe('success')
 
-    // 验证订单已发卡
-    const orderDetailRes = await request.get(`/api/shop/orders/${orderNo}`)
+    // 验证订单已发卡（卡密详情必须携带下单签发的访问令牌）
+    const noTokenRes = await request.get(`/api/shop/orders/${orderNo}`)
+    const noTokenData = (await noTokenRes.json()) as { codes?: Array<{ code: string }> }
+    expect(noTokenData.codes).toEqual([])
+
+    const orderDetailRes = await request.get(
+      `/api/shop/orders/${orderNo}?token=${encodeURIComponent(orderAccessToken)}`,
+    )
     const orderDetail = (await orderDetailRes.json()) as {
       success: boolean
       order?: { status: string }
