@@ -1,6 +1,10 @@
 # syntax=docker/dockerfile:1
 
 ARG NODE_VERSION=22
+# 目标数据库 provider：sqlite（默认）| postgresql。
+# 构建 PG 镜像：docker build --build-arg TARGET_DB_PROVIDER=postgresql …
+# PG 镜像内 schema.prisma 已切换 provider，运行时 bootstrap 走 db push 路径。
+ARG TARGET_DB_PROVIDER=sqlite
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -13,20 +17,26 @@ RUN npm ci
 # 生产依赖层：仅装 dependencies（不含 tsx/esbuild 等开发工具），
 # 并在此生成 Prisma Client（查询引擎二进制随层进入运行镜像）
 FROM base AS prod-deps
+ARG TARGET_DB_PROVIDER=sqlite
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 COPY prisma/schema.prisma ./prisma/schema.prisma
-RUN npm ci --omit=dev && npx prisma generate
+COPY scripts/db-provider.mjs ./scripts/db-provider.mjs
+RUN npm ci --omit=dev \
+    && node scripts/db-provider.mjs "$TARGET_DB_PROVIDER" \
+    && npx prisma generate
 
 FROM base AS builder
+ARG TARGET_DB_PROVIDER=sqlite
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run db:generate && npm run build \
+RUN node scripts/db-provider.mjs "$TARGET_DB_PROVIDER" \
+    && npm run db:generate && npm run build \
     # 运行时数据库引导打包为独立 CJS 文件：运行镜像无需 tsx/TS 源码
     && ./node_modules/.bin/esbuild scripts/bootstrap-runtime.ts \
         --bundle --platform=node --format=cjs \

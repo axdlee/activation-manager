@@ -64,6 +64,10 @@ function runPrismaCommand(args: string[]) {
  * PostgreSQL 走 db push 同步 schema：prisma/migrations 目录保存的是 sqlite
  * 方言迁移（migration_lock.toml 锁定 sqlite），对 PG 执行 migrate deploy 会被拒绝。
  * db push 后重新 generate，保证生成的客户端与 provider 一致。
+ *
+ * 数据安全：一律不带 --accept-data-loss——空库首次初始化自然成功；
+ * 存量库做加列等兼容变更也会成功；一旦 push 需要"删列/删表"等破坏性
+ * 变更，prisma 会以非交互错误退出，绝不静默清掉生产数据。
  */
 export async function ensurePostgresSchema(logger: BootstrapLogger = console) {
   if (readSchemaProvider() !== 'postgresql') {
@@ -73,8 +77,8 @@ export async function ensurePostgresSchema(logger: BootstrapLogger = console) {
     )
   }
 
-  logger.log('[bootstrap] PostgreSQL: 正在通过 prisma db push 同步 schema…')
-  runPrismaCommand(['db', 'push', '--skip-generate', '--accept-data-loss'])
+  logger.log('[bootstrap] PostgreSQL: 正在通过 prisma db push 同步 schema（拒绝破坏性变更）…')
+  runPrismaCommand(['db', 'push', '--skip-generate'])
 
   logger.log('[bootstrap] PostgreSQL: 正在重新生成 Prisma Client…')
   runPrismaCommand(['generate'])

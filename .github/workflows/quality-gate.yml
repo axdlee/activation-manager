@@ -77,3 +77,59 @@ jobs:
           name: playwright-report
           path: test-results/
           retention-days: 7
+
+  postgres:
+    name: PostgreSQL compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: activation
+          POSTGRES_PASSWORD: activation-ci
+          POSTGRES_DB: activation_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U activation"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssl
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Switch provider to PostgreSQL
+        run: npm run db:provider -- postgresql
+
+      - name: Bootstrap PostgreSQL database
+        env:
+          DATABASE_URL: postgresql://activation:activation-ci@127.0.0.1:5432/activation_ci
+          JWT_SECRET: pg-ci-jwt-secret-0123456789abcdef
+        run: npm run bootstrap:runtime
+
+      - name: Run PostgreSQL analytics/flow tests
+        env:
+          DATABASE_URL: postgresql://activation:activation-ci@127.0.0.1:5432/activation_ci
+          JWT_SECRET: pg-ci-jwt-secret-0123456789abcdef
+        run: |
+          npx tsx --test tests/license-analytics-dialect-free.test.ts
+          npx tsx --test tests/license-activation-flow-integration.test.ts

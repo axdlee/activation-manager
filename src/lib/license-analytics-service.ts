@@ -1,5 +1,3 @@
-import { Prisma } from '@prisma/client'
-
 import { findProjectByProjectKey, type DbClient } from './license-project-service'
 
 type GetLicenseConsumptionTrendInput = {
@@ -55,33 +53,29 @@ type LicenseConsumptionTrend = {
   points: LicenseConsumptionTrendPoint[]
 }
 
-type LicenseConsumptionTrendBucketRow = {
-  bucketDate: string
-  consumptionCount: bigint | number | string
-}
-
-type LicenseConsumptionTrendTotalRow = {
-  totalConsumptions: bigint | number | string
-}
-
-type ActivationCodeStatsRow = {
-  totalCodes: bigint | number | string | null
-  usedCodes: bigint | number | string | null
-  expiredCodes: bigint | number | string | null
-  activeCodes: bigint | number | string | null
+type ActivationCodeAggregateRow = {
+  projectId: number
+  isUsed: boolean
+  licenseMode: string
+  usedAt: Date | null
+  expiresAt: Date | null
+  validDays: number | null
+  remainingCount: number | null
+  totalCount: number | null
+  consumedCount: number
 }
 
 type ProjectStatsRow = {
   id: number
   name: string
   projectKey: string
-  isEnabled: boolean | number
-  totalCodes: bigint | number | string | null
-  usedCodes: bigint | number | string | null
-  expiredCodes: bigint | number | string | null
-  activeCodes: bigint | number | string | null
-  countRemainingTotal: bigint | number | string | null
-  countConsumedTotal: bigint | number | string | null
+  isEnabled: boolean
+  totalCodes: number
+  usedCodes: number
+  expiredCodes: number
+  activeCodes: number
+  countRemainingTotal: number
+  countConsumedTotal: number
 }
 
 function normalizeOptionalDateInput(value?: string | Date) {
@@ -206,178 +200,157 @@ function formatTrendBucketLabel(date: Date, granularity: LicenseConsumptionTrend
   return formatUtcDateLabel(date)
 }
 
-function normalizeAggregateCount(value: bigint | number | string | null | undefined) {
-  if (typeof value === 'number') {
-    return value
+// ---------- 方言无关聚合（Prisma 查询 + JS 聚合） ----------
+// 历史版本用 SQLite 方言原生 SQL（"isUsed" = 1、createdAt/1000、strftime/unixepoch），
+// PostgreSQL 下看板统计/项目统计/消费趋势全部报错；改为 Prisma findMany 取
+// 最小字段集 + JS 聚合，同一代码路径同时兼容 SQLite 与 PostgreSQL，
+// 并统一过滤 deletedAt（软删除码不再计入统计，低危评审项）。
+
+const ACTIVATION_CODE_AGGREGATE_SELECT = {
+  projectId: true,
+  isUsed: true,
+  licenseMode: true,
+  usedAt: true,
+  expiresAt: true,
+  validDays: true,
+  remainingCount: true,
+  totalCount: true,
+  consumedCount: true,
+} as const
+
+const DAY_MILLIS = 24 * 60 * 60 * 1000
+
+async function listAggregateActivationCodes(client: DbClient): Promise<ActivationCodeAggregateRow[]> {
+  return client.activationCode.findMany({
+    where: { deletedAt: null },
+    select: ACTIVATION_CODE_AGGREGATE_SELECT,
+  })
+}
+
+/** 实际到期时间（毫秒）：COUNT 码无到期；TIME 码优先 usedAt+validDays，回退 expiresAt */
+function resolveActualExpiresAtMillis(code: ActivationCodeAggregateRow): number | null {
+  if (code.licenseMode === 'COUNT') {
+    return null
+  }
+  if (code.usedAt !== null && code.validDays !== null) {
+    return code.usedAt.getTime() + code.validDays * DAY_MILLIS
+  }
+  if (code.expiresAt !== null) {
+    return code.expiresAt.getTime()
+  }
+  return null
+}
+
+/** 次数码剩余次数：remainingCount 缺失回退 totalCount，再回退 0 */
+function getRemainingCount(code: ActivationCodeAggregateRow): number {
+  return code.remainingCount ?? code.totalCount ?? 0
+}
+
+function isExpiredCode(code: ActivationCodeAggregateRow, nowMillis: number): boolean {
+  const actualExpiresAt = resolveActualExpiresAtMillis(code)
+  return (
+    code.isUsed &&
+    code.licenseMode !== 'COUNT' &&
+    actualExpiresAt !== null &&
+    actualExpiresAt < nowMillis
+  )
+}
+
+function isActiveCode(code: ActivationCodeAggregateRow, nowMillis: number): boolean {
+  if (code.licenseMode === 'COUNT') {
+    return getRemainingCount(code) > 0
+  }
+  if (!code.isUsed) {
+    return true
+  }
+  const actualExpiresAt = resolveActualExpiresAtMillis(code)
+  if (actualExpiresAt === null) {
+    return true
+  }
+  return actualExpiresAt >= nowMillis
+}
+
+function computeActivationCodeStats(codes: ActivationCodeAggregateRow[], nowMillis: number) {
+  let usedCodes = 0
+  let expiredCodes = 0
+  let activeCodes = 0
+  for (const code of codes) {
+    if (code.isUsed) {
+      usedCodes += 1
+    }
+    if (isExpiredCode(code, nowMillis)) {
+      expiredCodes += 1
+    }
+    if (isActiveCode(code, nowMillis)) {
+      activeCodes += 1
+    }
+  }
+  return {
+    totalCodes: codes.length,
+    usedCodes,
+    expiredCodes,
+    activeCodes,
+  }
+}
+
+async function listProjectStatsRows(client: DbClient, now: Date): Promise<ProjectStatsRow[]> {
+  const nowMillis = now.getTime()
+  const [projects, codes] = await Promise.all([
+    client.project.findMany({
+      select: { id: true, name: true, projectKey: true, isEnabled: true, createdAt: true },
+      orderBy: [{ isEnabled: 'desc' }, { createdAt: 'asc' }],
+    }),
+    listAggregateActivationCodes(client),
+  ])
+
+  const codesByProject = new Map<number, ActivationCodeAggregateRow[]>()
+  for (const code of codes) {
+    const bucket = codesByProject.get(code.projectId)
+    if (bucket) {
+      bucket.push(code)
+    } else {
+      codesByProject.set(code.projectId, [code])
+    }
   }
 
-  if (typeof value === 'bigint') {
-    return Number(value)
-  }
-
-  if (typeof value === 'string' && value.trim()) {
-    return Number(value)
-  }
-
-  return 0
+  return projects.map((project) => {
+    const projectCodes = codesByProject.get(project.id) ?? []
+    const stats = computeActivationCodeStats(projectCodes, nowMillis)
+    let countRemainingTotal = 0
+    let countConsumedTotal = 0
+    for (const code of projectCodes) {
+      if (code.licenseMode === 'COUNT') {
+        countRemainingTotal += getRemainingCount(code)
+        countConsumedTotal += code.consumedCount
+      }
+    }
+    return {
+      id: project.id,
+      name: project.name,
+      projectKey: project.projectKey,
+      isEnabled: project.isEnabled,
+      totalCodes: stats.totalCodes,
+      usedCodes: stats.usedCodes,
+      expiredCodes: stats.expiredCodes,
+      activeCodes: stats.activeCodes,
+      countRemainingTotal,
+      countConsumedTotal,
+    }
+  })
 }
 
-function normalizeSqliteBoolean(value: boolean | number) {
-  if (typeof value === 'boolean') {
-    return value
-  }
-
-  return value !== 0
-}
-
-function getLicenseConsumptionCreatedAtUnixSecondsSql() {
-  return Prisma.sql`CAST("lc"."createdAt" / 1000 AS INTEGER)`
-}
-
-function getActivationCodeUsedAtUnixSecondsSql() {
-  return Prisma.sql`CAST("ac"."usedAt" / 1000 AS INTEGER)`
-}
-
-function getActivationCodeExpiresAtUnixSecondsSql() {
-  return Prisma.sql`CAST("ac"."expiresAt" / 1000 AS INTEGER)`
-}
-
-function getActivationCodeActualExpiresAtUnixSecondsSql() {
-  const usedAtUnixSecondsSql = getActivationCodeUsedAtUnixSecondsSql()
-  const expiresAtUnixSecondsSql = getActivationCodeExpiresAtUnixSecondsSql()
-
-  return Prisma.sql`
-    CASE
-      WHEN "ac"."licenseMode" = 'COUNT' THEN NULL
-      WHEN "ac"."usedAt" IS NOT NULL AND "ac"."validDays" IS NOT NULL
-        THEN ${usedAtUnixSecondsSql} + ("ac"."validDays" * 86400)
-      WHEN "ac"."expiresAt" IS NOT NULL
-        THEN ${expiresAtUnixSecondsSql}
-      ELSE NULL
-    END
-  `
-}
-
-function getActivationCodeRemainingCountSql() {
-  return Prisma.sql`
-    CASE
-      WHEN "ac"."licenseMode" = 'COUNT' THEN COALESCE("ac"."remainingCount", "ac"."totalCount", 0)
-      ELSE 0
-    END
-  `
-}
-
-function getActivationCodeExpiredFlagSql(nowUnixSeconds: number) {
-  const actualExpiresAtUnixSecondsSql = getActivationCodeActualExpiresAtUnixSecondsSql()
-
-  return Prisma.sql`
-    CASE
-      WHEN "ac"."id" IS NOT NULL
-        AND "ac"."isUsed" = 1
-        AND "ac"."licenseMode" != 'COUNT'
-        AND ${actualExpiresAtUnixSecondsSql} IS NOT NULL
-        AND ${actualExpiresAtUnixSecondsSql} < ${nowUnixSeconds}
-      THEN 1
-      ELSE 0
-    END
-  `
-}
-
-function getActivationCodeActiveFlagSql(nowUnixSeconds: number) {
-  const actualExpiresAtUnixSecondsSql = getActivationCodeActualExpiresAtUnixSecondsSql()
-  const remainingCountSql = getActivationCodeRemainingCountSql()
-
-  return Prisma.sql`
-    CASE
-      WHEN "ac"."id" IS NULL THEN 0
-      WHEN "ac"."licenseMode" = 'COUNT'
-        THEN CASE WHEN ${remainingCountSql} > 0 THEN 1 ELSE 0 END
-      WHEN "ac"."isUsed" = 0 THEN 1
-      WHEN ${actualExpiresAtUnixSecondsSql} IS NULL THEN 1
-      WHEN ${actualExpiresAtUnixSecondsSql} >= ${nowUnixSeconds} THEN 1
-      ELSE 0
-    END
-  `
-}
-
-async function getActivationCodeStatsRow(client: DbClient, now: Date) {
-  const nowUnixSeconds = Math.floor(now.getTime() / 1000)
-  const expiredFlagSql = getActivationCodeExpiredFlagSql(nowUnixSeconds)
-  const activeFlagSql = getActivationCodeActiveFlagSql(nowUnixSeconds)
-
-  const [row] = await client.$queryRaw<ActivationCodeStatsRow[]>(Prisma.sql`
-    SELECT
-      COUNT(*) AS "totalCodes",
-      COALESCE(SUM(CASE WHEN "ac"."isUsed" = 1 THEN 1 ELSE 0 END), 0) AS "usedCodes",
-      COALESCE(SUM(${expiredFlagSql}), 0) AS "expiredCodes",
-      COALESCE(SUM(${activeFlagSql}), 0) AS "activeCodes"
-    FROM "activation_codes" AS "ac"
-  `)
-
-  return row
-}
-
-async function listProjectStatsRows(client: DbClient, now: Date) {
-  const nowUnixSeconds = Math.floor(now.getTime() / 1000)
-  const expiredFlagSql = getActivationCodeExpiredFlagSql(nowUnixSeconds)
-  const activeFlagSql = getActivationCodeActiveFlagSql(nowUnixSeconds)
-  const remainingCountSql = getActivationCodeRemainingCountSql()
-
-  return client.$queryRaw<ProjectStatsRow[]>(Prisma.sql`
-    SELECT
-      "p"."id" AS "id",
-      "p"."name" AS "name",
-      "p"."projectKey" AS "projectKey",
-      "p"."isEnabled" AS "isEnabled",
-      COUNT("ac"."id") AS "totalCodes",
-      COALESCE(SUM(CASE WHEN "ac"."isUsed" = 1 THEN 1 ELSE 0 END), 0) AS "usedCodes",
-      COALESCE(SUM(${expiredFlagSql}), 0) AS "expiredCodes",
-      COALESCE(SUM(${activeFlagSql}), 0) AS "activeCodes",
-      COALESCE(SUM(${remainingCountSql}), 0) AS "countRemainingTotal",
-      COALESCE(SUM(CASE WHEN "ac"."licenseMode" = 'COUNT' THEN "ac"."consumedCount" ELSE 0 END), 0) AS "countConsumedTotal"
-    FROM "projects" AS "p"
-    LEFT JOIN "activation_codes" AS "ac"
-      ON "ac"."projectId" = "p"."id"
-    GROUP BY "p"."id", "p"."name", "p"."projectKey", "p"."isEnabled", "p"."createdAt"
-    ORDER BY "p"."isEnabled" DESC, "p"."createdAt" ASC
-  `)
-}
-
-function getTrendBucketSqlExpression(granularity: LicenseConsumptionTrendGranularity) {
-  const createdAtUnixSecondsSql = getLicenseConsumptionCreatedAtUnixSecondsSql()
-
-  if (granularity === 'week') {
-    return Prisma.sql`
-      date(
-        ${createdAtUnixSecondsSql},
-        'unixepoch',
-        '-' || ((CAST(strftime('%w', ${createdAtUnixSecondsSql}, 'unixepoch') AS INTEGER) + 6) % 7) || ' days'
-      )
-    `
-  }
-
-  if (granularity === 'month') {
-    return Prisma.sql`strftime('%Y-%m-01', ${createdAtUnixSecondsSql}, 'unixepoch')`
-  }
-
-  return Prisma.sql`date(${createdAtUnixSecondsSql}, 'unixepoch')`
-}
-
-function buildLicenseConsumptionTrendWhereSql(input: {
+function buildLicenseConsumptionWhereClause(input: {
   projectId?: number
   createdFrom: Date
   createdTo: Date
 }) {
-  let whereSql = Prisma.sql`"lc"."createdAt" >= ${input.createdFrom}
-    AND "lc"."createdAt" <= ${input.createdTo}`
-
-  if (input.projectId !== undefined) {
-    whereSql = Prisma.sql`${whereSql} AND "ac"."projectId" = ${input.projectId}`
+  return {
+    createdAt: { gte: input.createdFrom, lte: input.createdTo },
+    ...(input.projectId !== undefined ? { activationCode: { projectId: input.projectId } } : {}),
   }
-
-  return Prisma.sql`WHERE ${whereSql}`
 }
 
+/** 按粒度把消费记录分桶（UTC 语义：日=当日 0 点、周=周一、月=当月 1 号），返回桶键→计数 */
 async function listLicenseConsumptionTrendBuckets(
   client: DbClient,
   input: {
@@ -386,24 +359,22 @@ async function listLicenseConsumptionTrendBuckets(
     rangeEnd: Date
     granularity: LicenseConsumptionTrendGranularity
   },
-) {
-  const bucketSql = getTrendBucketSqlExpression(input.granularity)
-
-  return client.$queryRaw<LicenseConsumptionTrendBucketRow[]>(Prisma.sql`
-    SELECT
-      ${bucketSql} AS "bucketDate",
-      COUNT(*) AS "consumptionCount"
-    FROM "license_consumptions" AS "lc"
-    INNER JOIN "activation_codes" AS "ac"
-      ON "ac"."id" = "lc"."activationCodeId"
-    ${buildLicenseConsumptionTrendWhereSql({
+): Promise<Map<string, number>> {
+  const rows = await client.licenseConsumption.findMany({
+    where: buildLicenseConsumptionWhereClause({
       projectId: input.projectId,
       createdFrom: input.rangeStart,
       createdTo: input.rangeEnd,
-    })}
-    GROUP BY ${bucketSql}
-    ORDER BY ${bucketSql} ASC
-  `)
+    }),
+    select: { createdAt: true },
+  })
+
+  const bucketCountMap = new Map<string, number>()
+  for (const row of rows) {
+    const bucketKey = formatUtcDateKey(getTrendBucketStart(row.createdAt, input.granularity))
+    bucketCountMap.set(bucketKey, (bucketCountMap.get(bucketKey) ?? 0) + 1)
+  }
+  return bucketCountMap
 }
 
 async function countPreviousRangeConsumptions(
@@ -413,21 +384,14 @@ async function countPreviousRangeConsumptions(
     rangeStart: Date
     rangeEnd: Date
   },
-) {
-  const [row] = await client.$queryRaw<LicenseConsumptionTrendTotalRow[]>(Prisma.sql`
-    SELECT
-      COUNT(*) AS "totalConsumptions"
-    FROM "license_consumptions" AS "lc"
-    INNER JOIN "activation_codes" AS "ac"
-      ON "ac"."id" = "lc"."activationCodeId"
-    ${buildLicenseConsumptionTrendWhereSql({
+): Promise<number> {
+  return client.licenseConsumption.count({
+    where: buildLicenseConsumptionWhereClause({
       projectId: input.projectId,
       createdFrom: input.rangeStart,
       createdTo: input.rangeEnd,
-    })}
-  `)
-
-  return normalizeAggregateCount(row?.totalConsumptions)
+    }),
+  })
 }
 
 export async function getLicenseConsumptionTrend(
@@ -450,8 +414,7 @@ export async function getLicenseConsumptionTrend(
   const previousRangeStart = getUtcDayStart(previousRangeEnd)
   previousRangeStart.setUTCDate(previousRangeStart.getUTCDate() - days + 1)
 
-  const bucketCountMap = new Map<string, number>()
-  const [bucketRows, previousTotalConsumptions] = await Promise.all([
+  const [bucketCountMap, previousTotalConsumptions] = await Promise.all([
     listLicenseConsumptionTrendBuckets(client, {
       projectId: project?.id,
       rangeStart,
@@ -464,10 +427,6 @@ export async function getLicenseConsumptionTrend(
       rangeEnd: previousRangeEnd,
     }),
   ])
-
-  bucketRows.forEach((row) => {
-    bucketCountMap.set(row.bucketDate, normalizeAggregateCount(row.consumptionCount))
-  })
 
   const points: LicenseConsumptionTrendPoint[] = []
   let cursor = getTrendBucketStart(rangeStart, granularity)
@@ -512,13 +471,14 @@ export async function getLicenseConsumptionTrend(
 }
 
 export async function getActivationCodeStats(client: DbClient): Promise<ActivationCodeStats> {
-  const row = await getActivationCodeStatsRow(client, new Date())
+  const codes = await listAggregateActivationCodes(client)
+  const stats = computeActivationCodeStats(codes, Date.now())
 
   return {
-    total: normalizeAggregateCount(row?.totalCodes),
-    used: normalizeAggregateCount(row?.usedCodes),
-    expired: normalizeAggregateCount(row?.expiredCodes),
-    active: normalizeAggregateCount(row?.activeCodes),
+    total: stats.totalCodes,
+    used: stats.usedCodes,
+    expired: stats.expiredCodes,
+    active: stats.activeCodes,
   }
 }
 
@@ -529,12 +489,12 @@ export async function listProjectStats(client: DbClient): Promise<ProjectStats[]
     id: row.id,
     name: row.name,
     projectKey: row.projectKey,
-    isEnabled: normalizeSqliteBoolean(row.isEnabled),
-    totalCodes: normalizeAggregateCount(row.totalCodes),
-    usedCodes: normalizeAggregateCount(row.usedCodes),
-    expiredCodes: normalizeAggregateCount(row.expiredCodes),
-    activeCodes: normalizeAggregateCount(row.activeCodes),
-    countRemainingTotal: normalizeAggregateCount(row.countRemainingTotal),
-    countConsumedTotal: normalizeAggregateCount(row.countConsumedTotal),
+    isEnabled: row.isEnabled,
+    totalCodes: row.totalCodes,
+    usedCodes: row.usedCodes,
+    expiredCodes: row.expiredCodes,
+    activeCodes: row.activeCodes,
+    countRemainingTotal: row.countRemainingTotal,
+    countConsumedTotal: row.countConsumedTotal,
   }))
 }

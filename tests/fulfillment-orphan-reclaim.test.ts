@@ -27,6 +27,14 @@ test.after(async () => {
   await prisma.$disconnect()
 })
 
+test.beforeEach(async () => {
+  // 首个测试运行前也要清库：dev.db 可能有其他测试/调试残留的同项目码
+  await prisma.activationCode.deleteMany({})
+  await prisma.shopOrder.deleteMany({})
+  await prisma.shopProduct.deleteMany({})
+  await prisma.shopPaymentConfig.deleteMany({})
+})
+
 test.afterEach(async () => {
   await prisma.activationCode.deleteMany({})
   await prisma.shopOrder.deleteMany({})

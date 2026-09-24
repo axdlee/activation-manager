@@ -43,6 +43,24 @@ npm run bootstrap:runtime   # 自动 db push + 重新 generate + 种子（系统
 
 启动引导会识别 `DATABASE_URL` 协议：`postgres(ql)://` 走 PostgreSQL 路径，其余走 SQLite 路径，Docker 镜像同理。
 
+#### schema 同步的数据安全约定
+
+PostgreSQL 路径的 `db push` **不带 `--accept-data-loss`**：
+
+- 空库首次初始化：正常建表
+- 存量库加列等兼容变更：自动完成（如新增 nullable 列）
+- 需要删列/删表/重建唯一约束等破坏性变更：**启动引导直接报错退出**，请人工评估后显式执行
+  `npx prisma db push --accept-data-loss`（确认数据安全的前提下），或编写迁移脚本
+
+### 官方 PostgreSQL 镜像
+
+除了自行构建，可直接使用发布随附的 PostgreSQL 变体镜像（构建参数 `TARGET_DB_PROVIDER=postgresql`，镜像内 schema 已切换 provider，无需改写文件）：
+
+```bash
+docker pull axdlee/activation-manager:latest-postgres
+# 版本镜像形如 axdlee/activation-manager:2.9.1-postgres
+```
+
 > 历史数据迁移：SQLite → Postgres 可用 `pgloader`（自动类型映射），或按表导出 CSV 后 `\copy` 导入。迁移前务必停服并做 SQLite 备份（`npm run db:backup`）。
 
 ### 5. 部署形态
