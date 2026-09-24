@@ -7,6 +7,7 @@ import { type LicenseActionCodeRecord } from './license-action-context'
 import {
   buildExpiryNotificationPayload,
 } from './license-expiry-notification-service'
+import { maskActivationCodeForLog } from './payment-config-mask'
 
 /**
  * 事件通知适配层：把业务事件转成统一通知并分发。
@@ -29,18 +30,23 @@ export function notifyShopOrderFulfilledEvent(params: {
   codes: string[]
   trigger: 'payment' | 'admin'
 }): void {
+  // 管理端通知与 notification_logs.payload 中卡密一律脱敏：
+  // 「首次激活即绑定设备」，完整卡密外发到群机器人/邮件/日志，
+  // 任何能看到通知的人都可能抢先激活。买家本人的发卡邮件不受影响
+  // （sendBuyerOrderFulfilledEmail 用的是调用方传入的完整卡密）。
+  const maskedCodes = params.codes.map(maskActivationCodeForLog)
   dispatchNotification({
     event: NOTIFICATION_EVENTS.SHOP_ORDER_PAID_FULFILLED,
     title: '订单已发卡',
     body: `订单 ${params.orderNo}（${params.productName}，￥${(params.amountInCents / 100).toFixed(2)}）已完成发卡（${
       params.trigger === 'payment' ? '支付回调' : '人工确认'
-    }），共 ${params.codes.length} 张卡密。`,
+    }），共 ${maskedCodes.length} 张卡密。`,
     data: {
       event: NOTIFICATION_EVENTS.SHOP_ORDER_PAID_FULFILLED,
       orderNo: params.orderNo,
       productName: params.productName,
       amountInCents: params.amountInCents,
-      codes: params.codes,
+      codes: maskedCodes,
       trigger: params.trigger,
     },
   })

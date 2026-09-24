@@ -6,7 +6,6 @@ import { bootstrapDevelopmentDatabase } from '../src/lib/dev-bootstrap'
 import {
   createShopOrder,
   generateShopOrderNo,
-  markShopOrderPaid,
   ShopOrderError,
 } from '../src/lib/shop-order-service'
 import { fulfillShopOrder } from '../src/lib/shop-fulfillment-service'
@@ -115,22 +114,6 @@ test('createShopOrder 成功创建 pending 订单', async () => {
   assert.equal(order.provider, 'manual')
 })
 
-test('markShopOrderPaid 将订单标记为已支付且幂等', async () => {
-  const { product } = await seedProductAndConfig()
-  const { order } = await createShopOrder({
-    productId: product.id,
-    providerId: 'manual',
-    contactWechat: 'wx-test',
-  })
-
-  const result = await markShopOrderPaid({ orderNo: order.orderNo, transactionId: 'TXN-001' })
-  assert.equal(result.success, true)
-
-  const again = await markShopOrderPaid({ orderNo: order.orderNo, transactionId: 'TXN-001' })
-  assert.equal(again.success, true)
-  assert.equal('alreadyProcessed' in again && again.alreadyProcessed, true)
-})
-
 test('fulfillShopOrder 支付后自动生成卡密并标记 fulfilled', async () => {
   const { product, project } = await seedProductAndConfig()
   const { order } = await createShopOrder({
@@ -229,28 +212,6 @@ test('fulfillShopOrder 并发调用只发一张卡（原子抢占）', async () 
   const updated = await prisma.shopOrder.findUniqueOrThrow({ where: { orderNo: order.orderNo } })
   const codeIds = JSON.parse(updated.fulfilledCodeIds ?? '[]') as number[]
   assert.equal(codeIds.length, 1)
-})
-
-test('markShopOrderPaid 并发调用只成功一次', async () => {
-  const { product } = await seedProductAndConfig()
-  const { order } = await createShopOrder({
-    productId: product.id,
-    providerId: 'manual',
-    contactEmail: 'paid-race@example.com',
-  })
-
-  const [r1, r2] = await Promise.all([
-    markShopOrderPaid({ orderNo: order.orderNo, transactionId: 'T1' }),
-    markShopOrderPaid({ orderNo: order.orderNo, transactionId: 'T2' }),
-  ])
-
-  // 两个都视为成功（一个真实写入，另一个 alreadyProcessed）
-  assert.equal(r1.success, true)
-  assert.equal(r2.success, true)
-
-  // 数据库只有一条 paid 记录
-  const updated = await prisma.shopOrder.findUniqueOrThrow({ where: { orderNo: order.orderNo } })
-  assert.equal(updated.status, 'paid')
 })
 
 test('webhook 回调：未配置 secret 时可正常发卡（向后兼容）', async () => {
@@ -538,7 +499,7 @@ test('PREDEFINED 商品售罄时下单被拒绝（409）', async () => {
   )
 })
 
-test('超时未支付订单会被清理为 cancelled，新订单不受影响', async () => {
+test('超时未支付订单会被清理为 cancelled，新订单与人工收款订单不受影响', async () => {
   await prisma.shopPaymentConfig.upsert({
     where: { provider: 'manual' },
     update: {},
@@ -558,13 +519,26 @@ test('超时未支付订单会被清理为 cancelled，新订单不受影响', a
     },
   })
 
-  // 超时订单（40 分钟前）
+  // 超时订单（40 分钟前，在线渠道 yipay → 会被超时取消）
   await prisma.shopOrder.create({
     data: {
       orderNo: generateShopOrderNo(),
       productId: product.id,
       amountInCents: 300,
       contactEmail: 'expired@test.com',
+      status: 'pending',
+      provider: 'yipay',
+      createdAt: new Date(Date.now() - 40 * 60 * 1000),
+    },
+  })
+
+  // 超时的人工收款订单：管理员可能随后台收款确认，不参与超时自动取消
+  await prisma.shopOrder.create({
+    data: {
+      orderNo: generateShopOrderNo(),
+      productId: product.id,
+      amountInCents: 300,
+      contactEmail: 'manual-kept@test.com',
       status: 'pending',
       provider: 'manual',
       createdAt: new Date(Date.now() - 40 * 60 * 1000),
@@ -579,7 +553,7 @@ test('超时未支付订单会被清理为 cancelled，新订单不受影响', a
       amountInCents: 300,
       contactEmail: 'fresh@test.com',
       status: 'pending',
-      provider: 'manual',
+      provider: 'yipay',
       createdAt: new Date(Date.now() - 1 * 60 * 1000),
     },
   })
@@ -592,8 +566,12 @@ test('超时未支付订单会被清理为 cancelled，新订单不受影响', a
   const expiredCount = await prisma.shopOrder.count({
     where: { status: 'cancelled', contactEmail: 'expired@test.com' },
   })
+  const manualKept = await prisma.shopOrder.findFirstOrThrow({
+    where: { contactEmail: 'manual-kept@test.com' },
+  })
   const freshStatus = await prisma.shopOrder.findUniqueOrThrow({ where: { id: fresh.id } })
   assert.equal(expiredCount, 1)
+  assert.equal(manualKept.status, 'pending')
   assert.equal(freshStatus.status, 'pending')
 })
 

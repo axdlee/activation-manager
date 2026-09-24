@@ -108,7 +108,7 @@ test('清理过期绑定：只清设备绑定字段，绝不重置 isUsed/expire
     assert.equal(data.lastBoundAt, null)
     // 查询范围必须限定已使用的码
     const where = calls.findMany[0].where as Record<string, unknown>
-    assert.deepEqual(where, { isUsed: true })
+    assert.deepEqual(where, { isUsed: true, deletedAt: null })
   })
 })
 

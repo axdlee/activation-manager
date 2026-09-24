@@ -41,9 +41,11 @@ export async function findProjectActivationCode(
   projectId: number,
   code: string,
 ) {
-  const activationCode = await client.activationCode.findUnique({
+  // 软删除的码视同不存在（deletedAt 非空不可激活/查询）
+  const activationCode = await client.activationCode.findFirst({
     where: {
       code,
+      deletedAt: null,
     },
     include: {
       project: {
@@ -76,6 +78,7 @@ export async function findMachineBinding(
       projectId,
       usedBy: machineId,
       isUsed: true,
+      deletedAt: null,
     },
     orderBy: {
       usedAt: 'desc',
@@ -98,6 +101,7 @@ export async function releaseReusableMachineBindings(
       projectId,
       usedBy: machineId,
       isUsed: true,
+      deletedAt: null,
     },
   })
 

@@ -126,6 +126,8 @@ export async function listActivationCodes(
     }
   }
 
+  // 软删除的码不在管理列表出现
+  baseConditions.push({ deletedAt: null })
   const baseWhere = baseConditions.length > 0 ? { AND: baseConditions } : {}
 
   // ===== 2. Fetch all matching codes (lightweight columns) for summary + status filter =====
@@ -201,7 +203,7 @@ export async function listActivationCodes(
   // ===== 6. availableCardTypes：基于全量码（不受当前筛选影响），保证筛选项稳定 =====
   const allCardTypeRows = await client.activationCode.findMany({
     select: { cardType: true },
-    where: { cardType: { not: null } },
+    where: { cardType: { not: null }, deletedAt: null },
     distinct: ['cardType'],
   })
   const availableCardTypes = allCardTypeRows

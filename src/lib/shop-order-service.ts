@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto'
 
 import { prisma } from './db'
-import { recordAdminOperationAuditLog } from './admin-operation-audit-service'
 import { getEnabledPaymentConfig } from './shop-payment-registry'
 import { type ShopOrderInfo } from './shop-payment-types'
 import { type ServerT } from './i18n/server'
@@ -91,19 +90,90 @@ export async function createShopOrder(input: CreateShopOrderInput, t?: ServerT) 
     throw new ShopOrderError(t?.(SHOP_ORDER_MESSAGE_KEYS.paymentProviderDisabled) ?? '支付渠道未启用', 400)
   }
 
-  // 预定义码商品：下单时校验码池库存充足（数量 × 单价，售罄/库存不足直接拒绝，避免买家付款后才发现无货）
+  // 预定义码商品：事务内「校验库存 + 创建订单 + 预占码池库存」。
+  // 预占（AVAILABLE → RESERVED）保证超卖防线名副其实：只剩 1 张码时
+  // 第二笔订单会因抢不到预占而失败，而不是两单都成功、付款后才撞售罄。
   if (product.stockMode === 'PREDEFINED') {
-    const availableStock = await prisma.shopProductCodeStock.count({
-      where: { productId: product.id, status: 'AVAILABLE' },
+    const orderNo = generateShopOrderNo()
+    const order = await prisma.$transaction(async (tx) => {
+      const availableStock = await tx.shopProductCodeStock.findMany({
+        where: { productId: product.id, status: 'AVAILABLE' },
+        orderBy: { id: 'asc' },
+      })
+
+      // 跳过悬空库存（激活码已被删除的行），凑满 quantity 张可预占库存
+      let usableCount = 0
+      for (const stock of availableStock) {
+        if (usableCount >= quantity) {
+          break
+        }
+        const activationCode = await tx.activationCode.findFirst({
+          where: { id: stock.activationCodeId, deletedAt: null },
+          select: { id: true },
+        })
+        if (activationCode) {
+          usableCount += 1
+        }
+      }
+
+      if (usableCount < quantity) {
+        throw new ShopOrderError(
+          usableCount <= 0
+            ? t?.(SHOP_ORDER_MESSAGE_KEYS.productSoldOut) ?? '该商品已售罄，请等待补货'
+            : t?.(SHOP_ORDER_MESSAGE_KEYS.productInsufficientStock, { stock: usableCount }) ??
+              `该商品库存不足，剩余 ${usableCount} 张`,
+          409,
+        )
+      }
+
+      const created = await tx.shopOrder.create({
+        data: {
+          orderNo,
+          productId: product.id,
+          quantity,
+          amountInCents: product.priceInCents * quantity,
+          contactEmail: input.contactEmail?.trim() || null,
+          contactPhone: input.contactPhone?.trim() || null,
+          contactWechat: input.contactWechat?.trim() || null,
+          status: SHOP_ORDER_STATUS.PENDING,
+          provider: input.providerId,
+          paymentNote: input.paymentNote?.trim() || null,
+          remark: input.remark?.trim() || null,
+        },
+      })
+
+      // 逐行原子预占（条件更新防并发抢占同一行）；失败抛错整体回滚
+      let reserved = 0
+      for (const stock of availableStock) {
+        if (reserved >= quantity) {
+          break
+        }
+        const claimed = await tx.shopProductCodeStock.updateMany({
+          where: { id: stock.id, status: 'AVAILABLE' },
+          data: {
+            status: 'RESERVED',
+            soldOrderId: created.id,
+          },
+        })
+        if (claimed.count === 1) {
+          reserved += 1
+        }
+      }
+
+      if (reserved < quantity) {
+        throw new ShopOrderError(
+          t?.(SHOP_ORDER_MESSAGE_KEYS.productInsufficientStock, { stock: reserved }) ??
+            `该商品库存不足，剩余 ${reserved} 张`,
+          409,
+        )
+      }
+
+      return created
     })
-    if (availableStock < quantity) {
-      throw new ShopOrderError(
-        availableStock <= 0
-          ? t?.(SHOP_ORDER_MESSAGE_KEYS.productSoldOut) ?? '该商品已售罄，请等待补货'
-          : t?.(SHOP_ORDER_MESSAGE_KEYS.productInsufficientStock, { stock: availableStock }) ??
-            `该商品库存不足，剩余 ${availableStock} 张`,
-        409,
-      )
+
+    return {
+      order,
+      product,
     }
   }
 
@@ -128,64 +198,6 @@ export async function createShopOrder(input: CreateShopOrderInput, t?: ServerT) 
     order,
     product,
   }
-}
-
-/**
- * 标记订单已支付（幂等：已支付/已发卡返回 alreadyProcessed）。
- * 供支付回调 / 后台确认调用。
- */
-export async function markShopOrderPaid(params: {
-  orderNo: string
-  transactionId?: string
-  adminUsername?: string
-}, t?: ServerT) {
-  const { orderNo, transactionId, adminUsername } = params
-
-  const order = await prisma.shopOrder.findUnique({ where: { orderNo } })
-  if (!order) {
-    return { success: false as const, message: t?.(SHOP_ORDER_MESSAGE_KEYS.orderNotFound) ?? '订单不存在' }
-  }
-
-  if (order.status === SHOP_ORDER_STATUS.FULFILLED || order.status === SHOP_ORDER_STATUS.PAID) {
-    return { success: true as const, alreadyProcessed: true as const }
-  }
-
-  if (order.status === SHOP_ORDER_STATUS.CANCELLED) {
-    return { success: false as const, message: t?.(SHOP_ORDER_MESSAGE_KEYS.orderCancelled) ?? '订单已取消' }
-  }
-
-  // 原子条件更新：仅当仍为 pending 时才标记已支付，避免并发重复处理
-  const updateResult = await prisma.shopOrder.updateMany({
-    where: {
-      id: order.id,
-      status: SHOP_ORDER_STATUS.PENDING,
-    },
-    data: {
-      status: SHOP_ORDER_STATUS.PAID,
-      paidAt: new Date(),
-      paymentNote: transactionId ?? order.paymentNote,
-    },
-  })
-
-  if (updateResult.count === 0) {
-    // 并发下状态已被其他请求改变
-    const latest = await prisma.shopOrder.findUnique({ where: { id: order.id } })
-    if (latest?.status === SHOP_ORDER_STATUS.FULFILLED || latest?.status === SHOP_ORDER_STATUS.PAID) {
-      return { success: true as const, alreadyProcessed: true as const }
-    }
-    return { success: false as const, message: t?.(SHOP_ORDER_MESSAGE_KEYS.orderStateConflict) ?? '订单状态已变化' }
-  }
-
-  if (adminUsername) {
-    await recordAdminOperationAuditLog(prisma, {
-      adminUsername,
-      operationType: 'SHOP_ORDER_MARKED_PAID',
-      targetLabel: orderNo,
-      detail: { amountInCents: order.amountInCents },
-    })
-  }
-
-  return { success: true as const }
 }
 
 export function buildShopOrderInfo(order: {

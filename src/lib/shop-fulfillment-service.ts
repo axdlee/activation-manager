@@ -121,46 +121,82 @@ export async function fulfillShopOrder(
     let codeRecords: Array<{ id: number; code: string }>
 
     if (product.stockMode === 'PREDEFINED') {
-      // 预定义码池：原子取 quantity 张 AVAILABLE 码（条件更新防并发超卖）
-      const availableStocks = await tx.shopProductCodeStock.findMany({
-        where: { productId: product.id, status: 'AVAILABLE' },
-        orderBy: { id: 'asc' },
-      })
-
-      // 过滤悬空库存：库存表对激活码没有外键，管理员删除激活码后会留下
-      // 悬空行；按 id 顺序取码会永远先撞上它们，让之后的每一单都发卡
-      // 失败（支付回调场景即「已付款但接口 500」）。这里跳过悬空行并
-      // 顺带清理，直到凑满 quantity 或码池见底。
-      const candidates: Array<{
+      // 预定义码池发卡。下单时库存已预占（RESERVED + soldOrderId）：
+      // 优先取本单预占的行；存量订单（预占机制上线前创建）没有预占行，
+      // 回退到按 AVAILABLE 抢占。
+      const claimedStocks: Array<{
         stockId: number
         activationCode: { id: number; code: string }
+        fromReserved: boolean
       }> = []
-      for (const stock of availableStocks) {
-        if (candidates.length >= quantity) {
+
+      const reservedStocks = await tx.shopProductCodeStock.findMany({
+        where: { productId: product.id, soldOrderId: order.id, status: 'RESERVED' },
+        orderBy: { id: 'asc' },
+      })
+      for (const stock of reservedStocks) {
+        if (claimedStocks.length >= quantity) {
           break
         }
-        const activationCode = await tx.activationCode.findUnique({
-          where: { id: stock.activationCodeId },
+        // 软删除（deletedAt 非空）视同悬空：不可发卡
+        const activationCode = await tx.activationCode.findFirst({
+          where: { id: stock.activationCodeId, deletedAt: null },
           select: { id: true, code: true },
         })
         if (!activationCode) {
+          // 预占行悬空（激活码被删）：释放预占并跳过
           await tx.shopProductCodeStock
-            .delete({ where: { id: stock.id } })
+            .updateMany({
+              where: { id: stock.id, status: 'RESERVED' },
+              data: { status: 'AVAILABLE', soldOrderId: null },
+            })
             .catch(() => undefined)
           continue
         }
-        candidates.push({ stockId: stock.id, activationCode })
+        claimedStocks.push({ stockId: stock.id, activationCode, fromReserved: true })
       }
 
-      if (candidates.length < quantity) {
+      if (claimedStocks.length < quantity) {
+        // 预占不足（旧订单或悬空释放）：从 AVAILABLE 补足，跳过悬空行
+        const availableStocks = await tx.shopProductCodeStock.findMany({
+          where: { productId: product.id, status: 'AVAILABLE' },
+          orderBy: { id: 'asc' },
+        })
+        for (const stock of availableStocks) {
+          if (claimedStocks.length >= quantity) {
+            break
+          }
+          if (claimedStocks.some((claimed) => claimed.stockId === stock.id)) {
+            continue
+          }
+          // 软删除（deletedAt 非空）视同悬空：不可发卡
+          const activationCode = await tx.activationCode.findFirst({
+            where: { id: stock.activationCodeId, deletedAt: null },
+            select: { id: true, code: true },
+          })
+          if (!activationCode) {
+            // 库存表对激活码没有外键：悬空行顺带清理，避免之后每单都撞上
+            await tx.shopProductCodeStock
+              .delete({ where: { id: stock.id } })
+              .catch(() => undefined)
+            continue
+          }
+          claimedStocks.push({ stockId: stock.id, activationCode, fromReserved: false })
+        }
+      }
+
+      if (claimedStocks.length < quantity) {
         // 码池库存不足：抛错回滚订单
         throw new Error('SHOP_OUT_OF_STOCK')
       }
 
       codeRecords = []
-      for (const candidate of candidates) {
+      for (const candidate of claimedStocks) {
         const stockClaimed = await tx.shopProductCodeStock.updateMany({
-          where: { id: candidate.stockId, status: 'AVAILABLE' },
+          where: {
+            id: candidate.stockId,
+            status: candidate.fromReserved ? 'RESERVED' : 'AVAILABLE',
+          },
           data: {
             status: 'SOLD',
             soldOrderId: order.id,

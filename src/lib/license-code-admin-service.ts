@@ -64,8 +64,9 @@ function includeProjectRebindSettings() {
 }
 
 async function getActivationCodeById(client: DbClient, id: number, t?: CodeAdminServiceTranslate) {
-  const activationCode = await client.activationCode.findUnique({
-    where: { id },
+  // 软删除的码视同不存在，管理端不再提供解绑/改绑等操作
+  const activationCode = await client.activationCode.findFirst({
+    where: { id, deletedAt: null },
     include: includeProjectRebindSettings(),
   })
 

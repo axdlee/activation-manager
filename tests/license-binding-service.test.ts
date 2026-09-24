@@ -117,7 +117,8 @@ test('findProjectActivationCode 仅返回属于当前项目的激活码', async 
 
   const client = {
     activationCode: {
-      findUnique: async ({ where }: { where: { code: string } }) => {
+      // 服务层按 code 查码已改 findFirst（排除软删除行）
+      findFirst: async ({ where }: { where: { code?: string; deletedAt?: unknown } }) => {
         if (where.code === 'MATCH-CODE') {
           return clone(targetCode)
         }

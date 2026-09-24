@@ -379,6 +379,7 @@ export async function deleteProject(
   const codeCount = await client.activationCode.count({
     where: {
       projectId: project.id,
+      deletedAt: null,
     },
   })
 

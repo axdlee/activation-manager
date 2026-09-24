@@ -7,7 +7,7 @@ test('resolveLicenseStatusForMachine 在激活码不存在时返回统一 not fo
   const result = await resolveLicenseStatusForMachine(
     {
       activationCode: {
-        findUnique: async () => null,
+        findFirst: async () => null,
       },
     } as never,
     {
@@ -28,7 +28,7 @@ test('resolveLicenseStatusForMachine 在激活码被其他设备占用时返回�
   const result = await resolveLicenseStatusForMachine(
     {
       activationCode: {
-        findUnique: async () => ({
+        findFirst: async () => ({
           id: 1,
           projectId: 1,
           code: 'CODE-001',
@@ -67,7 +67,7 @@ test('resolveLicenseStatusForMachine 在当前设备可用时返回统一状态�
   const result = await resolveLicenseStatusForMachine(
     {
       activationCode: {
-        findUnique: async () => ({
+        findFirst: async () => ({
           id: 1,
           projectId: 1,
           code: 'CODE-001',

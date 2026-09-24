@@ -34,11 +34,12 @@ function makePrisma(overrides: Record<string, unknown> = {}) {
       findMany: async () => [codeRow, { ...codeRow, id: 2, code: 'CODE-002', isUsed: true, remainingCount: null }],
       update: async (args: { data: Record<string, unknown> }) => ({ ...codeRow, ...args.data }),
       findUnique: async () => codeRow,
-      findFirst: async () => null,
+      // 服务层按 code/id 查码已改 findFirst（排除软删除行）
+      findFirst: async () => codeRow,
       ...(overrides.activationCode ?? {}),
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
-      fn(overrides.tx ?? { activationCode: { update: async (args: { data: Record<string, unknown> }) => ({ ...codeRow, ...args.data }), findUnique: async () => codeRow } }),
+      fn(overrides.tx ?? { activationCode: { update: async (args: { data: Record<string, unknown> }) => ({ ...codeRow, ...args.data }), findUnique: async () => codeRow, findFirst: async () => codeRow } }),
     licenseConsumption: {
       findMany: async () => [
         {
@@ -115,7 +116,7 @@ test('forceRebindActivationCode：已绑定码执行成功', async () => {
         if (prop === 'activationCode') {
           return {
             findUnique: async () => boundRow,
-            findFirst: async () => null,
+            findFirst: async () => boundRow,
             count: async () => 0,
             findMany: async () => [],
             update: async (args: { data: Record<string, unknown> }) => ({ ...boundRow, ...args.data }),

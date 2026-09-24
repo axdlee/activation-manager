@@ -40,8 +40,9 @@ test('prepareLicenseTransactionAction 在目标激活码被其他设备占用时
   const result = await prepareLicenseTransactionAction(
     {
       activationCode: {
-        findFirst: async () => null,
-        findUnique: async () => ({
+        findUnique: async () => null,
+        // 服务层按 code 查码已改 findFirst（排除软删除行）
+        findFirst: async () => ({
           id: 20,
           projectId: 1,
           code: 'TARGET-CODE-001',
@@ -106,8 +107,15 @@ test('prepareLicenseTransactionAction 在前置通过时返回 activationCode �
   let findUniqueCallCount = 0
   const client = {
     activationCode: {
-      findFirst: async () => null,
-      findUnique: async ({ where }: { where: { code: string } }) => {
+      findUnique: async () => null,
+      // 服务层按 code 查码已改 findFirst（排除软删除行）；
+      // 按项目+设备查已用码也是 findFirst，按 where 形状分流
+      findFirst: async ({ where }: { where: { code?: string; usedBy?: string } }) => {
+        if (where.code === undefined) {
+          // 项目+设备绑定查询：machine-001 尚无绑定，返回 null
+          return null
+        }
+
         findUniqueCallCount += 1
         assert.equal(where.code, 'TARGET-CODE-001')
         return activationCode

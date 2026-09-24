@@ -69,7 +69,8 @@ test('createLicenseTransactionHelpers.reloadActivationCode 会按 projectId 和 
   const helpers = createLicenseTransactionHelpers(
     {
       activationCode: {
-        findUnique: async () => ({
+        // 服务层按 code 查码已改 findFirst（排除软删除行）
+        findFirst: async () => ({
           id: 11,
           code: 'TARGET-CODE-001',
           projectId: 1,

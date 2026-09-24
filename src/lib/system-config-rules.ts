@@ -1,4 +1,9 @@
-const sensitiveSystemConfigKeys = new Set(['jwtSecret', 'notifyEmailSmtpPass'])
+const sensitiveSystemConfigKeys = new Set([
+  'jwtSecret',
+  'notifyEmailSmtpPass',
+  // License API 响应签名密钥（HMAC-SHA256）：泄漏可伪造签名响应
+  'licenseResponseSecret',
+])
 
 export function isSensitiveSystemConfigKey(key: string) {
   return sensitiveSystemConfigKeys.has(key)

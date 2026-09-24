@@ -176,42 +176,47 @@ function createRaceTestClient({
       },
     },
     activationCode: {
-      findUnique: async ({
+      // 服务层按 code 查码已改 findFirst（排除软删除行）；按项目+设备查已用码也是
+      // findFirst，这里按 where 形状分流（带 code/id 走查码 + 并发 barrier）
+      findFirst: async ({
         where,
         include,
       }: {
-        where: { id?: number; code?: string }
+        where: {
+          id?: number
+          code?: string
+          projectId?: number
+          usedBy?: string
+          isUsed?: boolean
+        }
         include?: { project?: { select: Record<string, boolean> } }
       }) => {
-        const foundCode = getActivationCodeByWhere(where)
-        if (!foundCode) {
-          return null
-        }
-
-        activationLookupCount += 1
-        if (waitForActivationLookup && activationLookupCount <= 2) {
-          await waitForActivationLookup()
-        }
-
-        const result = clone(foundCode) as FakeActivationCode & {
-          project?: Pick<FakeProject, 'id' | 'name' | 'projectKey'>
-        }
-
-        if (include?.project) {
-          result.project = {
-            id: project.id,
-            name: project.name,
-            projectKey: project.projectKey,
+        if (typeof where.code === 'string' || typeof where.id === 'number') {
+          const foundCode = getActivationCodeByWhere(where)
+          if (!foundCode) {
+            return null
           }
+
+          activationLookupCount += 1
+          if (waitForActivationLookup && activationLookupCount <= 2) {
+            await waitForActivationLookup()
+          }
+
+          const result = clone(foundCode) as FakeActivationCode & {
+            project?: Pick<FakeProject, 'id' | 'name' | 'projectKey'>
+          }
+
+          if (include?.project) {
+            result.project = {
+              id: project.id,
+              name: project.name,
+              projectKey: project.projectKey,
+            }
+          }
+
+          return result
         }
 
-        return result
-      },
-      findFirst: async ({
-        where,
-      }: {
-        where: { projectId: number; usedBy: string; isUsed: boolean }
-      }) => {
         if (
           activationCode.projectId === where.projectId &&
           activationCode.usedBy === where.usedBy &&

@@ -186,50 +186,55 @@ function createProjectMachineConstraintRaceClient() {
       },
     },
     activationCode: {
-      findUnique: async ({
+      // 服务层按 code 查码已改 findFirst（排除软删除行）；
+      // 按项目+设备查已用码也是 findFirst，按 where 形状分流
+      findFirst: async ({
         where,
         include,
       }: {
-        where: { id?: number; code?: string }
+        where: {
+          id?: number
+          code?: string
+          projectId?: number
+          usedBy?: string
+          isUsed?: boolean
+        }
         include?: { project?: { select: Record<string, boolean> } }
       }) => {
-        const foundCode = findCode(where)
-        if (!foundCode) {
-          return null
-        }
-
-        activationLookupCount += 1
-        if (activationLookupCount <= 2) {
-          await waitForActivationLookup()
-        }
-
-        const result = clone(foundCode) as FakeActivationCode & {
-          project?: Pick<FakeProject, 'id' | 'name' | 'projectKey'>
-        }
-
-        if (include?.project) {
-          result.project = {
-            id: project.id,
-            name: project.name,
-            projectKey: project.projectKey,
+        if (typeof where.code === 'string' || typeof where.id === 'number') {
+          const foundCode = findCode(where)
+          if (!foundCode) {
+            return null
           }
+
+          activationLookupCount += 1
+          if (activationLookupCount <= 2) {
+            await waitForActivationLookup()
+          }
+
+          const result = clone(foundCode) as FakeActivationCode & {
+            project?: Pick<FakeProject, 'id' | 'name' | 'projectKey'>
+          }
+
+          if (include?.project) {
+            result.project = {
+              id: project.id,
+              name: project.name,
+              projectKey: project.projectKey,
+            }
+          }
+
+          return result
         }
 
-        return result
-      },
-      findFirst: async ({
-        where,
-      }: {
-        where: { projectId: number; usedBy: string; isUsed: boolean }
-      }) => {
-        const foundCode = codes.find(
+        const foundBinding = codes.find(
           (code) =>
             code.projectId === where.projectId &&
             code.usedBy === where.usedBy &&
             code.isUsed === where.isUsed,
         )
 
-        return foundCode ? clone(foundCode) : null
+        return foundBinding ? clone(foundBinding) : null
       },
       findMany: async ({
         where,

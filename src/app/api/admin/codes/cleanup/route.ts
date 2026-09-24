@@ -42,9 +42,11 @@ export const POST = createProtectedAdminRouteHandler(
     const t = serverT(resolveServerLocale(request))
     const now = new Date()
 
+    // 软删除的码不参与过期绑定清理
     const usedCodes = await prisma.activationCode.findMany({
       where: {
         isUsed: true,
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -118,9 +120,11 @@ export const GET = createProtectedAdminRouteHandler(
   async (_request: NextRequest) => {
     const now = new Date()
 
+    // 软删除的码不参与过期绑定清理
     const usedCodes = await prisma.activationCode.findMany({
       where: {
         isUsed: true,
+        deletedAt: null,
       },
       select: {
         id: true,

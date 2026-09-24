@@ -51,6 +51,7 @@ model ActivationCode {
   totalCount     Int?        // 次数型激活码总次数
   remainingCount Int?        // 次数型激活码剩余次数
   consumedCount  Int         @default(0)
+  deletedAt      DateTime?   // 软删除：有绑定历史/消费记录的码物理删除受外键限制，改为打标隐藏
   allowAutoRebind Boolean?
   autoRebindCooldownMinutes Int?
   autoRebindMaxCount Int?
@@ -182,7 +183,7 @@ model ShopProductCodeStock {
   productId        Int
   product          ShopProduct   @relation(fields: [productId], references: [id])
   activationCodeId Int           @unique
-  status           String        @default("AVAILABLE") // AVAILABLE | SOLD
+  status           String        @default("AVAILABLE") // AVAILABLE | RESERVED（下单预占） | SOLD
   soldOrderId      Int?
   soldAt           DateTime?
   createdAt        DateTime      @default(now())

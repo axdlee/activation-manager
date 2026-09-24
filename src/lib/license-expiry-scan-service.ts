@@ -20,6 +20,7 @@ export async function scanExpiredActivationCodes(): Promise<{
   const codes = await prisma.activationCode.findMany({
     where: {
       isUsed: true,
+      deletedAt: null,
     },
     include: { project: true },
   })

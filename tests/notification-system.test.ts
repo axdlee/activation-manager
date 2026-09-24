@@ -145,7 +145,7 @@ async function createPendingOrder(
       amountInCents: 500,
       contactEmail,
       status: 'pending',
-      provider: 'manual',
+      provider: 'webhook', // 自动渠道：pending 订单参与超时清理（manual 人工收款不清理）
       ...overrides,
     },
   })
@@ -565,6 +565,8 @@ test('notifyShopOrderFulfilledEvent 通过 webhook 分发发卡事件', async ()
     assert.equal(requests[0].body.event, 'SHOP_ORDER_PAID_FULFILLED')
     assert.equal(requests[0].body.data.orderNo, 'SO-EVT-001')
     assert.match(String(requests[0].body.body), /￥9\.90/)
+    // 通知渠道（webhook/邮件/日志）只见脱敏后的卡密，明文只进买家发货邮件
+    assert.deepEqual(requests[0].body.data.codes, ['****']) // 'CODE-1' 长度 ≤6 → 全遮
   } finally {
     restoreFetch()
   }

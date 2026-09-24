@@ -4,6 +4,11 @@ import { createProtectedAdminRouteHandler } from '@/lib/admin-route-handler'
 import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { getPaymentProvider } from '@/lib/shop-payment-registry'
+import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
+import {
+  maskPaymentConfigJson,
+  mergeMaskedPaymentConfig,
+} from '@/lib/payment-config-mask'
 
 /**
  * 支付渠道配置（后台）：启用/停用渠道，设置渠道参数。
@@ -30,9 +35,10 @@ export const GET = createProtectedAdminRouteHandler(async () => {
       const requiredConfigKeys = provider?.requiredConfigKeys ?? []
       const missingKeys = requiredConfigKeys.filter((key) => !parsedConfig[key]?.trim())
 
+      // 敏感字段（secret/key 等）掩码回显，不返回明文
       return {
         provider: config.provider,
-        configJson: config.configJson,
+        configJson: maskPaymentConfigJson(config.configJson),
         isEnabled: config.isEnabled,
         requiredConfigKeys,
         missingKeys,
@@ -48,7 +54,7 @@ type UpsertConfigBody = {
   isEnabled?: boolean
 }
 
-export const POST = createProtectedAdminRouteHandler(async (request: NextRequest) => {
+export const POST = createProtectedAdminRouteHandler(async (request: NextRequest, authResult) => {
   const t = serverT(resolveServerLocale(request))
   const body = (await request.json()) as UpsertConfigBody
 
@@ -64,6 +70,13 @@ export const POST = createProtectedAdminRouteHandler(async (request: NextRequest
   const existingConfig = await prisma.shopPaymentConfig.findUnique({
     where: { provider: body.provider },
   })
+
+  // 掩码合并：GET 回显的敏感字段是掩码占位（******），若前端原样带回，
+  // 还原为存量真实值，避免「查看后保存」把密钥冲掉
+  const submittedConfigJson =
+    body.configJson !== undefined && existingConfig
+      ? mergeMaskedPaymentConfig(body.configJson, existingConfig.configJson)
+      : body.configJson
 
   // 生效启用状态：显式传 isEnabled 以传值为准；只提交 configJson 时
   // 沿用存量行的启用状态。否则攻击面：渠道保持启用的同时只改配置把
@@ -87,7 +100,7 @@ export const POST = createProtectedAdminRouteHandler(async (request: NextRequest
     }
 
     let candidateConfig: Record<string, unknown> = {}
-    const rawConfig = body.configJson ?? existingConfig?.configJson ?? '{}'
+    const rawConfig = submittedConfigJson ?? existingConfig?.configJson ?? '{}'
     try {
       candidateConfig = JSON.parse(rawConfig) as Record<string, unknown>
     } catch {
@@ -112,13 +125,25 @@ export const POST = createProtectedAdminRouteHandler(async (request: NextRequest
   const config = await prisma.shopPaymentConfig.upsert({
     where: { provider: body.provider },
     update: {
-      ...(body.configJson !== undefined ? { configJson: body.configJson } : {}),
+      ...(submittedConfigJson !== undefined ? { configJson: submittedConfigJson } : {}),
       ...(body.isEnabled !== undefined ? { isEnabled: body.isEnabled } : {}),
     },
     create: {
       provider: body.provider,
-      configJson: body.configJson ?? '{}',
+      configJson: submittedConfigJson ?? '{}',
       isEnabled: body.isEnabled ?? false,
+    },
+  })
+
+  // 审计：记录渠道与启用状态变化（绝不含配置内容，配置里是密钥）
+  await recordAdminOperationAuditLog(prisma, {
+    adminUsername: authResult.payload?.username ?? 'unknown',
+    operationType: 'PAYMENT_CONFIG_UPDATED',
+    targetLabel: body.provider,
+    detail: {
+      provider: body.provider,
+      isEnabled: config.isEnabled,
+      configChanged: submittedConfigJson !== undefined,
     },
   })
 
