@@ -120,6 +120,9 @@ jobs:
       - name: Switch provider to PostgreSQL
         run: npm run db:provider -- postgresql
 
+      - name: Regenerate Prisma client for PostgreSQL
+        run: npx prisma generate
+
       - name: Bootstrap PostgreSQL database
         env:
           DATABASE_URL: postgresql://activation:activation-ci@127.0.0.1:5432/activation_ci

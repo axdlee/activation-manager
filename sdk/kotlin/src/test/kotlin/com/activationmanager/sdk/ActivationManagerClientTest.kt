@@ -25,8 +25,8 @@ class ActivationManagerClientTest {
             // 版本协商：按请求声明的版本签名（SDK 声明 3 → 绑定 code|machineId）
             val version = exchange.requestHeaders.getFirst("x-license-signature-version") ?: ""
             val reqBody = exchange.requestBody.readBytes().toString(StandardCharsets.UTF_8)
-            val code = Regex("\"code\"\s*:\s*\"([^\"]*)\"").find(reqBody)?.groupValues?.get(1)?.trim() ?: ""
-            val mid = Regex("\"machineId\"\s*:\s*\"([^\"]*)\"").find(reqBody)?.groupValues?.get(1)?.trim() ?: ""
+            val code = Regex("\"code\"\\s*:\\s*\"([^\"]*)\"").find(reqBody)?.groupValues?.get(1)?.trim() ?: ""
+            val mid = Regex("\"machineId\"\\s*:\\s*\"([^\"]*)\"").find(reqBody)?.groupValues?.get(1)?.trim() ?: ""
             val message = when (version) {
                 "3" -> "$ts.$code|$mid.$body"
                 "1" -> body

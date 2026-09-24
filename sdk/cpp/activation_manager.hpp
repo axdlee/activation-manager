@@ -396,14 +396,14 @@ private:
         }
         curl_easy_setopt(curl_.get(), CURLOPT_HTTPHEADER, hdrs);
 
-        CURLcode code = curl_easy_perform(curl_.get());
+        CURLcode curl_res = curl_easy_perform(curl_.get());
         curl_slist_free_all(hdrs);
 
-        if (code == CURLE_OPERATION_TIMEDOUT) {
+        if (curl_res == CURLE_OPERATION_TIMEDOUT) {
             throw client_exception(error_kind::timeout, "request timed out", path, attempt);
         }
-        if (code != CURLE_OK) {
-            throw client_exception(error_kind::network_error, "curl error " + std::to_string(static_cast<int>(code)), path, attempt);
+        if (curl_res != CURLE_OK) {
+            throw client_exception(error_kind::network_error, "curl error " + std::to_string(static_cast<int>(curl_res)), path, attempt);
         }
 
         std::string body = body_buf.str();
