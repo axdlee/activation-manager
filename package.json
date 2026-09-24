@@ -19,6 +19,7 @@
     "quality:gate": "npm run lint && npm run typecheck && npm run test:coverage && npm run build",
     "db:generate": "prisma generate",
     "db:push": "DATABASE_URL=\"${DATABASE_URL:-file:./dev.db}\" prisma db push",
+    "db:provider": "node scripts/db-provider.mjs",
     "db:backup": "./scripts/backup-db.sh",
     "db:backup-simple": "./scripts/backup-db.sh prisma/dev.db prisma/backups",
     "db:backup-sql": "sqlite3 prisma/dev.db .dump > backup_$(date +%Y%m%d_%H%M%S).sql",

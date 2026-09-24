@@ -81,7 +81,7 @@ model ActivationCodeBindingHistory {
   reason         String?
   createdAt      DateTime       @default(now())
 
-  @@index([activationCodeId, createdAt], map: "activation_code_binding_histories_activationCodeId_createdAt_idx")
+  @@index([activationCodeId, createdAt], map: "activation_code_binding_histories_codeId_createdAt_idx")
   @@index([projectId, createdAt], map: "activation_code_binding_histories_projectId_createdAt_idx")
   @@map("activation_code_binding_histories")
 }

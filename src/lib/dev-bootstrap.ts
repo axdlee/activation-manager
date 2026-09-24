@@ -10,11 +10,36 @@ import {
   stringifyConfigValue,
 } from './system-config-defaults'
 import { resolveDatabaseUrl } from './db'
+import {
+  DEFAULT_ADMIN_PASSWORD,
+  DEFAULT_ADMIN_USERNAME,
+  DEFAULT_PROJECT_KEY,
+  DEFAULT_PROJECT_NAME,
+} from './dev-bootstrap-shared'
+import {
+  bootstrapPostgresDatabase,
+  ensurePostgresAdmin,
+  ensurePostgresDefaultProjectRow,
+  ensurePostgresSchema,
+  ensurePostgresSystemConfigs,
+  isPostgresDatabaseUrl,
+} from './dev-bootstrap-postgres'
 
-export const DEFAULT_ADMIN_USERNAME = 'admin'
-export const DEFAULT_ADMIN_PASSWORD = '123456'
-export const DEFAULT_PROJECT_KEY = 'default'
-export const DEFAULT_PROJECT_NAME = '默认项目'
+export {
+  DEFAULT_ADMIN_USERNAME,
+  DEFAULT_ADMIN_PASSWORD,
+  DEFAULT_PROJECT_KEY,
+  DEFAULT_PROJECT_NAME,
+} from './dev-bootstrap-shared'
+
+/**
+ * 当前 DATABASE_URL 是否指向 PostgreSQL。
+ * bootstrap 流程据此分流：sqlite 走 migrate deploy + sqlite3 CLI 种子；
+ * PostgreSQL 走 db push + Prisma raw SQL 种子（见 dev-bootstrap-postgres.ts）。
+ */
+export function isPostgresTarget() {
+  return isPostgresDatabaseUrl(process.env.DATABASE_URL)
+}
 
 const REQUIRED_TABLES = [
   'activation_code_binding_histories',
@@ -328,6 +353,13 @@ function ensureActivationCodeCompatibility(dbPath: string) {
 }
 
 export function ensureSchema(dbPath: string = DEFAULT_DB_PATH) {
+  if (isPostgresTarget()) {
+    throw new Error(
+      'PostgreSQL 请使用异步初始化入口（bootstrapRuntimeDatabase / bootstrapDevelopmentDatabase），' +
+      'ensureSchema 仅支持 sqlite 文件库。',
+    )
+  }
+
   fs.mkdirSync(path.dirname(dbPath), { recursive: true })
 
   // 启用 WAL 日志模式：读不阻塞写、写不阻塞读，显著降低并发下的 database is locked。
@@ -398,6 +430,12 @@ export function ensureDefaultProject(
   dbPath: string = DEFAULT_DB_PATH,
   logger: BootstrapLogger = console,
 ) {
+  if (isPostgresTarget()) {
+    throw new Error(
+      'PostgreSQL 请使用 bootstrapDevelopmentDatabase / bootstrapRuntimeDatabase 完成初始化，' +
+      'ensureDefaultProject 仅支持 sqlite 文件库。',
+    )
+  }
   ensureSchema(dbPath)
   const existingProjectId = findDefaultProjectId(dbPath)
 
@@ -518,6 +556,11 @@ export async function ensureDefaultSystemConfigs(
   dbPath: string = DEFAULT_DB_PATH,
   logger: BootstrapLogger = console,
 ) {
+  if (isPostgresTarget()) {
+    await ensurePostgresSchema(logger)
+    await ensurePostgresSystemConfigs(logger)
+    return
+  }
   ensureSchema(dbPath)
   await ensureDefaultSystemConfigsInternal(dbPath, logger)
 }
@@ -576,6 +619,10 @@ async function bootstrapDatabase({
   logger: BootstrapLogger
   completionLabel: string
 }) {
+  if (isPostgresTarget()) {
+    await bootstrapPostgresDatabase({ logger, completionLabel })
+    return
+  }
   ensureSchema(dbPath)
   const defaultProjectId = ensureDefaultProjectRow(dbPath)
   backfillActivationCodesProject(dbPath, defaultProjectId)
@@ -589,6 +636,12 @@ export async function ensureDefaultAdmin(
   dbPath: string = DEFAULT_DB_PATH,
   logger: BootstrapLogger = console,
 ) {
+  if (isPostgresTarget()) {
+    await ensurePostgresSchema(logger)
+    await ensurePostgresDefaultProjectRow()
+    await ensurePostgresAdmin(logger)
+    return
+  }
   ensureSchema(dbPath)
   await ensureDefaultAdminInternal(dbPath, logger)
 }
