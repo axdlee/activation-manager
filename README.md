@@ -118,13 +118,19 @@ npm start
 
 ```bash
 # 已发布镜像（同时更新 :latest）
-docker pull xdlee/activation-manager:v2.9.0
+docker pull xdlee/activation-manager:v2.10.0
 
 # 或使用 compose 一键起服务
 docker compose up -d
 ```
 
 `docker-compose.yml` 内置 SQLite 持久化卷映射；PostgreSQL 迁移指引见 [`docs/postgres.md`](docs/postgres.md)。
+
+PostgreSQL 官方镜像变体（schema 以 postgresql provider 构建）：
+
+```bash
+docker pull xdlee/activation-manager:v2.10.0-postgres
+```
 
 ## GitHub 自动发布 DockerHub
 
