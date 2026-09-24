@@ -1,12 +1,11 @@
-import { type LicenseConsumptionRequestContext } from './license-action-context'
 import {
   createCountConsumeSuccessResult,
   createPendingConsumptionRequestResult,
   createRequestIdConflictResult,
   type LicenseResult,
 } from './license-result-service'
+import { type LicenseConsumptionRequestContext } from './license-action-context'
 import { type DbClient } from './license-project-service'
-import { isPrismaUniqueConstraintError } from './prisma-error-utils'
 
 const PENDING_CONSUMPTION_REMAINING = -1
 const REQUEST_ID_SETTLE_RETRY_LIMIT = 5
@@ -86,32 +85,21 @@ export async function claimConsumptionRequestId(
     activationCodeId: number
     machineId: string
   },
-  context: LicenseConsumptionRequestContext,
 ) {
-  try {
-    await client.licenseConsumption.create({
-      data: {
-        requestId: params.requestId,
-        activationCodeId: params.activationCodeId,
-        machineId: params.machineId,
-        remainingCountAfter: PENDING_CONSUMPTION_REMAINING,
-      },
-    })
+  // 唯一键冲突（requestId 已被占用）时直接向上抛出 P2002：调用方事务随即
+  // 回滚，由 license-service 的事务边界在事务外解析既有结果。
+  // PostgreSQL 事务一旦出错即中止（25P02），事务内继续查询会失败。
+  await client.licenseConsumption.create({
+    data: {
+      requestId: params.requestId,
+      activationCodeId: params.activationCodeId,
+      machineId: params.machineId,
+      remainingCountAfter: PENDING_CONSUMPTION_REMAINING,
+    },
+  })
 
-    return {
-      claimed: true,
-      existingResult: null,
-    } as const
-  } catch (error) {
-    if (!isPrismaUniqueConstraintError(error, 'requestId')) {
-      throw error
-    }
-
-    return {
-      claimed: false,
-      existingResult:
-        (await resolveExistingConsumptionResult(client, params.requestId, context)) ??
-        createPendingConsumptionRequestResult(),
-    } as const
-  }
+  return {
+    claimed: true,
+    existingResult: null,
+  } as const
 }

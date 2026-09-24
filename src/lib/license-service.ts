@@ -34,6 +34,9 @@ import {
 } from './license-consumption-idempotency-service'
 import { resolveLicenseStatusForMachine } from './license-status-query-service'
 import { prepareLicenseTransactionAction } from './license-transaction-preparation-service'
+import { createLicenseTransactionHelpers } from './license-transaction-helpers'
+import { isProjectMachineUniqueConstraintError } from './license-binding-service'
+import { isPrismaUniqueConstraintError } from './prisma-error-utils'
 import {
   activateCountLicense,
   activateTimeLicense,
@@ -44,8 +47,22 @@ import {
   consumeTimeLicense,
 } from './license-consume-flow-service'
 import {
+  createPendingConsumptionRequestResult,
   type LicenseResult,
 } from './license-result-service'
+
+/**
+ * 设备唯一键冲突的事务外解析：交互式事务因 P2002 失败后已被回滚
+ * （PostgreSQL 事务一旦出错即中止，事务内不可继续查询），改用根连接
+ * 读取已提交状态解析冲突，SQLite / PostgreSQL 行为一致。
+ */
+async function resolveMachineConflictOutsideTransaction(
+  client: PrismaClient,
+  context: { projectId: number; code: string; machineId: string },
+): Promise<LicenseResult> {
+  const helpers = createLicenseTransactionHelpers(client, context)
+  return helpers.resolveProjectMachineConflict()
+}
 
 export async function getLicenseStatus(client: PrismaClient, input: LicenseStatusInput): Promise<LicenseResult> {
   const resolution = await resolveLicenseActionCommandContext(client, input)
@@ -70,37 +87,43 @@ export async function activateLicense(client: PrismaClient, input: LicenseAction
   const { projectId, code, machineId } = resolution.context
   const bindDevice = await resolveDeviceBindingEnabled()
 
-  return client.$transaction(async (tx) => {
-    const preparationResult = await prepareLicenseTransactionAction(tx, {
-      projectId,
-      code,
-      machineId,
-    })
+  try {
+    return await client.$transaction(async (tx) => {
+      const preparationResult = await prepareLicenseTransactionAction(tx, {
+        projectId,
+        code,
+        machineId,
+      })
 
-    if (preparationResult.result) {
-      return preparationResult.result
-    }
+      if (preparationResult.result) {
+        return preparationResult.result
+      }
 
-    const { activationCode, txHelpers } = preparationResult
+      const { activationCode } = preparationResult
 
-    if (activationCode.licenseMode === 'COUNT') {
-      return activateCountLicense({
+      if (activationCode.licenseMode === 'COUNT') {
+        return activateCountLicense({
+          tx,
+          activationCode,
+          machineId,
+          bindDevice,
+        })
+      }
+
+      return activateTimeLicense({
         tx,
         activationCode,
         machineId,
-        resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
         bindDevice,
       })
+    })
+  } catch (error) {
+    if (isProjectMachineUniqueConstraintError(error)) {
+      return resolveMachineConflictOutsideTransaction(client, { projectId, code, machineId })
     }
 
-    return activateTimeLicense({
-      tx,
-      activationCode,
-      machineId,
-      resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
-      bindDevice,
-    })
-  })
+    throw error
+  }
 }
 
 export async function consumeLicense(client: PrismaClient, input: ConsumeLicenseInput): Promise<LicenseResult> {
@@ -112,64 +135,78 @@ export async function consumeLicense(client: PrismaClient, input: ConsumeLicense
   const { projectId, code, machineId, requestId, requestContext } = resolution.context
   const bindDevice = await resolveDeviceBindingEnabled()
 
-  return client.$transaction(async (tx) => {
-    if (requestId) {
-      const existingResult = await resolveExistingConsumptionResult(tx, requestId, requestContext)
-      if (existingResult) {
-        return existingResult
+  try {
+    return await client.$transaction(async (tx) => {
+      if (requestId) {
+        const existingResult = await resolveExistingConsumptionResult(tx, requestId, requestContext)
+        if (existingResult) {
+          return existingResult
+        }
       }
-    }
 
-    const preparationResult = await prepareLicenseTransactionAction(tx, {
-      projectId,
-      code,
-      machineId,
-    })
+      const preparationResult = await prepareLicenseTransactionAction(tx, {
+        projectId,
+        code,
+        machineId,
+      })
 
-    if (preparationResult.result) {
-      return preparationResult.result
-    }
+      if (preparationResult.result) {
+        return preparationResult.result
+      }
 
-    const { activationCode, txHelpers } = preparationResult
+      const { activationCode } = preparationResult
 
-    if (activationCode.licenseMode === 'TIME') {
-      return consumeTimeLicense({
+      if (activationCode.licenseMode === 'TIME') {
+        return consumeTimeLicense({
+          tx,
+          activationCode,
+          projectId,
+          code,
+          machineId,
+          reloadActivationCode: preparationResult.txHelpers.reloadActivationCode,
+          bindDevice,
+        })
+      }
+
+      return consumeCountLicense({
         tx,
         activationCode,
         projectId,
         code,
         machineId,
-        reloadActivationCode: txHelpers.reloadActivationCode,
-        resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
+        requestId,
+        claimRequestId: requestId
+          ? () => claimConsumptionRequestId(
+            tx,
+            {
+              requestId,
+              activationCodeId: activationCode.id,
+              machineId,
+            },
+          )
+          : undefined,
+        rollbackClaimedRequestId: preparationResult.txHelpers.rollbackClaimedRequestId,
+        reloadActivationCode: preparationResult.txHelpers.reloadActivationCode,
+        persistConsumptionRemainingCount: preparationResult.txHelpers.persistConsumptionRemainingCount,
         bindDevice,
       })
+    })
+  } catch (error) {
+    // 幂等键冲突：同 requestId 的消费已存在（并发重复提交）。事务已回滚，
+    // 在事务外读取已提交的既有结果返回。
+    if (requestId && isPrismaUniqueConstraintError(error, 'requestId')) {
+      return (
+        (await resolveExistingConsumptionResult(client, requestId, requestContext)) ??
+        createPendingConsumptionRequestResult()
+      )
     }
 
-    return consumeCountLicense({
-      tx,
-      activationCode,
-      projectId,
-      code,
-      machineId,
-      requestId,
-      claimRequestId: requestId
-        ? () => claimConsumptionRequestId(
-          tx,
-          {
-            requestId,
-            activationCodeId: activationCode.id,
-            machineId,
-          },
-          requestContext,
-        )
-        : undefined,
-      rollbackClaimedRequestId: txHelpers.rollbackClaimedRequestId,
-      reloadActivationCode: txHelpers.reloadActivationCode,
-      persistConsumptionRemainingCount: txHelpers.persistConsumptionRemainingCount,
-      resolveProjectMachineConflict: txHelpers.resolveProjectMachineConflict,
-      bindDevice,
-    })
-  })
+    if (isProjectMachineUniqueConstraintError(error)) {
+      return resolveMachineConflictOutsideTransaction(client, { projectId, code, machineId })
+    }
+
+    throw error
+  }
 }
 
 export async function verifyActivationCode(client: PrismaClient, input: LicenseActionInput): Promise<LicenseResult> {

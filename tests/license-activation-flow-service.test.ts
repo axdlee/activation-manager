@@ -37,11 +37,6 @@ test('activateCountLicense 会在次数已耗尽时直接返回失败且不写�
       validDays: null,
     },
     machineId: 'machine-001',
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
   })
 
   assert.equal(updateCalled, false)
@@ -80,11 +75,6 @@ test('activateCountLicense 在首次绑定成功时会写入设备并保留已�
       validDays: null,
     },
     machineId: 'machine-001',
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
   })
 
   assert.equal(updatePayloads.length, 1)
@@ -125,11 +115,6 @@ test('activateCountLicense 并发竞态下 count=0 时返回已被其他设备�
       validDays: null,
     },
     machineId: 'machine-001',
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
   })
 
   assert.deepEqual(result, {
@@ -139,10 +124,8 @@ test('activateCountLicense 并发竞态下 count=0 时返回已被其他设备�
   })
 })
 
-test('activateTimeLicense 在唯一约束冲突时会调用冲突收敛器', async () => {
-  let conflictResolved = false
-
-  const result = await activateTimeLicense({
+test('activateTimeLicense 唯一约束冲突时向上抛出，由事务边界在事务外解析', async () => {
+  const promise = activateTimeLicense({
     tx: {
       activationCode: {
         projectId: 1,
@@ -169,22 +152,9 @@ test('activateTimeLicense 在唯一约束冲突时会调用冲突收敛器', asy
       remainingCount: null,
     },
     machineId: 'machine-001',
-    resolveProjectMachineConflict: async () => {
-      conflictResolved = true
-      return {
-        success: false,
-        message: '同一项目下每台设备只能使用一个有效激活码',
-        status: 409,
-      }
-    },
   })
 
-  assert.equal(conflictResolved, true)
-  assert.deepEqual(result, {
-    success: false,
-    message: '同一项目下每台设备只能使用一个有效激活码',
-    status: 409,
-  })
+  await assert.rejects(promise, (error: { code?: string }) => error.code === 'P2002')
 })
 
 test('activateTimeLicense 首次激活会写入 expiresAt 并返回激活成功', async () => {
@@ -213,11 +183,6 @@ test('activateTimeLicense 首次激活会写入 expiresAt 并返回激活成功'
       remainingCount: null,
     },
     machineId: 'machine-002',
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
   })
 
   assert.equal(updatePayloads.length, 1)
@@ -249,11 +214,6 @@ test('activateTimeLicense 并发竞态下 count=0 时返回已被其他设备使
       remainingCount: null,
     },
     machineId: 'machine-002',
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
   })
 
   assert.deepEqual(result, {
@@ -290,11 +250,6 @@ test('activateCountLicense 在 bindDevice=false 时不写入 usedBy 但仍激活
       validDays: null,
     },
     machineId: 'machine-001',
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
     bindDevice: false,
   })
 
@@ -331,11 +286,6 @@ test('activateTimeLicense 在 bindDevice=false 时首次激活不写 usedBy', as
       remainingCount: null,
     },
     machineId: 'machine-002',
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
     bindDevice: false,
   })
 

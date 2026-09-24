@@ -1,8 +1,6 @@
 import { getRemainingCount, isCodeExpired } from './license-status'
-import { isProjectMachineUniqueConstraintError } from './license-binding-service'
 import {
   type LicenseActionCodeRecord,
-  type LicenseConflictResolver,
 } from './license-action-context'
 import {
   createActivationSuccessResult,
@@ -54,14 +52,12 @@ export async function activateCountLicense(params: {
   tx: ActivationMutationClient
   activationCode: LicenseActionCodeRecord
   machineId: string
-  resolveProjectMachineConflict: LicenseConflictResolver
   bindDevice?: boolean
 }): Promise<LicenseResult> {
   const {
     tx,
     activationCode,
     machineId,
-    resolveProjectMachineConflict,
     bindDevice = true,
   } = params
 
@@ -92,16 +88,7 @@ export async function activateCountLicense(params: {
       usedBy: null,
       usedAt: activationCode.usedAt,
       bindDevice,
-    }).catch((error) => {
-      if (isProjectMachineUniqueConstraintError(error)) {
-        return null
-      }
-      throw error
     })
-
-    if (claimed === null) {
-      return resolveProjectMachineConflict()
-    }
 
     if (!claimed) {
       return createUsedByOtherDeviceResult()
@@ -127,16 +114,7 @@ export async function activateCountLicense(params: {
     usedBy: null,
     usedAt: activationCode.usedAt,
     bindDevice,
-  }).catch((error) => {
-    if (isProjectMachineUniqueConstraintError(error)) {
-      return null
-    }
-    throw error
   })
-
-  if (claimed === null) {
-    return resolveProjectMachineConflict()
-  }
 
   if (!claimed) {
     return createUsedByOtherDeviceResult()
@@ -171,14 +149,12 @@ export async function activateTimeLicense(params: {
   tx: ActivationMutationClient
   activationCode: LicenseActionCodeRecord
   machineId: string
-  resolveProjectMachineConflict: LicenseConflictResolver
   bindDevice?: boolean
 }): Promise<LicenseResult> {
   const {
     tx,
     activationCode,
     machineId,
-    resolveProjectMachineConflict,
     bindDevice = true,
   } = params
 
@@ -220,16 +196,7 @@ export async function activateTimeLicense(params: {
       usedBy: null,
       usedAt: activationCode.usedAt,
       bindDevice,
-    }).catch((error) => {
-      if (isProjectMachineUniqueConstraintError(error)) {
-        return null
-      }
-      throw error
     })
-
-    if (claimed === null) {
-      return resolveProjectMachineConflict()
-    }
 
     if (!claimed) {
       return createUsedByOtherDeviceResult()
@@ -271,16 +238,7 @@ export async function activateTimeLicense(params: {
     usedAt: now,
     expiresAt,
     bindDevice,
-  }).catch((error) => {
-    if (isProjectMachineUniqueConstraintError(error)) {
-      return null
-    }
-    throw error
   })
-
-  if (claimed === null) {
-    return resolveProjectMachineConflict()
-  }
 
   if (!claimed) {
     return createUsedByOtherDeviceResult()

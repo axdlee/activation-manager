@@ -1,8 +1,6 @@
 import { getRemainingCount, isCodeExpired } from './license-status'
-import { isProjectMachineUniqueConstraintError } from './license-binding-service'
 import {
   type LicenseActionCodeRecord,
-  type LicenseConflictResolver,
   type LicenseIdempotencyClaimResult,
 } from './license-action-context'
 import {
@@ -27,7 +25,6 @@ export async function consumeTimeLicense(params: {
   code: string
   machineId: string
   reloadActivationCode: () => Promise<LicenseActionCodeRecord | null>
-  resolveProjectMachineConflict: LicenseConflictResolver
   bindDevice?: boolean
 }): Promise<LicenseResult> {
   const {
@@ -35,7 +32,6 @@ export async function consumeTimeLicense(params: {
     activationCode,
     machineId,
     reloadActivationCode,
-    resolveProjectMachineConflict,
     bindDevice = true,
   } = params
 
@@ -45,56 +41,48 @@ export async function consumeTimeLicense(params: {
       ? new Date(now.getTime() + activationCode.validDays * 24 * 60 * 60 * 1000)
       : null
 
-    try {
-      const updateResult = await tx.activationCode.updateMany({
-        where: {
-          id: activationCode.id,
-          projectId: params.projectId,
-          isUsed: false,
-          OR: [{ usedBy: null }, { usedBy: machineId }],
-        },
-        data: {
-          isUsed: true,
-          usedAt: now,
-          ...(bindDevice ? { usedBy: machineId, lastBoundAt: now } : {}),
-          expiresAt,
-        },
-      })
+    const updateResult = await tx.activationCode.updateMany({
+      where: {
+        id: activationCode.id,
+        projectId: params.projectId,
+        isUsed: false,
+        OR: [{ usedBy: null }, { usedBy: machineId }],
+      },
+      data: {
+        isUsed: true,
+        usedAt: now,
+        ...(bindDevice ? { usedBy: machineId, lastBoundAt: now } : {}),
+        expiresAt,
+      },
+    })
 
-      const updatedCode = await reloadActivationCode()
-      if (!updatedCode) {
-        return createLicenseNotFoundResult()
-      }
-
-      if (updateResult.count === 0) {
-        if (bindDevice && updatedCode.usedBy && updatedCode.usedBy !== machineId) {
-          return createUsedByOtherDeviceResult()
-        }
-
-        if (isCodeExpired(updatedCode)) {
-          return createExpiredResult()
-        }
-      }
-
-      if (updateResult.count > 0 && bindDevice) {
-        await recordActivationCodeBindingHistory(tx as DbClient, {
-          activationCodeId: activationCode.id,
-          projectId: params.projectId,
-          eventType: 'INITIAL_BIND',
-          operatorType: 'CLIENT',
-          fromMachineId: activationCode.usedBy ?? null,
-          toMachineId: machineId,
-        })
-      }
-
-      return createTimeConsumeSuccessResult(updatedCode)
-    } catch (error) {
-      if (isProjectMachineUniqueConstraintError(error)) {
-        return resolveProjectMachineConflict()
-      }
-
-      throw error
+    const updatedCode = await reloadActivationCode()
+    if (!updatedCode) {
+      return createLicenseNotFoundResult()
     }
+
+    if (updateResult.count === 0) {
+      if (bindDevice && updatedCode.usedBy && updatedCode.usedBy !== machineId) {
+        return createUsedByOtherDeviceResult()
+      }
+
+      if (isCodeExpired(updatedCode)) {
+        return createExpiredResult()
+      }
+    }
+
+    if (updateResult.count > 0 && bindDevice) {
+      await recordActivationCodeBindingHistory(tx as DbClient, {
+        activationCodeId: activationCode.id,
+        projectId: params.projectId,
+        eventType: 'INITIAL_BIND',
+        operatorType: 'CLIENT',
+        fromMachineId: activationCode.usedBy ?? null,
+        toMachineId: machineId,
+      })
+    }
+
+    return createTimeConsumeSuccessResult(updatedCode)
   }
 
   if (isCodeExpired(activationCode)) {
@@ -109,48 +97,40 @@ export async function consumeTimeLicense(params: {
 
     const now = new Date()
 
-    try {
-      const updateResult = await tx.activationCode.updateMany({
-        where: {
-          id: activationCode.id,
-          projectId: params.projectId,
-          isUsed: true,
-          usedBy: null,
-        },
-        data: {
-          usedBy: machineId,
-          lastBoundAt: now,
-        },
-      })
+    const updateResult = await tx.activationCode.updateMany({
+      where: {
+        id: activationCode.id,
+        projectId: params.projectId,
+        isUsed: true,
+        usedBy: null,
+      },
+      data: {
+        usedBy: machineId,
+        lastBoundAt: now,
+      },
+    })
 
-      const updatedCode = await reloadActivationCode()
-      if (!updatedCode) {
-        return createLicenseNotFoundResult()
-      }
-
-      if (updateResult.count === 0 && updatedCode.usedBy && updatedCode.usedBy !== machineId) {
-        return createUsedByOtherDeviceResult()
-      }
-
-      if (updateResult.count > 0) {
-        await recordActivationCodeBindingHistory(tx as DbClient, {
-          activationCodeId: activationCode.id,
-          projectId: params.projectId,
-          eventType: 'INITIAL_BIND',
-          operatorType: 'CLIENT',
-          fromMachineId: activationCode.usedBy ?? null,
-          toMachineId: machineId,
-        })
-      }
-
-      return createTimeConsumeSuccessResult(updatedCode)
-    } catch (error) {
-      if (isProjectMachineUniqueConstraintError(error)) {
-        return resolveProjectMachineConflict()
-      }
-
-      throw error
+    const updatedCode = await reloadActivationCode()
+    if (!updatedCode) {
+      return createLicenseNotFoundResult()
     }
+
+    if (updateResult.count === 0 && updatedCode.usedBy && updatedCode.usedBy !== machineId) {
+      return createUsedByOtherDeviceResult()
+    }
+
+    if (updateResult.count > 0) {
+      await recordActivationCodeBindingHistory(tx as DbClient, {
+        activationCodeId: activationCode.id,
+        projectId: params.projectId,
+        eventType: 'INITIAL_BIND',
+        operatorType: 'CLIENT',
+        fromMachineId: activationCode.usedBy ?? null,
+        toMachineId: machineId,
+      })
+    }
+
+    return createTimeConsumeSuccessResult(updatedCode)
   }
 
   return createTimeConsumeSuccessResult(activationCode)
@@ -167,7 +147,6 @@ export async function consumeCountLicense(params: {
   rollbackClaimedRequestId?: (requestId: string) => Promise<void>
   reloadActivationCode: () => Promise<LicenseActionCodeRecord | null>
   persistConsumptionRemainingCount?: (requestId: string, remainingCountAfter: number) => Promise<void>
-  resolveProjectMachineConflict: LicenseConflictResolver
   bindDevice?: boolean
 }): Promise<LicenseResult> {
   const {
@@ -179,7 +158,6 @@ export async function consumeCountLicense(params: {
     rollbackClaimedRequestId,
     reloadActivationCode,
     persistConsumptionRemainingCount,
-    resolveProjectMachineConflict,
     bindDevice = true,
   } = params
 
@@ -205,55 +183,46 @@ export async function consumeCountLicense(params: {
   }
 
   let updateResult: { count: number } | null = null
-  try {
-    updateResult = await tx.activationCode.updateMany({
-      where: {
-        id: activationCode.id,
-        projectId: params.projectId,
-        licenseMode: 'COUNT',
-        remainingCount: {
-          gt: 0,
-        },
-        OR: [{ usedBy: null }, { usedBy: machineId }],
+  updateResult = await tx.activationCode.updateMany({
+    where: {
+      id: activationCode.id,
+      projectId: params.projectId,
+      licenseMode: 'COUNT',
+      remainingCount: {
+        gt: 0,
       },
-      data: {
-        isUsed: true,
-        ...(bindDevice ? { usedBy: machineId } : {}),
-        ...(bindDevice && activationCode.usedBy ? {} : { lastBoundAt: new Date() }),
-        remainingCount: {
-          decrement: 1,
-        },
-        consumedCount: {
-          increment: 1,
-        },
+      OR: [{ usedBy: null }, { usedBy: machineId }],
+    },
+    data: {
+      isUsed: true,
+      ...(bindDevice ? { usedBy: machineId } : {}),
+      ...(bindDevice && activationCode.usedBy ? {} : { lastBoundAt: new Date() }),
+      remainingCount: {
+        decrement: 1,
       },
-    })
+      consumedCount: {
+        increment: 1,
+      },
+    },
+  })
 
-    if (updateResult.count === 0) {
-      await rollbackIfClaimed()
+  if (updateResult.count === 0) {
+    await rollbackIfClaimed()
 
-      const latestCode = await reloadActivationCode()
-      if (!latestCode) {
-        return createLicenseNotFoundResult()
-      }
-
-      if (bindDevice && latestCode.usedBy && latestCode.usedBy !== machineId) {
-        return createUsedByOtherDeviceResult()
-      }
-
-      if ((getRemainingCount(latestCode) ?? 0) <= 0) {
-        return createCountExhaustedResult()
-      }
-
-      return createStateChangedRetryResult()
-    }
-  } catch (error) {
-    if (isProjectMachineUniqueConstraintError(error)) {
-      await rollbackIfClaimed()
-      return resolveProjectMachineConflict()
+    const latestCode = await reloadActivationCode()
+    if (!latestCode) {
+      return createLicenseNotFoundResult()
     }
 
-    throw error
+    if (bindDevice && latestCode.usedBy && latestCode.usedBy !== machineId) {
+      return createUsedByOtherDeviceResult()
+    }
+
+    if ((getRemainingCount(latestCode) ?? 0) <= 0) {
+      return createCountExhaustedResult()
+    }
+
+    return createStateChangedRetryResult()
   }
 
   await tx.activationCode.updateMany({

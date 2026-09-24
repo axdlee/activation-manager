@@ -61,8 +61,6 @@ async function seedTimeCode(validDays: number | null) {
   })
 }
 
-const conflictResolver = () => Promise.resolve({ success: false, status: 409, message: 'project-machine-conflict' } as never)
-
 // 项目+设备 维度有唯一约束：每轮测试用独立机器号，避免历史绑定数据干扰
 const MACHINE_A = `intg-a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 const MACHINE_B = `intg-b-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -80,7 +78,6 @@ test('COUNT：首次激活真实抢占成功并落设备', async () => {
     tx: prisma,
     activationCode: record,
     machineId: MACHINE_A,
-    resolveProjectMachineConflict: conflictResolver,
   })
 
   assert.equal(result.success, true)
@@ -97,7 +94,6 @@ test('COUNT：异机激活已用码走真实 count=0 路径被拒', async () => 
     tx: prisma,
     activationCode: record,
     machineId: MACHINE_A,
-    resolveProjectMachineConflict: conflictResolver,
   })
 
   // machine-B 拿着旧快照（isUsed=false）来激活：updateMany 条件不匹配
@@ -109,7 +105,6 @@ test('COUNT：异机激活已用码走真实 count=0 路径被拒', async () => 
     tx: prisma,
     activationCode: staleRecord,
     machineId: MACHINE_B,
-    resolveProjectMachineConflict: conflictResolver,
   })
 
   assert.equal(result.success, false)
@@ -125,7 +120,6 @@ test('COUNT：同机重复激活幂等成功且不重复扣次数', async () => 
     tx: prisma,
     activationCode: record,
     machineId: MACHINE_A,
-    resolveProjectMachineConflict: conflictResolver,
   })
 
   const usedRecord = await reloadCode(code.id)
@@ -133,7 +127,6 @@ test('COUNT：同机重复激活幂等成功且不重复扣次数', async () => 
     tx: prisma,
     activationCode: usedRecord,
     machineId: MACHINE_A,
-    resolveProjectMachineConflict: conflictResolver,
   })
 
   assert.equal(result.success, true)
@@ -149,7 +142,6 @@ test('COUNT：次数耗尽后激活被拒', async () => {
     tx: prisma,
     activationCode: record,
     machineId: MACHINE_A,
-    resolveProjectMachineConflict: conflictResolver,
   })
 
   assert.equal(result.success, false)
@@ -163,7 +155,6 @@ test('COUNT：bindDevice=false 首次不落设备，异机二次激活成功', a
     tx: prisma,
     activationCode: record,
     machineId: MACHINE_A,
-    resolveProjectMachineConflict: conflictResolver,
     bindDevice: false,
   })
   assert.equal(first.success, true)
@@ -177,7 +168,6 @@ test('COUNT：bindDevice=false 首次不落设备，异机二次激活成功', a
     tx: prisma,
     activationCode: afterFirst,
     machineId: MACHINE_B,
-    resolveProjectMachineConflict: conflictResolver,
     bindDevice: false,
   })
   assert.equal(second.success, true)
@@ -187,7 +177,6 @@ test('COUNT：bindDevice=false 首次不落设备，异机二次激活成功', a
     tx: prisma,
     activationCode: await reloadCode(code.id),
     machineId: MACHINE_C,
-    resolveProjectMachineConflict: conflictResolver,
   })
   assert.equal(third.success, true)
   const afterThird = await reloadCode(code.id)
@@ -202,7 +191,6 @@ test('TIME：有效期内异机激活被拒', async () => {
     tx: prisma,
     activationCode: record,
     machineId: MACHINE_A,
-    resolveProjectMachineConflict: conflictResolver,
   })
 
   const staleRecord = await reloadCode(code.id)
@@ -213,7 +201,6 @@ test('TIME：有效期内异机激活被拒', async () => {
     tx: prisma,
     activationCode: staleRecord,
     machineId: MACHINE_B,
-    resolveProjectMachineConflict: conflictResolver,
   })
 
   assert.equal(result.success, false)
@@ -227,7 +214,6 @@ test('TIME：首次激活真实写入 expiresAt', async () => {
     tx: prisma,
     activationCode: record,
     machineId: MACHINE_A,
-    resolveProjectMachineConflict: conflictResolver,
   })
 
   assert.equal(result.success, true)

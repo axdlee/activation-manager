@@ -76,6 +76,20 @@ export async function fulfillShopOrder(
     }
   }
 
+  // 动态生成模式：事务外预生成激活码。码唯一键冲突的重试依赖自动提交
+  // （PostgreSQL 事务出错即中止，事务内重试会失败）；生成失败时订单
+  // 状态未被改动，可安全重试。
+  const dynamicGenerated = order.product?.stockMode === 'DYNAMIC'
+    ? await generateActivationCodes(prismaClient, {
+      projectKey: order.product.project.projectKey,
+      amount: Math.max(1, order.quantity ?? 1),
+      licenseMode: order.product.licenseMode as 'TIME' | 'COUNT',
+      validDays: order.product.validDays ?? null,
+      totalCount: order.product.totalCount ?? null,
+      cardType: order.product.cardType ?? null,
+    })
+    : null
+
   // 事务内原子抢占：只有 pending/paid → fulfilled 转换成功的请求才发卡
   // 码池售罄/并发抢码冲突时返回业务失败（事务回滚，订单回到原状态）
   try {
@@ -212,16 +226,8 @@ export async function fulfillShopOrder(
         codeRecords.push(candidate.activationCode)
       }
     } else {
-      // 动态生成：按商品规格 × 数量生成新码
-      const generated = await generateActivationCodes(tx as typeof prisma, {
-        projectKey: product.project.projectKey,
-        amount: quantity,
-        licenseMode: product.licenseMode as 'TIME' | 'COUNT',
-        validDays: product.validDays ?? null,
-        totalCount: product.totalCount ?? null,
-        cardType: product.cardType ?? null,
-      })
-      codeRecords = generated
+      // 动态生成：使用事务外预生成的激活码（见事务前的 dynamicGenerated）
+      codeRecords = dynamicGenerated ?? []
     }
 
     const codes = codeRecords.map((code) => code.code)

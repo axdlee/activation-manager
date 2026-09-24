@@ -47,11 +47,6 @@ test('consumeTimeLicense 在首次验证成功时会写入激活信息并返回�
     code: 'TIME-CODE-001',
     machineId: 'machine-001',
     reloadActivationCode: async () => updatedCode,
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
   })
 
   assert.equal(updatePayloads.length, 1)
@@ -123,11 +118,6 @@ test('consumeCountLicense 在成功扣次后会结算 requestId 并返回次数�
     persistConsumptionRemainingCount: async (requestId, remainingCountAfter) => {
       persistedSettlements.push({ requestId, remainingCountAfter })
     },
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
   })
 
   assert.equal(usedAtUpdates.length, 1)
@@ -147,10 +137,10 @@ test('consumeCountLicense 在成功扣次后会结算 requestId 并返回次数�
   })
 })
 
-test('consumeCountLicense 在唯一约束冲突时会回滚已占位 requestId 并返回冲突结果', async () => {
+test('consumeCountLicense 唯一约束冲突时向上抛出，占位由事务回滚撤销', async () => {
   const rolledBackRequestIds: string[] = []
 
-  const result = await consumeCountLicense({
+  const promise = consumeCountLicense({
     tx: {
       activationCode: {
         projectId: 1,
@@ -189,19 +179,10 @@ test('consumeCountLicense 在唯一约束冲突时会回滚已占位 requestId �
     },
     reloadActivationCode: async () => null,
     persistConsumptionRemainingCount: async () => undefined,
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: '同一项目下每台设备只能使用一个有效激活码',
-      status: 409,
-    }),
   })
 
-  assert.deepEqual(rolledBackRequestIds, ['req-001'])
-  assert.deepEqual(result, {
-    success: false,
-    message: '同一项目下每台设备只能使用一个有效激活码',
-    status: 409,
-  })
+  await assert.rejects(promise, (error: { code?: string }) => error.code === 'P2002')
+  assert.deepEqual(rolledBackRequestIds, [])
 })
 
 test('consumeTimeLicense 在并发绑定冲突（count=0 且已被其他设备）时返回占用结果', async () => {
@@ -240,11 +221,6 @@ test('consumeTimeLicense 在并发绑定冲突（count=0 且已被其他设备�
       validDays: 30,
       remainingCount: null,
     }),
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
   })
 
   assert.equal(result.success, false)
@@ -277,11 +253,6 @@ test('consumeTimeLicense 在 reload 返回 null 时返回激活码不存在', as
     code: 'TIME-CODE-001',
     machineId: 'machine-001',
     reloadActivationCode: async () => null,
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
   })
 
   assert.equal(result.success, false)
@@ -289,10 +260,8 @@ test('consumeTimeLicense 在 reload 返回 null 时返回激活码不存在', as
   assert.match(result.message, /不存在/)
 })
 
-test('consumeTimeLicense 在唯一约束冲突时调用冲突收敛器', async () => {
-  let conflictResolved = false
-
-  const result = await consumeTimeLicense({
+test('consumeTimeLicense 唯一约束冲突时向上抛出，由事务边界在事务外解析', async () => {
+  const promise = consumeTimeLicense({
     tx: {
       activationCode: {
         code: 'TEST-CODE',
@@ -323,19 +292,9 @@ test('consumeTimeLicense 在唯一约束冲突时调用冲突收敛器', async (
     code: 'TIME-CODE-001',
     machineId: 'machine-001',
     reloadActivationCode: async () => null,
-    resolveProjectMachineConflict: async () => {
-      conflictResolved = true
-      return {
-        success: false,
-        message: '同一项目下每台设备只能使用一个有效激活码',
-        status: 409,
-      }
-    },
   })
 
-  assert.equal(conflictResolved, true)
-  assert.equal(result.success, false)
-  assert.equal(result.status, 409)
+  await assert.rejects(promise, (error: { code?: string }) => error.code === 'P2002')
 })
 
 test('consumeTimeLicense 在 bindDevice=false 时不写 usedBy（补绑分支跳过）', async () => {
@@ -368,11 +327,6 @@ test('consumeTimeLicense 在 bindDevice=false 时不写 usedBy（补绑分支跳
     code: 'TEST-CODE',
     machineId: 'machine-004',
     reloadActivationCode: async () => null,
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
-    }),
     bindDevice: false,
   })
 
@@ -421,11 +375,6 @@ test('consumeTimeLicense 在 bindDevice=false 时首次激活不写 usedBy', asy
       expiresAt: new Date('2026-04-24T00:00:00.000Z'),
       validDays: 30,
       remainingCount: null,
-    }),
-    resolveProjectMachineConflict: async () => ({
-      success: false,
-      message: 'unexpected',
-      status: 409,
     }),
     bindDevice: false,
   })

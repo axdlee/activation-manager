@@ -183,7 +183,6 @@ test('关闭设备绑定时 COUNT 码可二次激活（同机）', async () => {
       tx: prisma,
       activationCode: persisted,
       machineId: 'machine-A',
-      resolveProjectMachineConflict: async () => ({ success: false, status: 409, message: 'conflict' }),
       bindDevice: false,
     })
     assert.equal(noBindResult.success, true)
@@ -194,7 +193,6 @@ test('关闭设备绑定时 COUNT 码可二次激活（同机）', async () => {
       tx: prisma,
       activationCode: persisted2,
       machineId: 'machine-B',
-      resolveProjectMachineConflict: async () => ({ success: false, status: 409, message: 'conflict' }),
       bindDevice: false,
     })
     assert.equal(secondResult.success, true)
@@ -210,7 +208,6 @@ test('关闭设备绑定时 COUNT 码可二次激活（同机）', async () => {
       tx: prisma,
       activationCode: persisted4,
       machineId: 'machine-C',
-      resolveProjectMachineConflict: async () => ({ success: false, status: 409, message: 'conflict' }),
       bindDevice: true,
     })
     assert.equal(bindResult.success, true)

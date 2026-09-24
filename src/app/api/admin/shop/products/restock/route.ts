@@ -40,19 +40,21 @@ export const POST = createProtectedAdminRouteHandler(
       )
     }
 
-    // 生成码 + 入池（事务保证一致性）
+    // 激活码生成放在事务外：码唯一键冲突重试依赖自动提交（PostgreSQL
+    // 事务出错即中止，事务内重试会失败）。事务失败遗留的未入池码只是
+    // 多余的库存记录，无害。
+    const generated = await generateActivationCodes(prisma, {
+      projectKey: product.project.projectKey,
+      amount,
+      licenseMode: product.licenseMode as 'TIME' | 'COUNT',
+      validDays: product.validDays ?? null,
+      totalCount: product.totalCount ?? null,
+      cardType: product.cardType ?? null,
+    })
+    const codes = generated.map((code) => code.code)
+
+    // 入池（事务保证一致性）
     const stock = await prisma.$transaction(async (tx) => {
-      const generated = await generateActivationCodes(tx as typeof prisma, {
-        projectKey: product.project.projectKey,
-        amount,
-        licenseMode: product.licenseMode as 'TIME' | 'COUNT',
-        validDays: product.validDays ?? null,
-        totalCount: product.totalCount ?? null,
-        cardType: product.cardType ?? null,
-      })
-
-      const codes = generated.map((code) => code.code)
-
       await tx.shopProductCodeStock.createMany({
         data: generated.map((code) => ({
           productId: product.id,
