@@ -10,16 +10,13 @@
 
 ### 1. 切换 Prisma provider
 
-修改 `prisma/schema.prisma`（连接串已通过 `env("DATABASE_URL")` 注入，无需改动）：
-
-```prisma
-datasource db {
-  provider = "postgresql"   // 原 "sqlite"
-  url      = env("DATABASE_URL")
-}
+```bash
+npm run db:provider -- postgresql   # 改写 schema.prisma 并给出提示；切回用 -- sqlite
 ```
 
-然后将 `DATABASE_URL` 指向 Postgres 连接串，例如 `postgresql://user:pass@host:5432/db`。
+连接串已通过 `env("DATABASE_URL")` 注入，将 `DATABASE_URL` 指向 Postgres 即可，例如 `postgresql://user:pass@host:5432/db`。
+
+> `prisma/migrations/` 是 SQLite 方言的历史迁移，对 PostgreSQL 请勿执行 `prisma migrate deploy`；PostgreSQL 的 schema 同步由启动引导自动完成（见第 4 步）。
 
 ### 2. 调整 schema 中的 SQLite 特有写法
 
@@ -28,6 +25,7 @@ datasource db {
 - `String` 默认映射 `text`，无需修改
 - `DateTime` 默认映射 `timestamp(3)`，无需修改
 - `Json` 字段（如 `ShopOrder.fulfilledCodeIds` 当前为 `String` 存储）可顺势改为 `Json` 类型（可选优化，非必须）
+- 索引/约束名不得超过 PostgreSQL 63 字节标识符上限（现有 schema 已满足）
 
 ### 3. 环境变量
 
@@ -39,10 +37,11 @@ DATABASE_URL="postgresql://user:password@host:5432/activation_manager?schema=pub
 ### 4. 建库与初始化
 
 ```bash
-npx prisma migrate deploy          # 应用迁移
-npm run init-default-admin         # 初始化管理员
-npm run init-system-config         # 初始化系统配置种子
+npm run db:generate         # 重新生成 Prisma Client（PG 方言）
+npm run bootstrap:runtime   # 自动 db push + 重新 generate + 种子（系统配置/默认项目/支付渠道/管理员）
 ```
+
+启动引导会识别 `DATABASE_URL` 协议：`postgres(ql)://` 走 PostgreSQL 路径，其余走 SQLite 路径，Docker 镜像同理。
 
 > 历史数据迁移：SQLite → Postgres 可用 `pgloader`（自动类型映射），或按表导出 CSV 后 `\copy` 导入。迁移前务必停服并做 SQLite 备份（`npm run db:backup`）。
 
