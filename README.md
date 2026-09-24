@@ -118,7 +118,7 @@ npm start
 
 ```bash
 # 已发布镜像（同时更新 :latest）
-docker pull xdlee/activation-manager:v2.8.1
+docker pull xdlee/activation-manager:v2.8.2
 
 # 或使用 compose 一键起服务
 docker compose up -d

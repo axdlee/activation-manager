@@ -1,165 +1,58 @@
-# Release Notes — Activation Manager v2.8.1
+# Release Notes — Activation Manager v2.8.2
 
-> 支付回调链路安全加固：伪造回调无法借道发卡
-> 覆盖范围：`v2.8.0..v2.8.1`
-
----
-
-## 🔒 支付链路
-
-- **占位渠道双重禁用**：支付宝/微信回调验签未实现（callbackTrust=placeholder），
-  后台启用直接 400，回调路由一律 400——伪造回调无法借道发卡
-- **webhook 强制 secret**：启用前校验必填 secret（缺失 400 + 缺失项清单），
-  回调入口无 secret 直接 400
-- **发卡一致性校验**：回调渠道 ≠ 订单渠道、渠道实付金额 ≠ 订单金额 → 拒绝发卡
-  （易支付/webhook/支付宝回调均已透传实付金额）
-
-## 🔧 其他快速修复
-
-- **客户端 IP 提取统一**：新增 `src/lib/client-ip.ts`，收口鉴权/中间件/三个 API
-  限流器共 5 处实现，兜底值统一 `127.0.0.1`
-- **登录限流叠加用户名维度**：轮换 `X-Forwarded-For` 爆破同一账号也会被锁定
-- **登出 Cookie 修复**：secure 判定与登录一致（`resolveCookieSecure`），
-  明文 HTTP 部署下登出真正生效
-- `next.config.js` 开启 `images.unoptimized`（Next 14.2.35 图片优化 RCE 缓解）；
-  删除从未被加载的 `tailwind.config.ts`
-
-## 质量
-
-- 725 单测全绿（新增 11 例），覆盖率 lines 96.39 / branches 85.61 / functions 91.70
-- E2E 微信/支付宝用例改为「启用被拒 + 伪造回调被拒」断言
-- tsc / lint / build 全过
+> 安全评审批次 1–3 全量收口：4 高危 + 5 中危 + 10 遗留项
+> 覆盖范围：`v2.8.1..v2.8.2`
 
 ---
 
-# Release Notes — Activation Manager v2.8.0
+## 🚨 高危修复
 
-> 管理控制台体验升级：设置分区导航 · 渠道 Tab 化 · 概览驾驶舱 · 主题语义色根因修复
-> 覆盖范围：`v2.7.0..v2.8.0`
+- **过期授权复活**：「清理过期绑定」仅清设备绑定字段，不再重置
+  `isUsed/expiresAt`——过期码换设备无法再白嫖完整时长
+- **码池悬空库存**：删码联动清理码池行，发卡遇悬空行自动跳过清理，
+  已付款订单不再 500
+- **管理员远程锁死**：用户名锁定后密码正确仍放行（外部换 IP 无法封死真实管理员）
+- **易支付空 key 绕过**：按生效启用状态校验渠道配置，空 key 拒绝验签，
+  回调入口加配置完整性闸门
 
----
+## 🔒 中危修复
 
-- **系统设置重构**：左侧 sticky 分区导航（账户访问/绑定策略/账户安全/品牌外观/
-  通知渠道/高级），概览页统计卡与分区入口
-- **通知/支付渠道 Tab 化**：webhook/邮件/短信子 Tab；支付渠道改渠道 Tab 布局
-- **概览驾驶舱**：KPI、趋势面积图、授权占比环图、项目表与最近操作
-- **API 接入文档**：16 语言 SDK 接入示例
-- **弹出面板修复**：语言/主题切换器 fixed 视口定位，窄屏与 Radix 抽屉内不再被裁剪
-- **主题语义色根因修复**：Tailwind 语义色改 `rgb(var(--x)/<alpha>)`，
-  14 套主题补全语义 token，浅色主题不再白底白字
-- **README 重写**：中英双版 + 14 张最新截图，恢复 Linux.do 社区鸣谢
-- **工程质量**：Prisma datasource 改 `env("DATABASE_URL")`；714 单测、分支覆盖 85%
+- **删码软删除**：绑定历史受限的码软删除保留历史，审计后置，无假审计
+- **库存预占**：下单事务内 AVAILABLE→RESERVED 原子预占防超卖；manual 渠道
+  不再被超时清理误取消，取消订单释放预占
+- **COUNT 码关绑激活**：关闭设备绑定后同码异机二次激活与 TIME 码对齐
+- **审计补齐**：确认发卡 / 支付配置变更写审计（不含敏感明文）
+- **密钥/卡密脱敏**：`licenseResponseSecret` 入脱敏名单；支付配置掩码回显 +
+  提交还原；发卡通知卡密 `头4+****+尾2`
 
----
+## 🧰 遗留项
 
-# Release Notes — Activation Manager v2.7.0
-
-> 管理后台任务型全量重构：12 个可深链任务页，旧入口零失效
-> 覆盖范围：`v2.6.0..HEAD`
-
----
-
-## 🧭 管理后台任务型重构
-
-- **从「功能模块拼装」到「按任务工作」**：原来 10 个 tab 挤在一个单页里，
-  现在拆成 12 个独立路由任务页，浏览器前进/后退/刷新/分享全部可靠：
-
-  ```
-  /admin/overview        /admin/projects         /admin/licenses
-  /admin/licenses/generate                       /admin/consumptions
-  /admin/audit           /admin/integration      /admin/shop/products
-  /admin/shop/orders     /admin/shop/payment     /admin/settings
-  /admin/settings/security
-  ```
-
-- **旧链接兼容**：`/admin/dashboard?tab=xxx` 自动跳转到上表对应路由
-- **信息架构归位**：创建/编辑用 Dialog、详情用抽屉、危险操作二次确认、
-  列表筛选与分页写入 URL、空态/错误态/未保存状态均有明确反馈
-- **可访问性**：页面唯一 h1、icon 按钮 aria-label、弹框 labelledby、
-  触控目标 ≥40px、RTL 支持；桌面/平板/手机三档无横向溢出
-- **操作手册**：见 `docs/admin-console-operations.md`
-
-## 兼容性
-
-- API 契约、数据库模型、权限边界、通知/支付逻辑**完全不变**
-- 旧 dashboard 路由与 e2e 选择器已同步迁移；业务 hooks 复用，行为一致
+- **响应签名 v2**：HMAC 输入 `timestamp.body` 防重放，16 语言 SDK 全部同步
+- **订单卡密令牌**：订单详情需 32 位访问令牌（timingSafeEqual），防订单号枚举
+- **令牌版本**：改密后旧 JWT 立即失效
+- **密码最短 8 位**；下单联系方式格式校验
+- **通知去重落库**（7 天窗口）；**授权码列表分页下推 SQL**
+- **短信模板 JSON 转义**；**登录限流表按 24h 增量清理**
+- **Docker 镜像瘦身**（仅生产依赖 + 引导脚本预打包）
+- **备份/恢复脚本安全**（`sqlite3 .backup` WAL 一致性、恢复前快照）
+- **生产迁移补齐**：`20260924000000_batch3_security_schema` 修复 migrate deploy 缺列 500
 
 ---
 
-# Release Notes — Activation Manager v2.6.0
+## 升级说明
 
-> 全项目 i18n：后台组件 + 服务端消息 + 10 语言词典
-> 覆盖范围：`v2.5.0..HEAD`
+```bash
+docker pull xdlee/activation-manager:v2.8.2
+```
 
----
+- 存量 SQLite 数据卷直接兼容：首次启动 bootstrap 会自动补齐新列
+  （`deletedAt` / `expiryNotifiedAt` / `tokenVersion` / `accessToken`）
+- 所有管理员需重新登录（改密策略与令牌版本生效）
+- 对接方若校验响应签名，必须升级到 v2 签名（`timestamp.body`）并核对
+  `x-license-signature-version` 响应头；旧版 SDK 请同步更新
+- 前端商城订单详情链接已携带访问令牌；自行对接订单详情 API 的集成方
+  需在下单响应中保存 `accessToken` 并以 `?token=` 传递
 
-## 🌐 全项目 i18n（10 语言）
-
-- **语言**：中文（默认）· English · 日本語 · 한국어 · Español · Français · Deutsch · Português (BR) · Русский · العربية（RTL）
-- **默认按浏览器语言**自动选择（BCP-47 前缀匹配 + 回退），用户可随时通过切换器更改（后台侧边栏也有）
-- **切语言连报错都跟着切**：26 个 API route + handler 库的报错/提示按 `Accept-Language`/cookie 返回对应语言——
-
-  ```
-  登录失败（zh）  → 用户名或密码错误
-  登录失败（ja）  → ユーザー名またはパスワードが正しくありません
-  登录失败（de）  → Benutzername oder Passwort falsch
-  ```
-
-- **词典规模**：客户端 1310 键 × 10 + 服务端 176 键 × 10；8 种新语言逐键校验与中文键集一致，占位符字节级保留
-- **RTL**：العربية 自动 `dir="rtl"`；切换持久化（localStorage + cookie），刷新不丢
-
-## 兼容性
-
-- 纯 TS UI 模块与服务函数均为可选 `t` 注入，默认中文回退——既有调用方与测试零破坏
-- Playwright 钉住 `zh-CN`，e2e 中文断言不受影响
-
----
-
-# Release Notes — Activation Manager v2.5.0
-
-> 通用通知系统 · 订单数量（一单多码）· Admin API 限流 · 统一支付回调 · Python SDK · CI 加固
-> 覆盖范围：`v2.4.0..HEAD`
-
----
-
-## 📣 通用通知系统（管理员通知中心）
-
-- 三类事件统一分发：**激活码到期/耗尽**、**订单发卡**、**超时订单取消**
-- 三类渠道可叠加：**Webhook**（统一 envelope）/ **邮件**（SMTP，nodemailer）/ **短信**（通用 HTTP 网关 + 请求体模板）
-- 发卡成功自动把卡密邮件发给买家（留了邮箱即可）；管理员可后台一键**重发卡密邮件**
-- 向后兼容：未配置新 Webhook 时到期事件回落旧 `expiryWebhookUrl`，payload 结构不变
-- **通知投递日志**（notification_logs）：渠道/目标/状态/错误/payload 快照，管理 API 可筛选查询
-- 后台「系统配置 → 通知与告警」分组；SMTP 授权码敏感掩码、空值不覆盖
-
-## 🛒 订单数量（一单多码）
-
-- 下单 `quantity` 1-100：金额 = 单价 × 数量，支付后一次发 N 张卡密
-- 预定义码池事务内逐张原子抢占，库存不足整体回滚（不超卖）；动态商品批量生成
-- 购买页数量选择 + 合计金额；后台订单 ×N 徽标；SDK 同步支持
-- 库存不足 409：「该商品库存不足，剩余 N 张」
-
-## ⏱ 订单超时自动取消
-
-- pending 订单超 30 分钟未支付自动取消（后台按钮 / `POST /api/admin/shop/orders/cleanup` / 外部 cron）
-- 超时订单支付回调拒绝发卡；清理动作推送通知（含订单号列表）
-- 后台购买中心「清理超时订单」按钮
-
-## 🔒 安全与运维
-
-- **Admin API 统一限流**：IP + 路径维度，默认 300 次/分钟（`ADMIN_API_RATE_LIMIT_MAX` 可调），429 + Retry-After
-- **支付回调统一入口** `POST /api/shop/payment/notify/[provider]`，与独立路由并存
-- **CI 加固**：新增 Playwright e2e job（失败上传报告）+ Dependabot（npm/actions 每周）
-- 单测文件串行化，消除共享 SQLite 并行竞态
-- 限流器预留 `RateLimitStore` 存储接口缝（多实例 Redis 预留）
-- 新增运维/升级文档：`docs/operations.md`（crontab 示例、多实例注意）、`docs/postgres.md`、`docs/nextjs-upgrade-plan.md`；历史文档归档 `docs/archive/`
-
-## 📖 SDK 与文档
-
-- JS/TS SDK 新增 `createShopOrder` / `queryShopOrder`（含 quantity）
-- **新增 Python SDK**（`sdk/python/activation_manager.py`）：activate/status/consume + 响应验签 + 重试，单文件零依赖
-- API 文档重写 Shop 章节：统一回调入口、订单数量、超时取消、投递日志、双语言 SDK 用法
-
-## 🐛 修复
-
-- 支付回调路由限流 key 模板字符串字面量（yipay/alipay/wechat 共用同一计数桶）
-- License API 项目不存在/已停用时返回业务失败而非异常
+**验证**：768 单测全绿，覆盖率 lines 96.56 / branches 85.67 / functions 91.67；
+生产模式全量 smoke（登录→建项目→发码→激活→消费→统计→导出）11 步通过；
+16 语言 SDK 签名 v2 自测通过。
