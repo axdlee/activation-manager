@@ -35,7 +35,7 @@ export async function resolveLicenseStatusForMachine(
   const isDepleted =
     activationCode.licenseMode === 'COUNT' && (getRemainingCount(activationCode) ?? 0) <= 0
   if (isExpired || isDepleted) {
-    notifyLicenseExpiry(activationCode)
+    void notifyLicenseExpiry(activationCode)
   }
 
   return createLicenseStatusSuccessResult(activationCode)

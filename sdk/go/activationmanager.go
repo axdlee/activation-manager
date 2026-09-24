@@ -293,7 +293,7 @@ func verifySignature(headers http.Header, rawBody, secret string) *ClientError {
 		return &ClientError{Kind: ErrSignatureExpire, Message: "signature timestamp outside window"}
 	}
 	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write([]byte(rawBody))
+	mac.Write([]byte(timestamp + "." + rawBody))
 	expected := hex.EncodeToString(mac.Sum(nil))
 	if !hmac.Equal([]byte(expected), []byte(signature)) {
 		return &ClientError{Kind: ErrSignature, Message: "response signature mismatch"}

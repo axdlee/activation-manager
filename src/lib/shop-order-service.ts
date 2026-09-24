@@ -10,6 +10,9 @@ export const SHOP_ORDER_MESSAGE_KEYS = {
   quantityInvalid: 'shop.quantityInvalid',
   productDisabled: 'shop.productDisabled',
   contactRequired: 'shop.contactRequired',
+  invalidEmail: 'shop.invalidEmail',
+  invalidPhone: 'shop.invalidPhone',
+  invalidWechat: 'shop.invalidWechat',
   paymentProviderDisabled: 'shop.paymentProviderDisabled',
   productSoldOut: 'shop.productSoldOut',
   productInsufficientStock: 'shop.productInsufficientStock',
@@ -88,6 +91,21 @@ export async function createShopOrder(input: CreateShopOrderInput, t?: ServerT) 
 
   if (!input.contactEmail && !input.contactPhone && !input.contactWechat) {
     throw new ShopOrderError(t?.(SHOP_ORDER_MESSAGE_KEYS.contactRequired) ?? '请至少提供邮箱、手机号或微信号中的一种联系方式，用于找回卡密', 400)
+  }
+
+  // 联系方式规范化校验：格式错误的邮箱/超长字段会产生无法触达的订单
+  const email = input.contactEmail?.trim() ?? ''
+  if (email) {
+    const isWellFormedEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254
+    if (!isWellFormedEmail) {
+      throw new ShopOrderError(t?.(SHOP_ORDER_MESSAGE_KEYS.invalidEmail) ?? '联系邮箱格式不正确', 400)
+    }
+  }
+  if (input.contactPhone && input.contactPhone.trim().length > 32) {
+    throw new ShopOrderError(t?.(SHOP_ORDER_MESSAGE_KEYS.invalidPhone) ?? '手机号格式不正确', 400)
+  }
+  if (input.contactWechat && input.contactWechat.trim().length > 64) {
+    throw new ShopOrderError(t?.(SHOP_ORDER_MESSAGE_KEYS.invalidWechat) ?? '微信号格式不正确', 400)
   }
 
   const paymentConfig = await getEnabledPaymentConfig(input.providerId)

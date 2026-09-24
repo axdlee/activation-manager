@@ -213,7 +213,7 @@ public final class ActivationManagerClient {
         if (Math.abs(System.currentTimeMillis() - ts) > SIGNATURE_MAX_AGE_MS) {
             throw new ClientException(ErrorKind.SIGNATURE_EXPIRED, "signature timestamp outside window", "", 1);
         }
-        String expected = hmacSha256Hex(rawBody, secret);
+        String expected = hmacSha256Hex(timestamp + "." + rawBody, secret);
         if (!MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), signature.getBytes(StandardCharsets.UTF_8))) {
             throw new ClientException(ErrorKind.SIGNATURE_INVALID, "response signature mismatch", "", 1);
         }

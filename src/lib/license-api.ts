@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import {
   SIGNATURE_HEADER,
+  SIGNATURE_VERSION_HEADER,
   TIMESTAMP_HEADER,
   signLicenseResponseBody,
 } from './license-response-signature'
@@ -94,8 +95,9 @@ export function createLicenseJsonResponse(
 
   if (responseSecret) {
     const timestamp = String(Date.now())
-    headers[SIGNATURE_HEADER] = signLicenseResponseBody(body, responseSecret)
+    headers[SIGNATURE_HEADER] = signLicenseResponseBody(body, responseSecret, timestamp)
     headers[TIMESTAMP_HEADER] = timestamp
+    headers[SIGNATURE_VERSION_HEADER] = '2'
   }
 
   return new NextResponse(body, {

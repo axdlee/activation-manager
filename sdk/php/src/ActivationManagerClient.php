@@ -196,7 +196,7 @@ final class ActivationManagerClient
         if (abs($this->nowMs() - (int)$timestamp) > self::SIGNATURE_MAX_AGE_MS) {
             throw new ActivationManagerClientError('SIGNATURE_EXPIRED', 'signature timestamp outside window');
         }
-        $expected = hash_hmac('sha256', $body, $this->responseSecret);
+        $expected = hash_hmac('sha256', $timestamp . '.' . $body, $this->responseSecret);
         if (!hash_equals($expected, $signature)) {
             throw new ActivationManagerClientError('SIGNATURE_INVALID', 'response signature mismatch');
         }

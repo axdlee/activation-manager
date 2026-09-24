@@ -1,3 +1,4 @@
+import { prisma } from './db'
 import { getConfigWithDefault } from './config-service'
 import { notifyLicenseExpiryEvent } from './notification-events'
 import { type LicenseActionCodeRecord } from './license-action-context'
@@ -66,17 +67,64 @@ export function buildExpiryNotificationPayload(
   }
 }
 
+// 持久去重窗口：同一码在该窗口内只通知一次（跨进程重启生效）
+const EXPIRY_NOTIFICATION_DEDUP_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+
+/** 最小结构类型：生产传 PrismaClient，测试可传仅实现 updateMany 的 mock */
+type ExpiryNotificationClient = {
+  activationCode: {
+    updateMany: (args: {
+      where: { id: number; OR: Array<{ expiryNotifiedAt: null } | { expiryNotifiedAt: { lt: Date } }> }
+      data: { expiryNotifiedAt: Date }
+    }) => Promise<{ count: number }>
+  }
+}
+
+const prismaAsClient = prisma as unknown as ExpiryNotificationClient
+
+async function claimExpiryNotification(
+  activationCode: LicenseActionCodeRecord,
+  client: ExpiryNotificationClient = prismaAsClient,
+) {
+  const cutoff = new Date(Date.now() - EXPIRY_NOTIFICATION_DEDUP_WINDOW_MS)
+  const claimed = await client.activationCode.updateMany({
+    where: {
+      id: activationCode.id,
+      OR: [{ expiryNotifiedAt: null }, { expiryNotifiedAt: { lt: cutoff } }],
+    },
+    data: { expiryNotifiedAt: new Date() },
+  })
+  return claimed.count > 0
+}
+
 /**
  * 发送到期通知（幂等去重）。
- * 返回是否实际发送（false = 未配置 URL 或已通知过）。
- * 调用方无需 await（fire-and-forget）。
+ * 去重双层：进程内 Set（快速路径，key 含到期时间/剩余次数粒度）+
+ * expiryNotifiedAt 条件更新（跨重启持久，7 天窗口）。
+ * 返回是否实际发送（false = 已通知过）。
+ * 调用方可不 await（fire-and-forget）；扫描服务应 await 以统计发送数。
  */
-export function notifyLicenseExpiry(activationCode: LicenseActionCodeRecord): boolean {
+export async function notifyLicenseExpiry(
+  activationCode: LicenseActionCodeRecord,
+  client: ExpiryNotificationClient = prismaAsClient,
+): Promise<boolean> {
   const key = buildNotificationKey(activationCode)
   if (notifiedKeys.has(key)) {
     return false
   }
+
+  let shouldNotify: boolean
+  try {
+    shouldNotify = await claimExpiryNotification(activationCode, client)
+  } catch {
+    // 持久层不可用时退回进程内去重，不阻塞主业务
+    shouldNotify = true
+  }
   notifiedKeys.add(key)
+
+  if (!shouldNotify) {
+    return false
+  }
 
   notifyLicenseExpiryEvent(activationCode)
   return true

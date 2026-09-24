@@ -164,7 +164,7 @@ class ActivationManagerClient:
             raise LicenseClientError("SIGNATURE_EXPIRED", "签名时间窗过期", "")
         expected = hmac.new(
             self.response_secret.encode("utf-8"),
-            raw_body.encode("utf-8"),
+            f"{timestamp}.".encode("utf-8") + raw_body.encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
         if not hmac.compare_digest(expected, signature):

@@ -38,7 +38,7 @@ export async function scanExpiredActivationCodes(): Promise<{
     }
 
     scanned += 1
-    if (notifyLicenseExpiry(code)) {
+    if (await notifyLicenseExpiry(code)) {
       notified += 1
     }
   }

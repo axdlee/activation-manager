@@ -10,9 +10,9 @@ import {
 const SECRET = 'test-response-secret-123'
 const BODY = '{"success":true,"message":"激活码激活成功"}'
 
-test('signLicenseResponseBody 生成确定性的 HMAC-SHA256 十六进制签名', () => {
-  const sig1 = signLicenseResponseBody(BODY, SECRET)
-  const sig2 = signLicenseResponseBody(BODY, SECRET)
+test('signLicenseResponseBody 生成确定性的 HMAC-SHA256 十六进制签名（v2：时间戳参与签名）', () => {
+  const sig1 = signLicenseResponseBody(BODY, SECRET, '1700000000000')
+  const sig2 = signLicenseResponseBody(BODY, SECRET, '1700000000000')
 
   assert.match(sig1, /^[0-9a-f]{64}$/)
   assert.equal(sig1, sig2)

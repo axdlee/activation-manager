@@ -165,3 +165,4 @@ sdk/java/**/target/
 sdk/c/*.o
 sdk/c/test_client
 sdk/cpp/test_client
+.next-bootstrap/

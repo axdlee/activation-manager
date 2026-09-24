@@ -130,47 +130,24 @@ export async function listActivationCodes(
   baseConditions.push({ deletedAt: null })
   const baseWhere = baseConditions.length > 0 ? { AND: baseConditions } : {}
 
-  // ===== 2. Fetch all matching codes (lightweight columns) for summary + status filter =====
-  const allMatchingCodes = await client.activationCode.findMany({
+  // ===== 2. 轻量状态扫描：只取状态判定所需列，避免全字段+关联全量进内存 =====
+  const statusScanRows = await client.activationCode.findMany({
     where: baseWhere,
     select: {
       id: true,
-      code: true,
       projectId: true,
       licenseMode: true,
       isUsed: true,
       usedAt: true,
-      usedBy: true,
-      createdAt: true,
       expiresAt: true,
       validDays: true,
-      totalCount: true,
       remainingCount: true,
-      consumedCount: true,
-      cardType: true,
-      allowAutoRebind: true,
-      autoRebindCooldownMinutes: true,
-      autoRebindMaxCount: true,
-      rebindCount: true,
-      autoRebindCount: true,
-      lastBoundAt: true,
-      lastRebindAt: true,
-      project: {
-        select: {
-          id: true,
-          name: true,
-          projectKey: true,
-          allowAutoRebind: true,
-          autoRebindCooldownMinutes: true,
-          autoRebindMaxCount: true,
-        },
-      },
     },
     orderBy: { createdAt: 'desc' },
   })
 
   // ===== 3. Compute status label for each code =====
-  const codesWithStatus = allMatchingCodes.map((code) => ({
+  const codesWithStatus = statusScanRows.map((code) => ({
     ...code,
     _statusLabel: getCodeStatusLabelForList(code, now, t),
   }))
@@ -190,15 +167,20 @@ export async function listActivationCodes(
 
   // ===== 5. Compute summary from all matching codes (after status filter) =====
   const statusSummary = { unused: 0, inUse: 0, risk: 0 }
-  const projectKeys = new Set<string>()
 
   for (const code of statusFiltered) {
     if (code._statusLabel === '未激活') statusSummary.unused++
     else if (code._statusLabel === '已过期' || code._statusLabel === '已耗尽') statusSummary.risk++
     else statusSummary.inUse++
-
-    if (code.project) projectKeys.add(code.project.projectKey)
   }
+
+  // project 覆盖数基于全量匹配行的 projectId 聚合（distinct 下推数据库）
+  const distinctProjectRows = await client.activationCode.findMany({
+    where: baseWhere,
+    select: { projectId: true },
+    distinct: ['projectId'],
+  })
+  const projectCoverage = distinctProjectRows.length
 
   // ===== 6. availableCardTypes：基于全量码（不受当前筛选影响），保证筛选项稳定 =====
   const allCardTypeRows = await client.activationCode.findMany({
@@ -211,19 +193,61 @@ export async function listActivationCodes(
     .filter((value): value is string => Boolean(value))
     .sort()
 
-  // ===== 7. Paginate =====
+  // ===== 7. Paginate：先按轻量行确定当页 id，再只查当页完整数据 =====
   const total = statusFiltered.length
   const totalPages = hasPagination ? Math.max(1, Math.ceil(total / pageSize)) : 1
-  const paginatedCodes = statusFiltered.slice(skip, skip + pageSize)
+  const pageIds = statusFiltered.slice(skip, skip + pageSize).map((row) => row.id)
+  const pageRows = pageIds.length
+    ? await client.activationCode.findMany({
+        where: { id: { in: pageIds } },
+        select: {
+          id: true,
+          code: true,
+          projectId: true,
+          licenseMode: true,
+          isUsed: true,
+          usedAt: true,
+          usedBy: true,
+          createdAt: true,
+          expiresAt: true,
+          validDays: true,
+          totalCount: true,
+          remainingCount: true,
+          consumedCount: true,
+          cardType: true,
+          allowAutoRebind: true,
+          autoRebindCooldownMinutes: true,
+          autoRebindMaxCount: true,
+          rebindCount: true,
+          autoRebindCount: true,
+          lastBoundAt: true,
+          lastRebindAt: true,
+          project: {
+            select: {
+              id: true,
+              name: true,
+              projectKey: true,
+              allowAutoRebind: true,
+              autoRebindCooldownMinutes: true,
+              autoRebindMaxCount: true,
+            },
+          },
+        },
+      })
+    : []
+  const rowsById = new Map(pageRows.map((row) => [row.id, row]))
+  const paginatedCodes = pageIds
+    .map((id) => rowsById.get(id))
+    .filter((row): row is NonNullable<typeof row> => Boolean(row))
 
   return {
-    codes: paginatedCodes.map(({ _statusLabel, ...code }) => code),
+    codes: paginatedCodes,
     total,
     page,
     pageSize,
     totalPages,
     statusSummary,
-    projectCoverage: projectKeys.size,
+    projectCoverage,
     availableCardTypes,
   }
 }

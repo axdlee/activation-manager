@@ -153,7 +153,7 @@ class ActivationManagerClient
     if ((now_ms - ts).abs > SIGNATURE_MAX_AGE_MS)
       raise ActivationManagerClientError.new('SIGNATURE_EXPIRED', 'signature timestamp outside window')
     end
-    expected = OpenSSL::HMAC.hexdigest('SHA256', @response_secret, raw_body)
+    expected = OpenSSL::HMAC.hexdigest('SHA256', @response_secret, "#{timestamp}.#{raw_body}")
     unless OpenSSL.secure_compare(expected, signature)
       raise ActivationManagerClientError.new('SIGNATURE_INVALID', 'response signature mismatch')
     end

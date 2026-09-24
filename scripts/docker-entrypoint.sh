@@ -27,6 +27,11 @@ fi
 
 prepare_runtime_paths
 
-npm run bootstrap:runtime
+# 生产镜像内置打包引导（免 tsx/TS 源码）；本地调试回退 tsx
+if [ -f .next-bootstrap/bootstrap-runtime.cjs ]; then
+  node .next-bootstrap/bootstrap-runtime.cjs
+else
+  npm run bootstrap:runtime
+fi
 
 exec npm run start -- --hostname "${APP_HOST}" --port "${PORT}"

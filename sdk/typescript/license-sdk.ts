@@ -290,7 +290,7 @@ async function verifyLicenseResponseSignature(
     const signatureBuffer = await crypto.subtle.sign(
       'HMAC',
       key,
-      new TextEncoder().encode(bodyText),
+      new TextEncoder().encode(`${timestamp}.${bodyText}`),
     )
     const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
       .map((byte) => byte.toString(16).padStart(2, '0'))

@@ -52,6 +52,7 @@ model ActivationCode {
   remainingCount Int?        // 次数型激活码剩余次数
   consumedCount  Int         @default(0)
   deletedAt      DateTime?   // 软删除：有绑定历史/消费记录的码物理删除受外键限制，改为打标隐藏
+  expiryNotifiedAt DateTime?  // 到期/耗尽通知已发送时间（跨重启去重）
   allowAutoRebind Boolean?
   autoRebindCooldownMinutes Int?
   autoRebindMaxCount Int?
