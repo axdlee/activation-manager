@@ -41,15 +41,27 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         if sign:
             ts = str(int(__import__("time").time() * 1000))
-            sig = hmac.new(SECRET.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
+            version = self.headers.get("x-license-signature-version") or ""
+            req_code = str(self._req_body.get("code", "") or "")
+            req_mid = str(self._req_body.get("machineId", "") or "")
+            if version == "3":
+                message = f"{ts}.{req_code.strip()}|{req_mid.strip()}.".encode() + body
+            elif version == "1":
+                message = body
+            else:
+                message = f"{ts}.".encode() + body
+            sig = hmac.new(SECRET.encode(), message, hashlib.sha256).hexdigest()
             self.send_header(SIGNATURE_HEADER, sig)
             self.send_header(TIMESTAMP_HEADER, ts)
+            self.send_header("x-license-signature-version", version or "2")
         self.end_headers()
         self.wfile.write(body)
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
-        body = json.loads(self.rfile.read(length) or b"{}")
+        raw = self.rfile.read(length) or b"{}"
+        self._req_body = json.loads(raw)
+        body = self._req_body
         if self.path == "/api/license/activate":
             assert body["projectKey"] == "demo"
             self._respond(200, {

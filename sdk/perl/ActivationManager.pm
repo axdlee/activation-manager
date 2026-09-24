@@ -95,7 +95,7 @@ sub _call {
 
     my $last_error;
     for my $attempt (1 .. $total_attempts) {
-        my ($ok, $result_or_error) = $self->_attempt($path, $body, $attempt);
+        my ($ok, $result_or_error) = $self->_attempt($path, $body, $attempt, $code, $machine_id);
         return $result_or_error if $ok;
         $last_error = $result_or_error;
         sleep($self->{retry_delay_seconds}) if $attempt < $total_attempts;
@@ -104,13 +104,13 @@ sub _call {
 }
 
 sub _attempt {
-    my ($self, $path, $body, $attempt) = @_;
+    my ($self, $path, $body, $attempt, $code, $machine_id) = @_;
 
     my $http = HTTP::Tiny->new(timeout => $self->{timeout_seconds});
     my $response = $http->post(
         $self->{base_url} . $path,
         {
-            headers => { 'Content-Type' => 'application/json', %{$self->{headers}} },
+            headers => { 'Content-Type' => 'application/json', 'x-license-signature-version' => '3', %{$self->{headers}} },
             content => $body,
         },
     );
@@ -136,7 +136,20 @@ sub _attempt {
         _error('SIGNATURE_INVALID', 'invalid signature timestamp') if $ts !~ /^\d+$/;
         my $now_ms = int(time * 1000);
         _error('SIGNATURE_EXPIRED', 'signature timestamp outside window') if abs($now_ms - $ts) > SIGNATURE_MAX_AGE_MS;
-        my $expected = hmac_sha256_hex("$ts.$raw", $self->{response_secret});
+        # 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        my $version = $response->{headers}{'x-license-signature-version'} // '';
+        $version = (ref $version ? $version->[0] : $version) // '';
+        my $message;
+        if ($version eq '3') {
+            (my $c = $code // '') =~ s/^\s+|\s+$//g;
+            (my $m = $machine_id // '') =~ s/^\s+|\s+$//g;
+            $message = "$ts.$c|$m.$raw";
+        } elsif ($version eq '1') {
+            $message = $raw;
+        } else {
+            $message = "$ts.$raw";
+        }
+        my $expected = hmac_sha256_hex($message, $self->{response_secret});
         _error('SIGNATURE_INVALID', 'response signature mismatch') unless $expected eq $sig;
     }
 

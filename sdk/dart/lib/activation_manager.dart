@@ -199,7 +199,7 @@ class ActivationManagerClient {
     Object? lastError;
     for (var attempt = 1; attempt <= totalAttempts; attempt++) {
       try {
-        return await _attemptOnce(path, payload, attempt);
+        return await _attemptOnce(path, payload, attempt, code, machineId);
       } on ActivationClientException catch (e) {
         lastError = e;
         if (attempt < totalAttempts) {
@@ -210,8 +210,8 @@ class ActivationManagerClient {
     throw lastError!;
   }
 
-  Future<ActivationResult> _attemptOnce(
-      String path, Map<String, dynamic> payload, int attempt) async {
+  Future<ActivationResult> _attemptOnce(String path, Map<String, dynamic> payload,
+      int attempt, String code, String machineId) async {
     final url = Uri.parse('${options.baseUrl}${path}');
     final body = jsonEncode(payload);
 
@@ -219,7 +219,11 @@ class ActivationManagerClient {
     try {
       response = await _http
           .post(url,
-              headers: {'Content-Type': 'application/json', ...options.headers},
+              headers: {
+                'Content-Type': 'application/json',
+                'x-license-signature-version': '3',
+                ...options.headers
+              },
               body: body)
           .timeout(options.timeout);
     } on TimeoutException {
@@ -233,7 +237,7 @@ class ActivationManagerClient {
 
     final raw = response.body;
     if (options.responseSecret.isNotEmpty) {
-      _verifySignature(response.headers, raw);
+      _verifySignature(response.headers, raw, code, machineId);
     }
 
     ActivationResult result;
@@ -253,7 +257,8 @@ class ActivationManagerClient {
     return result;
   }
 
-  void _verifySignature(Map<String, String> headers, String rawBody) {
+  void _verifySignature(
+      Map<String, String> headers, String rawBody, String code, String machineId) {
     String? get(String name) {
       for (final entry in headers.entries) {
         if (entry.key.toLowerCase() == name) return entry.value;
@@ -277,8 +282,18 @@ class ActivationManagerClient {
       throw ActivationClientException(ActivationErrorKind.signatureExpired,
           'signature timestamp outside window');
     }
+    // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+    final version = get('x-license-signature-version') ?? '';
+    final message;
+    if (version == '3') {
+      message = '$ts.${code.trim()}|${machineId.trim()}.$rawBody';
+    } else if (version == '1') {
+      message = rawBody;
+    } else {
+      message = '$ts.$rawBody';
+    }
     final expected = Hmac(sha256, utf8.encode(options.responseSecret))
-        .convert(utf8.encode('$ts.$rawBody'))
+        .convert(utf8.encode(message))
         .toString();
     if (!_fixedTimeEquals(expected, signature)) {
       throw ActivationClientException(ActivationErrorKind.signatureInvalid,

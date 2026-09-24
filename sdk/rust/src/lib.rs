@@ -17,6 +17,7 @@ use sha2::Sha256;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub const SIGNATURE_HEADER: &str = "x-license-signature";
+pub const SIGNATURE_VERSION_HEADER: &str = "x-license-signature-version";
 pub const TIMESTAMP_HEADER: &str = "x-license-timestamp";
 pub const SIGNATURE_MAX_AGE_MS: i64 = 5 * 60 * 1000;
 
@@ -206,7 +207,7 @@ impl Client {
 
         let mut last_error: Option<ClientError> = None;
         for attempt in 1..=total_attempts {
-            match self.attempt_once(path, &payload, attempt) {
+            match self.attempt_once(path, &payload, attempt, code, machine_id) {
                 Ok(result) => return Ok(result),
                 Err(e) => {
                     last_error = Some(e);
@@ -219,12 +220,20 @@ impl Client {
         Err(last_error.unwrap())
     }
 
-    fn attempt_once(&self, path: &str, payload: &Value, attempt: u32) -> std::result::Result<SdkResult, ClientError> {
+    fn attempt_once(
+        &self,
+        path: &str,
+        payload: &Value,
+        attempt: u32,
+        code: &str,
+        machine_id: &str,
+    ) -> std::result::Result<SdkResult, ClientError> {
         let url = format!("{}{}", self.opts.base_url.trim_end_matches('/'), path);
         let response = self
             .http
             .post(&url)
             .header("Content-Type", "application/json")
+            .header("x-license-signature-version", "3")
             .json(payload)
             .send();
 
@@ -259,6 +268,11 @@ impl Client {
             .get(TIMESTAMP_HEADER)
             .and_then(|v| v.to_str().ok())
             .map(String::from);
+        let version_header = response
+            .headers()
+            .get(SIGNATURE_VERSION_HEADER)
+            .and_then(|v| v.to_str().ok())
+            .map(String::from);
         let raw = response.text().map_err(|e| ClientError {
             kind: ErrorKind::NetworkError,
             message: e.to_string(),
@@ -270,7 +284,10 @@ impl Client {
             self.verify_signature_parts(
                 signature_header.as_deref(),
                 timestamp_header.as_deref(),
+                version_header.as_deref(),
                 &raw,
+                code,
+                machine_id,
             )?;
         }
 
@@ -296,7 +313,10 @@ impl Client {
         &self,
         signature: Option<&str>,
         timestamp: Option<&str>,
+        version: Option<&str>,
         raw_body: &str,
+        code: &str,
+        machine_id: &str,
     ) -> Result<(), ClientError> {
         let signature = signature.unwrap_or("");
         let timestamp = timestamp.unwrap_or("");
@@ -328,10 +348,24 @@ impl Client {
         }
         let mut mac = Hmac::<Sha256>::new_from_slice(self.opts.response_secret.as_bytes())
             .expect("HMAC accepts any key length");
-        // v2 签名：HMAC(timestamp "." body)，防截获签名配合伪造时间戳重放
-        mac.update(timestamp.as_bytes());
-        mac.update(b".");
-        mac.update(raw_body.as_bytes());
+        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        let version = version.unwrap_or("");
+        mac.update(
+            if version == "3" {
+                format!(
+                    "{}.{}|{}.{}",
+                    timestamp,
+                    code.trim(),
+                    machine_id.trim(),
+                    raw_body
+                )
+            } else if version == "1" {
+                raw_body.to_string()
+            } else {
+                format!("{}.{}", timestamp, raw_body)
+            }
+            .as_bytes(),
+        );
         let expected = hex_encode(&mac.finalize().into_bytes());
         if expected != signature {
             return Err(ClientError {

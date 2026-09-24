@@ -256,12 +256,41 @@ function createHookContext(
 
 const LICENSE_SIGNATURE_HEADER = 'x-license-signature'
 const LICENSE_TIMESTAMP_HEADER = 'x-license-timestamp'
+const LICENSE_SIGNATURE_VERSION_HEADER = 'x-license-signature-version'
 const SIGNATURE_MAX_AGE_MS = 5 * 60 * 1000
+
+type LicenseSignatureVersion = '1' | '2' | '3'
+
+function resolveResponseSignatureVersion(headerValue: string | null): LicenseSignatureVersion {
+  if (headerValue === '1' || headerValue === '3') {
+    return headerValue
+  }
+  // 未声明或声明为 2（v2.9.0 服务端默认版本）
+  return '2'
+}
+
+function buildSignatureMessage(
+  version: LicenseSignatureVersion,
+  timestamp: string,
+  context: { code?: string; machineId?: string },
+  bodyText: string,
+): string {
+  if (version === '1') {
+    return bodyText
+  }
+  if (version === '3') {
+    const code = (context.code ?? '').trim()
+    const machineId = (context.machineId ?? '').trim()
+    return `${timestamp}.${code}|${machineId}.${bodyText}`
+  }
+  return `${timestamp}.${bodyText}`
+}
 
 async function verifyLicenseResponseSignature(
   bodyText: string,
   response: Response,
   secret: string,
+  context: { code?: string; machineId?: string } = {},
 ): Promise<boolean> {
   const signature = response.headers.get(LICENSE_SIGNATURE_HEADER)
   const timestamp = response.headers.get(LICENSE_TIMESTAMP_HEADER)
@@ -279,6 +308,10 @@ async function verifyLicenseResponseSignature(
     return false
   }
 
+  const version = resolveResponseSignatureVersion(
+    response.headers.get(LICENSE_SIGNATURE_VERSION_HEADER),
+  )
+
   try {
     const key = await crypto.subtle.importKey(
       'raw',
@@ -287,10 +320,11 @@ async function verifyLicenseResponseSignature(
       false,
       ['sign'],
     )
+    const message = buildSignatureMessage(version, timestamp, context, bodyText)
     const signatureBuffer = await crypto.subtle.sign(
       'HMAC',
       key,
-      new TextEncoder().encode(`${timestamp}.${bodyText}`),
+      new TextEncoder().encode(message),
     )
     const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
       .map((byte) => byte.toString(16).padStart(2, '0'))
@@ -330,6 +364,7 @@ async function requestLicenseApi(
   for (let attemptCount = 1; attemptCount <= totalAttempts; attemptCount += 1) {
     const headers = new Headers(options.headers)
     headers.set('Content-Type', 'application/json')
+    headers.set('x-license-signature-version', '3')
 
     const controller = timeoutMs && typeof AbortController === 'function' ? new AbortController() : null
     const timeoutId =
@@ -416,6 +451,7 @@ async function requestLicenseApi(
             responseText,
             response,
             options.responseSecret,
+            { code: requestBody.code, machineId: requestBody.machineId },
           )
           if (!signatureValid) {
             throw buildLicenseClientError('SIGNATURE_INVALID', path, attemptCount, null, response.status)

@@ -264,9 +264,11 @@ inline long long now_ms() {
         .count();
 }
 
-inline void verify_signature(const std::string& headers, const std::string& body, const std::string& secret) {
+inline void verify_signature(const std::string& headers, const std::string& body, const std::string& secret,
+                             const std::string& code = "", const std::string& machine_id = "") {
     std::string signature = header_get(headers, kSignatureHeader);
     std::string timestamp = header_get(headers, kTimestampHeader);
+    std::string version = header_get(headers, "x-license-signature-version");
     if (signature.empty() || timestamp.empty()) {
         throw client_exception(error_kind::signature_missing, "missing signature headers");
     }
@@ -279,8 +281,23 @@ inline void verify_signature(const std::string& headers, const std::string& body
     if (std::abs(now_ms() - ts) > kSignatureMaxAgeMs) {
         throw client_exception(error_kind::signature_expired, "signature timestamp outside window");
     }
-    // v2 签名：HMAC(timestamp "." body)，防截获签名配合伪造时间戳重放
-    const std::string signed_input = timestamp + "." + body;
+    // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+    std::string signed_input;
+    if (version == "3") {
+        std::string c = code;
+        std::string m = machine_id;
+        const auto trim = [](std::string& v) {
+            while (!v.empty() && (v.front() == ' ' || v.front() == '\t')) v.erase(v.begin());
+            while (!v.empty() && (v.back() == ' ' || v.back() == '\t')) v.pop_back();
+        };
+        trim(c);
+        trim(m);
+        signed_input = timestamp + "." + c + "|" + m + "." + body;
+    } else if (version == "1") {
+        signed_input = body;
+    } else {
+        signed_input = timestamp + "." + body;
+    }
     unsigned char digest[EVP_MAX_MD_SIZE];
     unsigned int digest_len = 0;
     HMAC(EVP_sha256(), secret.data(), static_cast<int>(secret.size()),
@@ -343,7 +360,7 @@ private:
 
         for (int attempt = 1; attempt <= total_attempts; ++attempt) {
             try {
-                return attempt_once(path, payload, attempt);
+                return attempt_once(path, payload, attempt, code, machine_id);
             } catch (const client_exception& e) {
                 last = e;
                 if (attempt < total_attempts) {
@@ -354,7 +371,8 @@ private:
         throw last;
     }
 
-    result attempt_once(const std::string& path, const std::string& payload, int attempt) {
+    result attempt_once(const std::string& path, const std::string& payload, int attempt,
+                        const std::string& code, const std::string& machine_id) {
         std::string url = opts_.base_url + path;
 
         curl_easy_reset(curl_.get());
@@ -372,6 +390,7 @@ private:
 
         struct curl_slist* hdrs = nullptr;
         hdrs = curl_slist_append(hdrs, "Content-Type: application/json");
+        hdrs = curl_slist_append(hdrs, "x-license-signature-version: 3");
         for (const auto& [name, value] : opts_.headers) {
             hdrs = curl_slist_append(hdrs, (name + ": " + value).c_str());
         }
@@ -392,7 +411,7 @@ private:
 
 #ifdef AM_HAVE_OPENSSL
         if (!opts_.response_secret.empty()) {
-            detail::verify_signature(header_text, body, opts_.response_secret);
+            detail::verify_signature(header_text, body, opts_.response_secret, code, machine_id);
         }
 #endif
 

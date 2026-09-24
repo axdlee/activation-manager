@@ -167,7 +167,7 @@ public sealed class ActivationManagerClient
         {
             try
             {
-                return await AttemptAsync(path, body, attempt, ct).ConfigureAwait(false);
+                return await AttemptAsync(path, body, attempt, code, machineId, ct).ConfigureAwait(false);
             }
             catch (ActivationClientException e)
             {
@@ -181,12 +181,13 @@ public sealed class ActivationManagerClient
         throw lastError!;
     }
 
-    private async Task<ActivationResult> AttemptAsync(string path, string body, int attempt, CancellationToken ct)
+    private async Task<ActivationResult> AttemptAsync(string path, string body, int attempt, string code, string machineId, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, _options.BaseUrl.TrimEnd('/') + path)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json"),
         };
+        request.Headers.TryAddWithoutValidation("x-license-signature-version", "3");
         foreach (var (name, value) in _options.Headers)
         {
             request.Headers.TryAddWithoutValidation(name, value);
@@ -212,7 +213,7 @@ public sealed class ActivationManagerClient
 
             if (!string.IsNullOrEmpty(_options.ResponseSecret))
             {
-                VerifySignature(response, raw, _options.ResponseSecret);
+                VerifySignature(response, raw, _options.ResponseSecret, code, machineId);
             }
 
             Dictionary<string, JsonElement>? parsed;
@@ -239,7 +240,7 @@ public sealed class ActivationManagerClient
         }
     }
 
-    private static void VerifySignature(HttpResponseMessage response, string rawBody, string secret)
+    private static void VerifySignature(HttpResponseMessage response, string rawBody, string secret, string code, string machineId)
     {
         var signature = GetHeader(response, SignatureHeader);
         var timestamp = GetHeader(response, TimestampHeader);
@@ -256,7 +257,15 @@ public sealed class ActivationManagerClient
         {
             throw new ActivationClientException(ActivationErrorKind.SignatureExpired, "signature timestamp outside window");
         }
-        var expected = HmacSha256Hex($"{timestamp}.{rawBody}", secret);
+        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        var version = GetHeader(response, "x-license-signature-version");
+        var message = version switch
+        {
+            "3" => $"{timestamp}.{code?.Trim()}|{machineId?.Trim()}.{rawBody}",
+            "1" => rawBody,
+            _ => $"{timestamp}.{rawBody}",
+        };
+        var expected = HmacSha256Hex(message, secret);
         if (!CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(signature)))
         {
             throw new ActivationClientException(ActivationErrorKind.SignatureInvalid, "response signature mismatch");

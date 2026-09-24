@@ -1,5 +1,51 @@
 # 更新日志
 
+## [未发布]
+
+### 安全评审批次 1–5（v2.9.0 评审：3 高危 / 4 中危 / 低危全量收口） 🔒
+
+#### 高危
+- **客户端 IP 伪造 + 无限撞库根治**：默认部署形态下 `server.js` 在每个请求的
+  `X-Forwarded-For` 末尾追加 socket 真实地址（客户端无法伪造第 N 个条目）；
+  docker-compose 端口绑定 `127.0.0.1`（经反代暴露时由反代提供 XFF）；
+  用户名锁定期间仅白名单 IP 可凭正确密码解锁（`isClientIpInAdminWhitelist`），
+  非白名单流量一律 429，换 IP 不再重置撞库成本
+- **人工收款 + 码池库存锁死**：预占库存引入独立过期（`reservedUntil`，默认 60 分钟，
+  `SHOP_STOCK_RESERVATION_TTL_MINUTES` 可调 1 分钟–24 小时），过期自动释放归还；
+  新增管理员取消订单接口（仅 pending 单可取消，事务内释放预占）；
+  单笔订单数量上限默认 10（`SHOP_ORDER_MAX_QUANTITY_PER_ORDER`），
+  不再可能一个订单永久锁死全部库存
+- **PostgreSQL 生产化**：统计看板/项目统计/消费趋势从 SQLite 方言原生 SQL
+  （`"isUsed"=1`、`strftime`/`unixepoch`）重写为 Prisma 聚合（方言无关，双库同路径）；
+  生产引导的 `db push` 不再携带 `--accept-data-loss`（破坏性变更直接报错退出）；
+  官方镜像提供 `-postgres` 变体（构建期 `TARGET_DB_PROVIDER` 切换 schema 并生成客户端）；
+  CI 新增 PostgreSQL 16 任务（初始化 + 集成测试）
+
+#### 中危
+- **软删码释放绑定**：软删除已绑定激活码时同步清空 `usedBy`（审计记录原值），
+  设备换绑不再因已删码永久 409
+- **并发回调孤儿码回收**：商城 DYNAMIC 履约的预生成码在抢占失败/事务异常时
+  按生成批次回收（仅删未绑定 `isUsed:false` 的孤儿），并发回调不再累积无主库存
+- **支付配置回显脱敏**：POST 保存响应同样走 `maskConfigPayload` 脱敏
+  （敏感键正则补 `appKey`），掩码占位提交按原值还原
+- **签名 v3 绑定请求上下文**：新增 `x-license-signature-version: 3`——
+  签名输入为 `HMAC(secret, timestamp + "." + code + "|" + machineId + "." + body)`，
+  截获的合法响应无法转发给其他激活码/设备使用；服务端按客户端声明版本签发
+  （未声明/非法值回落 v2，保持 v2.9.0 客户端兼容；v1 仅过渡期保留），
+  全部 16 语言 SDK 同步升级 v3 并升级各自测试桩
+  - ⚠️ **补记 v2.9.0 破坏性变更**：v2.9.0 将响应签名从 v1
+    （`HMAC(body)`）改为 v2（`HMAC(timestamp + "." + body)`），未声明版本的旧 v1
+    验签客户端升级后验签会失败——v2.9.0 发布说明未明确标注，在此补记；
+    验签方应升级 SDK 至 v3（本轮已全部同步）
+
+#### 低危
+- 管理员令牌用户名不存在时不再跳过 `tokenVersion` 校验（视为无效令牌）
+- 看板统计统一过滤 `deletedAt`（软删码不再计入统计）
+- 下单拒绝占位符渠道（`placeholder` 配置不可选为支付方式）
+- 订单令牌支持 `X-Order-Token` 请求头（URL 传参保留向后兼容）
+- `restore-db.sh` 修复 `file:./dev.db` 相对路径按 schema 目录解析
+- 内嵌 TS 客户端（`license-sdk.ts`）验签从 v1 修正为版本协商（v2.9.0 起已断）
+
 ## [v2.9.0] - 2026-09-24
 
 ### PostgreSQL 支持 🐘

@@ -22,10 +22,21 @@ class ActivationManagerClientTest {
     private fun respond(exchange: com.sun.net.httpserver.HttpExchange, body: String, sign: Boolean, secret: String = "test-secret") {
         val sig = if (sign) {
             val ts = System.currentTimeMillis().toString()
+            // 版本协商：按请求声明的版本签名（SDK 声明 3 → 绑定 code|machineId）
+            val version = exchange.requestHeaders.getFirst("x-license-signature-version") ?: ""
+            val reqBody = exchange.requestBody.readBytes().toString(StandardCharsets.UTF_8)
+            val code = Regex("\"code\"\s*:\s*\"([^\"]*)\"").find(reqBody)?.groupValues?.get(1)?.trim() ?: ""
+            val mid = Regex("\"machineId\"\s*:\s*\"([^\"]*)\"").find(reqBody)?.groupValues?.get(1)?.trim() ?: ""
+            val message = when (version) {
+                "3" -> "$ts.$code|$mid.$body"
+                "1" -> body
+                else -> "$ts.$body"
+            }
             val mac = Mac.getInstance("HmacSHA256")
             mac.init(SecretKeySpec(secret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
-            val digest = mac.doFinal("$ts.$body".toByteArray(StandardCharsets.UTF_8))
+            val digest = mac.doFinal(message.toByteArray(StandardCharsets.UTF_8))
             exchange.responseHeaders.add("x-license-timestamp", ts)
+            exchange.responseHeaders.add("x-license-signature-version", version.ifEmpty { "2" })
             digest.joinToString("") { "%02x".format(it) }
         } else ""
         exchange.responseHeaders.add("Content-Type", "application/json")

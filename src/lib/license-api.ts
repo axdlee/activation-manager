@@ -4,7 +4,9 @@ import {
   SIGNATURE_HEADER,
   SIGNATURE_VERSION_HEADER,
   TIMESTAMP_HEADER,
+  resolveResponseSignatureVersion,
   signLicenseResponseBody,
+  type LicenseSignatureContext,
 } from './license-response-signature'
 
 export type LicenseApiResult = {
@@ -82,10 +84,16 @@ function buildLicenseResponsePayload(
   }
 }
 
+export type LicenseResponseSignatureContext = LicenseSignatureContext & {
+  /** 客户端通过 x-license-signature-version 声明的版本（未声明回落 v2） */
+  requestedVersion?: string | null
+}
+
 export function createLicenseJsonResponse(
   result: LicenseApiResult,
   options: LicenseApiResponseOptions = {},
   responseSecret?: string,
+  signatureContext?: LicenseResponseSignatureContext,
 ) {
   const body = JSON.stringify(buildLicenseResponsePayload(result, options))
 
@@ -94,10 +102,15 @@ export function createLicenseJsonResponse(
   }
 
   if (responseSecret) {
+    const { requestedVersion, ...context } = signatureContext ?? {}
+    const version = resolveResponseSignatureVersion(requestedVersion)
     const timestamp = String(Date.now())
-    headers[SIGNATURE_HEADER] = signLicenseResponseBody(body, responseSecret, timestamp)
+    headers[SIGNATURE_HEADER] = signLicenseResponseBody(body, responseSecret, timestamp, {
+      version,
+      context,
+    })
     headers[TIMESTAMP_HEADER] = timestamp
-    headers[SIGNATURE_VERSION_HEADER] = '2'
+    headers[SIGNATURE_VERSION_HEADER] = version
   }
 
   return new NextResponse(body, {
@@ -109,15 +122,17 @@ export function createLicenseJsonResponse(
 export function createLicenseResponse(
   result: LicenseApiResult,
   responseSecret?: string,
+  signatureContext?: LicenseResponseSignatureContext,
 ) {
-  return createLicenseJsonResponse(result, {}, responseSecret)
+  return createLicenseJsonResponse(result, {}, responseSecret, signatureContext)
 }
 
 export function createLegacyLicenseResponse(
   result: LicenseApiResult,
   responseSecret?: string,
+  signatureContext?: LicenseResponseSignatureContext,
 ) {
-  return createLicenseJsonResponse(result, { legacyOnly: true }, responseSecret)
+  return createLicenseJsonResponse(result, { legacyOnly: true }, responseSecret, signatureContext)
 }
 
 export function createLicenseErrorResponse(message: string, error: unknown) {

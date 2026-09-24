@@ -95,7 +95,7 @@ class ActivationManagerClient
     total_attempts.times do |index|
       attempt = index + 1
       begin
-        return attempt_request(path, JSON.generate(payload), attempt)
+        return attempt_request(path, JSON.generate(payload), attempt, payload)
       rescue ActivationManagerClientError => e
         last_error = e
         sleep @retry_delay_seconds if attempt < total_attempts
@@ -104,7 +104,7 @@ class ActivationManagerClient
     raise last_error
   end
 
-  def attempt_request(path, body, attempt)
+  def attempt_request(path, body, attempt, payload = {})
     uri = URI("#{@base_url}#{path}")
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = uri.scheme == 'https'
@@ -113,13 +113,14 @@ class ActivationManagerClient
 
     request = Net::HTTP::Post.new(uri)
     request['Content-Type'] = 'application/json'
+    request['x-license-signature-version'] = '3'
     @headers.each { |k, v| request[k] = v }
     request.body = body
 
     response = http.start { |h| h.request(request) }
     raw = response.body.to_s
 
-    verify_signature(response, raw) unless @response_secret.empty?
+    verify_signature(response, raw, payload) unless @response_secret.empty?
 
     parsed = JSON.parse(raw)
     unless parsed.is_a?(Hash)
@@ -139,7 +140,7 @@ class ActivationManagerClient
     raise ActivationManagerClientError.new('INVALID_RESPONSE', 'response is not valid JSON', path: path, attempt_count: attempt)
   end
 
-  def verify_signature(response, raw_body)
+  def verify_signature(response, raw_body, payload = {})
     signature = response[SIGNATURE_HEADER].to_s
     timestamp = response[TIMESTAMP_HEADER].to_s
     if signature.empty? || timestamp.empty?
@@ -153,7 +154,20 @@ class ActivationManagerClient
     if ((now_ms - ts).abs > SIGNATURE_MAX_AGE_MS)
       raise ActivationManagerClientError.new('SIGNATURE_EXPIRED', 'signature timestamp outside window')
     end
-    expected = OpenSSL::HMAC.hexdigest('SHA256', @response_secret, "#{timestamp}.#{raw_body}")
+    # 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+    version = response['x-license-signature-version'].to_s
+    # payload 用 Symbol 键（call 里 {code:...}），兼容字符串键以防外部调用
+    code = (payload[:code] || payload['code']).to_s.strip
+    machine_id = (payload[:machineId] || payload['machineId']).to_s.strip
+    message =
+      if version == '3'
+        "#{timestamp}.#{code}|#{machine_id}.#{raw_body}"
+      elsif version == '1'
+        raw_body
+      else
+        "#{timestamp}.#{raw_body}"
+      end
+    expected = OpenSSL::HMAC.hexdigest('SHA256', @response_secret, message)
     unless OpenSSL.secure_compare(expected, signature)
       raise ActivationManagerClientError.new('SIGNATURE_INVALID', 'response signature mismatch')
     end

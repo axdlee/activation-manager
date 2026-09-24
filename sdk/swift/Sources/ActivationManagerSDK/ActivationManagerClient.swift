@@ -81,6 +81,7 @@ public struct ActivationResult: Sendable {
 public final class ActivationManagerClient: @unchecked Sendable {
     public static let signatureHeader = "x-license-signature"
     public static let timestampHeader = "x-license-timestamp"
+    public static let signatureVersionHeader = "x-license-signature-version"
     public static let signatureMaxAgeMS: Int64 = 5 * 60 * 1000
 
     let options: ActivationManagerClientOptions
@@ -142,7 +143,7 @@ public final class ActivationManagerClient: @unchecked Sendable {
 
         for attempt in 1...totalAttempts {
             do {
-                return try attemptOnce(path, payload: payload, attempt: attempt)
+                return try attemptOnce(path, payload: payload, attempt: attempt, code: code, machineId: machineId)
             } catch let e as ActivationClientError {
                 lastError = e
                 if attempt < totalAttempts {
@@ -153,7 +154,7 @@ public final class ActivationManagerClient: @unchecked Sendable {
         throw lastError!
     }
 
-    func attemptOnce(_ path: String, payload: WirePayload, attempt: Int) throws -> ActivationResult {
+    func attemptOnce(_ path: String, payload: WirePayload, attempt: Int, code: String, machineId: String) throws -> ActivationResult {
         guard var url = URLComponents(string: options.baseURL.trimmingCharacters(in: ["/"]) + path) else {
             throw ActivationClientError(kind: .invalidResponse, message: "invalid base URL", path: path, attemptCount: attempt)
         }
@@ -161,6 +162,7 @@ public final class ActivationManagerClient: @unchecked Sendable {
         var request = URLRequest(url: url.url!, timeoutInterval: options.timeoutSeconds)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("3", forHTTPHeaderField: ActivationManagerClient.signatureVersionHeader)
         for (k, v) in options.headers {
             request.setValue(v, forHTTPHeaderField: k)
         }
@@ -195,7 +197,9 @@ public final class ActivationManagerClient: @unchecked Sendable {
         if !options.responseSecret.isEmpty {
             let sig = (responseHeaders[ActivationManagerClient.signatureHeader] as? String) ?? ""
             let ts = (responseHeaders[ActivationManagerClient.timestampHeader] as? String) ?? ""
-            try Self.verifySignature(signature: sig, timestamp: ts, body: raw, secret: options.responseSecret)
+            let ver = (responseHeaders[ActivationManagerClient.signatureVersionHeader] as? String) ?? ""
+            let ctx = LicenseSignatureContext(code: code, machineId: machineId)
+            try Self.verifySignature(signature: sig, timestamp: ts, version: ver, context: ctx, body: raw, secret: options.responseSecret)
         }
 
         guard let wire = try? JSONDecoder().decode(WireResponse.self, from: Data(raw.utf8)) else {
@@ -220,7 +224,12 @@ public final class ActivationManagerClient: @unchecked Sendable {
         )
     }
 
-    static func verifySignature(signature: String, timestamp: String, body: String, secret: String) throws {
+    struct LicenseSignatureContext {
+        let code: String
+        let machineId: String
+    }
+
+    static func verifySignature(signature: String, timestamp: String, version: String, context: LicenseSignatureContext, body: String, secret: String) throws {
         if signature.isEmpty || timestamp.isEmpty {
             throw ActivationClientError(kind: .signatureMissing, message: "missing signature headers", path: "", attemptCount: 1)
         }
@@ -231,7 +240,16 @@ public final class ActivationManagerClient: @unchecked Sendable {
         if abs(now - ts) > signatureMaxAgeMS {
             throw ActivationClientError(kind: .signatureExpired, message: "signature timestamp outside window", path: "", attemptCount: 1)
         }
-        let expected = Self.hmacSHA256Hex(body, secret: secret)
+        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        let message: String
+        if version == "3" {
+            message = "\(timestamp).\(context.code.trimmingCharacters(in: .whitespaces))|\(context.machineId.trimmingCharacters(in: .whitespaces)).\(body)"
+        } else if version == "1" {
+            message = body
+        } else {
+            message = "\(timestamp).\(body)"
+        }
+        let expected = Self.hmacSHA256Hex(message, secret: secret)
         if expected != signature {
             throw ActivationClientError(kind: .signatureInvalid, message: "response signature mismatch", path: "", attemptCount: 1)
         }

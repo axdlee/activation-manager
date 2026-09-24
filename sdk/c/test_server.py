@@ -30,9 +30,19 @@ class Handler(BaseHTTPRequestHandler):
         if self.path != "/api/license/consume" or req.get("requestId"):
             import hashlib, hmac, time
             ts = str(round(time.time() * 1000))
-            sig = hmac.new(SECRET.encode(), f"{ts}.".encode() + payload.encode(), hashlib.sha256).hexdigest()
+            version = self.headers.get("x-license-signature-version") or ""
+            code = str(req.get("code", "") or "").strip()
+            mid = str(req.get("machineId", "") or "").strip()
+            if version == "3":
+                message = f"{ts}.{code}|{mid}.".encode() + payload.encode()
+            elif version == "1":
+                message = payload.encode()
+            else:
+                message = f"{ts}.".encode() + payload.encode()
+            sig = hmac.new(SECRET.encode(), message, hashlib.sha256).hexdigest()
             self.send_header("x-license-signature", sig)
             self.send_header("x-license-timestamp", ts)
+            self.send_header("x-license-signature-version", version or "2")
         self.end_headers()
         self.wfile.write(payload.encode())
 

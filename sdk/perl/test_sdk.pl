@@ -34,9 +34,19 @@ my $worker = threads->create(sub {
                 remainingCount => 9, valid => JSON::PP::true(),
             });
         my $ts = int(time() * 1000);
-        my $sig = hmac_sha256_hex("$ts.$payload", $SECRET);
+        my ($version) = $request =~ /x-license-signature-version:\s*(\d+)\r/i;
+        $version //= '';
+        my $code = $req->{code} // '';
+        my $mid = $req->{machineId} // '';
+        $code =~ s/^\s+|\s+$//g;
+        $mid =~ s/^\s+|\s+$//g;
+        my $message = $version eq '3' ? "$ts.$code|$mid.$payload"
+            : $version eq '1' ? $payload
+            : "$ts.$payload";
+        my $sig = hmac_sha256_hex($message, $SECRET);
         print $conn "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n";
         print $conn "x-license-signature: $sig\r\nx-license-timestamp: $ts\r\n";
+        print $conn "x-license-signature-version: " . ($version ne '' ? $version : '2') . "\r\n";
         print $conn "Content-Length: " . length($payload) . "\r\n\r\n";
         print $conn $payload;
         close $conn;

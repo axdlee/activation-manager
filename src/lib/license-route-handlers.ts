@@ -18,6 +18,9 @@ import {
 } from '@/lib/license-service'
 import type { LicenseResult } from '@/lib/license-result-service'
 import {
+  SIGNATURE_VERSION_HEADER,
+} from '@/lib/license-response-signature'
+import {
   defaultLicenseApiRateLimiter,
   buildLicenseApiRateLimitKey,
   type LicenseApiRateLimiter,
@@ -66,11 +69,17 @@ async function executeLicenseRequest(
   const startedAt = performance.now()
 
   try {
-    const result = await handler(await readLicenseRequest(request))
+    const params = await readLicenseRequest(request)
+    const result = await handler(params)
     const responseSecret = await resolveLicenseResponseSecret()
+    const signatureContext = {
+      code: params.code,
+      machineId: params.machineId,
+      requestedVersion: request.headers.get(SIGNATURE_VERSION_HEADER),
+    }
     const response = options.legacyOnly
-      ? createLegacyLicenseResponse(result, responseSecret)
-      : createLicenseResponse(result, responseSecret)
+      ? createLegacyLicenseResponse(result, responseSecret, signatureContext)
+      : createLicenseResponse(result, responseSecret, signatureContext)
     recordLicenseApiRequest({
       pathname: path,
       success: result.success,

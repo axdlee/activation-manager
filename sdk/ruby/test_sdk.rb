@@ -23,8 +23,19 @@ handler = Thread.new do
         $received << JSON.parse(body)
         payload = { success: true, licenseMode: 'COUNT', license_mode: 'COUNT', remainingCount: 9, valid: true }.to_json
         ts = (Process.clock_gettime(Process::CLOCK_REALTIME) * 1000).round
-        sig = OpenSSL::HMAC.hexdigest('SHA256', $secret, "#{ts}.#{payload}")
-        conn.write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nx-license-signature: #{sig}\r\nx-license-timestamp: #{ts}\r\nContent-Length: #{payload.bytesize}\r\n\r\n#{payload}")
+        version = request[/x-license-signature-version:\s*(\d+)\r/i, 1] || ''
+        code = $received.last['code'].to_s.strip
+        mid = $received.last['machineId'].to_s.strip
+        message =
+          if version == '3'
+            "#{ts}.#{code}|#{mid}.#{payload}"
+          elsif version == '1'
+            payload
+          else
+            "#{ts}.#{payload}"
+          end
+        sig = OpenSSL::HMAC.hexdigest('SHA256', $secret, message)
+        conn.write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nx-license-signature: #{sig}\r\nx-license-timestamp: #{ts}\r\nx-license-signature-version: #{version.empty? ? '2' : version}\r\nContent-Length: #{payload.bytesize}\r\n\r\n#{payload}")
       rescue StandardError => e
         warn "handler: #{e.class}: #{e.message}"
       ensure

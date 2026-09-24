@@ -304,11 +304,14 @@ static bool am_now_ms(long long *out) {
     return true;
 }
 
-static am_err am_verify_signature(const char *header_text, const char *body, const char *secret) {
+static am_err am_verify_signature(const char *header_text, const char *body, const char *secret,
+                                  const char *req_code, const char *req_machine_id) {
     char signature[129];
     char timestamp[32];
+    char version[16] = "";
     am_header_get(header_text, AM_SIGNATURE_HEADER, signature, sizeof(signature));
     am_header_get(header_text, AM_TIMESTAMP_HEADER, timestamp, sizeof(timestamp));
+    am_header_get(header_text, "x-license-signature-version", version, sizeof(version));
     if (!signature[0] || !timestamp[0]) return AM_ERR_SIGNATURE_MISSING;
 
     char *endp = NULL;
@@ -323,16 +326,39 @@ static am_err am_verify_signature(const char *header_text, const char *body, con
 
     unsigned char digest[EVP_MAX_MD_SIZE];
     unsigned int digest_len = 0;
-    /* v2 签名：HMAC(timestamp "." body)，防止截获签名配合伪造时间戳重放 */
+    /* 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body */
     size_t ts_len = strlen(timestamp);
     size_t body_len = strlen(body);
-    char *signed_input = malloc(ts_len + 1 + body_len);
-    if (!signed_input) return AM_ERR_SIGNATURE_INVALID;
-    memcpy(signed_input, timestamp, ts_len);
-    signed_input[ts_len] = '.';
-    memcpy(signed_input + ts_len + 1, body, body_len);
+    const char *ctx_part = "";
+    char ctx_buf[512];
+    if (strcmp(version, "3") == 0) {
+        const char *cv = req_code ? req_code : "";
+        const char *mv = req_machine_id ? req_machine_id : "";
+        snprintf(ctx_buf, sizeof(ctx_buf), "%s|%s", cv, mv);
+        ctx_part = ctx_buf;
+    } else if (strcmp(version, "1") == 0) {
+        /* v1：只签 body，由 ts_len=0 分支处理 */
+    }
+    size_t ctx_len = strlen(ctx_part);
+    size_t signed_len;
+    char *signed_input;
+    if (strcmp(version, "1") == 0) {
+        signed_len = body_len;
+        signed_input = malloc(body_len ? body_len : 1);
+        if (!signed_input) return AM_ERR_SIGNATURE_INVALID;
+        memcpy(signed_input, body, body_len);
+    } else {
+        signed_len = ts_len + 1 + ctx_len + 1 + body_len;
+        signed_input = malloc(signed_len);
+        if (!signed_input) return AM_ERR_SIGNATURE_INVALID;
+        memcpy(signed_input, timestamp, ts_len);
+        signed_input[ts_len] = '.';
+        memcpy(signed_input + ts_len + 1, ctx_part, ctx_len);
+        signed_input[ts_len + 1 + ctx_len] = '.';
+        memcpy(signed_input + ts_len + 1 + ctx_len + 1, body, body_len);
+    }
     HMAC(EVP_sha256(), secret, (int)strlen(secret),
-         (const unsigned char *)signed_input, (int)(ts_len + 1 + body_len),
+         (const unsigned char *)signed_input, (int)signed_len,
          digest, &digest_len);
     free(signed_input);
 
@@ -350,7 +376,8 @@ static am_err am_verify_signature(const char *header_text, const char *body, con
 
 /* 单次 HTTP 尝试。成功返回 AM_OK（业务失败也算），其他为错误。 */
 static am_err am_attempt(am_client *c, const char *path, const char *payload,
-                         long *status_code, am_buf *body, am_buf *headers) {
+                         long *status_code, am_buf *body, am_buf *headers,
+                         const char *req_code, const char *req_machine_id) {
     char url[1024];
     snprintf(url, sizeof(url), "%s%s", c->base_url, path);
 
@@ -366,6 +393,7 @@ static am_err am_attempt(am_client *c, const char *path, const char *payload,
 
     struct curl_slist *hdrs = NULL;
     hdrs = curl_slist_append(hdrs, "Content-Type: application/json");
+    hdrs = curl_slist_append(hdrs, "x-license-signature-version: 3");
     curl_easy_setopt(c->curl, CURLOPT_HTTPHEADER, hdrs);
 
     CURLcode code = curl_easy_perform(c->curl);
@@ -401,7 +429,7 @@ static am_result *am_call(am_client *c, const char *path, const char *code,
         am_buf headers = {0};
         long status_code = 0;
 
-        am_err err = am_attempt(c, path, payload, &status_code, &body, &headers);
+        am_err err = am_attempt(c, path, payload, &status_code, &body, &headers, code, machine_id);
 
         if (err == AM_ERR_NETWORK || err == AM_ERR_TIMEOUT) {
             {
@@ -422,7 +450,7 @@ static am_result *am_call(am_client *c, const char *path, const char *code,
 
 #ifdef AM_HAVE_OPENSSL
         if (c->response_secret && *c->response_secret) {
-            am_err sig_err = am_verify_signature(headers.data ? headers.data : "", body.data ? body.data : "", c->response_secret);
+            am_err sig_err = am_verify_signature(headers.data ? headers.data : "", body.data ? body.data : "", c->response_secret, code, machine_id);
             if (sig_err != AM_OK) {
                 free(body.data);
                 free(headers.data);

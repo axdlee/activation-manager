@@ -108,13 +108,19 @@ class ActivationManagerClient:
                     data=body,
                     headers={
                         "Content-Type": "application/json",
+                        "x-license-signature-version": "3",
                         **self.headers,
                     },
                     method="POST",
                 )
                 with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
                     raw = response.read().decode("utf-8")
-                    self._verify_signature_if_needed(response.headers, raw)
+                    self._verify_signature_if_needed(
+                        response.headers,
+                        raw,
+                        code=str(payload.get("code", "") or ""),
+                        machine_id=str(payload.get("machineId", "") or ""),
+                    )
                     parsed = json.loads(raw)
                     if not isinstance(parsed, dict):
                         raise LicenseClientError("INVALID_RESPONSE", "响应不是 JSON 对象", path, attempt)
@@ -149,11 +155,18 @@ class ActivationManagerClient:
 
         raise last_error or LicenseClientError("NETWORK_ERROR", "请求失败", path, attempt)
 
-    def _verify_signature_if_needed(self, response_headers: Any, raw_body: str) -> None:
+    def _verify_signature_if_needed(
+        self,
+        response_headers: Any,
+        raw_body: str,
+        code: str = "",
+        machine_id: str = "",
+    ) -> None:
         if not self.response_secret:
             return
         signature = response_headers.get(SIGNATURE_HEADER, "")
         timestamp = response_headers.get(TIMESTAMP_HEADER, "")
+        version = response_headers.get("x-license-signature-version", "") or ""
         if not signature or not timestamp:
             raise LicenseClientError("SIGNATURE_MISSING", "响应缺少签名头", "")
         try:
@@ -162,9 +175,16 @@ class ActivationManagerClient:
             raise LicenseClientError("SIGNATURE_INVALID", "签名时间戳非法", "")
         if abs(time.time() * 1000 - timestamp_ms) > SIGNATURE_MAX_AGE_MS:
             raise LicenseClientError("SIGNATURE_EXPIRED", "签名时间窗过期", "")
+        # 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        if version == "3":
+            message = f"{timestamp}.{code.strip()}|{machine_id.strip()}." + raw_body
+        elif version == "1":
+            message = raw_body
+        else:
+            message = f"{timestamp}." + raw_body
         expected = hmac.new(
             self.response_secret.encode("utf-8"),
-            f"{timestamp}.".encode("utf-8") + raw_body.encode("utf-8"),
+            message.encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
         if not hmac.compare_digest(expected, signature):

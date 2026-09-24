@@ -152,7 +152,7 @@ public final class ActivationManagerClient {
         ClientException last = null;
         for (int attempt = 1; attempt <= totalAttempts; attempt++) {
             try {
-                return attempt(path, body, attempt);
+                return attempt(path, body, attempt, code, machineId);
             } catch (ClientException e) {
                 last = e;
                 if (attempt < totalAttempts) {
@@ -163,11 +163,12 @@ public final class ActivationManagerClient {
         throw last;
     }
 
-    private Result attempt(String path, String body, int attempt) {
+    private Result attempt(String path, String body, int attempt, String code, String machineId) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(opts.baseUrl + path))
                 .timeout(opts.timeout)
                 .header("Content-Type", "application/json")
+                .header("x-license-signature-version", "3")
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
         opts.headers.forEach(builder::header);
 
@@ -183,7 +184,7 @@ public final class ActivationManagerClient {
 
         String raw = resp.body();
         if (opts.responseSecret != null && !opts.responseSecret.isEmpty()) {
-            verifySignature(resp.headers(), raw, opts.responseSecret);
+            verifySignature(resp.headers(), raw, opts.responseSecret, code, machineId);
         }
 
         Map<String, Object> parsed = Json.parse(raw);
@@ -198,7 +199,7 @@ public final class ActivationManagerClient {
         return new Result(parsed);
     }
 
-    private static void verifySignature(java.net.http.HttpHeaders headers, String rawBody, String secret) {
+    private static void verifySignature(java.net.http.HttpHeaders headers, String rawBody, String secret, String code, String machineId) {
         String signature = headers.firstValue(SIGNATURE_HEADER).orElse("");
         String timestamp = headers.firstValue(TIMESTAMP_HEADER).orElse("");
         if (signature.isEmpty() || timestamp.isEmpty()) {
@@ -213,7 +214,17 @@ public final class ActivationManagerClient {
         if (Math.abs(System.currentTimeMillis() - ts) > SIGNATURE_MAX_AGE_MS) {
             throw new ClientException(ErrorKind.SIGNATURE_EXPIRED, "signature timestamp outside window", "", 1);
         }
-        String expected = hmacSha256Hex(timestamp + "." + rawBody, secret);
+        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        String version = headers.firstValue("x-license-signature-version").orElse("");
+        String message;
+        if (version.equals("3")) {
+            message = timestamp + "." + code.trim() + "|" + machineId.trim() + "." + rawBody;
+        } else if (version.equals("1")) {
+            message = rawBody;
+        } else {
+            message = timestamp + "." + rawBody;
+        }
+        String expected = hmacSha256Hex(message, secret);
         if (!MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), signature.getBytes(StandardCharsets.UTF_8))) {
             throw new ClientException(ErrorKind.SIGNATURE_INVALID, "response signature mismatch", "", 1);
         }

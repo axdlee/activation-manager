@@ -123,7 +123,7 @@ final class ActivationManagerClient
             throw new ActivationManagerClientError('NETWORK_ERROR', 'curl init failed', $path, $attempt);
         }
 
-        $headers = ['Content-Type: application/json'];
+        $headers = ['Content-Type: application/json', 'x-license-signature-version: 3'];
         foreach ($this->headers as $name => $value) {
             $headers[] = $name . ': ' . $value;
         }
@@ -149,7 +149,12 @@ final class ActivationManagerClient
         [$headerText, $bodyText] = $this->splitResponse($raw);
 
         if ($this->responseSecret !== '') {
-            $this->verifySignature($headerText, $bodyText);
+            $this->verifySignature(
+                $headerText,
+                $bodyText,
+                (string)($payload['code'] ?? ''),
+                (string)($payload['machineId'] ?? '')
+            );
         }
 
         $parsed = json_decode($bodyText, true);
@@ -174,10 +179,11 @@ final class ActivationManagerClient
         return [substr($raw, 0, $offset), substr($raw, $offset + 4)];
     }
 
-    private function verifySignature(string $headerText, string $body): void
+    private function verifySignature(string $headerText, string $body, string $code = '', string $machineId = ''): void
     {
         $signature = '';
         $timestamp = '';
+        $version = '';
         foreach (explode("\r\n", $headerText) as $line) {
             [$name, $value] = array_pad(explode(':', $line, 2), 2, '');
             $lower = strtolower(trim($name));
@@ -185,6 +191,8 @@ final class ActivationManagerClient
                 $signature = trim($value);
             } elseif ($lower === self::TIMESTAMP_HEADER) {
                 $timestamp = trim($value);
+            } elseif ($lower === 'x-license-signature-version') {
+                $version = trim($value);
             }
         }
         if ($signature === '' || $timestamp === '') {
@@ -196,7 +204,15 @@ final class ActivationManagerClient
         if (abs($this->nowMs() - (int)$timestamp) > self::SIGNATURE_MAX_AGE_MS) {
             throw new ActivationManagerClientError('SIGNATURE_EXPIRED', 'signature timestamp outside window');
         }
-        $expected = hash_hmac('sha256', $timestamp . '.' . $body, $this->responseSecret);
+        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        if ($version === '3') {
+            $message = $timestamp . '.' . trim($code) . '|' . trim($machineId) . '.' . $body;
+        } elseif ($version === '1') {
+            $message = $body;
+        } else {
+            $message = $timestamp . '.' . $body;
+        }
+        $expected = hash_hmac('sha256', $message, $this->responseSecret);
         if (!hash_equals($expected, $signature)) {
             throw new ActivationManagerClientError('SIGNATURE_INVALID', 'response signature mismatch');
         }

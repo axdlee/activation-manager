@@ -31,12 +31,34 @@ fn start_mock() -> String {
             // 全部响应都带正确签名（验签失败路径由 wrong-secret client 覆盖）
             let mut headers = String::from("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n");
             let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+            // 版本协商：按请求声明的版本签名（SDK 声明 3 → 绑定 code|machineId）
+            let version = request
+                .to_ascii_lowercase()
+                .split("\r\n")
+                .find(|l| l.starts_with("x-license-signature-version:"))
+                .and_then(|l| l.split(':').nth(1))
+                .map(|v| v.trim().to_string())
+                .unwrap_or_default();
+            let code = req.get("code").and_then(|c| c.as_str()).unwrap_or("").trim().to_string();
+            let mid = req.get("machineId").and_then(|c| c.as_str()).unwrap_or("").trim().to_string();
             let mut mac = Hmac::<Sha256>::new_from_slice(SECRET.as_bytes()).unwrap();
-            mac.update(ts.to_string().as_bytes());
-            mac.update(b".");
-            mac.update(payload_str.as_bytes());
+            if version == "3" {
+                mac.update(format!("{}.", ts).as_bytes());
+                mac.update(format!("{}|{}.", code, mid).as_bytes());
+                mac.update(payload_str.as_bytes());
+            } else if version == "1" {
+                mac.update(payload_str.as_bytes());
+            } else {
+                mac.update(ts.to_string().as_bytes());
+                mac.update(b".");
+                mac.update(payload_str.as_bytes());
+            }
             let sig = hex::encode(mac.finalize().into_bytes());
             headers.push_str(&format!("x-license-signature: {}\r\nx-license-timestamp: {}\r\n", sig, ts));
+            headers.push_str(&format!(
+                "x-license-signature-version: {}\r\n",
+                if version.is_empty() { "2".to_string() } else { version }
+            ));
             headers.push_str(&format!("Content-Length: {}\r\n\r\n", payload_str.len()));
             let _ = stream.write_all(headers.as_bytes());
             let _ = stream.write_all(payload_str.as_bytes());

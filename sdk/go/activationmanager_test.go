@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -123,11 +124,29 @@ func TestSignatureVerification(t *testing.T) {
 	server := startServer(t, func(w http.ResponseWriter, r *http.Request) {
 		body := []byte(`{"success":true,"licenseMode":"TIME","license_mode":"TIME"}`)
 		ts := strconv.FormatInt(time.Now().UnixMilli(), 10)
+		// 模拟服务端版本协商：按请求声明的版本签名（SDK 声明 3 → 绑定 code|machineId）
+		var reqBody struct {
+			Code      string `json:"code"`
+			MachineID string `json:"machineId"`
+		}
+		reqBytes, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(reqBytes, &reqBody)
+		version := r.Header.Get(SignatureVersionHeader)
+		var message string
+		switch version {
+		case "3":
+			message = ts + "." + strings.TrimSpace(reqBody.Code) + "|" + strings.TrimSpace(reqBody.MachineID) + "." + string(body)
+		case "1":
+			message = string(body)
+		default:
+			message = ts + "." + string(body)
+		}
 		mac := hmac.New(sha256.New, []byte(testSecret))
-		mac.Write([]byte(ts + "." + string(body)))
+		mac.Write([]byte(message))
 		sig := hex.EncodeToString(mac.Sum(nil))
 		w.Header().Set(SignatureHeader, sig)
 		w.Header().Set(TimestampHeader, ts)
+		w.Header().Set(SignatureVersionHeader, version)
 		_, _ = w.Write(body)
 	})
 	defer server.Close()
