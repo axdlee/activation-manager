@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto'
+
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { resolveServerLocale, serverT } from '@/lib/i18n/server'
@@ -12,9 +14,11 @@ export const dynamic = 'force-dynamic'
  * 订单详情查询（供下单页轮询状态 / 获取已发卡密）。
  * 仅返回订单状态与已发卡密；联系方式等敏感信息不暴露。
  */
-export async function GET(
+// 可注入 prisma 客户端（测试用临时库），生产路径绑定全局单例
+export async function getShopOrderDetailRoute(
   request: NextRequest,
   { params }: { params: { orderNo: string } },
+  client: typeof prisma = prisma,
 ) {
   const t = serverT(resolveServerLocale(request))
 
@@ -29,7 +33,7 @@ export async function GET(
 
   const orderNo = params.orderNo
 
-  const order = await prisma.shopOrder.findUnique({
+  const order = await client.shopOrder.findUnique({
     where: { orderNo },
     include: { product: true },
   })
@@ -38,11 +42,19 @@ export async function GET(
     return NextResponse.json({ success: false, message: t('shop.orderNotFound') }, { status: 404 })
   }
 
+  // 卡密必须携带下单时签发的 accessToken 才能读取，防止仅凭订单号
+  // 枚举他人卡密；订单状态轮询不受影响
+  const token = request.nextUrl.searchParams.get('token') ?? ''
+  const hasValidToken =
+    Boolean(order.accessToken) &&
+    token.length === order.accessToken!.length &&
+    timingSafeEqual(Buffer.from(token), Buffer.from(order.accessToken!))
+
   let codes: Array<{ id: number; code: string; cardType: string | null }> = []
-  if (order.fulfilledCodeIds) {
+  if (hasValidToken && order.fulfilledCodeIds) {
     try {
       const codeIds = JSON.parse(order.fulfilledCodeIds) as number[]
-      codes = await prisma.activationCode.findMany({
+      codes = await client.activationCode.findMany({
         where: { id: { in: codeIds } },
         orderBy: { id: 'asc' },
         select: { id: true, code: true, cardType: true },
@@ -63,4 +75,8 @@ export async function GET(
     },
     codes: order.status === SHOP_ORDER_STATUS.FULFILLED ? codes : [],
   })
+}
+
+export async function GET(request: NextRequest, context: { params: { orderNo: string } }) {
+  return getShopOrderDetailRoute(request, context)
 }

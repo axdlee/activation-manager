@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
       success: true,
       order: {
         orderNo: order.orderNo,
+        accessToken: order.accessToken,
         quantity: order.quantity,
         amountInCents: order.amountInCents,
         status: order.status,

@@ -105,7 +105,7 @@ const serverEsES: Record<string, string> = {
   'sysconf.valueRange': 'La configuración del sistema {key} debe estar entre {min} y {max}',
   'password.changed': 'Contraseña cambiada correctamente. Vuelva a iniciar sesión',
   'password.changeFailed': 'No se pudo cambiar la contraseña. Inténtelo de nuevo',
-  'password.minLength': 'La nueva contraseña debe tener al menos 6 caracteres',
+  'password.minLength': 'La nueva contraseña debe tener al menos 8 caracteres',
   'password.fieldsRequired': 'Rellene todos los campos de contraseña',
   'password.mismatch': 'La nueva contraseña y su confirmación no coinciden',
   'password.adminNotFound': 'Cuenta de administrador no encontrada',

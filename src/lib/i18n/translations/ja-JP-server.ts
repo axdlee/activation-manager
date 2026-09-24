@@ -105,7 +105,7 @@ const serverJaJP: Record<string, string> = {
   'sysconf.valueRange': 'システム設定 {key} は {min}〜{max} の間である必要があります',
   'password.changed': 'パスワードを変更しました。再ログインしてください',
   'password.changeFailed': 'パスワードの変更に失敗しました。再試行してください',
-  'password.minLength': '新しいパスワードは 6 文字以上である必要があります',
+  'password.minLength': '新しいパスワードは 8 文字以上である必要があります',
   'password.fieldsRequired': 'すべてのパスワードフィールドを入力してください',
   'password.mismatch': '新しいパスワードと確認用パスワードが一致しません',
   'password.adminNotFound': '管理者アカウントが存在しません',

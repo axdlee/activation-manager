@@ -105,7 +105,7 @@ const serverFrFR: Record<string, string> = {
   'sysconf.valueRange': 'La configuration système {key} doit être comprise entre {min} et {max}',
   'password.changed': 'Mot de passe modifié avec succès, veuillez vous reconnecter',
   'password.changeFailed': 'Échec de la modification du mot de passe, veuillez réessayer',
-  'password.minLength': 'Le nouveau mot de passe doit contenir au moins 6 caractères',
+  'password.minLength': 'Le nouveau mot de passe doit contenir au moins 8 caractères',
   'password.fieldsRequired': 'Veuillez remplir tous les champs de mot de passe',
   'password.mismatch': 'Le nouveau mot de passe et sa confirmation ne correspondent pas',
   'password.adminNotFound': 'Compte administrateur introuvable',

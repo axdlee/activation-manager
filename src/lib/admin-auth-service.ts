@@ -2,6 +2,7 @@ import { isIP } from 'node:net'
 
 import { getConfigWithDefault, MissingRequiredSystemConfigError } from './config-service'
 import { verifyToken } from './jwt'
+import { prisma } from './db'
 import {
   type AdminAuthFailureCode,
   type AdminJwtPayload,
@@ -27,6 +28,8 @@ type AuthorizeAdminRequestOptions = {
 type AuthorizeAdminRequestDependencies = {
   getAllowedIPs: () => Promise<unknown>
   verifyToken: (token: string) => Promise<AdminJwtPayload | null>
+  /** 返回当前令牌版本；账户不存在返回 null（跳过版本校验，兼容 dev 兜底令牌）；可选，缺省跳过 */
+  getTokenVersion?: (username: string) => Promise<number | null>
 }
 
 function buildAuthFailure(
@@ -143,6 +146,13 @@ export async function authorizeAdminRequest(
   dependencies: AuthorizeAdminRequestDependencies = {
     getAllowedIPs: () => getConfigWithDefault('allowedIPs'),
     verifyToken,
+    getTokenVersion: async (username) =>
+      (
+        await prisma.admin.findUnique({
+          where: { username },
+          select: { tokenVersion: true },
+        })
+      )?.tokenVersion ?? null,
   },
 ): Promise<AdminAuthResult> {
   const mode = options.mode || 'protected'
@@ -169,6 +179,15 @@ export async function authorizeAdminRequest(
     const payload = await dependencies.verifyToken(token)
     if (!payload) {
       return buildAuthFailure('token_invalid', '无效的认证令牌', 401)
+    }
+
+    // 令牌版本校验：改密后 tokenVersion 自增，旧令牌立即失效
+    // （getTokenVersion 缺省时跳过，兼容测试注入的最小依赖集）
+    if (payload.username && dependencies.getTokenVersion) {
+      const currentVersion = await dependencies.getTokenVersion(payload.username)
+      if (currentVersion !== null && (payload.tokenVersion ?? 0) !== currentVersion) {
+        return buildAuthFailure('token_invalid', '认证令牌已失效，请重新登录', 401)
+      }
     }
 
     return {

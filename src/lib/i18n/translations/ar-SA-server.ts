@@ -105,7 +105,7 @@ const serverArSA: Record<string, string> = {
   'sysconf.valueRange': 'يجب أن يكون إعداد النظام {key} بين {min} و{max}',
   'password.changed': 'تم تغيير كلمة المرور بنجاح، يرجى تسجيل الدخول مرة أخرى',
   'password.changeFailed': 'فشل تغيير كلمة المرور، يرجى إعادة المحاولة',
-  'password.minLength': 'يجب ألا يقل طول كلمة المرور الجديدة عن 6 أحرف',
+  'password.minLength': 'يجب ألا يقل طول كلمة المرور الجديدة عن 8 أحرف',
   'password.fieldsRequired': 'يرجى ملء جميع حقول كلمة المرور',
   'password.mismatch': 'كلمة المرور الجديدة لا تتطابق مع تأكيد كلمة المرور',
   'password.adminNotFound': 'حساب المسؤول غير موجود',

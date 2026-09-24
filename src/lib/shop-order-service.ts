@@ -43,6 +43,11 @@ export function normalizeShopOrderQuantity(value: unknown, t?: ServerT): number 
   return quantity
 }
 
+/** 订单详情查询令牌：下单时生成，查询已发卡密必须携带，防订单号枚举 */
+export function generateShopOrderAccessToken() {
+  return randomBytes(16).toString('hex')
+}
+
 export function generateShopOrderNo() {
   const timestamp = Date.now().toString(36).toUpperCase()
   const random = randomBytes(4).toString('hex').toUpperCase()
@@ -129,6 +134,7 @@ export async function createShopOrder(input: CreateShopOrderInput, t?: ServerT) 
       const created = await tx.shopOrder.create({
         data: {
           orderNo,
+          accessToken: generateShopOrderAccessToken(),
           productId: product.id,
           quantity,
           amountInCents: product.priceInCents * quantity,
@@ -181,6 +187,7 @@ export async function createShopOrder(input: CreateShopOrderInput, t?: ServerT) 
   const order = await prisma.shopOrder.create({
     data: {
       orderNo,
+      accessToken: generateShopOrderAccessToken(),
       productId: product.id,
       quantity,
       amountInCents: product.priceInCents * quantity,

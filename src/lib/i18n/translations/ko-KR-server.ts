@@ -105,7 +105,7 @@ const serverKoKR: Record<string, string> = {
   'sysconf.valueRange': '시스템 구성 {key}은(는) {min}에서 {max} 사이여야 합니다',
   'password.changed': '비밀번호가 변경되었습니다. 다시 로그인해 주세요.',
   'password.changeFailed': '비밀번호 변경에 실패했습니다. 다시 시도해 주세요.',
-  'password.minLength': '새 비밀번호는 6자 이상이어야 합니다',
+  'password.minLength': '새 비밀번호는 8자 이상이어야 합니다',
   'password.fieldsRequired': '모든 비밀번호 필드를 입력해 주세요',
   'password.mismatch': '새 비밀번호와 확인 비밀번호가 일치하지 않습니다',
   'password.adminNotFound': '관리자 계정이 존재하지 않습니다',

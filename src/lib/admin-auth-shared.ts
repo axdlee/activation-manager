@@ -17,6 +17,7 @@ export type AdminAuthSuccessResult = {
 export type AdminJwtPayload = JWTPayload & {
   username?: string
   isAdmin?: boolean
+  tokenVersion?: number
 }
 
 export type AdminAuthFailureResult = {

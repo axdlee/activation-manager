@@ -36,6 +36,7 @@ type PaymentChannel = {
 
 type CreatedOrder = {
   orderNo: string
+  accessToken?: string
   amountInCents: number
   status: string
   provider: string
@@ -79,6 +80,7 @@ export function ShopPage() {
   const [error, setError] = useState('')
 
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null)
+  const [createdAccessToken, setCreatedAccessToken] = useState<string | null>(null)
   const [payment, setPayment] = useState<PaymentInfo | null>(null)
   const [fulfilled, setFulfilled] = useState<FulfilledResult | null>(null)
 
@@ -150,6 +152,7 @@ export function ShopPage() {
   const handleCreateOrder = async () => {
     setError('')
     setCreatedOrder(null)
+    setCreatedAccessToken(null)
     setPayment(null)
     setFulfilled(null)
 
@@ -190,6 +193,7 @@ export function ShopPage() {
       }
 
       setCreatedOrder(data.order)
+      setCreatedAccessToken(data.order.accessToken ?? null)
       setPayment(data.payment ?? null)
 
       // 轮询订单状态，支付成功后自动显示卡密
@@ -206,11 +210,12 @@ export function ShopPage() {
     const timer = window.setInterval(async () => {
       attempts += 1
       try {
-        const response = await fetch(`/api/shop/orders/${orderNo}`)
+        const tokenQuery = createdAccessToken ? `?token=${encodeURIComponent(createdAccessToken)}` : ''
+        const response = await fetch(`/api/shop/orders/${orderNo}${tokenQuery}`)
         const data = (await response.json()) as { success: boolean; order?: { status: string } }
         if (data.success && data.order?.status === 'fulfilled') {
           window.clearInterval(timer)
-          const detail = await fetch(`/api/shop/orders/${orderNo}`)
+          const detail = await fetch(`/api/shop/orders/${orderNo}${tokenQuery}`)
           const detailData = (await detail.json()) as { order?: unknown; codes?: Array<{ id: number; code: string; cardType: string | null }> }
           setFulfilled({
             order: {

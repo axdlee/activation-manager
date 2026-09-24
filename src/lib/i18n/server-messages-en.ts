@@ -105,7 +105,7 @@ const serverMessagesEn: Record<string, string> = {
   'sysconf.valueRange': 'System configuration {key} must be between {min} and {max}',
   'password.changed': 'Password changed successfully, please log in again',
   'password.changeFailed': 'Failed to change password, please retry',
-  'password.minLength': 'New password must be at least 6 characters',
+  'password.minLength': 'New password must be at least 8 characters',
   'password.fieldsRequired': 'Please fill in all password fields',
   'password.mismatch': 'New password and confirmation do not match',
   'password.adminNotFound': 'Admin account not found',

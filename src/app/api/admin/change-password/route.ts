@@ -7,6 +7,9 @@ import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
 import { getConfigWithDefault } from '@/lib/config-service'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
+import { signToken } from '@/lib/jwt'
+import { getJwtSessionCookieMaxAge } from '@/lib/jwt-session'
+import { resolveCookieSecure } from '@/lib/cookie-secure'
 
 export const POST = createProtectedAdminRouteHandler(
   async (request: NextRequest, authResult: AdminAuthSuccessResult) => {
@@ -23,7 +26,7 @@ export const POST = createProtectedAdminRouteHandler(
       )
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       return NextResponse.json(
         {
           success: false,
@@ -61,9 +64,16 @@ export const POST = createProtectedAdminRouteHandler(
     const bcryptRounds = await getConfigWithDefault('bcryptRounds')
     const newPasswordHash = await bcrypt.hash(newPassword, bcryptRounds)
 
-    await prisma.admin.update({
+    // tokenVersion 自增使所有旧令牌立即失效；随后签发带新版本号的
+    // 令牌写回 Cookie，当前会话无感续期，其他已登录会话全部踢出
+    const updatedAdmin = await prisma.admin.update({
       where: { id: admin.id },
-      data: { password: newPasswordHash },
+      data: { password: newPasswordHash, tokenVersion: { increment: 1 } },
+    })
+    const newToken = await signToken({
+      username: updatedAdmin.username,
+      isAdmin: true,
+      tokenVersion: updatedAdmin.tokenVersion,
     })
 
     await recordAdminOperationAuditLog(prisma, {
@@ -73,10 +83,19 @@ export const POST = createProtectedAdminRouteHandler(
       targetLabel: authResult.payload?.username,
     })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: t('password.changed'),
     })
+
+    response.cookies.set('auth-token', newToken, {
+      httpOnly: true,
+      secure: resolveCookieSecure(request),
+      sameSite: 'strict',
+      maxAge: await getJwtSessionCookieMaxAge(),
+    })
+
+    return response
   },
   {
     logLabel: '密码修改失败',

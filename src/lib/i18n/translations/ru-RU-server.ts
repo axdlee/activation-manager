@@ -105,7 +105,7 @@ const serverRuRU: Record<string, string> = {
   'sysconf.valueRange': 'Элемент конфигурации системы {key} должен быть в диапазоне от {min} до {max}',
   'password.changed': 'Пароль успешно изменен, выполните вход заново',
   'password.changeFailed': 'Не удалось изменить пароль, повторите попытку',
-  'password.minLength': 'Новый пароль должен содержать не менее 6 символов',
+  'password.minLength': 'Новый пароль должен содержать не менее 8 символов',
   'password.fieldsRequired': 'Заполните все поля пароля',
   'password.mismatch': 'Новый пароль и подтверждение не совпадают',
   'password.adminNotFound': 'Учетная запись администратора не найдена',

@@ -87,9 +87,9 @@ test('buildChangePasswordPageModel 会为推荐密码生成正向状态', () => 
 
 test('buildChangePasswordPageModel 会识别重复密码与确认不一致', () => {
   const model = buildChangePasswordPageModel({
-    currentPassword: '123456',
-    newPassword: '123456',
-    confirmPassword: '12345',
+    currentPassword: '12345678',
+    newPassword: '12345678',
+    confirmPassword: '1234567',
   })
 
   assert.equal(model.summaryCards[1].value, '基础')

@@ -120,11 +120,12 @@ model LicenseConsumption {
 }
 
 model Admin {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String   // bcrypt哈希
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  password     String   // bcrypt哈希
+  tokenVersion Int      @default(0) // 改密后自增，使旧令牌失效
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("admins")
 }
@@ -196,6 +197,7 @@ model ShopProductCodeStock {
 model ShopOrder {
   id                 Int         @id @default(autoincrement())
   orderNo            String      @unique
+  accessToken        String?     @unique // 订单详情查询令牌（防订单号枚举读卡密）
   productId          Int
   product            ShopProduct @relation(fields: [productId], references: [id])
   quantity           Int         @default(1) // 购买数量（一单可发多张卡）

@@ -42,8 +42,61 @@ export function isSmsNotificationConfigured(config: SmsNotificationConfig | null
   return config !== null && Boolean(config.apiUrl) && config.phones.length > 0
 }
 
+const SMS_PHONE_SENTINEL = '__SMS_PHONE_PLACEHOLDER__'
+const SMS_CONTENT_SENTINEL = '__SMS_CONTENT_PLACEHOLDER__'
+
+function replaceSmsSentinelsDeep(
+  node: unknown,
+  phone: string,
+  content: string,
+): unknown {
+  if (typeof node === 'string') {
+    return node
+      .split(SMS_PHONE_SENTINEL)
+      .join(phone)
+      .split(SMS_CONTENT_SENTINEL)
+      .join(content)
+  }
+
+  if (Array.isArray(node)) {
+    return node.map((item) => replaceSmsSentinelsDeep(item, phone, content))
+  }
+
+  if (node !== null && typeof node === 'object') {
+    return Object.fromEntries(
+      Object.entries(node).map(([key, value]) => [
+        key,
+        replaceSmsSentinelsDeep(value, phone, content),
+      ]),
+    )
+  }
+
+  return node
+}
+
 export function renderSmsBody(template: string, phone: string, content: string) {
-  return template.split('{phone}').join(phone).split('{content}').join(content)
+  const skeleton = template
+    .split('{phone}')
+    .join(SMS_PHONE_SENTINEL)
+    .split('{content}')
+    .join(SMS_CONTENT_SENTINEL)
+
+  // JSON 模板（如 {"text":"{content}"}）：解析后回填原值，
+  // 再由 JSON.stringify 统一转义引号/换行，避免手拼破坏报文
+  try {
+    const parsed: unknown = JSON.parse(skeleton)
+    if (parsed !== null && typeof parsed === 'object') {
+      return JSON.stringify(replaceSmsSentinelsDeep(parsed, phone, content))
+    }
+  } catch {
+    // 非 JSON 模板，走纯文本替换
+  }
+
+  return skeleton
+    .split(SMS_PHONE_SENTINEL)
+    .join(phone)
+    .split(SMS_CONTENT_SENTINEL)
+    .join(content)
 }
 
 export type SmsSendResult = {

@@ -63,8 +63,8 @@ export function SecurityPage() {
       showMessage(t('securityPage.mismatch', '新密码与确认密码不匹配'), 'error')
       return
     }
-    if (newPassword.length < 6) {
-      showMessage(t('securityPage.tooShort', '新密码长度不能少于6位'), 'error')
+    if (newPassword.length < 8) {
+      showMessage(t('securityPage.tooShort', '新密码长度不能少于8位'), 'error')
       return
     }
 

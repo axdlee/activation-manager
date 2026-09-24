@@ -105,7 +105,7 @@ const serverMessagesZh: Record<string, string> = {
   'sysconf.valueRange': '系统配置 {key} 必须在 {min} 到 {max} 之间',
   'password.changed': '密码修改成功，请重新登录',
   'password.changeFailed': '密码修改失败，请重试',
-  'password.minLength': '新密码长度不能少于6位',
+  'password.minLength': '新密码长度不能少于8位',
   'password.fieldsRequired': '请填写所有密码字段',
   'password.mismatch': '新密码与确认密码不匹配',
   'password.adminNotFound': '管理员账号不存在',

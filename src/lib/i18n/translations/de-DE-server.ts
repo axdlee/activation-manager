@@ -105,7 +105,7 @@ const serverDeDE: Record<string, string> = {
   'sysconf.valueRange': 'Systemkonfiguration {key} muss zwischen {min} und {max} liegen',
   'password.changed': 'Passwort erfolgreich geändert, bitte melden Sie sich erneut an',
   'password.changeFailed': 'Änderung des Passworts fehlgeschlagen, bitte versuchen Sie es erneut',
-  'password.minLength': 'Das neue Passwort muss mindestens 6 Zeichen lang sein',
+  'password.minLength': 'Das neue Passwort muss mindestens 8 Zeichen lang sein',
   'password.fieldsRequired': 'Bitte füllen Sie alle Passwortfelder aus',
   'password.mismatch': 'Das neue Passwort und die Bestätigung stimmen nicht überein',
   'password.adminNotFound': 'Administratorkonto nicht gefunden',

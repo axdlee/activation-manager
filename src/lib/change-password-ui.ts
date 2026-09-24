@@ -31,7 +31,7 @@ function resolvePasswordStrength(newPassword: string, t?: PasswordUiTranslate) {
     }
   }
 
-  if (newPassword.length < 6) {
+  if (newPassword.length < 8) {
     return {
       label: t?.('pwdui.strength.tooShort.label') ?? '过短',
       tone: 'danger' as const,
@@ -109,9 +109,9 @@ export function buildChangePasswordPageModel(
   const checklist: ChangePasswordChecklistItem[] = [
     {
       key: 'length',
-      label: t?.('pwdui.checklist.length.label') ?? '至少 6 位',
+      label: t?.('pwdui.checklist.length.label') ?? '至少 8 位',
       description: t?.('pwdui.checklist.length.desc') ?? '满足接口要求的最低长度限制',
-      satisfied: input.newPassword.length >= 6,
+      satisfied: input.newPassword.length >= 8,
     },
     {
       key: 'difference',

@@ -105,7 +105,7 @@ const serverPtBR: Record<string, string> = {
   'sysconf.valueRange': 'A configuração do sistema {key} deve estar entre {min} e {max}',
   'password.changed': 'Senha alterada com sucesso, faça login novamente',
   'password.changeFailed': 'Falha ao alterar a senha, tente novamente',
-  'password.minLength': 'A nova senha deve ter pelo menos 6 caracteres',
+  'password.minLength': 'A nova senha deve ter pelo menos 8 caracteres',
   'password.fieldsRequired': 'Preencha todos os campos de senha',
   'password.mismatch': 'A nova senha e a confirmação não coincidem',
   'password.adminNotFound': 'Conta de administrador não encontrada',

@@ -36,6 +36,27 @@ export const adminLoginRouteDependencies: {
   rateLimiter: adminLoginRateLimiter,
 }
 
+// 限流表按时间清理：登录时每小时触发一次，删除 24 小时未更新的行，
+// 避免失败计数/锁定记录在数据库里无限累积
+const RATE_LIMIT_SWEEP_INTERVAL_MS = 60 * 60 * 1000
+const RATE_LIMIT_ROW_RETENTION_MS = 24 * 60 * 60 * 1000
+let lastRateLimitSweepAt = 0
+
+export function maybeSweepAdminLoginRateLimitStore(
+  now = Date.now(),
+  client: Pick<typeof prisma, 'adminLoginRateLimitState'> = prisma,
+) {
+  if (now - lastRateLimitSweepAt < RATE_LIMIT_SWEEP_INTERVAL_MS) {
+    return
+  }
+  lastRateLimitSweepAt = now
+  void client.adminLoginRateLimitState
+    .deleteMany({
+      where: { updatedAt: { lt: new Date(now - RATE_LIMIT_ROW_RETENTION_MS) } },
+    })
+    .catch(() => undefined)
+}
+
 async function createInvalidCredentialsResponse(keys: string[], message: string) {
   // 失败计数同时落在 IP 与用户名两个维度：只按 IP 计数时，攻击者可
   // 通过轮换 X-Forwarded-For 重置计数；叠加用户名维度后，针对同一账号
@@ -97,6 +118,8 @@ export async function handleAdminLoginRequest(request: NextRequest) {
       return await createInvalidCredentialsResponse([clientIp, usernameRateLimitKey], t('auth.loginFailed'))
     }
 
+    maybeSweepAdminLoginRateLimitStore()
+
     const isValid = await bcrypt.compare(password, admin.password)
     if (!isValid) {
       if (usernameLocked) {
@@ -111,7 +134,7 @@ export async function handleAdminLoginRequest(request: NextRequest) {
     await adminLoginRouteDependencies.rateLimiter.reset(clientIp)
     await adminLoginRouteDependencies.rateLimiter.reset(usernameRateLimitKey)
 
-    const token = await signToken({ username, isAdmin: true })
+    const token = await signToken({ username, isAdmin: true, tokenVersion: admin.tokenVersion })
     const sessionCookieMaxAge = await getJwtSessionCookieMaxAge()
 
     await recordAdminOperationAuditLog(prisma, {

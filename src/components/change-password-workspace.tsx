@@ -80,9 +80,9 @@ function getChangePasswordFields(t: (key: string, fallback?: string) => string):
       key: 'newPassword',
       label: t('pwdws.field.new.label', '新密码'),
       description: t('pwdws.field.new.description', '建议至少 10 位，并加入数字与符号。'),
-      placeholder: t('pwdws.field.new.placeholder', '请输入新密码（至少6位）'),
+      placeholder: t('pwdws.field.new.placeholder', '请输入新密码（至少8位）'),
       autoComplete: 'new-password',
-      minLength: 6,
+      minLength: 8,
     },
     {
       key: 'confirmPassword',
@@ -90,7 +90,7 @@ function getChangePasswordFields(t: (key: string, fallback?: string) => string):
       description: t('pwdws.field.confirm.description', '再次输入新密码，避免误保存。'),
       placeholder: t('pwdws.field.confirm.placeholder', '请再次输入新密码'),
       autoComplete: 'new-password',
-      minLength: 6,
+      minLength: 8,
     },
   ]
 }
