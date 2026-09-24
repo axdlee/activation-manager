@@ -60,6 +60,7 @@ COPY --from=builder --chown=node:node /app/.next-build ./.next-build
 COPY --from=builder --chown=node:node /app/.next-bootstrap ./.next-bootstrap
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 COPY --from=builder --chown=node:node /app/next.config.js ./next.config.js
+COPY --from=builder --chown=node:node /app/server.js ./server.js
 COPY --from=builder --chown=node:node /app/tsconfig.json ./tsconfig.json
 COPY --from=builder --chown=node:node /app/scripts ./scripts
 COPY --from=builder --chown=node:node /app/prisma ./prisma
