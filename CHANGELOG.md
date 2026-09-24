@@ -46,6 +46,10 @@
 - `restore-db.sh` 修复 `file:./dev.db` 相对路径按 schema 目录解析
 - 内嵌 TS 客户端（`license-sdk.ts`）验签从 v1 修正为版本协商（v2.9.0 起已断）
 
+#### 已知问题（暂不处理）
+- `postcss` 依赖存在安全审计告警，修复依赖 Next.js 16 内置版本升级
+  （Next 15.5 锁定 postcss 8.4.31）；待框架大版本升级时一并解决
+
 ## [v2.9.0] - 2026-09-24
 
 ### PostgreSQL 支持 🐘

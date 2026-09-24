@@ -43,8 +43,13 @@ export async function getShopOrderDetailRoute(
   }
 
   // 卡密必须携带下单时签发的 accessToken 才能读取，防止仅凭订单号
-  // 枚举他人卡密；订单状态轮询不受影响
-  const token = request.nextUrl.searchParams.get('token') ?? ''
+  // 枚举他人卡密；订单状态轮询不受影响。
+  // 令牌优先取 X-Order-Token 请求头（避免 URL 进入访问日志/Referrer 泄漏），
+  // URL ?token= 参数保留向后兼容。
+  const token =
+    request.headers.get('x-order-token') ??
+    request.nextUrl.searchParams.get('token') ??
+    ''
   const hasValidToken =
     Boolean(order.accessToken) &&
     token.length === order.accessToken!.length &&

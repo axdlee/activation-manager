@@ -199,11 +199,17 @@ export async function authorizeAdminRequest(
       return buildAuthFailure('token_invalid', '无效的认证令牌', 401)
     }
 
-    // 令牌版本校验：改密后 tokenVersion 自增，旧令牌立即失效
-    // （getTokenVersion 缺省时跳过，兼容测试注入的最小依赖集）
+    // 令牌版本校验：改密后 tokenVersion 自增，旧令牌立即失效。
+    // 账户不存在（null）：生产环境一律拒绝——不再静默跳过版本校验；
+    // 开发模式保留跳过，兼容无账户记录的开发兜底令牌。
+    // （getTokenVersion 缺省时整体跳过，兼容测试注入的最小依赖集）
     if (payload.username && dependencies.getTokenVersion) {
       const currentVersion = await dependencies.getTokenVersion(payload.username)
-      if (currentVersion !== null && (payload.tokenVersion ?? 0) !== currentVersion) {
+      if (currentVersion === null) {
+        if (nodeEnv === 'production') {
+          return buildAuthFailure('token_invalid', '认证令牌已失效，请重新登录', 401)
+        }
+      } else if ((payload.tokenVersion ?? 0) !== currentVersion) {
         return buildAuthFailure('token_invalid', '认证令牌已失效，请重新登录', 401)
       }
     }

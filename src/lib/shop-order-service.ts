@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { type PrismaClient } from '@prisma/client'
 
 import { prisma } from './db'
-import { getEnabledPaymentConfig } from './shop-payment-registry'
+import { getEnabledPaymentConfig, getPaymentProvider } from './shop-payment-registry'
 import {
   releaseExpiredShopStockReservations,
   resolveShopStockReservationTtlMs,
@@ -188,6 +188,13 @@ export async function createShopOrder(input: CreateShopOrderInput, t?: ServerT) 
   }
   if (input.contactWechat && input.contactWechat.trim().length > 64) {
     throw new ShopOrderError(t?.(SHOP_ORDER_MESSAGE_KEYS.invalidWechat) ?? '微信号格式不正确', 400)
+  }
+
+  // 占位渠道（验签未实现的适配器）即使后台误启用也不允许下单，
+  // 防止绕过前台渠道过滤直调 API 生成永远无法支付的订单
+  const providerDefinition = getPaymentProvider(input.providerId)
+  if (providerDefinition?.callbackTrust === 'placeholder') {
+    throw new ShopOrderError(t?.(SHOP_ORDER_MESSAGE_KEYS.paymentProviderDisabled) ?? '支付渠道未启用', 400)
   }
 
   const paymentConfig = await getEnabledPaymentConfig(input.providerId)
