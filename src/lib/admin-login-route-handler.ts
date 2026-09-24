@@ -9,6 +9,7 @@ import {
 } from '@/lib/admin-login-rate-limit'
 import { MissingRequiredSystemConfigError } from '@/lib/config-service'
 import { prisma } from '@/lib/db'
+import { isClientIpInAdminWhitelist } from '@/lib/admin-auth-service'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 import { getJwtSessionCookieMaxAge } from '@/lib/jwt-session'
 import { signToken } from '@/lib/jwt'
@@ -32,8 +33,11 @@ function createRateLimitedResponse(retryAfterSeconds: number, message: string) {
 
 export const adminLoginRouteDependencies: {
   rateLimiter: AsyncAdminLoginRateLimiter
+  /** 锁定期间的来源放行判定：白名单来源才允许完成密码校验 */
+  isClientIpWhitelisted: (clientIp: string) => Promise<boolean>
 } = {
   rateLimiter: adminLoginRateLimiter,
+  isClientIpWhitelisted: isClientIpInAdminWhitelist,
 }
 
 // 限流表按时间清理：登录时每小时触发一次，删除 24 小时未更新的行，
@@ -92,15 +96,27 @@ export async function handleAdminLoginRequest(request: NextRequest) {
 
     // 按用户名维度的第二道限流：同一账号无论来源 IP 如何轮换，失败
     // 次数达到阈值后同样锁定。
-    // 注意：用户名维度锁定只拦「继续试错」，不能拦「正确凭据」——
-    // 否则外部攻击者换 IP 错输 5 次即可把真实管理员永久锁在门外
-    // （登录接口不受 IP 白名单保护，属于可远程触发的 DoS）。因此
-    // 锁定时仍照常校验密码：密码正确 → 正常放行并重置计数；
-    // 密码错误 → 返回 429（不消耗额外信息，也不暴露账号是否存在）。
+    // 锁定语义：锁定期间只有「白名单来源」可以继续完成密码校验——
+    // 正确密码放行并重置计数（防外部错输几次就把真实管理员远程锁死），
+    // 错误密码返回 429。非白名单来源在锁定期间一律 429（即使密码正确）：
+    // 否则攻击者轮换可伪造的来源标记即可在锁定状态下持续撞库，用户名
+    // 维度限流形同虚设。白名单复用 authorizeAdminRequest 的同一套
+    // ALLOWED_IPS 覆盖 / DB 配置 / CIDR 规则（非生产环境恒放行）。
     const usernameRateLimitKey = `username:${String(username)}`
     const usernameRateLimitResult =
       await adminLoginRouteDependencies.rateLimiter.check(usernameRateLimitKey)
     const usernameLocked = !usernameRateLimitResult.allowed
+
+    if (usernameLocked) {
+      const sourceWhitelisted =
+        await adminLoginRouteDependencies.isClientIpWhitelisted(clientIp)
+      if (!sourceWhitelisted) {
+        return createRateLimitedResponse(
+          usernameRateLimitResult.retryAfterSeconds,
+          t('auth.loginRateLimited'),
+        )
+      }
+    }
 
     const admin = await prisma.admin.findUnique({
       where: { username },

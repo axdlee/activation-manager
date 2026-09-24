@@ -12,7 +12,7 @@
     "bootstrap:runtime": "tsx scripts/bootstrap-runtime.ts",
     "smoke:license-api": "bash ./scripts/smoke-license-api.sh",
     "build": "NEXT_DIST_DIR=.next-build next build",
-    "start": "NEXT_DIST_DIR=.next-build next start",
+    "start": "NEXT_DIST_DIR=.next-build node server.js",
     "test": "node --import tsx --test --test-concurrency=1 \"tests/**/*.test.ts\"",
     "test:coverage": "node --experimental-test-coverage --test-coverage-exclude=\"tests/**\" --test-coverage-lines=90 --test-coverage-branches=85 --test-coverage-functions=90 --import tsx --test --test-concurrency=1 \"tests/**/*.test.ts\"",
     "lint": "next lint",

@@ -141,6 +141,23 @@ function isDynamicServerUsageError(error: unknown) {
   )
 }
 
+/**
+ * 「白名单来源」判定（登录锁定语义用）：与 authorizeAdminRequest 共用同一套
+ * ALLOWED_IPS 环境覆盖 / DB 白名单配置 / 精确与 CIDR 规则。非生产环境恒放行，
+ * 与 isIpAllowed 的开发放宽保持一致。
+ */
+export async function isClientIpInAdminWhitelist(
+  clientIp: string,
+  dependencies: { getAllowedIPs: () => Promise<unknown> } = {
+    getAllowedIPs: () => getConfigWithDefault('allowedIPs'),
+  },
+  nodeEnv: string = process.env.NODE_ENV || 'development',
+): Promise<boolean> {
+  const allowedIPs =
+    resolveAllowedIPsEnvOverride() ?? normalizeAllowedIPs(await dependencies.getAllowedIPs())
+  return isIpAllowed(clientIp, allowedIPs, nodeEnv)
+}
+
 export async function authorizeAdminRequest(
   request: RequestLike,
   options: AuthorizeAdminRequestOptions = {},

@@ -7,14 +7,18 @@ services:
     restart: unless-stopped
     init: true
     ports:
-      - "${PORT:-3000}:3000"
+      # 默认仅绑定宿主机回环：直连暴露时客户端无法从外部访问，
+      # 需要其他来源访问时显式改为 "${PORT:-3000}:3000" 并配合防火墙
+      - "127.0.0.1:${PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
       JWT_SECRET: ${JWT_SECRET:?请先在 .env 中配置 JWT_SECRET}
       ALLOWED_IPS: ${ALLOWED_IPS:-127.0.0.1,::1,172.16.0.0/12}
-      # 客户端与本服务之间的可信代理层数（XFF 从右往左取位），默认 1；
-      # 反代部署按真实层数设置，详见 .env.example 注释
+      # 客户端 IP 取位：从 X-Forwarded-For 尾部倒数第 N 个条目。
+      # 应用入站时会追加本机观察到的 socket 地址（防伪造），因此：
+      # 直连（无反代）= 1；经 N 层可信反代 = N+1。
+      # v2.9.0 及之前语义为「代理层数」，反代部署升级后需 +1
       TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-1}
       # 仅首次初始化（数据库中无管理员）时需要；已有管理员的存量库可不设置
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}

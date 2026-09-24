@@ -34,4 +34,8 @@ else
   npm run bootstrap:runtime
 fi
 
-exec npm run start -- --hostname "${APP_HOST}" --port "${PORT}"
+# 自定义 server：入站请求统一追加 socket 对端地址到 X-Forwarded-For 尾部
+# （防直连伪造 XFF 绕过 IP 白名单），镜像内构建输出目录为 .next-build
+export NEXT_DIST_DIR="${NEXT_DIST_DIR:-.next-build}"
+export APP_HOST="${APP_HOST:-0.0.0.0}"
+exec node server.js

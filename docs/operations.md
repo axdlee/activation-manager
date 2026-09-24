@@ -51,18 +51,22 @@
 
 ## 客户端 IP 与白名单（TRUSTED_PROXY_COUNT）
 
-客户端 IP 从 `X-Forwarded-For` 倒数第 N 个条目解析（从右往左数，N=`TRUSTED_PROXY_COUNT`，默认 1）：
+客户端 IP 从 `X-Forwarded-For` 倒数第 N 个条目解析（从右往左数，N=`TRUSTED_PROXY_COUNT`，默认 1）。
 
-| 部署形态 | 建议配置 | 说明 |
+生产入口（`server.js`，Docker 镜像同）在请求进入应用前，把本机观察到的 socket 对端地址追加到 XFF 尾部（回环来源除外——middleware 的内部鉴权回环跳保持「XFF 与边缘收到时一致」），因此客户端伪造的条目永远无法命中取位：
+
+| 部署形态 | 建议配置 | 链条示意 |
 | --- | --- | --- |
-| 直连（无反代） | 默认 1 | Next 会把 socket 地址注入 XFF，单条目即真实地址 |
-| 一层反代（nginx/Caddy/云 LB） | 1 | 反代追加 `$proxy_add_x_forwarded_for`，客户端伪造的首段被跳过 |
-| 多层反代 | 真实层数 | 例如 CDN + nginx = 2 |
-| 严格模式 | 0 | 不信任任何客户端可设的头，请求自带 XFF 一律拒绝解析 |
+| 直连（无反代） | 默认 1 | `[socket]` |
+| 一层反代（nginx/Caddy/云 LB） | 2 | `[client, socket]` |
+| 多层反代 | 可信层数 + 1 | CDN+nginx = 3，`[..., client, nginx, socket]` |
+| 严格模式 | 0 | 不信任任何头；入站 XFF 恒非空，所有请求解析为 `unknown` |
 
+- v2.9.0 及之前语义为「可信代理层数」；v2.9.1 起生产入口会自追加 socket 一跳，反代部署升级后需 +1（见 CHANGELOG 破坏性变更说明）。
 - 链上条目少于可信层数、或 N=0 时请求自带 XFF → 解析结果为不可信哨兵 `unknown`，不会命中白名单（安全失败），限流层面归并为同一 key。
 - 白名单与限流共用这套口径；白名单规则同样支持 `::ffff:a.b.c.d` 写法（自动折算为 IPv4）。
-- **必须**用网络层（防火墙/compose 网段）把应用端口限制在反代或内网来源——XFF 计数模型无法防御绕过代理直连端口的伪造单条目请求。
+- compose 默认把宿主机端口绑定到 `127.0.0.1`；如需其他来源直连请显式改绑定并配合防火墙。
+- 开发模式（`next dev`）不经过自定义 server，行为与此前一致：XFF 缺失时由 Next 注入 socket 地址。
 
 nginx 参考配置：
 

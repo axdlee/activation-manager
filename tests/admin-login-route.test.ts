@@ -294,3 +294,133 @@ test('用户名维度锁定后，正确密码仍可登录并重置计数（防�
   )
   assert.equal(followupResponse.status, 200)
 })
+
+test('用户名维度锁定后，非白名单来源即使密码正确也返回 429（防锁定状态撞库）', async (t) => {
+  const originalFindAdmin = prisma.admin.findUnique.bind(prisma.admin)
+  const originalCompare = bcrypt.compare
+  const originalRateLimiter = adminLoginRouteDependencies.rateLimiter
+  const originalWhitelist = adminLoginRouteDependencies.isClientIpWhitelisted
+  let findAdminCallCount = 0
+  let compareCallCount = 0
+
+  adminLoginRouteDependencies.rateLimiter = createAsyncRateLimiter()
+  adminLoginRouteDependencies.isClientIpWhitelisted = async () => false
+
+  prisma.admin.findUnique = (async () => {
+    findAdminCallCount += 1
+
+    return {
+      id: 1,
+      username: 'admin',
+      password: 'hashed-password',
+      createdAt: new Date('2026-03-24T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-24T00:00:00.000Z'),
+    }
+  }) as unknown as typeof prisma.admin.findUnique
+
+  let passwordIsCorrect = false
+  bcrypt.compare = async () => {
+    compareCallCount += 1
+    return passwordIsCorrect
+  }
+
+  t.after(async () => {
+    prisma.admin.findUnique = originalFindAdmin
+    bcrypt.compare = originalCompare
+    adminLoginRouteDependencies.rateLimiter = originalRateLimiter
+    adminLoginRouteDependencies.isClientIpWhitelisted = originalWhitelist
+    await prisma.$disconnect()
+  })
+
+  // 攻击者轮换来源错输 5 次，把用户名维度打到锁定
+  for (let index = 0; index < 5; index += 1) {
+    const response = await POST(
+      createLoginRequest(
+        { username: 'admin', password: 'wrong-password' },
+        { 'x-forwarded-for': `203.0.113.${index + 1}` },
+      ),
+    )
+
+    assert.equal(response.status, 401)
+  }
+
+  // 锁定后提交正确密码：非白名单来源一律 429，且不得触达查库与密码比对
+  passwordIsCorrect = true
+  const correctResponse = await POST(
+    createLoginRequest(
+      { username: 'admin', password: 'correct-password' },
+      { 'x-forwarded-for': '198.51.100.77' },
+    ),
+  )
+  const correctBody = await correctResponse.json()
+
+  assert.equal(correctResponse.status, 429)
+  assert.equal(correctBody.success, false)
+  assert.match(correctBody.message, /登录失败次数过多/)
+  assert.equal(correctResponse.headers.get('set-cookie'), null)
+  assert.equal(findAdminCallCount, 5)
+  assert.equal(compareCallCount, 5)
+})
+
+test('用户名维度锁定后，白名单来源凭正确密码仍可登录（防远程锁死管理员）', async (t) => {
+  const originalFindAdmin = prisma.admin.findUnique.bind(prisma.admin)
+  const originalCompare = bcrypt.compare
+  const originalRateLimiter = adminLoginRouteDependencies.rateLimiter
+  const originalWhitelist = adminLoginRouteDependencies.isClientIpWhitelisted
+
+  adminLoginRouteDependencies.rateLimiter = createAsyncRateLimiter()
+  adminLoginRouteDependencies.isClientIpWhitelisted = async () => true
+
+  prisma.admin.findUnique = (async () => ({
+    id: 1,
+    username: 'admin',
+    password: 'hashed-password',
+    createdAt: new Date('2026-03-24T00:00:00.000Z'),
+    updatedAt: new Date('2026-03-24T00:00:00.000Z'),
+  })) as unknown as typeof prisma.admin.findUnique
+
+  let passwordIsCorrect = false
+  bcrypt.compare = async () => passwordIsCorrect
+
+  t.after(async () => {
+    prisma.admin.findUnique = originalFindAdmin
+    bcrypt.compare = originalCompare
+    adminLoginRouteDependencies.rateLimiter = originalRateLimiter
+    adminLoginRouteDependencies.isClientIpWhitelisted = originalWhitelist
+    await prisma.$disconnect()
+  })
+
+  for (let index = 0; index < 5; index += 1) {
+    const response = await POST(
+      createLoginRequest(
+        { username: 'admin', password: 'wrong-password' },
+        { 'x-forwarded-for': `203.0.113.${index + 1}` },
+      ),
+    )
+
+    assert.equal(response.status, 401)
+  }
+
+  // 锁定期间白名单来源：错误密码 429（不暴露账号是否存在）
+  const wrongResponse = await POST(
+    createLoginRequest(
+      { username: 'admin', password: 'wrong-password' },
+      { 'x-forwarded-for': '198.51.100.88' },
+    ),
+  )
+  assert.equal(wrongResponse.status, 429)
+
+  // 正确密码放行并下发会话
+  passwordIsCorrect = true
+  const correctResponse = await POST(
+    createLoginRequest(
+      { username: 'admin', password: 'correct-password' },
+      { 'x-forwarded-for': '198.51.100.88' },
+    ),
+  )
+  const correctBody = await correctResponse.json()
+
+  assert.equal(correctResponse.status, 200)
+  assert.equal(correctBody.success, true)
+  assert.match(correctResponse.headers.get('set-cookie') || '', /auth-token=/)
+})
