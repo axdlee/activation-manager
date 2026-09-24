@@ -65,7 +65,7 @@ function resolveAllowedIPsEnvOverride(allowedIPsEnv: string | undefined = proces
   return normalizedAllowedIPs.length > 0 ? normalizedAllowedIPs : null
 }
 
-import { extractClientIp } from './client-ip'
+import { extractClientIp, normalizeClientIp } from './client-ip'
 
 export { extractClientIp }
 
@@ -75,7 +75,8 @@ function isIpAllowed(clientIp: string, allowedIPs: string[], nodeEnv: string) {
   }
 
   return allowedIPs.some((allowedIpRule) => {
-    const normalizedRule = allowedIpRule.trim()
+    // 规则与客户端 IP 统一归一化（IPv4-mapped IPv6 → IPv4）
+    const normalizedRule = normalizeClientIp(allowedIpRule.trim())
 
     if (!normalizedRule) {
       return false

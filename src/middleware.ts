@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { type AdminAuthResult } from './lib/admin-auth-shared'
-import { extractClientIp } from './lib/client-ip'
 import {
   buildAdminAuthValidationUrl,
   resolveAdminPageAuthMode,
@@ -22,16 +21,23 @@ async function validateAdminPageRequest(request: NextRequest, mode: 'public' | '
     runtimePort: process.env.PORT,
   })
   const validationUrl = buildAdminAuthValidationUrl(request.url, mode, validationOrigin)
-  const forwardedFor = extractClientIp(request)
+  // 原样转发原始 X-Forwarded-For / X-Real-IP：内部校验跳与边缘 API 采用同一
+  // 份链路数据，extractClientIp 在两侧按同一套 TRUSTED_PROXY_COUNT 计数规则
+  // 解析，避免二次解析破坏「从右往左数可信代理」的取位。原请求没有 XFF 时
+  // 不发送该头，让内部跳同样走「无头→本机 socket/兜底」的默认分支。
+  const validationHeaders: Record<string, string> = {
+    cookie: request.headers.get('cookie') || '',
+    'x-real-ip': request.headers.get('x-real-ip') || '',
+  }
+  const rawForwardedFor = request.headers.get('x-forwarded-for')
+  if (rawForwardedFor) {
+    validationHeaders['x-forwarded-for'] = rawForwardedFor
+  }
 
   try {
     const response = await fetch(validationUrl, {
       method: 'GET',
-      headers: {
-        cookie: request.headers.get('cookie') || '',
-        'x-forwarded-for': forwardedFor,
-        'x-real-ip': request.headers.get('x-real-ip') || '',
-      },
+      headers: validationHeaders,
       cache: 'no-store',
     })
 

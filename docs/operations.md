@@ -49,6 +49,28 @@
 
 横向扩容前建议：限流上移到网关层（nginx `limit_req` / 云 WAF），或为限流器接入 Redis 后端（代码已预留存储接口缝，见 `src/lib/license-api-rate-limit.ts` 的 `RateLimitStore` 抽象）。
 
+## 客户端 IP 与白名单（TRUSTED_PROXY_COUNT）
+
+客户端 IP 从 `X-Forwarded-For` 倒数第 N 个条目解析（从右往左数，N=`TRUSTED_PROXY_COUNT`，默认 1）：
+
+| 部署形态 | 建议配置 | 说明 |
+| --- | --- | --- |
+| 直连（无反代） | 默认 1 | Next 会把 socket 地址注入 XFF，单条目即真实地址 |
+| 一层反代（nginx/Caddy/云 LB） | 1 | 反代追加 `$proxy_add_x_forwarded_for`，客户端伪造的首段被跳过 |
+| 多层反代 | 真实层数 | 例如 CDN + nginx = 2 |
+| 严格模式 | 0 | 不信任任何客户端可设的头，请求自带 XFF 一律拒绝解析 |
+
+- 链上条目少于可信层数、或 N=0 时请求自带 XFF → 解析结果为不可信哨兵 `unknown`，不会命中白名单（安全失败），限流层面归并为同一 key。
+- 白名单与限流共用这套口径；白名单规则同样支持 `::ffff:a.b.c.d` 写法（自动折算为 IPv4）。
+- **必须**用网络层（防火墙/compose 网段）把应用端口限制在反代或内网来源——XFF 计数模型无法防御绕过代理直连端口的伪造单条目请求。
+
+nginx 参考配置：
+
+```nginx
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Real-IP $remote_addr;
+```
+
 ## 升级计划索引
 
 - [Next.js 15/16 升级计划](./nextjs-upgrade-plan.md)——当前 14.2.35 已无安全补丁，升级需专项执行

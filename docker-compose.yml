@@ -13,6 +13,9 @@ services:
       PORT: 3000
       JWT_SECRET: ${JWT_SECRET:?请先在 .env 中配置 JWT_SECRET}
       ALLOWED_IPS: ${ALLOWED_IPS:-127.0.0.1,::1,172.16.0.0/12}
+      # 客户端与本服务之间的可信代理层数（XFF 从右往左取位），默认 1；
+      # 反代部署按真实层数设置，详见 .env.example 注释
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-1}
       # 仅首次初始化（数据库中无管理员）时需要；已有管理员的存量库可不设置
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
       # 无 HTTPS 反代时设为 false，否则浏览器拒收 Secure cookie 导致登录死循环
