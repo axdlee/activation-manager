@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db'
 import { getPaymentProvider } from '@/lib/shop-payment-registry'
 import { recordAdminOperationAuditLog } from '@/lib/admin-operation-audit-service'
 import {
+  maskConfigPayload,
   maskPaymentConfigJson,
   mergeMaskedPaymentConfig,
 } from '@/lib/payment-config-mask'
@@ -147,5 +148,9 @@ export const POST = createProtectedAdminRouteHandler(async (request: NextRequest
     },
   })
 
-  return NextResponse.json({ success: true, config })
+  return NextResponse.json({
+    success: true,
+    // 响应与 GET 同口径脱敏：掩码还原后的真实配置不得回显
+    config: maskConfigPayload(config),
+  })
 }, { logLabel: 'shop-payment-configs-upsert' })

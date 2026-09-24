@@ -6,12 +6,12 @@
 
 export const PAYMENT_CONFIG_MASK = '******'
 
-/** 密钥类字段名（值必须掩码回显）：secret/apiKey/key/私钥/密码/令牌类 */
+/** 密钥类字段名（值必须掩码回显）：secret/apiKey/key/appKey/私钥/密码/令牌类 */
 export function isSensitivePaymentConfigKey(key: string): boolean {
   if (key === 'key') {
     return true
   }
-  return /secret|password|token|private|pem|cert|apikey|api_key|signkey|appsecret|mchkey/i.test(key)
+  return /secret|password|token|private|pem|cert|apikey|api_key|appkey|app_key|signkey|mchkey/i.test(key)
 }
 
 /** 把配置 JSON 中的敏感值替换为掩码（非法 JSON 原样返回） */
@@ -68,6 +68,15 @@ export function mergeMaskedPaymentConfig(
     }
   }
   return JSON.stringify(merged)
+}
+
+/**
+ * 配置行响应统一脱敏出口：GET 列表与 POST 保存响应共用，
+ * 保证掩码还原后的真实配置永远不出后端（v2.9.0 复查：POST
+ * 响应曾原样回显整行，泄露真实密钥）。
+ */
+export function maskConfigPayload<T extends { configJson: string }>(config: T): T {
+  return { ...config, configJson: maskPaymentConfigJson(config.configJson) }
 }
 
 /**

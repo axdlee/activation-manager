@@ -65,7 +65,7 @@ export async function deleteActivationCodeRoute(
         })
         await tx.activationCode.update({
           where: { id: codeId },
-          data: { deletedAt: new Date() },
+          data: { deletedAt: new Date(), usedBy: null },
         })
       })
 
@@ -75,7 +75,11 @@ export async function deleteActivationCodeRoute(
         projectId: existingCode.projectId,
         targetLabel: existingCode.code,
         reason: '软删除：该码存在绑定历史或消费记录，已标记删除并保留历史',
-        detail: { softDeleted: true, codeId },
+        detail: {
+          softDeleted: true,
+          codeId,
+          releasedUsedBy: existingCode.usedBy ?? null,
+        },
       })
 
       return NextResponse.json({

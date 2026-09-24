@@ -91,6 +91,18 @@ export async function fulfillShopOrder(
     })
     : null
 
+  // 预生成的码未被本单采用时回收（支付网关重复回调/并发抢码场景下，
+  // 输掉的请求生成的码不能留成有效但无主的孤儿码）
+  const reclaimOrphanDynamicCodes = async () => {
+    if (!dynamicGenerated || dynamicGenerated.length === 0) {
+      return 0
+    }
+    // 仅删仍未使用的码：被并发赢家挂到订单上的码不受影响
+    return prismaClient.activationCode.deleteMany({
+      where: { id: { in: dynamicGenerated.map((code) => code.id) }, isUsed: false },
+    }).then((result) => result.count)
+  }
+
   // 事务内原子抢占：只有 pending/paid → fulfilled 转换成功的请求才发卡
   // 码池售罄/并发抢码冲突时返回业务失败（事务回滚，订单回到原状态）
   try {
@@ -246,6 +258,13 @@ export async function fulfillShopOrder(
     return { success: true, codes, newlyFulfilled: true }
     })
 
+    // 并发失败/状态冲突/异常路径：回收本次预生成的孤儿码（best-effort）
+    if (txResult.success && txResult.newlyFulfilled) {
+      // 发卡成功：预生成的码已挂到订单上，不回收
+    } else {
+      await reclaimOrphanDynamicCodes().catch(() => undefined)
+    }
+
     // 事务提交成功后分发事件通知（fire-and-forget，不影响发卡结果）
     if (txResult.success && !txResult.alreadyProcessed && txResult.codes?.length) {
       dispatchFulfillmentNotifications({
@@ -261,6 +280,7 @@ export async function fulfillShopOrder(
     return txResult
   } catch (error) {
     if (error instanceof Error && error.message.startsWith('SHOP_')) {
+      await reclaimOrphanDynamicCodes().catch(() => undefined)
       return {
         success: false,
         message:
@@ -269,6 +289,8 @@ export async function fulfillShopOrder(
             : t?.('payment.fulfillConflict') ?? '库存变更冲突，请重试',
       }
     }
+    // 非业务异常同样回收预生成码后再上抛（事务已回滚，码必为孤儿）
+    await reclaimOrphanDynamicCodes().catch(() => undefined)
     throw error
   }
 }
