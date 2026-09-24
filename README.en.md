@@ -118,7 +118,7 @@ npm start
 
 ```bash
 # Published image (:latest kept in sync)
-docker pull xdlee/activation-manager:v2.8.2
+docker pull xdlee/activation-manager:v2.9.0
 
 # Or one command with compose (SQLite volume included)
 docker compose up -d

@@ -1,5 +1,37 @@
 # 更新日志
 
+## [v2.9.0] - 2026-09-24
+
+### PostgreSQL 支持 🐘
+- **事务冲突边界化**：唯一约束冲突（项目内一机一码、requestId 幂等）从流程内层
+  冒泡到事务边界，在事务外解析冲突——Prisma 交互式事务自动回滚，兼容 PostgreSQL
+  「事务中止后所有查询报 25P02」的语义；restock/商城发卡的码生成移出事务，重试合法
+- **启动引导双路径**：`DATABASE_URL` 指向 `postgres(ql)://` 时自动走 PostgreSQL 实现
+  （`prisma db push` + 重新 generate + `ON CONFLICT` 幂等种子），SQLite 路径原样保留；
+  Docker 镜像同理，无需任何手工步骤
+- **provider 一键切换**：`npm run db:provider -- postgresql|sqlite`
+- **schema 兼容**：复合索引名缩至 PostgreSQL 63 字节标识符上限内
+
+### Next.js 15 升级 ⚛️
+- **Next 14.2.35（已停止维护）→ 15.5.26，React 18 → 19**，
+  `@types/react`、`eslint-config-next` 全套同步
+- `experimental.serverComponentsExternalPackages` → `serverExternalPackages`（15 迁移）
+- 文档工作区导航 `<a>` → `<Link>`（15 的 `no-html-link-for-pages` 规则）
+- 同步 `params`/`searchParams` 在 15.5 保持运行时兼容（Next 16 强制 Promise 时再统一
+  await 化）；动态路由与旧版面包屑重定向实测正常
+
+### 客户端 IP 信任模型（XFF 根治）🌐
+- **从右往左数 `TRUSTED_PROXY_COUNT`（默认 1）**：客户端 IP 取倒数第 N 个
+  `X-Forwarded-For` 条目，不再信任客户端可伪造的第一个值
+- **条目不足返回 `unknown`**：不命中白名单、限流归并伪造流量，绝不回退 `127.0.0.1`
+  防止白名单绕过；IPv6-mapped IPv4（`::ffff:a.b.c.d`）自动归一化
+- `TRUSTED_PROXY_COUNT` 进 docker-compose / .env.example / 运维文档
+
+**测试**：778 用例全绿，覆盖率 lines 96.12 / branches 85.71 / functions 91.29；
+E2E 126 例全绿；`postgres:16-alpine` 实测——干净库一次引导全过
+（13 表/22 系统配置/管理员/5 支付渠道/默认项目），登录、建项目、TIME+COUNT 发码、
+激活（expiresAt=+30d）、消费（5→4→3）、同项目同机冲突 409、requestId 幂等重放全部正常
+
 ## [v2.8.2] - 2026-09-24
 
 ### 安全评审批次 1–3（高危 → 中危 → 遗留项全量收口） 🔒

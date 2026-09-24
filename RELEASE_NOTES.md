@@ -1,58 +1,59 @@
-# Release Notes — Activation Manager v2.8.2
+# Release Notes — Activation Manager v2.9.0
 
-> 安全评审批次 1–3 全量收口：4 高危 + 5 中危 + 10 遗留项
-> 覆盖范围：`v2.8.1..v2.8.2`
+> 三大平台能力升级：PostgreSQL 支持、Next.js 15 升级、客户端 IP 信任模型根治
+> 覆盖范围：`v2.8.2..v2.9.0`
 
 ---
 
-## 🚨 高危修复
+## 🐘 PostgreSQL 支持
 
-- **过期授权复活**：「清理过期绑定」仅清设备绑定字段，不再重置
-  `isUsed/expiresAt`——过期码换设备无法再白嫖完整时长
-- **码池悬空库存**：删码联动清理码池行，发卡遇悬空行自动跳过清理，
-  已付款订单不再 500
-- **管理员远程锁死**：用户名锁定后密码正确仍放行（外部换 IP 无法封死真实管理员）
-- **易支付空 key 绕过**：按生效启用状态校验渠道配置，空 key 拒绝验签，
-  回调入口加配置完整性闸门
+- **事务冲突边界化**：唯一约束冲突（项目内一机一码、requestId 幂等）从流程内层
+  冒泡到事务边界，在事务外解析——Prisma 交互式事务自动回滚，兼容 PostgreSQL
+  的事务中止（25P02）语义；码库补充/商城发卡的码生成移出事务，失败重试合法
+- **启动引导双路径**：`DATABASE_URL` 指向 `postgres(ql)://` 时自动走 PG 实现
+  （`db push` + 重新 generate + `ON CONFLICT` 幂等种子：系统配置/默认项目/
+  支付渠道/管理员），SQLite 路径原样保留；Docker 镜像同样自动识别
+- **provider 一键切换**：`npm run db:provider -- postgresql|sqlite`
+- **schema 兼容**：复合索引名缩至 PG 63 字节上限内
 
-## 🔒 中危修复
+详见 `docs/postgres.md`。
 
-- **删码软删除**：绑定历史受限的码软删除保留历史，审计后置，无假审计
-- **库存预占**：下单事务内 AVAILABLE→RESERVED 原子预占防超卖；manual 渠道
-  不再被超时清理误取消，取消订单释放预占
-- **COUNT 码关绑激活**：关闭设备绑定后同码异机二次激活与 TIME 码对齐
-- **审计补齐**：确认发卡 / 支付配置变更写审计（不含敏感明文）
-- **密钥/卡密脱敏**：`licenseResponseSecret` 入脱敏名单；支付配置掩码回显 +
-  提交还原；发卡通知卡密 `头4+****+尾2`
+## ⚛️ Next.js 15 升级（停维护版本迁移）
 
-## 🧰 遗留项
+- Next **14.2.35 → 15.5.26**，React **18 → 19**，types 与 eslint-config 全套同步
+- `experimental.serverComponentsExternalPackages` → `serverExternalPackages`
+- 文档工作区导航改 `<Link>`（15 的 lint 规则）
+- 同步 `params`/`searchParams` 在 15.5 保持运行时兼容，Next 16 强制 Promise 时
+  再统一 await 化
 
-- **响应签名 v2**：HMAC 输入 `timestamp.body` 防重放，16 语言 SDK 全部同步
-- **订单卡密令牌**：订单详情需 32 位访问令牌（timingSafeEqual），防订单号枚举
-- **令牌版本**：改密后旧 JWT 立即失效
-- **密码最短 8 位**；下单联系方式格式校验
-- **通知去重落库**（7 天窗口）；**授权码列表分页下推 SQL**
-- **短信模板 JSON 转义**；**登录限流表按 24h 增量清理**
-- **Docker 镜像瘦身**（仅生产依赖 + 引导脚本预打包）
-- **备份/恢复脚本安全**（`sqlite3 .backup` WAL 一致性、恢复前快照）
-- **生产迁移补齐**：`20260924000000_batch3_security_schema` 修复 migrate deploy 缺列 500
+## 🌐 客户端 IP 信任模型（XFF 根治）
+
+- 客户端 IP 改为从 `X-Forwarded-For` **从右往左数第 `TRUSTED_PROXY_COUNT` 个条目**
+  （默认 1），不再信任客户端可伪造的最左侧值
+- 可信条目不足返回 `unknown`：不命中 IP 白名单、限流归并伪造流量，**绝不回退
+  `127.0.0.1`**（防白名单绕过）
+- IPv6-mapped IPv4（`::ffff:a.b.c.d`）自动归一化后再做 CIDR 匹配
+- 新环境变量 `TRUSTED_PROXY_COUNT`（默认 1；直连部署设 0，多层代理按层数设置）
 
 ---
 
 ## 升级说明
 
 ```bash
-docker pull xdlee/activation-manager:v2.8.2
+docker pull xdlee/activation-manager:v2.9.0
 ```
 
-- 存量 SQLite 数据卷直接兼容：首次启动 bootstrap 会自动补齐新列
-  （`deletedAt` / `expiryNotifiedAt` / `tokenVersion` / `accessToken`）
-- 所有管理员需重新登录（改密策略与令牌版本生效）
-- 对接方若校验响应签名，必须升级到 v2 签名（`timestamp.body`）并核对
-  `x-license-signature-version` 响应头；旧版 SDK 请同步更新
-- 前端商城订单详情链接已携带访问令牌；自行对接订单详情 API 的集成方
-  需在下单响应中保存 `accessToken` 并以 `?token=` 传递
+- SQLite 用户：数据卷直接兼容，无任何动作
+- PostgreSQL 用户：把 `DATABASE_URL` 换成 PG 连接串即可——首次启动自动建表 +
+  种子（管理员 `admin`，密码取 `ADMIN_INITIAL_PASSWORD`，未设则用默认 `123456`
+  并强烈建议登录后立即修改）；存量 SQLite → PG 数据搬迁用 `pgloader` 或 CSV 导入，
+  迁移前停服并 `npm run db:backup`
+- 反向代理用户：按实际代理层数设置 `TRUSTED_PROXY_COUNT`（如 nginx 一层 = 1，
+  Cloudflare + nginx = 2）；设错会让白名单/限流把真实用户当代理流量
+- React 19 / Next 15 为渲染层升级，API 契约（License API / 商城 API / 管理端 API）
+  与 v2.8.2 完全一致，对接方无需改动
 
-**验证**：768 单测全绿，覆盖率 lines 96.56 / branches 85.67 / functions 91.67；
-生产模式全量 smoke（登录→建项目→发码→激活→消费→统计→导出）11 步通过；
-16 语言 SDK 签名 v2 自测通过。
+**验证**：778 单测全绿（覆盖率 lines 96.12 / branches 85.71 / functions 91.29），
+E2E 126 例全绿；`postgres:16-alpine` 实测干净库一次引导全过，登录/建项目/TIME+COUNT
+发码激活消费/同机冲突 409/requestId 幂等重放全部正常；Next 15 生产构建 52 页 +
+全量 E2E 通过。
