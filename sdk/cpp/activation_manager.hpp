@@ -279,10 +279,13 @@ inline void verify_signature(const std::string& headers, const std::string& body
     if (std::abs(now_ms() - ts) > kSignatureMaxAgeMs) {
         throw client_exception(error_kind::signature_expired, "signature timestamp outside window");
     }
+    // v2 签名：HMAC(timestamp "." body)，防截获签名配合伪造时间戳重放
+    const std::string signed_input = timestamp + "." + body;
     unsigned char digest[EVP_MAX_MD_SIZE];
     unsigned int digest_len = 0;
     HMAC(EVP_sha256(), secret.data(), static_cast<int>(secret.size()),
-         reinterpret_cast<const unsigned char*>(body.data()), body.size(), digest, &digest_len);
+         reinterpret_cast<const unsigned char*>(signed_input.data()), signed_input.size(),
+         digest, &digest_len);
     std::string expected;
     expected.reserve(digest_len * 2);
     static const char* hex = "0123456789abcdef";

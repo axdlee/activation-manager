@@ -216,7 +216,8 @@ function ActivationManager:_verify_signature(header_text, body)
     -- 使用 openssl.hmac（luaossl）
     local hmac_ok, hmac_ctx = pcall(function()
         local ctx = require("openssl.hmac").new(self.response_secret, "sha256")
-        return ctx:final(body)
+        -- v2 签名：HMAC(timestamp "." body)
+        return ctx:final(timestamp .. "." .. body)
     end)
     if not hmac_ok then
         -- luaossl 不可用时跳过

@@ -21,14 +21,16 @@ class ActivationManagerClientTest {
 
     private fun respond(exchange: com.sun.net.httpserver.HttpExchange, body: String, sign: Boolean, secret: String = "test-secret") {
         val sig = if (sign) {
+            val ts = System.currentTimeMillis().toString()
             val mac = Mac.getInstance("HmacSHA256")
             mac.init(SecretKeySpec(secret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
-            mac.doFinal(body.toByteArray(StandardCharsets.UTF_8)).joinToString("") { "%02x".format(it) }
+            val digest = mac.doFinal("$ts.$body".toByteArray(StandardCharsets.UTF_8))
+            exchange.responseHeaders.add("x-license-timestamp", ts)
+            digest.joinToString("") { "%02x".format(it) }
         } else ""
         exchange.responseHeaders.add("Content-Type", "application/json")
         if (sign) {
             exchange.responseHeaders.add("x-license-signature", sig)
-            exchange.responseHeaders.add("x-license-timestamp", System.currentTimeMillis().toString())
         }
         val bytes = body.toByteArray(StandardCharsets.UTF_8)
         exchange.sendResponseHeaders(200, bytes.size.toLong())

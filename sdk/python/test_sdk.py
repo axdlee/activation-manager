@@ -40,9 +40,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         if sign:
-            sig = hmac.new(SECRET.encode(), body, hashlib.sha256).hexdigest()
+            ts = str(int(__import__("time").time() * 1000))
+            sig = hmac.new(SECRET.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
             self.send_header(SIGNATURE_HEADER, sig)
-            self.send_header(TIMESTAMP_HEADER, str(int(__import__("time").time() * 1000)))
+            self.send_header(TIMESTAMP_HEADER, ts)
         self.end_headers()
         self.wfile.write(body)
 

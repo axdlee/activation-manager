@@ -22,8 +22,8 @@ handler = Thread.new do
         body = content_length.positive? ? conn.read(content_length) : ''
         $received << JSON.parse(body)
         payload = { success: true, licenseMode: 'COUNT', license_mode: 'COUNT', remainingCount: 9, valid: true }.to_json
-        sig = OpenSSL::HMAC.hexdigest('SHA256', $secret, payload)
         ts = (Process.clock_gettime(Process::CLOCK_REALTIME) * 1000).round
+        sig = OpenSSL::HMAC.hexdigest('SHA256', $secret, "#{ts}.#{payload}")
         conn.write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nx-license-signature: #{sig}\r\nx-license-timestamp: #{ts}\r\nContent-Length: #{payload.bytesize}\r\n\r\n#{payload}")
       rescue StandardError => e
         warn "handler: #{e.class}: #{e.message}"

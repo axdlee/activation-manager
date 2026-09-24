@@ -136,7 +136,7 @@ sub _attempt {
         _error('SIGNATURE_INVALID', 'invalid signature timestamp') if $ts !~ /^\d+$/;
         my $now_ms = int(time * 1000);
         _error('SIGNATURE_EXPIRED', 'signature timestamp outside window') if abs($now_ms - $ts) > SIGNATURE_MAX_AGE_MS;
-        my $expected = hmac_sha256_hex($raw, $self->{response_secret});
+        my $expected = hmac_sha256_hex("$ts.$raw", $self->{response_secret});
         _error('SIGNATURE_INVALID', 'response signature mismatch') unless $expected eq $sig;
     }
 

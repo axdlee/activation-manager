@@ -328,6 +328,9 @@ impl Client {
         }
         let mut mac = Hmac::<Sha256>::new_from_slice(self.opts.response_secret.as_bytes())
             .expect("HMAC accepts any key length");
+        // v2 签名：HMAC(timestamp "." body)，防截获签名配合伪造时间戳重放
+        mac.update(timestamp.as_bytes());
+        mac.update(b".");
         mac.update(raw_body.as_bytes());
         let expected = hex_encode(&mac.finalize().into_bytes());
         if expected != signature {

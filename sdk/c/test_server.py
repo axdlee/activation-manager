@@ -29,9 +29,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         if self.path != "/api/license/consume" or req.get("requestId"):
             import hashlib, hmac, time
-            sig = hmac.new(SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
+            ts = str(round(time.time() * 1000))
+            sig = hmac.new(SECRET.encode(), f"{ts}.".encode() + payload.encode(), hashlib.sha256).hexdigest()
             self.send_header("x-license-signature", sig)
-            self.send_header("x-license-timestamp", str(round(time.time() * 1000)))
+            self.send_header("x-license-timestamp", ts)
         self.end_headers()
         self.wfile.write(payload.encode())
 

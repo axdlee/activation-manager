@@ -323,8 +323,18 @@ static am_err am_verify_signature(const char *header_text, const char *body, con
 
     unsigned char digest[EVP_MAX_MD_SIZE];
     unsigned int digest_len = 0;
+    /* v2 签名：HMAC(timestamp "." body)，防止截获签名配合伪造时间戳重放 */
+    size_t ts_len = strlen(timestamp);
+    size_t body_len = strlen(body);
+    char *signed_input = malloc(ts_len + 1 + body_len);
+    if (!signed_input) return AM_ERR_SIGNATURE_INVALID;
+    memcpy(signed_input, timestamp, ts_len);
+    signed_input[ts_len] = '.';
+    memcpy(signed_input + ts_len + 1, body, body_len);
     HMAC(EVP_sha256(), secret, (int)strlen(secret),
-         (const unsigned char *)body, strlen(body), digest, &digest_len);
+         (const unsigned char *)signed_input, (int)(ts_len + 1 + body_len),
+         digest, &digest_len);
+    free(signed_input);
 
     char expected[EVP_MAX_MD_SIZE * 2 + 1];
     for (unsigned int i = 0; i < digest_len; i++) {

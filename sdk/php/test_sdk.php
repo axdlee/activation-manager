@@ -5,8 +5,8 @@ require __DIR__ . '/src/ActivationManagerClient.php';
 
 $secret = 'test-secret';
 $payload = json_encode(['success' => true, 'licenseMode' => 'COUNT', 'license_mode' => 'COUNT', 'remainingCount' => 9, 'valid' => true]);
-$sig = hash_hmac('sha256', $payload, $secret);
 $ts = (string)round(microtime(true) * 1000);
+$sig = hash_hmac('sha256', $ts . '.' . $payload, $secret);
 
 // 用 curl 的 --resolve 不可行；直接起一个后台 PHP 内置服务来响应
 // 简化：用 file_put_contents + php -S router 脚本
@@ -21,9 +21,10 @@ if (!in_array($req['projectKey'] ?? '', ['demo', 'override'], true)) {
     exit;
 }
 $payload = json_encode(['success' => true, 'licenseMode' => 'COUNT', 'license_mode' => 'COUNT', 'remainingCount' => 9, 'valid' => true]);
+$ts = (string)round(microtime(true) * 1000);
 header('Content-Type: application/json');
-header('x-license-signature: ' . hash_hmac('sha256', $payload, $secret));
-header('x-license-timestamp: ' . round(microtime(true) * 1000));
+header('x-license-signature: ' . hash_hmac('sha256', $ts . '.' . $payload, $secret));
+header('x-license-timestamp: ' . $ts);
 echo $payload;
 ROUTER;
 file_put_contents('/tmp/php-sdk-router.php', $router);

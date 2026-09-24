@@ -278,7 +278,7 @@ class ActivationManagerClient {
           'signature timestamp outside window');
     }
     final expected = Hmac(sha256, utf8.encode(options.responseSecret))
-        .convert(utf8.encode(rawBody))
+        .convert(utf8.encode('$ts.$rawBody'))
         .toString();
     if (!_fixedTimeEquals(expected, signature)) {
       throw ActivationClientException(ActivationErrorKind.signatureInvalid,

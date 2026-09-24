@@ -23,9 +23,10 @@ func startServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 
 func sign(t *testing.T, body []byte) (string, string) {
 	t.Helper()
+	ts := strconv.FormatInt(time.Now().UnixMilli(), 10)
 	mac := hmac.New(sha256.New, []byte(testSecret))
-	mac.Write(body)
-	return hex.EncodeToString(mac.Sum(nil)), time.Now().Format("2006-01-02T15:04:05")
+	mac.Write([]byte(ts + "." + string(body)))
+	return hex.EncodeToString(mac.Sum(nil)), ts
 }
 
 func TestActivateSuccess(t *testing.T) {
@@ -121,10 +122,10 @@ func TestConsumeRetryWithRequestID(t *testing.T) {
 func TestSignatureVerification(t *testing.T) {
 	server := startServer(t, func(w http.ResponseWriter, r *http.Request) {
 		body := []byte(`{"success":true,"licenseMode":"TIME","license_mode":"TIME"}`)
-		mac := hmac.New(sha256.New, []byte(testSecret))
-		mac.Write(body)
-		sig := hex.EncodeToString(mac.Sum(nil))
 		ts := strconv.FormatInt(time.Now().UnixMilli(), 10)
+		mac := hmac.New(sha256.New, []byte(testSecret))
+		mac.Write([]byte(ts + "." + string(body)))
+		sig := hex.EncodeToString(mac.Sum(nil))
 		w.Header().Set(SignatureHeader, sig)
 		w.Header().Set(TimestampHeader, ts)
 		_, _ = w.Write(body)

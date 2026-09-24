@@ -256,7 +256,7 @@ public sealed class ActivationManagerClient
         {
             throw new ActivationClientException(ActivationErrorKind.SignatureExpired, "signature timestamp outside window");
         }
-        var expected = HmacSha256Hex(rawBody, secret);
+        var expected = HmacSha256Hex($"{timestamp}.{rawBody}", secret);
         if (!CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(signature)))
         {
             throw new ActivationClientException(ActivationErrorKind.SignatureInvalid, "response signature mismatch");

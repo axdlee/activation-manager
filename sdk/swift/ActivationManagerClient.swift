@@ -211,7 +211,7 @@ public final class ActivationManagerClient: Sendable {
         if abs(now - ts) > Self.signatureMaxAgeMs {
             throw ActivationClientError(kind: .signatureExpired, message: "signature timestamp outside window")
         }
-        let expected = Self.hmacSha256Hex(body, secret: options.responseSecret)
+        let expected = Self.hmacSha256Hex("\(ts).\(body)", secret: options.responseSecret)
         guard expected == signature else {
             throw ActivationClientError(kind: .signatureInvalid, message: "response signature mismatch")
         }

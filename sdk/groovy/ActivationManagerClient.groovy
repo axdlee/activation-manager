@@ -165,7 +165,7 @@ class ActivationManagerClient {
         }
         Mac mac = Mac.getInstance('HmacSHA256')
         mac.init(new SecretKeySpec(responseSecret.getBytes('UTF-8'), 'HmacSHA256'))
-        String expected = mac.doFinal(rawBody.getBytes('UTF-8')).encodeHex().toString()
+        String expected = mac.doFinal("${timestamp}.${rawBody}".getBytes('UTF-8')).encodeHex().toString()
         if (!MessageDigest.isEqual(expected.getBytes('UTF-8'), signature.getBytes('UTF-8'))) {
             throw new ActivationManagerClientException('SIGNATURE_INVALID', 'response signature mismatch')
         }

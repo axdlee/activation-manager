@@ -162,7 +162,9 @@ class ActivationManagerClient(private val options: Options) {
         }
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(options.responseSecret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
-        val expected = mac.doFinal(rawBody.toByteArray(StandardCharsets.UTF_8))
+        // v2 签名：HMAC(timestamp "." body)，防截获签名配合伪造时间戳重放
+        val signedInput = "$timestamp.$rawBody"
+        val expected = mac.doFinal(signedInput.toByteArray(StandardCharsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
         if (!MessageDigest.isEqual(
                 expected.toByteArray(StandardCharsets.UTF_8),

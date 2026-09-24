@@ -218,7 +218,8 @@ final class ActivationManagerClient(options: ActivationManagerClient.Options):
       throw ClientException(ErrorKind.SignatureExpired, "signature timestamp outside window")
     val mac = Mac.getInstance("HmacSHA256")
     mac.init(new SecretKeySpec(options.responseSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"))
-    val expected = mac.doFinal(rawBody.getBytes(StandardCharsets.UTF_8)).map("%02x".format(_)).mkString
+    val signedInput = s"$timestamp.$rawBody"
+    val expected = mac.doFinal(signedInput.getBytes(StandardCharsets.UTF_8)).map("%02x".format(_)).mkString
     if !MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), signature.getBytes(StandardCharsets.UTF_8)) then
       throw ClientException(ErrorKind.SignatureInvalid, "response signature mismatch")
 

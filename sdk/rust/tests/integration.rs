@@ -30,10 +30,12 @@ fn start_mock() -> String {
 
             // 全部响应都带正确签名（验签失败路径由 wrong-secret client 覆盖）
             let mut headers = String::from("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n");
+            let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
             let mut mac = Hmac::<Sha256>::new_from_slice(SECRET.as_bytes()).unwrap();
+            mac.update(ts.to_string().as_bytes());
+            mac.update(b".");
             mac.update(payload_str.as_bytes());
             let sig = hex::encode(mac.finalize().into_bytes());
-            let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
             headers.push_str(&format!("x-license-signature: {}\r\nx-license-timestamp: {}\r\n", sig, ts));
             headers.push_str(&format!("Content-Length: {}\r\n\r\n", payload_str.len()));
             let _ = stream.write_all(headers.as_bytes());
