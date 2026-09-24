@@ -39,9 +39,7 @@ const nextConfig = {
   // 项目未使用 next/image；关闭图片优化接口以消除
   // Next.js 14.x 已知未授权 RCE（CVE-2024-34351 类）攻击面
   images: { unoptimized: true },
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
-  },
+  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   async headers() {
     // 后台与公开页面统一加安全头；文档页为静态渲染同样受益
     return [{ source: '/:path*', headers: securityHeaders }]

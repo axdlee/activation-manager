@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
+import Link from 'next/link'
+
 import { ApiDocsAdminGroupCard } from '@/components/api-docs-admin-group-card'
 import { ApiDocsDebugCommandCard } from '@/components/api-docs-debug-command-card'
 import { DashboardCodePanel } from '@/components/dashboard-code-panel'
@@ -133,13 +135,12 @@ export function ApiDocsPageHero() {
           )}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <a href="/admin/login" className={apiDocsPrimaryButtonClassName}>
+          <Link href="/admin/login" className={apiDocsPrimaryButtonClassName}>
             {t('api.adminLogin', '管理员登录')}
-          </a>
-          <a href="/" className={apiDocsSecondaryButtonClassName}>
+          </Link>
+          <Link href="/" className={apiDocsSecondaryButtonClassName}>
             {t('error.backHome', '返回首页')}
-          </a>
-        </div>
+          </Link>        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:max-w-3xl">
