@@ -155,7 +155,11 @@ test('统一回调入口：paid=false 时忽略不发卡', async (t) => {
   await prisma.shopPaymentConfig.upsert({
     where: { provider: 'yipay' },
     update: { isEnabled: true },
-    create: { provider: 'yipay', configJson: '{}', isEnabled: true },
+    create: {
+      provider: 'yipay',
+      configJson: JSON.stringify({ gateway: 'https://pay.x', pid: '1', key: 'k' }),
+      isEnabled: true,
+    },
   })
 
   const project = await prisma.project.findFirstOrThrow({ where: { projectKey: 'default' } })
@@ -210,11 +214,38 @@ test('统一回调入口：订单不存在返回 400 不发卡', async (t) => {
   await prisma.shopPaymentConfig.upsert({
     where: { provider: 'yipay' },
     update: { isEnabled: true },
-    create: { provider: 'yipay', configJson: '{}', isEnabled: true },
+    create: {
+      provider: 'yipay',
+      configJson: JSON.stringify({ gateway: 'https://pay.x', pid: '1', key: 'k' }),
+      isEnabled: true,
+    },
   })
 
   const response = await POST(createNotifyRequest('yipay', 'x=1'), {
     params: { provider: 'yipay' },
   })
   assert.equal(response.status, 400)
+})
+
+test('统一回调入口：已启用渠道配置不全时回调直接拒绝（防存量空 key 绕过）', async () => {
+  const { POST } = await import('../src/app/api/shop/payment/notify/[provider]/route')
+
+  // 存量脏数据场景：渠道已被启用，但配置缺 key（管理员历史误操作，
+  // 或启用后 key 被清空）。回调必须在验签前直接拒绝。
+  await prisma.shopPaymentConfig.upsert({
+    where: { provider: 'yipay' },
+    update: { isEnabled: true, configJson: JSON.stringify({ gateway: 'https://pay.x', pid: '1' }) },
+    create: {
+      provider: 'yipay',
+      configJson: JSON.stringify({ gateway: 'https://pay.x', pid: '1' }),
+      isEnabled: true,
+    },
+  })
+
+  const response = await POST(createNotifyRequest('yipay', 'x=1'), {
+    params: { provider: 'yipay' },
+  })
+  assert.equal(response.status, 400)
+  const data = (await response.json()) as { message?: string }
+  assert.match(data.message ?? '', /渠道配置不完整/)
 })

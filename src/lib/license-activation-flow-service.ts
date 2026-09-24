@@ -74,6 +74,51 @@ export async function activateCountLicense(params: {
     return createActivationSuccessResult(activationCode, '激活码已激活')
   }
 
+  // 设备绑定关闭（bindDevice=false）时首次激活不落 usedBy，二次激活
+  // 会落到 isUsed=true 且 usedBy=null 的状态。TIME 流程对此有专门分支，
+  // COUNT 流程此前缺失，导致第二次激活被误判为「已被其他设备使用」。
+  if (activationCode.isUsed && !activationCode.usedBy) {
+    if (!bindDevice) {
+      return createActivationSuccessResult(activationCode, '激活码已激活')
+    }
+
+    // 绑定开启但历史状态无绑定（如管理员释放过绑定）：按 TIME 流程
+    // 同样的方式补绑当前设备
+    const claimed = await tryClaimActivationCode({
+      tx,
+      activationCode,
+      machineId,
+      isUsed: true,
+      usedBy: null,
+      usedAt: activationCode.usedAt,
+      bindDevice,
+    }).catch((error) => {
+      if (isProjectMachineUniqueConstraintError(error)) {
+        return null
+      }
+      throw error
+    })
+
+    if (claimed === null) {
+      return resolveProjectMachineConflict()
+    }
+
+    if (!claimed) {
+      return createUsedByOtherDeviceResult()
+    }
+
+    await recordActivationCodeBindingHistory(tx as DbClient, {
+      activationCodeId: activationCode.id,
+      projectId: activationCode.projectId,
+      eventType: 'INITIAL_BIND',
+      operatorType: 'CLIENT',
+      fromMachineId: activationCode.usedBy ?? null,
+      toMachineId: machineId,
+    })
+
+    return createActivationSuccessResult(activationCode, '激活码绑定成功')
+  }
+
   const claimed = await tryClaimActivationCode({
     tx,
     activationCode,

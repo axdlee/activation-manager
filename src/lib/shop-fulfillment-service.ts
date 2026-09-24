@@ -1,4 +1,5 @@
 import { prisma } from './db'
+import type { PrismaClient } from '@prisma/client'
 import { generateActivationCodes } from './license-generation-service'
 import {
   notifyShopOrderFulfilledEvent,
@@ -37,8 +38,10 @@ export type FulfillShopOrderResult = {
 export async function fulfillShopOrder(
   params: FulfillShopOrderParams,
   t?: ServerT,
+  /** 可注入独立 PrismaClient（集成测试用临时库）；缺省用全局实例 */
+  prismaClient: PrismaClient = prisma,
 ): Promise<FulfillShopOrderResult> {
-  const order = await prisma.shopOrder.findUnique({
+  const order = await prismaClient.shopOrder.findUnique({
     where: { orderNo: params.orderNo },
     include: { product: { include: { project: true } } },
   })
@@ -69,14 +72,14 @@ export async function fulfillShopOrder(
     return {
       success: true,
       alreadyProcessed: true,
-      codes: await readFulfilledCodes(order.fulfilledCodeIds),
+      codes: await readFulfilledCodes(prismaClient, order.fulfilledCodeIds),
     }
   }
 
   // 事务内原子抢占：只有 pending/paid → fulfilled 转换成功的请求才发卡
   // 码池售罄/并发抢码冲突时返回业务失败（事务回滚，订单回到原状态）
   try {
-    const txResult = await prisma.$transaction(
+    const txResult = await prismaClient.$transaction(
       async (
         tx,
       ): Promise<FulfillShopOrderResult & { newlyFulfilled?: boolean }> => {
@@ -106,7 +109,7 @@ export async function fulfillShopOrder(
         return {
           success: true,
           alreadyProcessed: true,
-          codes: await readFulfilledCodes(latest.fulfilledCodeIds),
+          codes: await readFulfilledCodes(prismaClient, latest.fulfilledCodeIds),
         }
       }
       return { success: false, message: t?.(SHOP_ORDER_MESSAGE_KEYS.orderStateConflictFulfill) ?? '订单状态已变化，无法发卡' }
@@ -119,21 +122,45 @@ export async function fulfillShopOrder(
 
     if (product.stockMode === 'PREDEFINED') {
       // 预定义码池：原子取 quantity 张 AVAILABLE 码（条件更新防并发超卖）
-      const stocks = await tx.shopProductCodeStock.findMany({
+      const availableStocks = await tx.shopProductCodeStock.findMany({
         where: { productId: product.id, status: 'AVAILABLE' },
         orderBy: { id: 'asc' },
-        take: quantity,
       })
 
-      if (stocks.length < quantity) {
+      // 过滤悬空库存：库存表对激活码没有外键，管理员删除激活码后会留下
+      // 悬空行；按 id 顺序取码会永远先撞上它们，让之后的每一单都发卡
+      // 失败（支付回调场景即「已付款但接口 500」）。这里跳过悬空行并
+      // 顺带清理，直到凑满 quantity 或码池见底。
+      const candidates: Array<{
+        stockId: number
+        activationCode: { id: number; code: string }
+      }> = []
+      for (const stock of availableStocks) {
+        if (candidates.length >= quantity) {
+          break
+        }
+        const activationCode = await tx.activationCode.findUnique({
+          where: { id: stock.activationCodeId },
+          select: { id: true, code: true },
+        })
+        if (!activationCode) {
+          await tx.shopProductCodeStock
+            .delete({ where: { id: stock.id } })
+            .catch(() => undefined)
+          continue
+        }
+        candidates.push({ stockId: stock.id, activationCode })
+      }
+
+      if (candidates.length < quantity) {
         // 码池库存不足：抛错回滚订单
         throw new Error('SHOP_OUT_OF_STOCK')
       }
 
       codeRecords = []
-      for (const stock of stocks) {
+      for (const candidate of candidates) {
         const stockClaimed = await tx.shopProductCodeStock.updateMany({
-          where: { id: stock.id, status: 'AVAILABLE' },
+          where: { id: candidate.stockId, status: 'AVAILABLE' },
           data: {
             status: 'SOLD',
             soldOrderId: order.id,
@@ -146,11 +173,7 @@ export async function fulfillShopOrder(
           throw new Error('SHOP_STOCK_RACE')
         }
 
-        const activationCode = await tx.activationCode.findUniqueOrThrow({
-          where: { id: stock.activationCodeId },
-          select: { id: true, code: true },
-        })
-        codeRecords.push(activationCode)
+        codeRecords.push(candidate.activationCode)
       }
     } else {
       // 动态生成：按商品规格 × 数量生成新码
@@ -240,12 +263,15 @@ function dispatchFulfillmentNotifications(params: {
   }
 }
 
-async function readFulfilledCodes(fulfilledCodeIds: string | null): Promise<string[] | undefined> {
+async function readFulfilledCodes(
+  client: PrismaClient,
+  fulfilledCodeIds: string | null,
+): Promise<string[] | undefined> {
   const ids = parseFulfilledCodeIds(fulfilledCodeIds)
   if (ids.length === 0) {
     return undefined
   }
-  const codes = await prisma.activationCode.findMany({
+  const codes = await client.activationCode.findMany({
     where: { id: { in: ids } },
     orderBy: { id: 'asc' },
     select: { code: true },

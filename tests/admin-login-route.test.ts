@@ -223,5 +223,74 @@ test('同一账号跨 IP 轮换爆破时按用户名维度锁定', async (t) => 
   assert.equal(blockedBody.success, false)
   assert.match(blockedBody.message, /登录失败次数过多/)
   assert.match(retryAfter, /^[1-9]\d*$/)
-  assert.equal(findAdminCallCount, 5)
+  // 用户名维度锁定后仍需校验密码（正确凭据必须能登录，见下一条回归），
+  // 因此第 6 次请求会走到查库与密码比对
+  assert.equal(findAdminCallCount, 6)
+})
+
+test('用户名维度锁定后，正确密码仍可登录并重置计数（防远程锁死管理员）', async (t) => {
+  const originalFindAdmin = prisma.admin.findUnique.bind(prisma.admin)
+  const originalCompare = bcrypt.compare
+  const originalRateLimiter = adminLoginRouteDependencies.rateLimiter
+
+  adminLoginRouteDependencies.rateLimiter = createAsyncRateLimiter()
+
+  prisma.admin.findUnique = (async () => ({
+    id: 1,
+    username: 'admin',
+    password: 'hashed-password',
+    createdAt: new Date('2026-03-24T00:00:00.000Z'),
+    updatedAt: new Date('2026-03-24T00:00:00.000Z'),
+  })) as unknown as typeof prisma.admin.findUnique
+
+  let passwordIsCorrect = false
+  bcrypt.compare = async () => passwordIsCorrect
+
+  t.after(async () => {
+    prisma.admin.findUnique = originalFindAdmin
+    bcrypt.compare = originalCompare
+    adminLoginRouteDependencies.rateLimiter = originalRateLimiter
+    await prisma.$disconnect()
+  })
+
+  // 攻击者换 IP 错输 5 次，把用户名维度打到锁定
+  for (let index = 0; index < 5; index += 1) {
+    const response = await POST(
+      createLoginRequest(
+        { username: 'admin', password: 'wrong-password' },
+        { 'x-forwarded-for': `203.0.113.${index + 1}` },
+      ),
+    )
+    assert.equal(response.status, 401)
+  }
+
+  // 锁定期间继续错试：返回 429，而不是 401
+  const blockedResponse = await POST(
+    createLoginRequest(
+      { username: 'admin', password: 'wrong-password' },
+      { 'x-forwarded-for': '198.51.100.99' },
+    ),
+  )
+  assert.equal(blockedResponse.status, 429)
+
+  // 真实管理员输对密码：必须放行（旧实现直接 429，后台被远程锁死）
+  passwordIsCorrect = true
+  const successResponse = await POST(
+    createLoginRequest(
+      { username: 'admin', password: '123456' },
+      { 'x-forwarded-for': '198.51.100.99' },
+    ),
+  )
+  const successBody = await successResponse.json()
+  assert.equal(successResponse.status, 200)
+  assert.equal(successBody.success, true)
+
+  // 成功登录重置两把 key：此后同一 IP/用户名可正常再次登录
+  const followupResponse = await POST(
+    createLoginRequest(
+      { username: 'admin', password: '123456' },
+      { 'x-forwarded-for': '198.51.100.99' },
+    ),
+  )
+  assert.equal(followupResponse.status, 200)
 })

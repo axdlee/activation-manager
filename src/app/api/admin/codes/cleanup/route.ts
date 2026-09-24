@@ -15,6 +15,26 @@ interface ActivationCodeData {
   createdAt: Date
   expiresAt: Date | null
   validDays: number | null
+  licenseMode: string
+}
+
+/**
+ * 过期判定（与全代码库口径一致）：仅 TIME 型按时间判过期，COUNT 型
+ * 只按次数耗尽、不受时间约束，因此不进入「清理过期绑定」范围——
+ * 给 COUNT 码释放绑定等于把剩余次数送给新设备。
+ */
+function isExpiredCode(code: ActivationCodeData, now: Date): boolean {
+  if (code.licenseMode === 'COUNT') {
+    return false
+  }
+  if (code.usedAt && code.validDays) {
+    const actualExpiresAt = new Date(code.usedAt.getTime() + code.validDays * 24 * 60 * 60 * 1000)
+    return actualExpiresAt < now
+  }
+  if (code.expiresAt) {
+    return code.expiresAt < now
+  }
+  return false
 }
 
 export const POST = createProtectedAdminRouteHandler(
@@ -35,18 +55,11 @@ export const POST = createProtectedAdminRouteHandler(
         createdAt: true,
         expiresAt: true,
         validDays: true,
+        licenseMode: true,
       },
     })
 
-    const expiredCodes = usedCodes.filter((code: ActivationCodeData) => {
-      if (code.usedAt && code.validDays) {
-        const actualExpiresAt = new Date(code.usedAt.getTime() + code.validDays * 24 * 60 * 60 * 1000)
-        return actualExpiresAt < now
-      } else if (code.expiresAt) {
-        return code.expiresAt < now
-      }
-      return false
-    })
+    const expiredCodes = usedCodes.filter((code: ActivationCodeData) => isExpiredCode(code, now))
 
     if (expiredCodes.length === 0) {
       return NextResponse.json({
@@ -57,6 +70,10 @@ export const POST = createProtectedAdminRouteHandler(
     }
 
     const expiredCodeIds = expiredCodes.map((code: ActivationCodeData) => code.id)
+    // 只释放设备绑定（usedBy 为机器ID / lastBoundAt），绝不重置
+    // isUsed / usedAt / expiresAt / validDays——此前的实现把它们一并
+    // 清零，导致过期授权「复活」：换台新设备重新激活又拿到完整时长。
+    // 保留过期状态后，这些码仍会被激活/查询流程的过期检查拒绝。
     const result = await prisma.activationCode.updateMany({
       where: {
         id: {
@@ -64,10 +81,8 @@ export const POST = createProtectedAdminRouteHandler(
         },
       },
       data: {
-        isUsed: false,
-        usedAt: null,
         usedBy: null,
-        expiresAt: null,
+        lastBoundAt: null,
       },
     })
 
@@ -116,18 +131,11 @@ export const GET = createProtectedAdminRouteHandler(
         createdAt: true,
         expiresAt: true,
         validDays: true,
+        licenseMode: true,
       },
     })
 
-    const expiredCodes = usedCodes.filter((code: ActivationCodeData) => {
-      if (code.usedAt && code.validDays) {
-        const actualExpiresAt = new Date(code.usedAt.getTime() + code.validDays * 24 * 60 * 60 * 1000)
-        return actualExpiresAt < now
-      } else if (code.expiresAt) {
-        return code.expiresAt < now
-      }
-      return false
-    })
+    const expiredCodes = usedCodes.filter((code: ActivationCodeData) => isExpiredCode(code, now))
 
     return NextResponse.json({
       success: true,

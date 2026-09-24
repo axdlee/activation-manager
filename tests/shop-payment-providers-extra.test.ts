@@ -82,6 +82,35 @@ test('易支付 verifyCallback 非法签名返回 null', async () => {
   assert.equal(context, null)
 })
 
+test('易支付 verifyCallback 空 key 直接拒绝（防空 key 伪造签名）', async () => {
+  const params: Record<string, string> = {
+    out_trade_no: 'SO-TEST-YIPAY-001',
+    trade_no: 'YIPAY20260001',
+    trade_status: 'TRADE_SUCCESS',
+  }
+  const { createHash } = await import('node:crypto')
+  // 攻击者用空串作为 key 计算的签名：修复前 config.key || '' 会照常验签通过
+  const sorted = Object.keys(params)
+    .sort()
+    .filter((k) => params[k] !== '')
+    .map((k) => `${k}=${params[k]}`)
+    .join('&')
+  params.sign = createHash('md5').update(`${sorted}&`).digest('hex')
+
+  assert.equal(
+    await yipayPaymentProvider.verifyCallback(JSON.stringify(params), { key: '' }),
+    null,
+  )
+  assert.equal(
+    await yipayPaymentProvider.verifyCallback(JSON.stringify(params), { key: '   ' }),
+    null,
+  )
+  assert.equal(
+    await yipayPaymentProvider.verifyCallback(JSON.stringify(params), {}),
+    null,
+  )
+})
+
 test('微信支付 verifyCallback 解析成功回调', async () => {
   const body = JSON.stringify({
     event_type: 'TRANSACTION.SUCCESS',

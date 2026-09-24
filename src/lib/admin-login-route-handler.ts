@@ -70,27 +70,41 @@ export async function handleAdminLoginRequest(request: NextRequest) {
     }
 
     // 按用户名维度的第二道限流：同一账号无论来源 IP 如何轮换，失败
-    // 次数达到阈值后同样锁定
+    // 次数达到阈值后同样锁定。
+    // 注意：用户名维度锁定只拦「继续试错」，不能拦「正确凭据」——
+    // 否则外部攻击者换 IP 错输 5 次即可把真实管理员永久锁在门外
+    // （登录接口不受 IP 白名单保护，属于可远程触发的 DoS）。因此
+    // 锁定时仍照常校验密码：密码正确 → 正常放行并重置计数；
+    // 密码错误 → 返回 429（不消耗额外信息，也不暴露账号是否存在）。
     const usernameRateLimitKey = `username:${String(username)}`
     const usernameRateLimitResult =
       await adminLoginRouteDependencies.rateLimiter.check(usernameRateLimitKey)
-    if (!usernameRateLimitResult.allowed) {
-      return createRateLimitedResponse(
-        usernameRateLimitResult.retryAfterSeconds,
-        t('auth.loginRateLimited'),
-      )
-    }
+    const usernameLocked = !usernameRateLimitResult.allowed
 
     const admin = await prisma.admin.findUnique({
       where: { username },
     })
 
     if (!admin) {
+      // 用户名维度已锁定时，不存在的账号同样以 429 响应，避免通过
+      // 401/429 差异探测账号是否存在
+      if (usernameLocked) {
+        return createRateLimitedResponse(
+          usernameRateLimitResult.retryAfterSeconds,
+          t('auth.loginRateLimited'),
+        )
+      }
       return await createInvalidCredentialsResponse([clientIp, usernameRateLimitKey], t('auth.loginFailed'))
     }
 
     const isValid = await bcrypt.compare(password, admin.password)
     if (!isValid) {
+      if (usernameLocked) {
+        return createRateLimitedResponse(
+          usernameRateLimitResult.retryAfterSeconds,
+          t('auth.loginRateLimited'),
+        )
+      }
       return await createInvalidCredentialsResponse([clientIp, usernameRateLimitKey], t('auth.loginFailed'))
     }
 

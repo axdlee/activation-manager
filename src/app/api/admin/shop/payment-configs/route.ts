@@ -61,11 +61,21 @@ export const POST = createProtectedAdminRouteHandler(async (request: NextRequest
     return NextResponse.json({ success: false, message: t('shop.paymentProviderDisabled') }, { status: 400 })
   }
 
-  // 启用渠道前的安全闸门：
-  // 1) 回调验签未实现的渠道（callbackTrust === 'placeholder'）禁止启用，
+  const existingConfig = await prisma.shopPaymentConfig.findUnique({
+    where: { provider: body.provider },
+  })
+
+  // 生效启用状态：显式传 isEnabled 以传值为准；只提交 configJson 时
+  // 沿用存量行的启用状态。否则攻击面：渠道保持启用的同时只改配置把
+  // key 清空，绕过「启用时才校验」的闸门。
+  const effectiveEnabled = body.isEnabled ?? existingConfig?.isEnabled ?? false
+
+  // 启用渠道前的安全闸门（按生效启用状态执行）：
+  // 1) 回调验签未实现的渠道（callbackTrust === 'placeholder'）禁止处于启用态，
   //    否则伪造回调即可免费发卡（alipay/wechat 当前属此类）
-  // 2) 必需配置键不齐禁止启用（如 webhook 必须配置 secret）
-  if (body.isEnabled === true) {
+  // 2) 必需配置键不齐禁止处于启用态（如 webhook 必须配置 secret、
+  //    易支付必须配置 gateway/pid/key）
+  if (effectiveEnabled) {
     if (provider.callbackTrust === 'placeholder') {
       return NextResponse.json(
         {
@@ -77,9 +87,7 @@ export const POST = createProtectedAdminRouteHandler(async (request: NextRequest
     }
 
     let candidateConfig: Record<string, unknown> = {}
-    const rawConfig = body.configJson ?? (await prisma.shopPaymentConfig.findUnique({
-      where: { provider: body.provider },
-    }))?.configJson ?? '{}'
+    const rawConfig = body.configJson ?? existingConfig?.configJson ?? '{}'
     try {
       candidateConfig = JSON.parse(rawConfig) as Record<string, unknown>
     } catch {

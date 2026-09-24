@@ -2,8 +2,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { guardShopApiRateLimit } from '@/lib/shop-api-rate-limit'
-import { getEnabledPaymentConfig } from '@/lib/shop-payment-registry'
-import { getPaymentProvider } from '@/lib/shop-payment-registry'
+import {
+  PaymentCallbackConfigIncompleteError,
+  getEnabledCallbackConfig,
+  getPaymentProvider,
+} from '@/lib/shop-payment-registry'
 import { fulfillShopOrder } from '@/lib/shop-fulfillment-service'
 
 export const dynamic = 'force-dynamic'
@@ -24,7 +27,18 @@ export async function POST(request: NextRequest) {
   const bodyText = await request.text()
 
   const provider = getPaymentProvider('yipay')
-  const config = await getEnabledPaymentConfig('yipay')
+
+  let config: Record<string, string> | null
+  try {
+    config = await getEnabledCallbackConfig('yipay')
+  } catch (error) {
+    // 已启用但 key 等必需配置缺失的存量数据：空密钥验签等于没有验签，
+    // 运行时兜底拒绝伪造回调
+    if (error instanceof PaymentCallbackConfigIncompleteError) {
+      return NextResponse.json({ success: false, message: error.message }, { status: 400 })
+    }
+    throw error
+  }
 
   if (!provider || !config) {
     return NextResponse.json({ success: false, message: t('payment.channelDisabled') }, { status: 400 })

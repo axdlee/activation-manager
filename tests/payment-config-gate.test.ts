@@ -121,3 +121,95 @@ test('webhook 配置齐 secret 后可正常启用', async (t) => {
   assert.equal(body.success, true)
   assert.ok(upsertPayload)
 })
+
+test('已启用渠道仅提交配置（不带 isEnabled）时同样执行完整性校验（防空 key 绕过）', async (t) => {
+  const originalFindUnique = prisma.systemConfig.findUnique.bind(prisma.systemConfig)
+  const originalConfigFindUnique = prisma.shopPaymentConfig.findUnique.bind(
+    prisma.shopPaymentConfig,
+  )
+  const originalUpsert = prisma.shopPaymentConfig.upsert.bind(prisma.shopPaymentConfig)
+  let upsertCalled = false
+
+  prisma.systemConfig.findUnique = (async () => null) as unknown as typeof prisma.systemConfig.findUnique
+  // 存量行：yipay 已启用
+  prisma.shopPaymentConfig.findUnique = (async () => ({
+    id: 1,
+    provider: 'yipay',
+    isEnabled: true,
+    configJson: JSON.stringify({ gateway: 'https://pay.example.com', pid: '1001', key: 'real-key' }),
+  })) as unknown as typeof prisma.shopPaymentConfig.findUnique
+  prisma.shopPaymentConfig.upsert = (async () => {
+    upsertCalled = true
+    return {}
+  }) as unknown as typeof prisma.shopPaymentConfig.upsert
+
+  t.after(async () => {
+    prisma.systemConfig.findUnique = originalFindUnique
+    prisma.shopPaymentConfig.findUnique = originalConfigFindUnique
+    prisma.shopPaymentConfig.upsert = originalUpsert
+  })
+
+  const token = await signToken({ username: 'admin', isAdmin: true })
+  // 请求不带 isEnabled：攻击/误操作只提交空 key 的配置，渠道保持启用
+  const request = createRequest(
+    { provider: 'yipay', configJson: JSON.stringify({ key: '   ' }) },
+    token,
+  )
+
+  const response = await POST(request)
+  const body = (await response.json()) as { success: boolean; message: string; missingKeys?: string[] }
+
+  assert.equal(response.status, 400)
+  assert.equal(body.success, false)
+  assert.match(body.message, /渠道配置不完整/)
+  // gateway / pid / key 都缺失（空 key 按缺失处理）
+  assert.deepEqual(body.missingKeys?.sort(), ['gateway', 'key', 'pid'])
+  assert.equal(upsertCalled, false)
+})
+
+test('已启用渠道提交完整配置（不带 isEnabled）可正常保存', async (t) => {
+  const originalFindUnique = prisma.systemConfig.findUnique.bind(prisma.systemConfig)
+  const originalConfigFindUnique = prisma.shopPaymentConfig.findUnique.bind(
+    prisma.shopPaymentConfig,
+  )
+  const originalUpsert = prisma.shopPaymentConfig.upsert.bind(prisma.shopPaymentConfig)
+  let upsertCalled = false
+
+  prisma.systemConfig.findUnique = (async () => null) as unknown as typeof prisma.systemConfig.findUnique
+  prisma.shopPaymentConfig.findUnique = (async () => ({
+    id: 1,
+    provider: 'yipay',
+    isEnabled: true,
+    configJson: JSON.stringify({ gateway: 'https://pay.example.com', pid: '1001', key: 'old-key' }),
+  })) as unknown as typeof prisma.shopPaymentConfig.findUnique
+  prisma.shopPaymentConfig.upsert = (async () => {
+    upsertCalled = true
+    return { provider: 'yipay', isEnabled: true }
+  }) as unknown as typeof prisma.shopPaymentConfig.upsert
+
+  t.after(async () => {
+    prisma.systemConfig.findUnique = originalFindUnique
+    prisma.shopPaymentConfig.findUnique = originalConfigFindUnique
+    prisma.shopPaymentConfig.upsert = originalUpsert
+  })
+
+  const token = await signToken({ username: 'admin', isAdmin: true })
+  const request = createRequest(
+    {
+      provider: 'yipay',
+      configJson: JSON.stringify({
+        gateway: 'https://pay.example.com',
+        pid: '1001',
+        key: 'rotated-key',
+      }),
+    },
+    token,
+  )
+
+  const response = await POST(request)
+  const body = (await response.json()) as { success: boolean }
+
+  assert.equal(response.status, 200)
+  assert.equal(body.success, true)
+  assert.equal(upsertCalled, true)
+})

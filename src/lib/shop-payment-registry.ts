@@ -47,6 +47,40 @@ export async function getEnabledPaymentConfig(
   return parsePaymentConfig(record.configJson)
 }
 
+/** verified 渠道处于启用态但必需配置缺失（如易支付 key 被清空）时抛出 */
+export class PaymentCallbackConfigIncompleteError extends Error {}
+
+/**
+ * 回调路由专用：读取已启用渠道配置，并对真实验签渠道（callbackTrust ===
+ * 'verified'）强制校验必需配置项齐全。
+ *
+ * 背景：存量库可能存在「渠道已启用但配置后来被改空」的状态（旧版本
+ * 只在显式启用时校验）。此时验签密钥为空，任何伪造回调都能通过签名
+ * 校验（空字符串 key 签名可被复算），必须在运行时兜底拒绝。
+ * 返回 null 表示渠道未启用；配置不完整抛 PaymentCallbackConfigIncompleteError。
+ */
+export async function getEnabledCallbackConfig(
+  providerId: string,
+): Promise<Record<string, string> | null> {
+  const provider = getPaymentProvider(providerId)
+  const config = await getEnabledPaymentConfig(providerId)
+
+  if (!provider || !config) {
+    return null
+  }
+
+  if (provider.callbackTrust === 'verified') {
+    const missingKeys = provider.requiredConfigKeys.filter((key) => !config[key]?.trim())
+    if (missingKeys.length > 0) {
+      throw new PaymentCallbackConfigIncompleteError(
+        `渠道配置不完整，已拒绝回调：${missingKeys.join(', ')}`,
+      )
+    }
+  }
+
+  return config
+}
+
 export async function getRawPaymentConfig(
   providerId: string,
 ): Promise<{ isEnabled: boolean; config: Record<string, string> } | null> {
@@ -95,6 +129,11 @@ export async function listAvailablePaymentChannels() {
   const manualRaw = await getRawPaymentConfig('manual')
 
   for (const provider of listEnabledPaymentProviders()) {
+    // 占位渠道（验签未实现，如支付宝/微信官方通道）不对前台展示，
+    // 避免买家选出永远无法完成支付的订单；即使存量库误启用也排除
+    if (provider.callbackTrust === 'placeholder') {
+      continue
+    }
     const record = await getRawPaymentConfig(provider.id)
     if (!record || !record.isEnabled) {
       continue

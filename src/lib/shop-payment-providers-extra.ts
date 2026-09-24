@@ -102,7 +102,13 @@ export const yipayPaymentProvider: PaymentProvider = {
     try {
       // 真实易支付回调为 form-urlencoded 格式
       const rawParams = body.trim().startsWith('{') ? JSON.parse(body) as Record<string, string> : parseFormUrlEncoded(body)
-      const key = config.key || ''
+      const key = config.key?.trim() ?? ''
+
+      // 空密钥时签名可被任何人复算（MD5(params + '')），等于没有验签：
+      // 必须直接判验签失败，而不是用空字符串参与签名比对
+      if (!key) {
+        return null
+      }
 
       const sign = rawParams.sign || ''
       const tradeStatus = rawParams.trade_status || ''
