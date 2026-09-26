@@ -72,6 +72,22 @@ async function createInvalidCredentialsResponse(keys: string[], message: string)
   return NextResponse.json({ success: false, message }, { status: 401 })
 }
 
+async function createLockedInvalidAttemptResponse(
+  keys: string[],
+  retryAfterSeconds: number,
+  message: string,
+) {
+  // 锁定期间白名单来源的失败尝试同样要计数（v2.11.0 评审·中危 1）：
+  // 否则白名单 IP 在锁定窗口内可以无限次试错密码而不延长锁定，锁定
+  // 语义被白名单穿透。计数落在 IP + 用户名两维度后，锁定窗口随持续
+  // 撞库滚动延长，正确密码的合法管理员仍可随时登录（reset）。
+  for (const key of keys) {
+    await adminLoginRouteDependencies.rateLimiter.recordFailure(key)
+  }
+
+  return createRateLimitedResponse(retryAfterSeconds, message)
+}
+
 export async function handleAdminLoginRequest(request: NextRequest) {
   const t = serverT(resolveServerLocale(request))
 
@@ -124,9 +140,10 @@ export async function handleAdminLoginRequest(request: NextRequest) {
 
     if (!admin) {
       // 用户名维度已锁定时，不存在的账号同样以 429 响应，避免通过
-      // 401/429 差异探测账号是否存在
+      // 401/429 差异探测账号是否存在；白名单来源的失败尝试照常计数
       if (usernameLocked) {
-        return createRateLimitedResponse(
+        return await createLockedInvalidAttemptResponse(
+          [clientIp, usernameRateLimitKey],
           usernameRateLimitResult.retryAfterSeconds,
           t('auth.loginRateLimited'),
         )
@@ -138,8 +155,11 @@ export async function handleAdminLoginRequest(request: NextRequest) {
 
     const isValid = await bcrypt.compare(password, admin.password)
     if (!isValid) {
+      // 锁定期间白名单来源：错误密码 429 且计入失败（不暴露账号是否存在，
+      // 同时让锁定窗口随持续撞库滚动延长，见 createLockedInvalidAttemptResponse）
       if (usernameLocked) {
-        return createRateLimitedResponse(
+        return await createLockedInvalidAttemptResponse(
+          [clientIp, usernameRateLimitKey],
           usernameRateLimitResult.retryAfterSeconds,
           t('auth.loginRateLimited'),
         )

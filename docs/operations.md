@@ -53,12 +53,13 @@
 
 客户端 IP 从 `X-Forwarded-For` 倒数第 N 个条目解析（从右往左数，N=`TRUSTED_PROXY_COUNT`，默认 1）。
 
-生产入口（`server.js`，Docker 镜像同）在请求进入应用前，把本机观察到的 socket 对端地址追加到 XFF 尾部（回环来源除外——middleware 的内部鉴权回环跳保持「XFF 与边缘收到时一致」），因此客户端伪造的条目永远无法命中取位：
+生产入口（`server.js`，Docker 镜像同）在请求进入应用前，把本机观察到的 socket 对端地址追加到 XFF 尾部；middleware 的内部鉴权回环跳携带进程随机密钥头（`LICENSE_INTERNAL_XFF_SECRET`，启动时生成）才豁免追加，其余连接（含同机反代进来的回环连接）一律追加——同机 nginx 部署下伪造的 XFF 条目会被追加的 `127.0.0.1` 挤出取位，无法再借回环穿透白名单：
 
 | 部署形态 | 建议配置 | 链条示意 |
 | --- | --- | --- |
 | 直连（无反代） | 默认 1 | `[socket]` |
 | 一层反代（nginx/Caddy/云 LB） | 2 | `[client, socket]` |
+| 同机 nginx 反代 | 2 | `[client, 127.0.0.1]`（追加的是回环 socket，取位语义不变） |
 | 多层反代 | 可信层数 + 1 | CDN+nginx = 3，`[..., client, nginx, socket]` |
 | 严格模式 | 0 | 不信任任何头；入站 XFF 恒非空，所有请求解析为 `unknown` |
 

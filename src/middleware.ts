@@ -28,6 +28,12 @@ async function validateAdminPageRequest(request: NextRequest, mode: 'public' | '
   const validationHeaders: Record<string, string> = {
     cookie: request.headers.get('cookie') || '',
     'x-real-ip': request.headers.get('x-real-ip') || '',
+    // 进程随机密钥头（v2.11.0 评审·高危 2）：server.js 启动时生成
+    // LICENSE_INTERNAL_XFF_SECRET 并对回环 socket + 匹配密钥的连接豁免 XFF
+    // 追加。env 值由 server.js 在 require('next') 之前写入，middleware 运行时
+    // 可读（已实测验证）；dev 模式（next dev，无 server.js）下为空值，
+    // 服务端比对必然失败 → 回环跳退化为照常追加，方向安全。
+    'x-internal-xff-secret': process.env.LICENSE_INTERNAL_XFF_SECRET || '',
   }
   const rawForwardedFor = request.headers.get('x-forwarded-for')
   if (rawForwardedFor) {

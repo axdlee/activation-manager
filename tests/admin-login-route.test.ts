@@ -424,3 +424,65 @@ test('用户名维度锁定后，白名单来源凭正确密码仍可登录（�
   assert.equal(correctBody.success, true)
   assert.match(correctResponse.headers.get('set-cookie') || '', /auth-token=/)
 })
+
+test('用户名维度锁定后，白名单来源错密码 429 且计入 IP+用户名失败（评审中危1）', async (t) => {
+  const originalFindAdmin = prisma.admin.findUnique.bind(prisma.admin)
+  const originalCompare = bcrypt.compare
+  const originalRateLimiter = adminLoginRouteDependencies.rateLimiter
+  const originalWhitelist = adminLoginRouteDependencies.isClientIpWhitelisted
+
+  const rateLimiter = createAsyncRateLimiter()
+  const failures: string[] = []
+  const rateLimiterWithSpy = {
+    check: rateLimiter.check,
+    reset: rateLimiter.reset,
+    clear: rateLimiter.clear,
+    recordFailure: async (key: string) => {
+      failures.push(key)
+      await rateLimiter.recordFailure(key)
+    },
+  }
+  adminLoginRouteDependencies.rateLimiter = rateLimiterWithSpy
+  adminLoginRouteDependencies.isClientIpWhitelisted = async () => true
+
+  prisma.admin.findUnique = (async () => ({
+    id: 1,
+    username: 'admin',
+    password: 'hashed-password',
+    createdAt: new Date('2026-03-24T00:00:00.000Z'),
+    updatedAt: new Date('2026-03-24T00:00:00.000Z'),
+  })) as unknown as typeof prisma.admin.findUnique
+  bcrypt.compare = async () => false
+
+  t.after(async () => {
+    prisma.admin.findUnique = originalFindAdmin
+    bcrypt.compare = originalCompare
+    adminLoginRouteDependencies.rateLimiter = originalRateLimiter
+    adminLoginRouteDependencies.isClientIpWhitelisted = originalWhitelist
+    await prisma.$disconnect()
+  })
+
+  // 5 次错密码触发用户名维度锁定（期间已有 5×2=10 次 recordFailure）
+  for (let index = 0; index < 5; index += 1) {
+    await POST(
+      createLoginRequest(
+        { username: 'admin', password: 'wrong-password' },
+        { 'x-forwarded-for': `203.0.113.${index + 1}` },
+      ),
+    )
+  }
+  const failuresAfterLock = failures.length
+  assert.ok(failuresAfterLock >= 10)
+
+  // 锁定期间白名单来源错密码：429 且失败计数继续增长（IP + 用户名两维度）
+  const lockedWrongResponse = await POST(
+    createLoginRequest(
+      { username: 'admin', password: 'wrong-password' },
+      { 'x-forwarded-for': '198.51.100.88' },
+    ),
+  )
+  assert.equal(lockedWrongResponse.status, 429)
+  assert.equal(failures.length, failuresAfterLock + 2)
+  assert.ok(failures.includes('198.51.100.88'))
+  assert.ok(failures.includes('username:admin'))
+})

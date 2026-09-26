@@ -11,11 +11,13 @@
  *
  * 追加规则：
  * - socket 地址先做 IPv4-mapped IPv6 归一化（与 src/lib/client-ip.ts 一致）；
- * - **loopback（127.0.0.1 / ::1）不追加**：middleware 的页面鉴权会从本进程
- *   回环再发一次内部校验请求，若对内部跳也追加，链尾会混入 127.0.0.1，
-   * 反代部署下会把所有客户端解析成回环地址（白名单被击穿或全部 403）。
-   * 回环跳不追加即保持「XFF 与边缘收到时一致」的内部约定；来自宿主机
-   * 回环的直连请求本身 socket 就是 127.0.0.1，与白名单默认条目一致；
+ * - **除可信内部跳外一律追加**（v2.11.0 评审·高危 2）：middleware 的页面
+ *   鉴权会从本进程回环再发一次内部校验请求，该跳携带进程随机密钥头
+ *   `x-internal-xff-secret`（与 LICENSE_INTERNAL_XFF_SECRET 比对），豁免追加以
+ *   保持「XFF 与边缘收到时一致」；来自宿主机回环的其他连接（同机 nginx
+ *   反代、本机直连）不再豁免——伪造的 XFF 条目会被追加的 127.0.0.1 挤出
+ *   「倒数第 N 个」取位，同机反代不再能借回环穿透 IP 白名单。同机 nginx
+ *   部署对应 TRUSTED_PROXY_COUNT=2（nginx + 本层）。
  * - socket 地址缺失（异常场景）时不改动请求头，交由 client-ip.ts 原有
  *   分支处理。
  *
@@ -29,6 +31,7 @@
  */
 
 const http = require('node:http')
+const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -36,6 +39,18 @@ const compression = require('next/dist/compiled/compression')
 
 const IPV4_MAPPED_IPV6_RE = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i
 const LOOPBACK_ADDRESSES = new Set(['127.0.0.1', '::1', 'localhost'])
+
+/**
+ * 内部校验跳豁免密钥（v2.11.0 评审·高危 2）：进程启动时生成一次随机密钥并
+ * 写入环境变量，middleware 的页面鉴权内部回环跳会携带同名请求头；server.js
+ * 看到回环 socket + 匹配密钥才认定是可信内部跳。密钥不经配置、不落盘，
+ * 外部进程无法预测，来自宿主机回环的普通直连/反代流量一律不豁免。
+ *
+ * 注意：必须在 require('next')（startServer 内）之前赋值——Next 的 middleware
+ * 运行时会从宿主进程环境快照 process.env，赋值晚于沙箱创建会读不到。
+ */
+const INTERNAL_XFF_SECRET_HEADER = 'x-internal-xff-secret'
+process.env.LICENSE_INTERNAL_XFF_SECRET = crypto.randomBytes(24).toString('hex')
 
 /** 折算 IPv4-mapped IPv6（`::ffff:192.168.1.9` → `192.168.1.9`），其余原样返回 */
 function normalizeSocketAddress(raw) {
@@ -53,13 +68,25 @@ function isLoopbackAddress(address) {
 
 /**
  * 计算追加后的 X-Forwarded-For 值。
- * @returns {string|null} 追加后的头值；无需追加（socket 缺失/回环）时返回原值（可能为 null）
+ * @param {string|undefined} [internalSecretHeader] 请求头 `x-internal-xff-secret` 的值
+ * @returns {string|null} 追加后的头值；仅可信内部跳（回环 socket + 密钥匹配）或
+ *   socket 缺失时返回原值（可能为 null），其余一律追加
  */
-function appendSocketAddressToForwardedFor(existingHeader, socketAddress) {
+function appendSocketAddressToForwardedFor(existingHeader, socketAddress, internalSecretHeader) {
   const socket = normalizeSocketAddress(socketAddress)
-  if (!socket || isLoopbackAddress(socket)) {
+  if (!socket) {
     return existingHeader ?? null
   }
+  if (
+    isLoopbackAddress(socket) &&
+    typeof internalSecretHeader === 'string' &&
+    internalSecretHeader === process.env.LICENSE_INTERNAL_XFF_SECRET
+  ) {
+    // 可信内部跳：链条保持与边缘请求一致（XFF 不变），取位语义不偏移
+    return existingHeader ?? null
+  }
+  // 其余连接（含无密钥/错密钥的回环连接）一律追加：同机 nginx 部署下，
+  // 伪造的 X-Forwarded-For 条目会被追加的 127.0.0.1 挤出「倒数第 N 个」取位
   const existing = typeof existingHeader === 'string' ? existingHeader.trim() : ''
   return existing ? `${existing}, ${socket}` : socket
 }
@@ -102,6 +129,7 @@ async function startServer(options = {}) {
     const appended = appendSocketAddressToForwardedFor(
       req.headers['x-forwarded-for'],
       req.socket.remoteAddress,
+      req.headers[INTERNAL_XFF_SECRET_HEADER],
     )
     if (appended !== null) {
       req.headers['x-forwarded-for'] = appended
@@ -126,6 +154,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  INTERNAL_XFF_SECRET_HEADER,
   appendSocketAddressToForwardedFor,
   isLoopbackAddress,
   normalizeSocketAddress,
