@@ -113,7 +113,7 @@ class ActivationManagerClient
 
     request = Net::HTTP::Post.new(uri)
     request['Content-Type'] = 'application/json'
-    request['x-license-signature-version'] = '3'
+    request['x-license-signature-version'] = '4'
     @headers.each { |k, v| request[k] = v }
     request.body = body
 
@@ -154,19 +154,18 @@ class ActivationManagerClient
     if ((now_ms - ts).abs > SIGNATURE_MAX_AGE_MS)
       raise ActivationManagerClientError.new('SIGNATURE_EXPIRED', 'signature timestamp outside window')
     end
-    # 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+    # 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|requestId）。
+    # 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+    # 绝不按响应头切换验签算法。
     version = response['x-license-signature-version'].to_s
+    unless version == '4'
+      raise ActivationManagerClientError.new('SIGNATURE_INVALID', 'response signature version not supported (anti-downgrade)')
+    end
     # payload 用 Symbol 键（call 里 {code:...}），兼容字符串键以防外部调用
     code = (payload[:code] || payload['code']).to_s.strip
     machine_id = (payload[:machineId] || payload['machineId']).to_s.strip
-    message =
-      if version == '3'
-        "#{timestamp}.#{code}|#{machine_id}.#{raw_body}"
-      elsif version == '1'
-        raw_body
-      else
-        "#{timestamp}.#{raw_body}"
-      end
+    request_id = (payload[:requestId] || payload['requestId']).to_s.strip
+    message = "#{timestamp}.#{code}|#{machine_id}|#{request_id}.#{raw_body}"
     expected = OpenSSL::HMAC.hexdigest('SHA256', @response_secret, message)
     unless OpenSSL.secure_compare(expected, signature)
       raise ActivationManagerClientError.new('SIGNATURE_INVALID', 'response signature mismatch')

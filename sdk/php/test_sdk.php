@@ -6,7 +6,7 @@ require __DIR__ . '/src/ActivationManagerClient.php';
 $secret = 'test-secret';
 $payload = json_encode(['success' => true, 'licenseMode' => 'COUNT', 'license_mode' => 'COUNT', 'remainingCount' => 9, 'valid' => true]);
 $ts = (string)round(microtime(true) * 1000);
-// v3：SDK 请求声明 x-license-signature-version: 3，router 按版本签（这里外层 sig 变量已不再使用）
+// v4：SDK 请求声明 x-license-signature-version: 4，router 按版本签（这里外层 sig 变量已不再使用）
 
 // 用 curl 的 --resolve 不可行；直接起一个后台 PHP 内置服务来响应
 // 简化：用 file_put_contents + php -S router 脚本
@@ -25,7 +25,10 @@ $ts = (string)round(microtime(true) * 1000);
 $version = $_SERVER['HTTP_X_LICENSE_SIGNATURE_VERSION'] ?? '';
 $code = trim((string)($req['code'] ?? ''));
 $mid = trim((string)($req['machineId'] ?? ''));
-if ($version === '3') {
+$rid = trim((string)($req['requestId'] ?? ''));
+if ($version === '4') {
+    $message = $ts . '.' . $code . '|' . $mid . '|' . $rid . '.' . $payload;
+} elseif ($version === '3') {
     $message = $ts . '.' . $code . '|' . $mid . '.' . $payload;
 } elseif ($version === '1') {
     $message = $payload;

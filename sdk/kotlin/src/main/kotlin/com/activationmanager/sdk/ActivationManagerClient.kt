@@ -108,7 +108,7 @@ class ActivationManagerClient(private val options: Options) {
         var lastError: ClientException? = null
         for (attempt in 1..totalAttempts) {
             try {
-                return attemptOnce(path, payload, attempt, code, machineId)
+                return attemptOnce(path, payload, attempt, code, machineId, requestId)
             } catch (e: ClientException) {
                 lastError = e
                 if (attempt < totalAttempts) Thread.sleep(options.retryDelayMs)
@@ -117,12 +117,12 @@ class ActivationManagerClient(private val options: Options) {
         throw lastError!!
     }
 
-    private fun attemptOnce(path: String, payload: String, attempt: Int, code: String, machineId: String): Result {
+    private fun attemptOnce(path: String, payload: String, attempt: Int, code: String, machineId: String, requestId: String): Result {
         val request = HttpRequest.newBuilder()
             .uri(URI.create(options.baseUrl.trimEnd('/') + path))
             .timeout(Duration.ofSeconds(options.timeoutSeconds))
             .header("Content-Type", "application/json")
-            .header("x-license-signature-version", "3")
+            .header("x-license-signature-version", "4")
             .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
             .build()
 
@@ -136,7 +136,7 @@ class ActivationManagerClient(private val options: Options) {
 
         val raw = response.body()
         if (options.responseSecret.isNotEmpty()) {
-            verifySignature(response.headers(), raw, code, machineId)
+            verifySignature(response.headers(), raw, code, machineId, requestId)
         }
 
         val parsed = SimpleJson.parse(raw) ?: throw ClientException(
@@ -149,7 +149,7 @@ class ActivationManagerClient(private val options: Options) {
         return Result(parsed)
     }
 
-    private fun verifySignature(headers: java.net.http.HttpHeaders, rawBody: String, code: String, machineId: String) {
+    private fun verifySignature(headers: java.net.http.HttpHeaders, rawBody: String, code: String, machineId: String, requestId: String) {
         val signature = headers.firstValue(SIGNATURE_HEADER).orElse("")
         val timestamp = headers.firstValue(TIMESTAMP_HEADER).orElse("")
         if (signature.isEmpty() || timestamp.isEmpty()) {
@@ -163,13 +163,14 @@ class ActivationManagerClient(private val options: Options) {
         }
         val mac = Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(options.responseSecret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
-        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        // 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|requestId）。
+        // 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+        // 绝不按响应头切换验签算法。
         val version = headers.firstValue("x-license-signature-version").orElse("")
-        val signedInput = when (version) {
-            "3" -> "$timestamp.${code.trim()}|${machineId.trim()}.$rawBody"
-            "1" -> rawBody
-            else -> "$timestamp.$rawBody"
+        if (version != "4") {
+            throw ClientException(ErrorKind.SIGNATURE_INVALID, "response signature version not supported (anti-downgrade)")
         }
+        val signedInput = "$timestamp.${code.trim()}|${machineId.trim()}|${requestId.trim()}.$rawBody"
         val expected = mac.doFinal(signedInput.toByteArray(StandardCharsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
         if (!MessageDigest.isEqual(

@@ -16,11 +16,12 @@ type LicenseRequestInput = {
   projectKey?: string
   code: string
   machineId: string
-}
-
-type ConsumeLicenseRequestInput = LicenseRequestInput & {
+  /** 幂等/防重放请求 ID；签名 v4 将其绑定进响应签名，强烈建议每次请求生成唯一值 */
   requestId?: string
 }
+
+/** 消费请求：语义上要求 requestId（幂等 + 防重放），字段由 LicenseRequestInput 统一声明 */
+type ConsumeLicenseRequestInput = LicenseRequestInput
 
 type LicenseClientRequestBody = {
   projectKey?: string
@@ -258,48 +259,40 @@ const LICENSE_TIMESTAMP_HEADER = 'x-license-timestamp'
 const LICENSE_SIGNATURE_VERSION_HEADER = 'x-license-signature-version'
 const SIGNATURE_MAX_AGE_MS = 5 * 60 * 1000
 
-type LicenseSignatureVersion = '1' | '2' | '3'
-
-function resolveResponseSignatureVersion(
-  headerValue: string | null,
-): LicenseSignatureVersion {
-  if (headerValue === '1' || headerValue === '3') {
-    return headerValue
-  }
-
-  // 未声明或声明为 2（v2.9.0 服务端默认版本）
-  return '2'
-}
+/**
+ * 本 SDK 声明并唯一信任的签名协议版本（v4：绑定 code|machineId|requestId）。
+ * 防降级：版本由客户端声明、服务端回显，攻击者可自行请求低版本签名再转发，
+ * 因此响应版本头不是本常量时一律判验签失败，绝不按响应头切换算法。
+ */
+const LICENSE_SIGNATURE_REQUEST_VERSION = '4'
 
 function buildSignatureMessage(
-  version: LicenseSignatureVersion,
   timestamp: string,
-  context: { code?: string; machineId?: string },
+  context: { code?: string; machineId?: string; requestId?: string },
   bodyText: string,
 ): string {
-  if (version === '1') {
-    return bodyText
-  }
-
-  if (version === '3') {
-    const code = (context.code ?? '').trim()
-    const machineId = (context.machineId ?? '').trim()
-    return `${timestamp}.${code}|${machineId}.${bodyText}`
-  }
-
-  return `${timestamp}.${bodyText}`
+  const code = (context.code ?? '').trim()
+  const machineId = (context.machineId ?? '').trim()
+  const requestId = (context.requestId ?? '').trim()
+  return `${timestamp}.${code}|${machineId}|${requestId}.${bodyText}`
 }
 
 async function verifyLicenseResponseSignature(
   bodyText: string,
   response: Response,
   secret: string,
-  context: { code?: string; machineId?: string } = {},
+  context: { code?: string; machineId?: string; requestId?: string } = {},
 ): Promise<boolean> {
   const signature = response.headers.get(LICENSE_SIGNATURE_HEADER)
   const timestamp = response.headers.get(LICENSE_TIMESTAMP_HEADER)
 
   if (!signature || !timestamp) {
+    return false
+  }
+
+  // 防降级：响应版本必须与请求声明一致（服务端按声明版本签发并回显）
+  const responseVersion = response.headers.get(LICENSE_SIGNATURE_VERSION_HEADER)
+  if (responseVersion !== LICENSE_SIGNATURE_REQUEST_VERSION) {
     return false
   }
 
@@ -312,10 +305,6 @@ async function verifyLicenseResponseSignature(
     return false
   }
 
-  const version = resolveResponseSignatureVersion(
-    response.headers.get(LICENSE_SIGNATURE_VERSION_HEADER),
-  )
-
   try {
     const key = await crypto.subtle.importKey(
       'raw',
@@ -324,7 +313,7 @@ async function verifyLicenseResponseSignature(
       false,
       ['sign'],
     )
-    const message = buildSignatureMessage(version, timestamp, context, bodyText)
+    const message = buildSignatureMessage(timestamp, context, bodyText)
     const signatureBuffer = await crypto.subtle.sign(
       'HMAC',
       key,
@@ -368,6 +357,7 @@ async function requestLicenseApi(
   for (let attemptCount = 1; attemptCount <= totalAttempts; attemptCount += 1) {
     const headers = new Headers(options.headers)
     headers.set('Content-Type', 'application/json')
+    headers.set(LICENSE_SIGNATURE_VERSION_HEADER, LICENSE_SIGNATURE_REQUEST_VERSION)
 
     const controller = timeoutMs && typeof AbortController === 'function' ? new AbortController() : null
     const timeoutId =
@@ -454,7 +444,11 @@ async function requestLicenseApi(
             responseText,
             response,
             options.responseSecret,
-            { code: requestBody.code, machineId: requestBody.machineId },
+            {
+              code: requestBody.code,
+              machineId: requestBody.machineId,
+              requestId: requestBody.requestId,
+            },
           )
           if (!signatureValid) {
             throw buildLicenseClientError('SIGNATURE_INVALID', path, attemptCount, null, response.status)

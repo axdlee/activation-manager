@@ -44,7 +44,7 @@ const (
 	TimestampHeader     = "x-license-timestamp"
 	// SignatureVersionHeader 声明客户端可验的响应签名版本（v3 绑定 code+machineId）
 	SignatureVersionHeader      = "x-license-signature-version"
-	SignatureVersionRequested   = "3"
+	SignatureVersionRequested   = "4"
 	SignatureMaxAgeMS   = int64(5 * 60 * 1000)
 	defaultTimeout      = 10 * time.Second
 	defaultMaxRetries   = 0
@@ -209,7 +209,7 @@ func (c *Client) call(ctx context.Context, path, code, machineID string, ov call
 
 	var lastErr *ClientError
 	for attempt := 1; attempt <= totalAttempts; attempt++ {
-		result, callErr := c.attempt(ctx, path, body, attempt, code, machineID)
+		result, callErr := c.attempt(ctx, path, body, attempt, code, machineID, ov.requestID)
 		if callErr == nil {
 			return result, nil
 		}
@@ -232,7 +232,7 @@ func (c *Client) call(ctx context.Context, path, code, machineID string, ov call
 	return nil, lastErr
 }
 
-func (c *Client) attempt(ctx context.Context, path string, body []byte, attempt int, code, machineID string) (*Result, *ClientError) {
+func (c *Client) attempt(ctx context.Context, path string, body []byte, attempt int, code, machineID, requestID string) (*Result, *ClientError) {
 	url := c.opts.BaseURL + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
@@ -259,7 +259,7 @@ func (c *Client) attempt(ctx context.Context, path string, body []byte, attempt 
 	}
 
 	if c.opts.ResponseSecret != "" {
-		if vErr := verifySignature(resp.Header, string(raw), c.opts.ResponseSecret, code, machineID); vErr != nil {
+		if vErr := verifySignature(resp.Header, string(raw), c.opts.ResponseSecret, code, machineID, requestID); vErr != nil {
 			return nil, vErr
 		}
 	}
@@ -282,12 +282,20 @@ func (r *Result) HasSuccessField() bool {
 	return true
 }
 
-func verifySignature(headers http.Header, rawBody, secret, code, machineID string) *ClientError {
+func verifySignature(headers http.Header, rawBody, secret, code, machineID, requestID string) *ClientError {
 	signature := headers.Get(SignatureHeader)
 	timestamp := headers.Get(TimestampHeader)
 	if signature == "" || timestamp == "" {
 		return &ClientError{Kind: ErrSignatureMiss, Message: "missing signature headers"}
 	}
+
+	// 防降级：SDK 只按自己请求的版本（SignatureVersionRequested）验签。
+	// 响应版本头缺失或不一致（服务端回落/攻击者转发低版本响应）一律拒绝，
+	// 绝不按响应头切换签名算法。
+	if headers.Get(SignatureVersionHeader) != SignatureVersionRequested {
+		return &ClientError{Kind: ErrSignature, Message: "response signature version mismatch"}
+	}
+
 	ts, err := strconv.ParseInt(timestamp, 10, 64)
 	if err != nil {
 		return &ClientError{Kind: ErrSignature, Message: "invalid signature timestamp"}
@@ -297,16 +305,8 @@ func verifySignature(headers http.Header, rawBody, secret, code, machineID strin
 		return &ClientError{Kind: ErrSignatureExpire, Message: "signature timestamp outside window"}
 	}
 
-	// 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
-	var message string
-	switch version := headers.Get(SignatureVersionHeader); version {
-	case "1":
-		message = rawBody
-	case "3":
-		message = timestamp + "." + code + "|" + machineID + "." + rawBody
-	default:
-		message = timestamp + "." + rawBody
-	}
+	// v4：绑定 code|machineId|requestId（trim 后拼接），阻断转发与同码同机窗口内重放
+	message := timestamp + "." + code + "|" + machineID + "|" + requestID + "." + rawBody
 
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(message))

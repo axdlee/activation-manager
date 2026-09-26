@@ -90,7 +90,7 @@ function ActivationManager:_call(path, code, machine_id, request_id, project_key
     local last_error = nil
 
     for attempt = 1, total_attempts do
-        local ok, result = pcall(self._attempt, self, path, body, attempt, code, machine_id)
+        local ok, result = pcall(self._attempt, self, path, body, attempt, code, machine_id, request_id)
         if ok then
             return result
         else
@@ -103,7 +103,7 @@ function ActivationManager:_call(path, code, machine_id, request_id, project_key
     error(last_error, 0)
 end
 
-function ActivationManager:_attempt(path, body, attempt, code, machine_id)
+function ActivationManager:_attempt(path, body, attempt, code, machine_id, request_id)
     -- http.request 不支持超时参数——用 luasocket 的底层 TCP 实现带超时 POST
     local url = self.base_url .. path
     local parsed_host, parsed_port = url:match("://([^:/]+):?(%d*)")
@@ -122,7 +122,7 @@ function ActivationManager:_attempt(path, body, attempt, code, machine_id)
         "POST " .. path .. " HTTP/1.1",
         "Host: " .. parsed_host .. (parsed_port ~= 80 and (":" .. parsed_port) or ""),
         "Content-Type: application/json",
-        "x-license-signature-version: 3",
+        "x-license-signature-version: 4",
         "Content-Length: " .. #body,
         "Connection: close",
     }
@@ -155,7 +155,7 @@ function ActivationManager:_attempt(path, body, attempt, code, machine_id)
     local status_code = tonumber(header_text:match("HTTP/%d%.%d (%d+)")) or 0
 
     if self.response_secret ~= "" then
-        self:_verify_signature(header_text, body_text, code, machine_id)
+        self:_verify_signature(header_text, body_text, code, machine_id, request_id)
     end
 
     local parsed, parse_err = json.decode(body_text)
@@ -195,7 +195,7 @@ function ActivationManager:_now_ms()
     return math.floor(socket.gettime() * 1000)
 end
 
-function ActivationManager:_verify_signature(header_text, body, code, machine_id)
+function ActivationManager:_verify_signature(header_text, body, code, machine_id, request_id)
     if not pcall(require, "ssl") then
         -- luaossl 未安装时跳过验签（与各语言 SDK 的可选验签语义一致）
         return
@@ -217,18 +217,17 @@ function ActivationManager:_verify_signature(header_text, body, code, machine_id
     -- 使用 openssl.hmac（luaossl）
     local hmac_ok, hmac_ctx = pcall(function()
         local ctx = require("openssl.hmac").new(self.response_secret, "sha256")
-        -- 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        -- 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|requestId）。
+        -- 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+        -- 绝不按响应头切换验签算法。
         local version = self:_header_get(header_text, "x-license-signature-version")
-        local message
-        if version == "3" then
-            local c = (code or ""):gsub("^%s+", ""):gsub("%s+$", "")
-            local m = (machine_id or ""):gsub("^%s+", ""):gsub("%s+$", "")
-            message = timestamp .. "." .. c .. "|" .. m .. "." .. body
-        elseif version == "1" then
-            message = body
-        else
-            message = timestamp .. "." .. body
+        if version ~= "4" then
+            self:_error(self.ErrorKind.SIGNATURE_INVALID, "response signature version not supported (anti-downgrade)")
         end
+        local c = (code or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        local m = (machine_id or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        local r = (request_id or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        local message = timestamp .. "." .. c .. "|" .. m .. "|" .. r .. "." .. body
         return ctx:final(message)
     end)
     if not hmac_ok then

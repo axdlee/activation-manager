@@ -108,7 +108,7 @@ class ActivationManagerClient:
                     data=body,
                     headers={
                         "Content-Type": "application/json",
-                        "x-license-signature-version": "3",
+                        "x-license-signature-version": "4",
                         **self.headers,
                     },
                     method="POST",
@@ -120,6 +120,7 @@ class ActivationManagerClient:
                         raw,
                         code=str(payload.get("code", "") or ""),
                         machine_id=str(payload.get("machineId", "") or ""),
+                        request_id=str(payload.get("requestId", "") or ""),
                     )
                     parsed = json.loads(raw)
                     if not isinstance(parsed, dict):
@@ -161,6 +162,7 @@ class ActivationManagerClient:
         raw_body: str,
         code: str = "",
         machine_id: str = "",
+        request_id: str = "",
     ) -> None:
         if not self.response_secret:
             return
@@ -175,13 +177,12 @@ class ActivationManagerClient:
             raise LicenseClientError("SIGNATURE_INVALID", "签名时间戳非法", "")
         if abs(time.time() * 1000 - timestamp_ms) > SIGNATURE_MAX_AGE_MS:
             raise LicenseClientError("SIGNATURE_EXPIRED", "签名时间窗过期", "")
-        # 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
-        if version == "3":
-            message = f"{timestamp}.{code.strip()}|{machine_id.strip()}." + raw_body
-        elif version == "1":
-            message = raw_body
-        else:
-            message = f"{timestamp}." + raw_body
+        # 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|requestId）。
+        # 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+        # 绝不按响应头切换验签算法。
+        if version != "4":
+            raise LicenseClientError("SIGNATURE_INVALID", "响应签名版本不受支持（防降级）", "")
+        message = f"{timestamp}.{code.strip()}|{machine_id.strip()}|{request_id.strip()}." + raw_body
         expected = hmac.new(
             self.response_secret.encode("utf-8"),
             message.encode("utf-8"),

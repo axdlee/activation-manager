@@ -26,8 +26,11 @@ handler = Thread.new do
         version = request[/x-license-signature-version:\s*(\d+)\r/i, 1] || ''
         code = $received.last['code'].to_s.strip
         mid = $received.last['machineId'].to_s.strip
+        rid = ($received.last['requestId'] || '').to_s.strip
         message =
-          if version == '3'
+          if version == '4'
+            "#{ts}.#{code}|#{mid}|#{rid}.#{payload}"
+          elsif version == '3'
             "#{ts}.#{code}|#{mid}.#{payload}"
           elsif version == '1'
             payload

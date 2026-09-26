@@ -167,7 +167,7 @@ public sealed class ActivationManagerClient
         {
             try
             {
-                return await AttemptAsync(path, body, attempt, code, machineId, ct).ConfigureAwait(false);
+                return await AttemptAsync(path, body, attempt, code, machineId, requestId ?? "", ct).ConfigureAwait(false);
             }
             catch (ActivationClientException e)
             {
@@ -181,13 +181,13 @@ public sealed class ActivationManagerClient
         throw lastError!;
     }
 
-    private async Task<ActivationResult> AttemptAsync(string path, string body, int attempt, string code, string machineId, CancellationToken ct)
+    private async Task<ActivationResult> AttemptAsync(string path, string body, int attempt, string code, string machineId, string requestId, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, _options.BaseUrl.TrimEnd('/') + path)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json"),
         };
-        request.Headers.TryAddWithoutValidation("x-license-signature-version", "3");
+        request.Headers.TryAddWithoutValidation("x-license-signature-version", "4");
         foreach (var (name, value) in _options.Headers)
         {
             request.Headers.TryAddWithoutValidation(name, value);
@@ -213,7 +213,7 @@ public sealed class ActivationManagerClient
 
             if (!string.IsNullOrEmpty(_options.ResponseSecret))
             {
-                VerifySignature(response, raw, _options.ResponseSecret, code, machineId);
+                VerifySignature(response, raw, _options.ResponseSecret, code, machineId, requestId);
             }
 
             Dictionary<string, JsonElement>? parsed;
@@ -240,7 +240,7 @@ public sealed class ActivationManagerClient
         }
     }
 
-    private static void VerifySignature(HttpResponseMessage response, string rawBody, string secret, string code, string machineId)
+    private static void VerifySignature(HttpResponseMessage response, string rawBody, string secret, string code, string machineId, string requestId)
     {
         var signature = GetHeader(response, SignatureHeader);
         var timestamp = GetHeader(response, TimestampHeader);
@@ -257,14 +257,15 @@ public sealed class ActivationManagerClient
         {
             throw new ActivationClientException(ActivationErrorKind.SignatureExpired, "signature timestamp outside window");
         }
-        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        // 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|requestId）。
+        // 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+        // 绝不按响应头切换验签算法。
         var version = GetHeader(response, "x-license-signature-version");
-        var message = version switch
+        if (version != "4")
         {
-            "3" => $"{timestamp}.{code?.Trim()}|{machineId?.Trim()}.{rawBody}",
-            "1" => rawBody,
-            _ => $"{timestamp}.{rawBody}",
-        };
+            throw new ActivationClientException(ActivationErrorKind.SignatureInvalid, "response signature version not supported (anti-downgrade)");
+        }
+        var message = $"{timestamp}.{code?.Trim()}|{machineId?.Trim()}|{requestId?.Trim()}.{rawBody}";
         var expected = HmacSha256Hex(message, secret);
         if (!CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(signature)))
         {

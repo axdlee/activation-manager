@@ -9,9 +9,16 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
  * - v2: HMAC(`${timestamp}.${body}`)——时间戳参与 HMAC 输入，阻断跨时间戳重放
  * - v3: HMAC(`${timestamp}.${code}|${machineId}.${body}`)——绑定请求上下文
  *   （激活码 + 机器码），持有合法授权的响应无法转发给其他 code/machineId 使用
+ * - v4: HMAC(`${timestamp}.${code}|${machineId}|${requestId}.${body}`)——在 v3 基础上
+ *   绑定 requestId，同码同机 5 分钟窗口内无法用旧的扣次成功响应冒充新请求
  *
  * 版本协商：客户端通过请求头 `x-license-signature-version` 声明可验版本；
- * 未声明默认 v2（与 v2.9.0 行为一致）；声明 1/2/3 之外的值同样回落 v2。
+ * 未声明默认 v2（v2.9.0 之前 SDK 的兼容基线）；声明 2/3/4 之外的值（含已下线的 v1）
+ * 同样回落 v2。v1 不签时间戳、可被无限期重放，服务端不再签发。
+ *
+ * 防降级：签名版本由客户端声明、服务端回显，攻击者可以自己请求低版本签名再转发。
+ * 因此 SDK 必须只按「自己请求的版本」验签，响应头声明其他版本一律判失败——
+ * 服务端的回落逻辑只服务于未升级的旧 SDK。
  */
 
 export const SIGNATURE_HEADER = 'x-license-signature'
@@ -21,23 +28,26 @@ export const SIGNATURE_VERSION_HEADER = 'x-license-signature-version'
 export const SIGNATURE_MAX_AGE_MS = 5 * 60 * 1000 // 5 分钟时间窗
 
 /** 当前最新签名协议版本（SDK 升级后声明） */
-export const LICENSE_SIGNATURE_CURRENT_VERSION = '3'
+export const LICENSE_SIGNATURE_CURRENT_VERSION = '4'
 
 /** 未声明版本时的默认版本（v2.9.0 兼容基线） */
 export const LICENSE_SIGNATURE_DEFAULT_VERSION = '2'
 
-export type LicenseSignatureVersion = '1' | '2' | '3'
+/** 服务端可签发的版本（v1 已下线） */
+export type LicenseSignatureVersion = '2' | '3' | '4'
 
 /** 响应签名绑定的请求上下文 */
 export type LicenseSignatureContext = {
   code?: string
   machineId?: string
+  /** 仅 v4 参与签名；请求未携带时按空串处理 */
+  requestId?: string
 }
 
 export function resolveResponseSignatureVersion(
   requested: string | null | undefined,
 ): LicenseSignatureVersion {
-  if (requested === '1' || requested === '2' || requested === '3') {
+  if (requested === '2' || requested === '3' || requested === '4') {
     return requested
   }
 
@@ -48,9 +58,17 @@ function normalizeSignatureContextValue(value: string | undefined | null): strin
   return (value ?? '').trim()
 }
 
-/** v3 上下文串：`code|machineId`（与 SDK 端拼接规则保持一致） */
-export function buildSignatureContextString(context: LicenseSignatureContext = {}): string {
-  return `${normalizeSignatureContextValue(context.code)}|${normalizeSignatureContextValue(context.machineId)}`
+/**
+ * 上下文串（与 SDK 端拼接规则保持一致）：
+ * - v3: `code|machineId`
+ * - v4: `code|machineId|requestId`
+ */
+export function buildSignatureContextString(
+  context: LicenseSignatureContext = {},
+  version: '3' | '4' = '3',
+): string {
+  const base = `${normalizeSignatureContextValue(context.code)}|${normalizeSignatureContextValue(context.machineId)}`
+  return version === '4' ? `${base}|${normalizeSignatureContextValue(context.requestId)}` : base
 }
 
 export function signLicenseResponseBody(
@@ -64,14 +82,10 @@ export function signLicenseResponseBody(
 ): string {
   const { version = LICENSE_SIGNATURE_DEFAULT_VERSION, context } = options
 
-  let payload: string
-  if (version === '1') {
-    payload = body
-  } else if (version === '3') {
-    payload = `${timestamp}.${buildSignatureContextString(context)}.${body}`
-  } else {
-    payload = `${timestamp}.${body}`
-  }
+  const payload =
+    version === '3' || version === '4'
+      ? `${timestamp}.${buildSignatureContextString(context, version)}.${body}`
+      : `${timestamp}.${body}`
 
   return createHmac('sha256', secret).update(payload).digest('hex')
 }

@@ -91,7 +91,7 @@ class ActivationManagerClient {
         ActivationManagerClientException last = null
         for (int attempt in 1..totalAttempts) {
             try {
-                return attemptOnce(path, body, attempt, code, machineId)
+                return attemptOnce(path, body, attempt, code, machineId, requestId ?: '')
             } catch (ActivationManagerClientException e) {
                 last = e
                 if (attempt < totalAttempts) Thread.sleep(retryDelayMs)
@@ -100,12 +100,12 @@ class ActivationManagerClient {
         throw last
     }
 
-    private Map attemptOnce(String path, String body, int attempt, String code, String machineId) {
+    private Map attemptOnce(String path, String body, int attempt, String code, String machineId, String requestId) {
         def request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + path))
                 .timeout(Duration.ofSeconds(timeoutSeconds))
                 .header('Content-Type', 'application/json')
-                .header('x-license-signature-version', '3')
+                .header('x-license-signature-version', '4')
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build()
 
@@ -120,7 +120,7 @@ class ActivationManagerClient {
 
         String raw = response.body()
         if (responseSecret) {
-            verifySignature(response.headers(), raw, code, machineId)
+            verifySignature(response.headers(), raw, code, machineId, requestId)
         }
 
         Object parsed = new JsonSlurper().parseText(raw)
@@ -148,7 +148,7 @@ class ActivationManagerClient {
         ]
     }
 
-    private void verifySignature(HttpResponse.Headers headers, String rawBody, String code, String machineId) {
+    private void verifySignature(HttpResponse.Headers headers, String rawBody, String code, String machineId, String requestId) {
         String signature = headers.firstValue(SIGNATURE_HEADER).orElse('')
         String timestamp = headers.firstValue(TIMESTAMP_HEADER).orElse('')
         if (!signature || !timestamp) {
@@ -166,16 +166,14 @@ class ActivationManagerClient {
         }
         Mac mac = Mac.getInstance('HmacSHA256')
         mac.init(new SecretKeySpec(responseSecret.getBytes('UTF-8'), 'HmacSHA256'))
-        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        // 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|requestId）。
+        // 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+        // 绝不按响应头切换验签算法。
         String version = headers.firstValue('x-license-signature-version').orElse('')
-        String message
-        if (version == '3') {
-            message = "${timestamp}.${code?.trim() ?: ''}|${machineId?.trim() ?: ''}.${rawBody}"
-        } else if (version == '1') {
-            message = rawBody
-        } else {
-            message = "${timestamp}.${rawBody}"
+        if (version != '4') {
+            throw new ActivationManagerClientException('SIGNATURE_INVALID', 'response signature version not supported (anti-downgrade)')
         }
+        String message = "${timestamp}.${code?.trim() ?: ''}|${machineId?.trim() ?: ''}|${requestId?.trim() ?: ''}.${rawBody}"
         String expected = mac.doFinal(message.getBytes('UTF-8')).encodeHex().toString()
         if (!MessageDigest.isEqual(expected.getBytes('UTF-8'), signature.getBytes('UTF-8'))) {
             throw new ActivationManagerClientException('SIGNATURE_INVALID', 'response signature mismatch')

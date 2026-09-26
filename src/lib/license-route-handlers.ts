@@ -75,6 +75,7 @@ async function executeLicenseRequest(
     const signatureContext = {
       code: params.code,
       machineId: params.machineId,
+      requestId: params.requestId,
       requestedVersion: request.headers.get(SIGNATURE_VERSION_HEADER),
     }
     const response = options.legacyOnly

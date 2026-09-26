@@ -44,7 +44,12 @@ class Handler(BaseHTTPRequestHandler):
             version = self.headers.get("x-license-signature-version") or ""
             req_code = str(self._req_body.get("code", "") or "")
             req_mid = str(self._req_body.get("machineId", "") or "")
-            if version == "3":
+            req_rid = str(self._req_body.get("requestId", "") or "")
+            if version == "4":
+                message = (
+                    f"{ts}.{req_code.strip()}|{req_mid.strip()}|{req_rid.strip()}.".encode() + body
+                )
+            elif version == "3":
                 message = f"{ts}.{req_code.strip()}|{req_mid.strip()}.".encode() + body
             elif version == "1":
                 message = body

@@ -22,12 +22,14 @@ class ActivationManagerClientTest {
     private fun respond(exchange: com.sun.net.httpserver.HttpExchange, body: String, sign: Boolean, secret: String = "test-secret") {
         val sig = if (sign) {
             val ts = System.currentTimeMillis().toString()
-            // 版本协商：按请求声明的版本签名（SDK 声明 3 → 绑定 code|machineId）
+            // 版本协商：按请求声明的版本签名（SDK 声明 4 → 绑定 code|machineId|requestId）
             val version = exchange.requestHeaders.getFirst("x-license-signature-version") ?: ""
             val reqBody = exchange.requestBody.readBytes().toString(StandardCharsets.UTF_8)
             val code = Regex("\"code\"\\s*:\\s*\"([^\"]*)\"").find(reqBody)?.groupValues?.get(1)?.trim() ?: ""
             val mid = Regex("\"machineId\"\\s*:\\s*\"([^\"]*)\"").find(reqBody)?.groupValues?.get(1)?.trim() ?: ""
+            val rid = Regex("\"requestId\"\\s*:\\s*\"([^\"]*)\"").find(reqBody)?.groupValues?.get(1)?.trim() ?: ""
             val message = when (version) {
+                "4" -> "$ts.$code|$mid|$rid.$body"
                 "3" -> "$ts.$code|$mid.$body"
                 "1" -> body
                 else -> "$ts.$body"

@@ -199,7 +199,7 @@ class ActivationManagerClient {
     Object? lastError;
     for (var attempt = 1; attempt <= totalAttempts; attempt++) {
       try {
-        return await _attemptOnce(path, payload, attempt, code, machineId);
+        return await _attemptOnce(path, payload, attempt, code, machineId, requestId ?? '');
       } on ActivationClientException catch (e) {
         lastError = e;
         if (attempt < totalAttempts) {
@@ -211,7 +211,7 @@ class ActivationManagerClient {
   }
 
   Future<ActivationResult> _attemptOnce(String path, Map<String, dynamic> payload,
-      int attempt, String code, String machineId) async {
+      int attempt, String code, String machineId, String requestId) async {
     final url = Uri.parse('${options.baseUrl}${path}');
     final body = jsonEncode(payload);
 
@@ -221,7 +221,7 @@ class ActivationManagerClient {
           .post(url,
               headers: {
                 'Content-Type': 'application/json',
-                'x-license-signature-version': '3',
+                'x-license-signature-version': '4',
                 ...options.headers
               },
               body: body)
@@ -237,7 +237,7 @@ class ActivationManagerClient {
 
     final raw = response.body;
     if (options.responseSecret.isNotEmpty) {
-      _verifySignature(response.headers, raw, code, machineId);
+      _verifySignature(response.headers, raw, code, machineId, requestId);
     }
 
     ActivationResult result;
@@ -257,8 +257,8 @@ class ActivationManagerClient {
     return result;
   }
 
-  void _verifySignature(
-      Map<String, String> headers, String rawBody, String code, String machineId) {
+  void _verifySignature(Map<String, String> headers, String rawBody, String code,
+      String machineId, String requestId) {
     String? get(String name) {
       for (final entry in headers.entries) {
         if (entry.key.toLowerCase() == name) return entry.value;
@@ -282,16 +282,15 @@ class ActivationManagerClient {
       throw ActivationClientException(ActivationErrorKind.signatureExpired,
           'signature timestamp outside window');
     }
-    // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+    // 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|requestId）。
+    // 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+    // 绝不按响应头切换验签算法。
     final version = get('x-license-signature-version') ?? '';
-    final message;
-    if (version == '3') {
-      message = '$ts.${code.trim()}|${machineId.trim()}.$rawBody';
-    } else if (version == '1') {
-      message = rawBody;
-    } else {
-      message = '$ts.$rawBody';
+    if (version != '4') {
+      throw ActivationClientException(ActivationErrorKind.signatureInvalid,
+          'response signature version not supported (anti-downgrade)');
     }
+    final message = '$ts.${code.trim()}|${machineId.trim()}|${requestId.trim()}.$rawBody';
     final expected = Hmac(sha256, utf8.encode(options.responseSecret))
         .convert(utf8.encode(message))
         .toString();

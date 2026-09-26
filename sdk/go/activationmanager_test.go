@@ -124,16 +124,19 @@ func TestSignatureVerification(t *testing.T) {
 	server := startServer(t, func(w http.ResponseWriter, r *http.Request) {
 		body := []byte(`{"success":true,"licenseMode":"TIME","license_mode":"TIME"}`)
 		ts := strconv.FormatInt(time.Now().UnixMilli(), 10)
-		// 模拟服务端版本协商：按请求声明的版本签名（SDK 声明 3 → 绑定 code|machineId）
+		// 模拟服务端版本协商：按请求声明的版本签名（SDK 声明 4 → 绑定 code|machineId|requestId）
 		var reqBody struct {
 			Code      string `json:"code"`
 			MachineID string `json:"machineId"`
+			RequestID string `json:"requestId"`
 		}
 		reqBytes, _ := io.ReadAll(r.Body)
 		_ = json.Unmarshal(reqBytes, &reqBody)
 		version := r.Header.Get(SignatureVersionHeader)
 		var message string
 		switch version {
+		case "4":
+			message = ts + "." + strings.TrimSpace(reqBody.Code) + "|" + strings.TrimSpace(reqBody.MachineID) + "|" + strings.TrimSpace(reqBody.RequestID) + "." + string(body)
 		case "3":
 			message = ts + "." + strings.TrimSpace(reqBody.Code) + "|" + strings.TrimSpace(reqBody.MachineID) + "." + string(body)
 		case "1":

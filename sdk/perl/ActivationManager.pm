@@ -95,7 +95,7 @@ sub _call {
 
     my $last_error;
     for my $attempt (1 .. $total_attempts) {
-        my ($ok, $result_or_error) = $self->_attempt($path, $body, $attempt, $code, $machine_id);
+        my ($ok, $result_or_error) = $self->_attempt($path, $body, $attempt, $code, $machine_id, $request_id);
         return $result_or_error if $ok;
         $last_error = $result_or_error;
         sleep($self->{retry_delay_seconds}) if $attempt < $total_attempts;
@@ -104,13 +104,13 @@ sub _call {
 }
 
 sub _attempt {
-    my ($self, $path, $body, $attempt, $code, $machine_id) = @_;
+    my ($self, $path, $body, $attempt, $code, $machine_id, $request_id) = @_;
 
     my $http = HTTP::Tiny->new(timeout => $self->{timeout_seconds});
     my $response = $http->post(
         $self->{base_url} . $path,
         {
-            headers => { 'Content-Type' => 'application/json', 'x-license-signature-version' => '3', %{$self->{headers}} },
+            headers => { 'Content-Type' => 'application/json', 'x-license-signature-version' => '4', %{$self->{headers}} },
             content => $body,
         },
     );
@@ -136,19 +136,16 @@ sub _attempt {
         _error('SIGNATURE_INVALID', 'invalid signature timestamp') if $ts !~ /^\d+$/;
         my $now_ms = int(time * 1000);
         _error('SIGNATURE_EXPIRED', 'signature timestamp outside window') if abs($now_ms - $ts) > SIGNATURE_MAX_AGE_MS;
-        # 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        # 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|request_id）。
+        # 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+        # 绝不按响应头切换验签算法。
         my $version = $response->{headers}{'x-license-signature-version'} // '';
         $version = (ref $version ? $version->[0] : $version) // '';
-        my $message;
-        if ($version eq '3') {
-            (my $c = $code // '') =~ s/^\s+|\s+$//g;
-            (my $m = $machine_id // '') =~ s/^\s+|\s+$//g;
-            $message = "$ts.$c|$m.$raw";
-        } elsif ($version eq '1') {
-            $message = $raw;
-        } else {
-            $message = "$ts.$raw";
-        }
+        _error('SIGNATURE_INVALID', 'response signature version not supported (anti-downgrade)') if $version ne '4';
+        (my $c = $code // '') =~ s/^\s+|\s+$//g;
+        (my $m = $machine_id // '') =~ s/^\s+|\s+$//g;
+        (my $r = $request_id // '') =~ s/^\s+|\s+$//g;
+        my $message = "$ts.$c|$m|$r.$raw";
         my $expected = hmac_sha256_hex($message, $self->{response_secret});
         _error('SIGNATURE_INVALID', 'response signature mismatch') unless $expected eq $sig;
     }

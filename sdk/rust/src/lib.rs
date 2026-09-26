@@ -207,7 +207,7 @@ impl Client {
 
         let mut last_error: Option<ClientError> = None;
         for attempt in 1..=total_attempts {
-            match self.attempt_once(path, &payload, attempt, code, machine_id) {
+            match self.attempt_once(path, &payload, attempt, code, machine_id, request_id.unwrap_or("")) {
                 Ok(result) => return Ok(result),
                 Err(e) => {
                     last_error = Some(e);
@@ -227,13 +227,14 @@ impl Client {
         attempt: u32,
         code: &str,
         machine_id: &str,
+        request_id: &str,
     ) -> std::result::Result<SdkResult, ClientError> {
         let url = format!("{}{}", self.opts.base_url.trim_end_matches('/'), path);
         let response = self
             .http
             .post(&url)
             .header("Content-Type", "application/json")
-            .header("x-license-signature-version", "3")
+            .header("x-license-signature-version", "4")
             .json(payload)
             .send();
 
@@ -288,6 +289,7 @@ impl Client {
                 &raw,
                 code,
                 machine_id,
+                request_id,
             )?;
         }
 
@@ -317,6 +319,7 @@ impl Client {
         raw_body: &str,
         code: &str,
         machine_id: &str,
+        request_id: &str,
     ) -> Result<(), ClientError> {
         let signature = signature.unwrap_or("");
         let timestamp = timestamp.unwrap_or("");
@@ -348,22 +351,27 @@ impl Client {
         }
         let mut mac = Hmac::<Sha256>::new_from_slice(self.opts.response_secret.as_bytes())
             .expect("HMAC accepts any key length");
-        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
+        // 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|requestId）。
+        // 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+        // 绝不按响应头切换验签算法。
         let version = version.unwrap_or("");
+        if version != "4" {
+            return Err(ClientError {
+                kind: ErrorKind::SignatureInvalid,
+                message: "response signature version not supported (anti-downgrade)".into(),
+                path: String::new(),
+                attempt_count: 1,
+            });
+        }
         mac.update(
-            if version == "3" {
-                format!(
-                    "{}.{}|{}.{}",
-                    timestamp,
-                    code.trim(),
-                    machine_id.trim(),
-                    raw_body
-                )
-            } else if version == "1" {
-                raw_body.to_string()
-            } else {
-                format!("{}.{}", timestamp, raw_body)
-            }
+            format!(
+                "{}.{}|{}|{}.{}",
+                timestamp,
+                code.trim(),
+                machine_id.trim(),
+                request_id.trim(),
+                raw_body
+            )
             .as_bytes(),
         );
         let expected = hex_encode(&mac.finalize().into_bytes());

@@ -38,9 +38,12 @@ my $worker = threads->create(sub {
         $version //= '';
         my $code = $req->{code} // '';
         my $mid = $req->{machineId} // '';
+        my $rid = $req->{requestId} // '';
         $code =~ s/^\s+|\s+$//g;
         $mid =~ s/^\s+|\s+$//g;
-        my $message = $version eq '3' ? "$ts.$code|$mid.$payload"
+        $rid =~ s/^\s+|\s+$//g;
+        my $message = $version eq '4' ? "$ts.$code|$mid|$rid.$payload"
+            : $version eq '3' ? "$ts.$code|$mid.$payload"
             : $version eq '1' ? $payload
             : "$ts.$payload";
         my $sig = hmac_sha256_hex($message, $SECRET);

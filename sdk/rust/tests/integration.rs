@@ -31,7 +31,7 @@ fn start_mock() -> String {
             // 全部响应都带正确签名（验签失败路径由 wrong-secret client 覆盖）
             let mut headers = String::from("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n");
             let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
-            // 版本协商：按请求声明的版本签名（SDK 声明 3 → 绑定 code|machineId）
+            // 版本协商：按请求声明的版本签名（SDK 声明 4 → 绑定 code|machineId|requestId）
             let version = request
                 .to_ascii_lowercase()
                 .split("\r\n")
@@ -41,8 +41,13 @@ fn start_mock() -> String {
                 .unwrap_or_default();
             let code = req.get("code").and_then(|c| c.as_str()).unwrap_or("").trim().to_string();
             let mid = req.get("machineId").and_then(|c| c.as_str()).unwrap_or("").trim().to_string();
+            let rid = req.get("requestId").and_then(|c| c.as_str()).unwrap_or("").trim().to_string();
             let mut mac = Hmac::<Sha256>::new_from_slice(SECRET.as_bytes()).unwrap();
-            if version == "3" {
+            if version == "4" {
+                mac.update(format!("{}.", ts).as_bytes());
+                mac.update(format!("{}|{}|{}.", code, mid, rid).as_bytes());
+                mac.update(payload_str.as_bytes());
+            } else if version == "3" {
                 mac.update(format!("{}.", ts).as_bytes());
                 mac.update(format!("{}|{}.", code, mid).as_bytes());
                 mac.update(payload_str.as_bytes());

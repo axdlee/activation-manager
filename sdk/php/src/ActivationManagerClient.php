@@ -123,7 +123,7 @@ final class ActivationManagerClient
             throw new ActivationManagerClientError('NETWORK_ERROR', 'curl init failed', $path, $attempt);
         }
 
-        $headers = ['Content-Type: application/json', 'x-license-signature-version: 3'];
+        $headers = ['Content-Type: application/json', 'x-license-signature-version: 4'];
         foreach ($this->headers as $name => $value) {
             $headers[] = $name . ': ' . $value;
         }
@@ -153,7 +153,8 @@ final class ActivationManagerClient
                 $headerText,
                 $bodyText,
                 (string)($payload['code'] ?? ''),
-                (string)($payload['machineId'] ?? '')
+                (string)($payload['machineId'] ?? ''),
+                (string)($payload['requestId'] ?? '')
             );
         }
 
@@ -179,7 +180,7 @@ final class ActivationManagerClient
         return [substr($raw, 0, $offset), substr($raw, $offset + 4)];
     }
 
-    private function verifySignature(string $headerText, string $body, string $code = '', string $machineId = ''): void
+    private function verifySignature(string $headerText, string $body, string $code = '', string $machineId = '', string $requestId = ''): void
     {
         $signature = '';
         $timestamp = '';
@@ -204,14 +205,13 @@ final class ActivationManagerClient
         if (abs($this->nowMs() - (int)$timestamp) > self::SIGNATURE_MAX_AGE_MS) {
             throw new ActivationManagerClientError('SIGNATURE_EXPIRED', 'signature timestamp outside window');
         }
-        // 版本协商：'1' 只签 body；'3' 绑定 code|machineId；'2'/未声明签 timestamp.body
-        if ($version === '3') {
-            $message = $timestamp . '.' . trim($code) . '|' . trim($machineId) . '.' . $body;
-        } elseif ($version === '1') {
-            $message = $body;
-        } else {
-            $message = $timestamp . '.' . $body;
+        // 防降级：SDK 声明 v4 并唯一信任 v4（绑定 code|machineId|requestId）。
+        // 攻击者可自行请求低版本签名再转发，响应版本头不是 '4' 一律拒绝，
+        // 绝不按响应头切换验签算法。
+        if ($version !== '4') {
+            throw new ActivationManagerClientError('SIGNATURE_INVALID', 'response signature version not supported (anti-downgrade)');
         }
+        $message = $timestamp . '.' . trim($code) . '|' . trim($machineId) . '|' . trim($requestId) . '.' . $body;
         $expected = hash_hmac('sha256', $message, $this->responseSecret);
         if (!hash_equals($expected, $signature)) {
             throw new ActivationManagerClientError('SIGNATURE_INVALID', 'response signature mismatch');
