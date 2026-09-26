@@ -1,22 +1,44 @@
 /**
- * 批次4（v2.9.0 复查高危项 3）回归：消费趋势方言无关化。
+ * 批次4（v2.9.0 复查高危项 3）回归 + v2.11.0 评审批次 3：消费趋势聚合。
  *
  * 修复前：趋势分桶用 SQLite strftime/unixepoch 原生 SQL，PG 下报错。
- * 修复后：licenseConsumption.findMany 取 createdAt + JS 分桶，
- * 空桶补齐、周桶（周一锚点）、月桶、上一周期对比口径保持不变。
+ * v2.10.0 改为 licenseConsumption.findMany 取 createdAt + JS 分桶。
+ * v2.11.0：分桶进一步下沉为「桶区间并行 count」，窗口内记录不再拉进
+ * 内存；空桶补齐、周桶（周一锚点）、月桶、上一周期对比口径保持不变。
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { getLicenseConsumptionTrend } from '../src/lib/license-analytics-service'
 
-function consumptionAt(iso: string) {
-  return { createdAt: new Date(iso) }
+/** 桶区间 count mock：按 where.AND[1].createdAt.gte 的日期前缀返回计数 */
+function bucketCountMock(countsByStartDate: Record<string, number>, previousRangeCount = 0) {
+  return async (args: Record<string, unknown>) => {
+    const where = args.where as { AND?: Array<Record<string, unknown>> }
+    if (!Array.isArray(where?.AND)) {
+      return previousRangeCount // 上一周期对比的 count（无 AND 包装）
+    }
+    const range = where.AND[1] as { createdAt: { gte: Date; lt: Date } }
+    const key = range.createdAt.gte.toISOString().slice(0, 10)
+    return countsByStartDate[key] ?? 0
+  }
 }
 
-test('日粒度：findMany+JS 分桶，空桶补齐与对比摘要口径不变', async () => {
-  const findManyArgs: Array<Record<string, unknown>> = []
-  let countArg: Record<string, unknown> | undefined
+function bucketRangeOf(args: Record<string, unknown>) {
+  const where = args.where as { AND: Array<Record<string, unknown>> }
+  return where.AND[1] as { createdAt: { gte: Date; lt: Date } }
+}
+
+function baseWhereOf(args: Record<string, unknown>) {
+  const where = args.where as { AND: Array<Record<string, unknown>> }
+  return where.AND[0] as {
+    createdAt: { gte: Date; lte: Date }
+    activationCode?: { projectId: number }
+  }
+}
+
+test('日粒度：桶区间 count，空桶补齐与对比摘要口径不变', async () => {
+  const bucketCountArgs: Array<Record<string, unknown>> = []
 
   const client = {
     $queryRaw: async () => {
@@ -26,17 +48,12 @@ test('日粒度：findMany+JS 分桶，空桶补齐与对比摘要口径不变',
       findUnique: async () => ({ id: 42 }),
     },
     licenseConsumption: {
-      findMany: async (args: Record<string, unknown>) => {
-        findManyArgs.push(args)
-        return [
-          consumptionAt('2026-03-20T08:00:00.000Z'),
-          consumptionAt('2026-03-20T23:59:59.999Z'),
-          consumptionAt('2026-03-22T12:34:56.000Z'),
-        ]
-      },
       count: async (args: Record<string, unknown>) => {
-        countArg = args
-        return 1
+        const where = args.where as { AND?: Array<Record<string, unknown>> }
+        if (Array.isArray(where?.AND)) {
+          bucketCountArgs.push(args)
+        }
+        return bucketCountMock({ '2026-03-20': 2, '2026-03-22': 1 }, 1)(args)
       },
     },
   }
@@ -47,15 +64,18 @@ test('日粒度：findMany+JS 分桶，空桶补齐与对比摘要口径不变',
     now: new Date('2026-03-24T12:00:00.000Z'),
   })
 
-  assert.equal(findManyArgs.length, 1)
-  const where = (findManyArgs[0] as { where: { createdAt: { gte: Date; lte: Date }; activationCode: { projectId: number } } }).where
-  assert.deepEqual(where.createdAt, {
+  assert.equal(bucketCountArgs.length, 7, '每个桶一次 count')
+  const baseWhere = baseWhereOf(bucketCountArgs[0]!)
+  assert.deepEqual(baseWhere.createdAt, {
     gte: new Date('2026-03-18T00:00:00.000Z'),
     lte: new Date('2026-03-24T23:59:59.999Z'),
   })
-  assert.deepEqual(where.activationCode, { projectId: 42 })
-  const countWhere = (countArg as { where: { activationCode: { projectId: number } } }).where
-  assert.deepEqual(countWhere.activationCode, { projectId: 42 })
+  assert.deepEqual(baseWhere.activationCode, { projectId: 42 })
+  const firstBucketRange = bucketRangeOf(bucketCountArgs[0]!)
+  assert.deepEqual(firstBucketRange.createdAt, {
+    gte: new Date('2026-03-18T00:00:00.000Z'),
+    lt: new Date('2026-03-19T00:00:00.000Z'),
+  })
 
   assert.equal(trend.days, 7)
   assert.equal(trend.granularity, 'day')
@@ -89,15 +109,12 @@ test('周粒度：桶锚定周一；月粒度：桶锚定当月 1 号', async ()
       findUnique: async () => null,
     },
     licenseConsumption: {
-      findMany: async () => [
-        // 2026-03-22 是周日 → 归入周一 2026-03-16 桶
-        consumptionAt('2026-03-22T10:00:00.000Z'),
-        // 2026-03-17 周二 → 2026-03-16 桶
-        consumptionAt('2026-03-17T10:00:00.000Z'),
-        // 2026-03-02 → 月桶 2026-03-01
-        consumptionAt('2026-03-02T10:00:00.000Z'),
-      ],
-      count: async () => 0,
+      count: bucketCountMock({
+        // 2026-03-22 周日与 2026-03-17 周二都归入 2026-03-16 周桶；
+        // 2026-03-02 归入 2026-03 月桶
+        '2026-03-16': 2,
+        '2026-03-01': 3,
+      }, 0),
     },
   }
 
@@ -122,7 +139,7 @@ test('周粒度：桶锚定周一；月粒度：桶锚定当月 1 号', async ()
 })
 
 test('projectKey 未命中项目时不带项目过滤（全库趋势）', async () => {
-  const findManyArgs: Array<Record<string, unknown>> = []
+  const bucketCountArgs: Array<Record<string, unknown>> = []
 
   const client = {
     $queryRaw: async () => {
@@ -132,11 +149,13 @@ test('projectKey 未命中项目时不带项目过滤（全库趋势）', async 
       findUnique: async () => null,
     },
     licenseConsumption: {
-      findMany: async (args: Record<string, unknown>) => {
-        findManyArgs.push(args)
-        return []
+      count: async (args: Record<string, unknown>) => {
+        const where = args.where as { AND?: Array<Record<string, unknown>> }
+        if (Array.isArray(where?.AND)) {
+          bucketCountArgs.push(args)
+        }
+        return 0
       },
-      count: async () => 0,
     },
   }
 
@@ -145,6 +164,6 @@ test('projectKey 未命中项目时不带项目过滤（全库趋势）', async 
     now: new Date('2026-03-24T12:00:00.000Z'),
   })
 
-  const where = (findManyArgs[0] as { where: Record<string, unknown> }).where
+  const where = baseWhereOf(bucketCountArgs[0]!)
   assert.equal(where.activationCode, undefined, '无项目过滤时不得携带 activationCode 条件')
 })

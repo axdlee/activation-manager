@@ -87,18 +87,16 @@ public class ActivationManagerClientTests
     public async Task Signature_BadSecret_Rejected()
     {
         // 与 JS/Python 相同语义：正确密钥 HMAC 失败 → SignatureInvalid
-        var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes("test-secret"));
-        var body = "{\"success\":true}";
-        var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
-        var goodSig = Convert.ToHexString(
-            hmac.ComputeHash(Encoding.UTF8.GetBytes($"{ts}.{body}"))).ToLowerInvariant();
-
-        var http = new MockHandler(_ => (200, body,
-            new Dictionary<string, string>
+        var http = new MockHandler(request =>
+        {
+            var (sig, ts) = SignV4(request, "test-secret");
+            return (200, "{\"success\":true}", new Dictionary<string, string>
             {
-                ["x-license-signature"] = goodSig,
+                ["x-license-signature"] = sig,
                 ["x-license-timestamp"] = ts,
-            }));
+                ["x-license-signature-version"] = "4",
+            });
+        });
         var client = new ActivationManagerClient(
             new ActivationManagerClientOptions { BaseUrl = "http://mock", ResponseSecret = "wrong" }, http);
 
@@ -109,22 +107,41 @@ public class ActivationManagerClientTests
     [Fact]
     public async Task Signature_GoodSecret_Passes()
     {
-        var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes("test-secret"));
-        var body = "{\"success\":true}";
-        var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
-        var sig = Convert.ToHexString(
-            hmac.ComputeHash(Encoding.UTF8.GetBytes($"{ts}.{body}"))).ToLowerInvariant();
-
-        var http = new MockHandler(_ => (200, body,
-            new Dictionary<string, string>
+        var http = new MockHandler(request =>
+        {
+            var (sig, ts) = SignV4(request, "test-secret");
+            return (200, "{\"success\":true}", new Dictionary<string, string>
             {
                 ["x-license-signature"] = sig,
                 ["x-license-timestamp"] = ts,
-            }));
+                ["x-license-signature-version"] = "4",
+            });
+        });
         var client = new ActivationManagerClient(
             new ActivationManagerClientOptions { BaseUrl = "http://mock", ResponseSecret = "test-secret" }, http);
 
         var result = await client.StatusAsync("C", "m");
         Assert.True(result.Success);
+    }
+
+    /// <summary>v4 签名桩：消息 = ts + "." + code|machineId|requestId + "." + body（三段 trim，与 SDK 一致）</summary>
+    private static (string Sig, string Ts) SignV4(HttpRequestMessage request, string secret)
+    {
+        var body = request.Content != null
+            ? request.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+            : "";
+        string code = "", machineId = "", requestId = "";
+        using (var doc = System.Text.Json.JsonDocument.Parse(body))
+        {
+            if (doc.RootElement.TryGetProperty("code", out var c)) code = c.GetString() ?? "";
+            if (doc.RootElement.TryGetProperty("machineId", out var m)) machineId = m.GetString() ?? "";
+            if (doc.RootElement.TryGetProperty("requestId", out var r)) requestId = r.GetString() ?? "";
+        }
+        var context = $"{code.Trim()}|{machineId.Trim()}|{requestId.Trim()}";
+        var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        using var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes(secret));
+        var sig = Convert.ToHexString(
+            hmac.ComputeHash(Encoding.UTF8.GetBytes($"{ts}.{context}.{body}"))).ToLowerInvariant();
+        return (sig, ts);
     }
 }

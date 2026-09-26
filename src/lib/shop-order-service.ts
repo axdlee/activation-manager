@@ -27,6 +27,7 @@ export const SHOP_ORDER_MESSAGE_KEYS = {
   orderCancelled: 'shop.orderCancelled',
   orderStateConflict: 'shop.orderStateConflict',
   orderStateConflictFulfill: 'shop.orderStateConflictFulfill',
+  tooManyPendingOrders: 'shop.tooManyPendingOrders',
 } as const
 
 export const SHOP_ORDER_STATUS = {
@@ -68,6 +69,88 @@ function assertQuantityWithinPerOrderLimit(quantity: number, t?: ServerT) {
       t?.(SHOP_ORDER_MESSAGE_KEYS.exceedsMaxQuantity, { max: maxQuantity }) ??
         `单笔订单最多购买 ${maxQuantity} 张`,
       400,
+    )
+  }
+}
+
+export const SHOP_MAX_PENDING_ORDERS_PER_CONTACT_ENV = 'SHOP_MAX_PENDING_ORDERS_PER_CONTACT'
+export const SHOP_MAX_PENDING_ORDERS_PER_CONTACT_DEFAULT = 3
+const SHOP_MAX_PENDING_ORDERS_PER_CONTACT_LIMIT = 100
+
+export const SHOP_MAX_PENDING_ORDERS_PER_IP_ENV = 'SHOP_MAX_PENDING_ORDERS_PER_IP'
+export const SHOP_MAX_PENDING_ORDERS_PER_IP_DEFAULT = 10
+const SHOP_MAX_PENDING_ORDERS_PER_IP_LIMIT = 1000
+
+/**
+ * 同一联系方式待支付订单上限：env 可配（1–100），缺省 3。
+ * 预占已有 TTL 过期，但攻击者仍可循环「锁满 → 等过期 → 再锁」；
+ * 联系方式（邮箱/手机/微信任一命中）是找回卡密的唯一凭证，同一凭证
+ * 的 pending 单数超额即拒绝。已支付/已取消/已履约订单不占额度。
+ */
+export function resolveShopMaxPendingOrdersPerContact(
+  env: Record<string, string | undefined> = process.env,
+): number {
+  const raw = Number(env[SHOP_MAX_PENDING_ORDERS_PER_CONTACT_ENV])
+  if (!Number.isFinite(raw) || raw < 1) {
+    return SHOP_MAX_PENDING_ORDERS_PER_CONTACT_DEFAULT
+  }
+  return Math.min(Math.round(raw), SHOP_MAX_PENDING_ORDERS_PER_CONTACT_LIMIT)
+}
+
+/**
+ * 同一下单 IP 待支付订单上限：env 可配（1–1000），缺省 10。
+ * 防御换着联系方式刷单的行为；clientIp 取 server.js XFF 追加后的
+ * 真实来源，伪造 X-Forwarded-For 已被追加挤位（同机反代修复）。
+ */
+export function resolveShopMaxPendingOrdersPerIp(
+  env: Record<string, string | undefined> = process.env,
+): number {
+  const raw = Number(env[SHOP_MAX_PENDING_ORDERS_PER_IP_ENV])
+  if (!Number.isFinite(raw) || raw < 1) {
+    return SHOP_MAX_PENDING_ORDERS_PER_IP_DEFAULT
+  }
+  return Math.min(Math.round(raw), SHOP_MAX_PENDING_ORDERS_PER_IP_LIMIT)
+}
+
+/** 待支付订单频控：联系方式与 IP 两个维度并列，任一超额即 409 */
+async function assertPendingOrderQuotaWithinLimit(
+  input: Pick<CreateShopOrderInput, 'contactEmail' | 'contactPhone' | 'contactWechat' | 'clientIp'>,
+  t?: ServerT,
+) {
+  const contactCondition = {
+    status: SHOP_ORDER_STATUS.PENDING,
+    OR: [
+      ...(input.contactEmail ? [{ contactEmail: input.contactEmail }] : []),
+      ...(input.contactPhone ? [{ contactPhone: input.contactPhone }] : []),
+      ...(input.contactWechat ? [{ contactWechat: input.contactWechat }] : []),
+    ],
+  }
+  const [pendingByContact, pendingByIp] = await Promise.all([
+    contactCondition.OR.length > 0
+      ? prisma.shopOrder.count({ where: contactCondition })
+      : Promise.resolve(0),
+    input.clientIp
+      ? prisma.shopOrder.count({
+          where: { status: SHOP_ORDER_STATUS.PENDING, clientIp: input.clientIp },
+        })
+      : Promise.resolve(0),
+  ])
+
+  const maxPerContact = resolveShopMaxPendingOrdersPerContact()
+  if (pendingByContact >= maxPerContact) {
+    throw new ShopOrderError(
+      t?.(SHOP_ORDER_MESSAGE_KEYS.tooManyPendingOrders, { max: maxPerContact }) ??
+        `待支付订单过多（上限 ${maxPerContact} 笔），请先完成支付或等待订单过期`,
+      409,
+    )
+  }
+
+  const maxPerIp = resolveShopMaxPendingOrdersPerIp()
+  if (pendingByIp >= maxPerIp) {
+    throw new ShopOrderError(
+      t?.(SHOP_ORDER_MESSAGE_KEYS.tooManyPendingOrders, { max: maxPerIp }) ??
+        `待支付订单过多（上限 ${maxPerIp} 笔），请先完成支付或等待订单过期`,
+      409,
     )
   }
 }
@@ -145,6 +228,7 @@ export type CreateShopOrderInput = {
   contactEmail?: string
   contactPhone?: string
   contactWechat?: string
+  clientIp?: string
   paymentNote?: string
   remark?: string
 }
@@ -202,6 +286,18 @@ export async function createShopOrder(input: CreateShopOrderInput, t?: ServerT) 
     throw new ShopOrderError(t?.(SHOP_ORDER_MESSAGE_KEYS.paymentProviderDisabled) ?? '支付渠道未启用', 400)
   }
 
+  // 待支付订单频控：联系方式/IP 维度超额直接拒绝（联系方式先 trim 规范化，
+  // 与落库值一致），防止「锁满库存 → 等过期 → 再锁」的循环轰炸
+  await assertPendingOrderQuotaWithinLimit(
+    {
+      contactEmail: input.contactEmail?.trim(),
+      contactPhone: input.contactPhone?.trim(),
+      contactWechat: input.contactWechat?.trim(),
+      clientIp: input.clientIp?.trim(),
+    },
+    t,
+  )
+
   // 预定义码商品：事务内「校验库存 + 创建订单 + 预占码池库存」。
   // 预占（AVAILABLE → RESERVED）保证超卖防线名副其实：只剩 1 张码时
   // 第二笔订单会因抢不到预占而失败，而不是两单都成功、付款后才撞售罄。
@@ -251,6 +347,7 @@ export async function createShopOrder(input: CreateShopOrderInput, t?: ServerT) 
           contactEmail: input.contactEmail?.trim() || null,
           contactPhone: input.contactPhone?.trim() || null,
           contactWechat: input.contactWechat?.trim() || null,
+          clientIp: input.clientIp?.trim() || null,
           status: SHOP_ORDER_STATUS.PENDING,
           provider: input.providerId,
           paymentNote: input.paymentNote?.trim() || null,
@@ -305,6 +402,7 @@ export async function createShopOrder(input: CreateShopOrderInput, t?: ServerT) 
       contactEmail: input.contactEmail?.trim() || null,
       contactPhone: input.contactPhone?.trim() || null,
       contactWechat: input.contactWechat?.trim() || null,
+      clientIp: input.clientIp?.trim() || null,
       status: SHOP_ORDER_STATUS.PENDING,
       provider: input.providerId,
       paymentNote: input.paymentNote?.trim() || null,

@@ -135,6 +135,7 @@ const serverMessagesEn: Record<string, string> = {
   'shop.invalidPhone': 'Contact phone number is invalid',
   'shop.invalidWechat': 'WeChat ID is invalid',
   'shop.contactRequired': 'Provide at least one contact (email, phone, or WeChat) for code retrieval',
+  'shop.tooManyPendingOrders': 'Too many pending orders (limit: {max}). Complete a payment or wait for pending orders to expire before retrying',
   'shop.contactQueryRequired': 'Provide the email, phone, or WeChat used when ordering',
   'shop.contactMismatch': 'Contact information does not match this order',
   'shop.orderNoRequired': 'Order number is required',

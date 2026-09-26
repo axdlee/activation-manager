@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { isShopEnabled } from '@/lib/shop-access'
+import { extractClientIp } from '@/lib/client-ip'
 
 import { resolveServerLocale, serverT } from '@/lib/i18n/server'
 import { prisma } from '@/lib/db'
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       contactEmail: body.contactEmail,
       contactPhone: body.contactPhone,
       contactWechat: body.contactWechat,
+      clientIp: extractClientIp(request),
       paymentNote: body.paymentNote,
       remark: body.remark,
     }, t)

@@ -135,6 +135,7 @@ const serverMessagesZh: Record<string, string> = {
   'shop.invalidPhone': '手机号格式不正确',
   'shop.invalidWechat': '微信号格式不正确',
   'shop.contactRequired': '请至少提供邮箱、手机号或微信号中的一种联系方式，用于找回卡密',
+  'shop.tooManyPendingOrders': '待支付订单过多（上限 {max} 笔），请先完成支付或等待订单过期后重试',
   'shop.contactQueryRequired': '请提供下单时留的邮箱、手机号或微信号',
   'shop.contactMismatch': '联系方式与订单不匹配',
   'shop.orderNoRequired': '缺少订单号',

@@ -65,6 +65,21 @@ type ActivationCodeAggregateRow = {
   consumedCount: number
 }
 
+/** 行级过期/活跃判定所需的最小字段集（窄拉查询的返回形状） */
+type ExpirableCodeRow = Pick<
+  ActivationCodeAggregateRow,
+  'projectId' | 'isUsed' | 'licenseMode' | 'usedAt' | 'expiresAt' | 'validDays'
+>
+
+type ProjectCodeStatsAggregates = {
+  totalCodes: number
+  usedCodes: number
+  expiredCodes: number
+  activeCodes: number
+  countRemainingTotal: number
+  countConsumedTotal: number
+}
+
 type ProjectStatsRow = {
   id: number
   name: string
@@ -200,35 +215,23 @@ function formatTrendBucketLabel(date: Date, granularity: LicenseConsumptionTrend
   return formatUtcDateLabel(date)
 }
 
-// ---------- 方言无关聚合（Prisma 查询 + JS 聚合） ----------
+// ---------- 方言无关聚合（Prisma groupBy/count 聚合 + 窄拉行级判定） ----------
 // 历史版本用 SQLite 方言原生 SQL（"isUsed" = 1、createdAt/1000、strftime/unixepoch），
-// PostgreSQL 下看板统计/项目统计/消费趋势全部报错；改为 Prisma findMany 取
-// 最小字段集 + JS 聚合，同一代码路径同时兼容 SQLite 与 PostgreSQL，
-// 并统一过滤 deletedAt（软删除码不再计入统计，低危评审项）。
+// PostgreSQL 下看板统计/项目统计/消费趋势全部报错；v2.10.0 改为 findMany 取
+// 最小字段集 + JS 聚合。但看板/项目统计仍会把全表激活码拉进内存，码量增长后
+// 每次打开看板都是一次全表扫描 + 全量对象分配。v2.11.0 改为：
+// - 可在 DB 内表达的口径全部下沉为 groupBy/_sum/_count 聚合（同参数兼容 SQLite/PG）
+// - 只有「usedAt + validDays 组合到期」这一 DB 方言无法统一表达的行级判定
+//   仍需拉行，且 where 收窄到「已用、非次数码、带到期线索」的子集
+// 口径与全表行级聚合逐行等价（钉住测试：license-stats-aggregation.test.ts；
+// 真实库回归：license-analytics-dialect-free.test.ts）。
 
-const ACTIVATION_CODE_AGGREGATE_SELECT = {
-  projectId: true,
-  isUsed: true,
-  licenseMode: true,
-  usedAt: true,
-  expiresAt: true,
-  validDays: true,
-  remainingCount: true,
-  totalCount: true,
-  consumedCount: true,
-} as const
+const CODE_STATS_BASE_WHERE = { deletedAt: null } as const
 
 const DAY_MILLIS = 24 * 60 * 60 * 1000
 
-async function listAggregateActivationCodes(client: DbClient): Promise<ActivationCodeAggregateRow[]> {
-  return client.activationCode.findMany({
-    where: { deletedAt: null },
-    select: ACTIVATION_CODE_AGGREGATE_SELECT,
-  })
-}
-
 /** 实际到期时间（毫秒）：COUNT 码无到期；TIME 码优先 usedAt+validDays，回退 expiresAt */
-function resolveActualExpiresAtMillis(code: ActivationCodeAggregateRow): number | null {
+function resolveActualExpiresAtMillis(code: ExpirableCodeRow): number | null {
   if (code.licenseMode === 'COUNT') {
     return null
   }
@@ -241,12 +244,7 @@ function resolveActualExpiresAtMillis(code: ActivationCodeAggregateRow): number 
   return null
 }
 
-/** 次数码剩余次数：remainingCount 缺失回退 totalCount，再回退 0 */
-function getRemainingCount(code: ActivationCodeAggregateRow): number {
-  return code.remainingCount ?? code.totalCount ?? 0
-}
-
-function isExpiredCode(code: ActivationCodeAggregateRow, nowMillis: number): boolean {
+function isExpiredCode(code: ExpirableCodeRow, nowMillis: number): boolean {
   const actualExpiresAt = resolveActualExpiresAtMillis(code)
   return (
     code.isUsed &&
@@ -256,9 +254,11 @@ function isExpiredCode(code: ActivationCodeAggregateRow, nowMillis: number): boo
   )
 }
 
-function isActiveCode(code: ActivationCodeAggregateRow, nowMillis: number): boolean {
+function isActiveCode(code: ExpirableCodeRow, nowMillis: number): boolean {
   if (code.licenseMode === 'COUNT') {
-    return getRemainingCount(code) > 0
+    // 窄拉集已排除 COUNT 码（其 active 口径 = 行级剩余 > 0，由 activeCountGroups
+    // 聚合判定），此处仅为类型完备防护
+    return false
   }
   if (!code.isUsed) {
     return true
@@ -270,59 +270,175 @@ function isActiveCode(code: ActivationCodeAggregateRow, nowMillis: number): bool
   return actualExpiresAt >= nowMillis
 }
 
-function computeActivationCodeStats(codes: ActivationCodeAggregateRow[], nowMillis: number) {
-  let usedCodes = 0
-  let expiredCodes = 0
-  let activeCodes = 0
-  for (const code of codes) {
-    if (code.isUsed) {
-      usedCodes += 1
+/**
+ * 按项目聚合激活码统计：DB 内 groupBy/_sum/_count + 窄拉行级到期判定。
+ * 划分与全表行级聚合逐行等价：
+ * - 未用（任意模式）→ active（G1 的 isUsed=false 组）
+ * - COUNT 码 → active 当且仅当行级剩余 > 0（G5；isUsed 与否不影响口径），
+ *   永不计 expired；剩余合计 = ΣremainingCount(非空) + ΣtotalCount(remaining 空组，
+ *   行级回退 remainingCount ?? totalCount ?? 0 的分组等价拆分)
+ * - 非 COUNT 已用且无任何到期线索（usedAt/expiresAt 全空）→ 恒 active（G6）
+ * - 非 COUNT 已用且带到期线索（usedAt 或 expiresAt 非空）→ 窄拉行级判定
+ */
+async function aggregateCodeStatsByProject(
+  client: DbClient,
+  nowMillis: number,
+): Promise<Map<number, ProjectCodeStatsAggregates>> {
+  const [
+    usageGroups,
+    unusedNonCountGroups,
+    remainingSumGroups,
+    remainingFallbackSumGroups,
+    consumedSumGroups,
+    activeCountGroups,
+    noExpiryUsedGroups,
+    expirableRows,
+  ] = await Promise.all([
+    client.activationCode.groupBy({
+      by: ['projectId', 'isUsed'],
+      where: CODE_STATS_BASE_WHERE,
+      _count: { _all: true },
+    }),
+    client.activationCode.groupBy({
+      by: ['projectId'],
+      where: { ...CODE_STATS_BASE_WHERE, isUsed: false, licenseMode: { not: 'COUNT' } },
+      _count: { _all: true },
+    }),
+    client.activationCode.groupBy({
+      by: ['projectId'],
+      where: { ...CODE_STATS_BASE_WHERE, licenseMode: 'COUNT', remainingCount: { not: null } },
+      _sum: { remainingCount: true },
+    }),
+    client.activationCode.groupBy({
+      by: ['projectId'],
+      where: { ...CODE_STATS_BASE_WHERE, licenseMode: 'COUNT', remainingCount: null },
+      _sum: { totalCount: true },
+    }),
+    client.activationCode.groupBy({
+      by: ['projectId'],
+      where: { ...CODE_STATS_BASE_WHERE, licenseMode: 'COUNT' },
+      _sum: { consumedCount: true },
+    }),
+    client.activationCode.groupBy({
+      by: ['projectId'],
+      where: {
+        ...CODE_STATS_BASE_WHERE,
+        licenseMode: 'COUNT',
+        OR: [
+          { remainingCount: { gt: 0 } },
+          { AND: [{ remainingCount: null }, { totalCount: { gt: 0 } }] },
+        ],
+      },
+      _count: { _all: true },
+    }),
+    client.activationCode.groupBy({
+      by: ['projectId'],
+      where: {
+        ...CODE_STATS_BASE_WHERE,
+        isUsed: true,
+        licenseMode: { not: 'COUNT' },
+        usedAt: null,
+        expiresAt: null,
+      },
+      _count: { _all: true },
+    }),
+    client.activationCode.findMany({
+      where: {
+        ...CODE_STATS_BASE_WHERE,
+        isUsed: true,
+        licenseMode: { not: 'COUNT' },
+        OR: [{ usedAt: { not: null } }, { expiresAt: { not: null } }],
+      },
+      select: {
+        projectId: true,
+        isUsed: true,
+        licenseMode: true,
+        usedAt: true,
+        expiresAt: true,
+        validDays: true,
+      },
+    }),
+  ])
+
+  const buckets = new Map<number, ProjectCodeStatsAggregates>()
+
+  function bucketOf(projectId: number): ProjectCodeStatsAggregates {
+    let bucket = buckets.get(projectId)
+    if (!bucket) {
+      bucket = {
+        totalCodes: 0,
+        usedCodes: 0,
+        expiredCodes: 0,
+        activeCodes: 0,
+        countRemainingTotal: 0,
+        countConsumedTotal: 0,
+      }
+      buckets.set(projectId, bucket)
     }
-    if (isExpiredCode(code, nowMillis)) {
-      expiredCodes += 1
+    return bucket
+  }
+
+  for (const group of usageGroups) {
+    const bucket = bucketOf(group.projectId)
+    bucket.totalCodes += group._count._all
+    if (group.isUsed) {
+      bucket.usedCodes += group._count._all
     }
-    if (isActiveCode(code, nowMillis)) {
-      activeCodes += 1
+    // 未用行的 active 计数由 unusedNonCountGroups（非 COUNT）与
+    // activeCountGroups（COUNT，行级剩余 > 0）分别承担，避免 COUNT
+    // 未用行在 G1 与 G5 重复计入
+  }
+
+  for (const group of unusedNonCountGroups) {
+    bucketOf(group.projectId).activeCodes += group._count._all
+  }
+
+  for (const group of remainingSumGroups) {
+    bucketOf(group.projectId).countRemainingTotal += group._sum.remainingCount ?? 0
+  }
+  for (const group of remainingFallbackSumGroups) {
+    bucketOf(group.projectId).countRemainingTotal += group._sum.totalCount ?? 0
+  }
+  for (const group of consumedSumGroups) {
+    bucketOf(group.projectId).countConsumedTotal += group._sum.consumedCount ?? 0
+  }
+  for (const group of activeCountGroups) {
+    bucketOf(group.projectId).activeCodes += group._count._all
+  }
+  for (const group of noExpiryUsedGroups) {
+    bucketOf(group.projectId).activeCodes += group._count._all
+  }
+
+  for (const row of expirableRows) {
+    const bucket = bucketOf(row.projectId)
+    if (isExpiredCode(row, nowMillis)) {
+      bucket.expiredCodes += 1
+    }
+    if (isActiveCode(row, nowMillis)) {
+      bucket.activeCodes += 1
     }
   }
-  return {
-    totalCodes: codes.length,
-    usedCodes,
-    expiredCodes,
-    activeCodes,
-  }
+
+  return buckets
 }
 
 async function listProjectStatsRows(client: DbClient, now: Date): Promise<ProjectStatsRow[]> {
-  const nowMillis = now.getTime()
-  const [projects, codes] = await Promise.all([
+  const [projects, statsByProject] = await Promise.all([
     client.project.findMany({
       select: { id: true, name: true, projectKey: true, isEnabled: true, createdAt: true },
       orderBy: [{ isEnabled: 'desc' }, { createdAt: 'asc' }],
     }),
-    listAggregateActivationCodes(client),
+    aggregateCodeStatsByProject(client, now.getTime()),
   ])
 
-  const codesByProject = new Map<number, ActivationCodeAggregateRow[]>()
-  for (const code of codes) {
-    const bucket = codesByProject.get(code.projectId)
-    if (bucket) {
-      bucket.push(code)
-    } else {
-      codesByProject.set(code.projectId, [code])
-    }
-  }
-
   return projects.map((project) => {
-    const projectCodes = codesByProject.get(project.id) ?? []
-    const stats = computeActivationCodeStats(projectCodes, nowMillis)
-    let countRemainingTotal = 0
-    let countConsumedTotal = 0
-    for (const code of projectCodes) {
-      if (code.licenseMode === 'COUNT') {
-        countRemainingTotal += getRemainingCount(code)
-        countConsumedTotal += code.consumedCount
-      }
+    const stats = statsByProject.get(project.id) ?? {
+      totalCodes: 0,
+      usedCodes: 0,
+      expiredCodes: 0,
+      activeCodes: 0,
+      countRemainingTotal: 0,
+      countConsumedTotal: 0,
     }
     return {
       id: project.id,
@@ -333,8 +449,8 @@ async function listProjectStatsRows(client: DbClient, now: Date): Promise<Projec
       usedCodes: stats.usedCodes,
       expiredCodes: stats.expiredCodes,
       activeCodes: stats.activeCodes,
-      countRemainingTotal,
-      countConsumedTotal,
+      countRemainingTotal: stats.countRemainingTotal,
+      countConsumedTotal: stats.countConsumedTotal,
     }
   })
 }
@@ -360,20 +476,37 @@ async function listLicenseConsumptionTrendBuckets(
     granularity: LicenseConsumptionTrendGranularity
   },
 ): Promise<Map<string, number>> {
-  const rows = await client.licenseConsumption.findMany({
-    where: buildLicenseConsumptionWhereClause({
-      projectId: input.projectId,
-      createdFrom: input.rangeStart,
-      createdTo: input.rangeEnd,
-    }),
-    select: { createdAt: true },
+  const baseWhere = buildLicenseConsumptionWhereClause({
+    projectId: input.projectId,
+    createdFrom: input.rangeStart,
+    createdTo: input.rangeEnd,
   })
 
-  const bucketCountMap = new Map<string, number>()
-  for (const row of rows) {
-    const bucketKey = formatUtcDateKey(getTrendBucketStart(row.createdAt, input.granularity))
-    bucketCountMap.set(bucketKey, (bucketCountMap.get(bucketKey) ?? 0) + 1)
+  // 先按桶边界生成区间，再逐桶 count（count 下沉 DB，不再把窗口内记录拉进内存；
+  // LicenseConsumption 有 [createdAt, id] 索引，桶数受 days 上限约束）
+  const bucketRanges: Array<{ key: string; start: Date; end: Date }> = []
+  let cursor = getTrendBucketStart(input.rangeStart, input.granularity)
+  while (cursor <= input.rangeEnd) {
+    const bucketStart = new Date(cursor)
+    const bucketEnd = getNextTrendBucketStart(bucketStart, input.granularity)
+    bucketRanges.push({ key: formatUtcDateKey(bucketStart), start: bucketStart, end: bucketEnd })
+    cursor = bucketEnd
   }
+
+  const counts = await Promise.all(
+    bucketRanges.map((range) =>
+      client.licenseConsumption.count({
+        where: {
+          AND: [baseWhere, { createdAt: { gte: range.start, lt: range.end } }],
+        },
+      }),
+    ),
+  )
+
+  const bucketCountMap = new Map<string, number>()
+  bucketRanges.forEach((range, index) => {
+    bucketCountMap.set(range.key, counts[index])
+  })
   return bucketCountMap
 }
 
@@ -471,15 +604,20 @@ export async function getLicenseConsumptionTrend(
 }
 
 export async function getActivationCodeStats(client: DbClient): Promise<ActivationCodeStats> {
-  const codes = await listAggregateActivationCodes(client)
-  const stats = computeActivationCodeStats(codes, Date.now())
+  const statsByProject = await aggregateCodeStatsByProject(client, Date.now())
 
-  return {
-    total: stats.totalCodes,
-    used: stats.usedCodes,
-    expired: stats.expiredCodes,
-    active: stats.activeCodes,
+  let total = 0
+  let used = 0
+  let expired = 0
+  let active = 0
+  for (const stats of statsByProject.values()) {
+    total += stats.totalCodes
+    used += stats.usedCodes
+    expired += stats.expiredCodes
+    active += stats.activeCodes
   }
+
+  return { total, used, expired, active }
 }
 
 export async function listProjectStats(client: DbClient): Promise<ProjectStats[]> {

@@ -207,6 +207,7 @@ model ShopOrder {
   contactEmail       String?
   contactPhone       String?
   contactWechat      String?
+  clientIp           String?     // 下单来源 IP（server.js 追加后取倒数第 N 个），用于待支付订单频控
   status             String      @default("pending")
   provider           String      // manual | webhook
   paymentNote        String?     // 支付备注/交易号
@@ -219,6 +220,7 @@ model ShopOrder {
 
   @@index([status, createdAt])
   @@index([contactEmail])
+  @@index([clientIp, status])
   @@index([orderNo])
   @@map("shop_orders")
 }
