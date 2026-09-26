@@ -166,3 +166,8 @@ sdk/c/*.o
 sdk/c/test_client
 sdk/cpp/test_client
 .next-bootstrap/
+
+# docker 本地构建产物（勿提交）
+sdk/csharp/bin/
+sdk/csharp/obj/
+sdk/kotlin/target/
