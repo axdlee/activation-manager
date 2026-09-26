@@ -108,7 +108,7 @@ class ActivationManagerClient(private val options: Options) {
         var lastError: ClientException? = null
         for (attempt in 1..totalAttempts) {
             try {
-                return attemptOnce(path, payload, attempt, code, machineId, requestId)
+                return attemptOnce(path, payload, attempt, code, machineId, requestId ?: "")
             } catch (e: ClientException) {
                 lastError = e
                 if (attempt < totalAttempts) Thread.sleep(options.retryDelayMs)

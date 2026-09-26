@@ -58,7 +58,7 @@ function activationCodeMock(rows: StatsRow[], collectors: { groupByArgs?: unknow
       collectors.groupByArgs?.push(args)
       const by = args.by as string[]
       const where = (args.where ?? {}) as Record<string, unknown>
-      const selected = rows.filter((row) => baseWhere(where))
+      const selected = rows.filter(() => baseWhere(where))
 
       // G1：usage 计数（by 含 isUsed）
       if (by.includes('isUsed')) {
@@ -131,7 +131,7 @@ function activationCodeMock(rows: StatsRow[], collectors: { groupByArgs?: unknow
       const where = (args.where ?? {}) as Record<string, unknown>
       const or = (where.OR ?? []) as Array<Record<string, unknown>>
       return rows
-        .filter((row) => baseWhere(where))
+        .filter(() => baseWhere(where))
         .filter((row) => row.isUsed && row.licenseMode !== 'COUNT')
         .filter((row) => or.some((clause) => (clause.usedAt !== undefined && row.usedAt !== null) || (clause.expiresAt !== undefined && row.expiresAt !== null)))
         .map((row) => ({

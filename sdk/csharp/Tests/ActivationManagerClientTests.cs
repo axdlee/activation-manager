@@ -89,8 +89,9 @@ public class ActivationManagerClientTests
         // 与 JS/Python 相同语义：正确密钥 HMAC 失败 → SignatureInvalid
         var http = new MockHandler(request =>
         {
-            var (sig, ts) = SignV4(request, "test-secret");
-            return (200, "{\"success\":true}", new Dictionary<string, string>
+            var responseBody = "{\"success\":true}";
+            var (sig, ts) = SignV4(request, responseBody, "test-secret");
+            return (200, responseBody, new Dictionary<string, string>
             {
                 ["x-license-signature"] = sig,
                 ["x-license-timestamp"] = ts,
@@ -109,8 +110,9 @@ public class ActivationManagerClientTests
     {
         var http = new MockHandler(request =>
         {
-            var (sig, ts) = SignV4(request, "test-secret");
-            return (200, "{\"success\":true}", new Dictionary<string, string>
+            var responseBody = "{\"success\":true}";
+            var (sig, ts) = SignV4(request, responseBody, "test-secret");
+            return (200, responseBody, new Dictionary<string, string>
             {
                 ["x-license-signature"] = sig,
                 ["x-license-timestamp"] = ts,
@@ -124,14 +126,17 @@ public class ActivationManagerClientTests
         Assert.True(result.Success);
     }
 
-    /// <summary>v4 签名桩：消息 = ts + "." + code|machineId|requestId + "." + body（三段 trim，与 SDK 一致）</summary>
-    private static (string Sig, string Ts) SignV4(HttpRequestMessage request, string secret)
+    /// <summary>
+    /// v4 签名桩：上下文（code|machineId|requestId，三段 trim）取自请求体，
+    /// body 段为响应体——与服务端签名语义一致。
+    /// </summary>
+    private static (string Sig, string Ts) SignV4(HttpRequestMessage request, string responseBody, string secret)
     {
-        var body = request.Content != null
+        var requestJson = request.Content != null
             ? request.Content.ReadAsStringAsync().GetAwaiter().GetResult()
             : "";
         string code = "", machineId = "", requestId = "";
-        using (var doc = System.Text.Json.JsonDocument.Parse(body))
+        using (var doc = System.Text.Json.JsonDocument.Parse(requestJson))
         {
             if (doc.RootElement.TryGetProperty("code", out var c)) code = c.GetString() ?? "";
             if (doc.RootElement.TryGetProperty("machineId", out var m)) machineId = m.GetString() ?? "";
@@ -141,7 +146,7 @@ public class ActivationManagerClientTests
         var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
         using var hmac = new System.Security.Cryptography.HMACSHA256(Encoding.UTF8.GetBytes(secret));
         var sig = Convert.ToHexString(
-            hmac.ComputeHash(Encoding.UTF8.GetBytes($"{ts}.{context}.{body}"))).ToLowerInvariant();
+            hmac.ComputeHash(Encoding.UTF8.GetBytes($"{ts}.{context}.{responseBody}"))).ToLowerInvariant();
         return (sig, ts);
     }
 }
