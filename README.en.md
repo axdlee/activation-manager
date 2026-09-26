@@ -118,7 +118,7 @@ npm start
 
 ```bash
 # Published image (:latest kept in sync)
-docker pull xdlee/activation-manager:v2.10.0
+docker pull xdlee/activation-manager:v2.11.0
 
 # Or one command with compose (SQLite volume included)
 docker compose up -d
@@ -129,7 +129,7 @@ docker compose up -d
 Official PostgreSQL image variant (schema built with the postgresql provider):
 
 ```bash
-docker pull xdlee/activation-manager:v2.10.0-postgres
+docker pull xdlee/activation-manager:v2.11.0-postgres
 ```
 
 ## GitHub Actions → DockerHub
